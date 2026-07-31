@@ -1,0 +1,220 @@
+record_type: '31'
+record_name: Third Party Payer Data 17
+record_length: 192
+order: 6
+preceding_rules:
+- corresponding Record Type 30 preceding it with the same sequence number.
+- ◆ Preceding Record Type 30
+following_rules:
+- ◆ Following Record Types 30 or 40
+record_rules:
+- ◆ There must be at least one Record Type 31. There can be a maximum of
+- three Record Types 31. For every Record Type 31, there must be a
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘31’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 902
+  calculated_length: 2
+  canonical_name: record_type_must_be_31
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be 01 - 03. Must have a preceding Record Type 30 with the same
+    sequence number.
+  allowed_values:
+  - Must be 01 - 03. Must have a preceding Record
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 904
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: 'Must be equal to the preceding 20-03 Patient Control Number. Insured’s
+    Address (Fields 4 - 8) - The current mailing address of the insured. See Exhibit
+    # 2'
+  allowed_values:
+  - Must be equal to the preceding 20-03 Patient
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 908
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 42
+  cobol_picture: X(18)
+  requirement_code: C
+  field_name: Insured’s Address - Line 1
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 915
+  calculated_length: 18
+  canonical_name: insured_s_address_line_1
+- field_number: '05'
+  start_position: 43
+  end_position: 54
+  cobol_picture: X(12)
+  requirement_code: C
+  field_name: Insured’s Address - Line 2
+  description: 05A 55 60 X(6) N Filler - Unused record space.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - 05A 55 60 X(6) N Filler - Unused record space.
+  source_line: 917
+  calculated_length: 12
+  canonical_name: insured_s_address_line_2
+- field_number: '06'
+  start_position: 61
+  end_position: 75
+  cobol_picture: X(15)
+  requirement_code: C
+  field_name: Insured’s City
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 921
+  calculated_length: 15
+  canonical_name: insured_s_city
+- field_number: '07'
+  start_position: 76
+  end_position: 77
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Insured’s State
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 923
+  calculated_length: 2
+  canonical_name: insured_s_state
+- field_number: 08
+  start_position: 78
+  end_position: 86
+  cobol_picture: X(9)
+  requirement_code: C
+  field_name: Insured’s Zip Code
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 925
+  calculated_length: 9
+  canonical_name: insured_s_zip_code
+- field_number: 09
+  start_position: 87
+  end_position: 110
+  cobol_picture: X(24)
+  requirement_code: O
+  field_name: Employer Name
+  description: 'The name of the employer that provides health care coverage. Employer
+    Address (Fields 10 - 13) - The address of the employer. Exhibit # 2 Standard Address
+    Checks.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 927
+  calculated_length: 24
+  canonical_name: employer_name
+- field_number: '10'
+  start_position: 111
+  end_position: 128
+  cobol_picture: X(18)
+  requirement_code: C
+  field_name: Employer Address
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 934
+  calculated_length: 18
+  canonical_name: employer_address
+- field_number: '11'
+  start_position: 129
+  end_position: 143
+  cobol_picture: X(15)
+  requirement_code: C
+  field_name: Employer City
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 936
+  calculated_length: 15
+  canonical_name: employer_city
+- field_number: '12'
+  start_position: 144
+  end_position: 145
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Employer State
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 938
+  calculated_length: 2
+  canonical_name: employer_state
+- field_number: '13'
+  start_position: 146
+  end_position: 154
+  cobol_picture: X(9)
+  requirement_code: C
+  field_name: Employer Zip Code
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 940
+  calculated_length: 9
+  canonical_name: employer_zip_code
+- field_number: '14'
+  start_position: 155
+  end_position: 177
+  cobol_picture: X(23)
+  requirement_code: N
+  field_name: ICN/DCN
+  description: The Internal Control Number or Document Control Number assigned to
+    the original claim by the payer. Not used.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 942
+  calculated_length: 23
+  canonical_name: icn_dcn
+- field_number: '15'
+  start_position: 178
+  end_position: 192
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: Claim ID
+  description: An identification number assigned by the submitter to identify the
+    claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 947
+  calculated_length: 15
+  canonical_name: claim_id

@@ -1,0 +1,20 @@
+policy_version: extraction-v2
+status: FROZEN
+frozen_on: "2026-07-30"
+page_router_policy: router_frozen_v1
+reconciliation_policy: reconciliation_v2.1
+candidate_generation_status: no_remaining_actionable_defects
+safety:
+  critical_false_accept_target: 0
+  handwritten_unverified: HUMAN_REVIEW_REQUIRED
+  reference_blocked: HUMAN_REVIEW_REQUIRED
+  semantic_disagreement: SPECIFICATION_OR_BUSINESS_REVIEW
+  cross_field_po_box_repair:
+    disposition: REVIEW_ONLY
+    automatically_acceptable: false
+    authorization_required:
+      - authorized_address_provider
+      - approved_documented_business_rule
+holdout:
+  rerun_permitted: false
+  reason: policies_frozen_pending_external_review_and_reference_inputs

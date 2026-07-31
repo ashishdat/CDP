@@ -1,0 +1,767 @@
+record_type: EA0
+record_name: Claim Data
+record_length: 320
+order: 9
+preceding_rules: []
+following_rules: []
+record_rules:
+- One EA0 record is required, and only one is allowed, for each commercial
+- claim.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be "EA0"
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1029
+  calculated_length: 3
+  canonical_name: record_id_must_be_ea0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Unused Reserved Record Space. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1031
+  calculated_length: 2
+  canonical_name: unused_reserved_record_space_blank_fill
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1033
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 23
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Employment Related Indicator
+  description: 'Code Values: Y = Employment related N = Not employment related U =
+    Unknown'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1038
+  calculated_length: 1
+  canonical_name: employment_related_indicator
+- field_number: '05.0'
+  start_position: 24
+  end_position: 24
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Accident Indicator
+  description: 'Code Values: A = Auto accident N = No accident O = Other, non-auto
+    accident'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1045
+  calculated_length: 1
+  canonical_name: accident_indicator
+- field_number: '06.0'
+  start_position: 25
+  end_position: 27
+  cobol_picture: X(03)
+  requirement_code: N
+  field_name: Symptom Date Indicator - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1052
+  calculated_length: 3
+  canonical_name: symptom_date_indicator_not_used_may_be
+- field_number: '07.0'
+  start_position: 28
+  end_position: 35
+  cobol_picture: X(08)
+  requirement_code: C
+  field_name: Accident/Symptom Date
+  description: 'If accident indicator (EA0-05.0) = A or O, give date of accident.
+    If symptom indicator (EA0- 06.0) = 1 or 2, 431 or 484 enter date of symptom or
+    LMP. See General Instructions for Date entry. If not used, blank fill. Note: If
+    a date is entered in this field, then either EA0-05.0 must = A or O, or EA0-06.0
+    must = 1, 2, 431 or 484'
+  allowed_values: []
+  conditional_rules:
+  - If accident indicator (EA0-05.0) = A or O,
+  - give date of accident. If symptom indicator (EA0-
+  - If not used, blank fill.
+  - 'Note: If a date is entered in this field, then either EA0-05.0 must = A or'
+  formatting_notes:
+  - give date of accident. If symptom indicator (EA0-
+  - 06.0) = 1 or 2, 431 or 484 enter date of symptom
+  - or LMP. See General Instructions for Date entry.
+  - If not used, blank fill.
+  - 'Note: If a date is entered in this field, then either EA0-05.0 must = A or'
+  source_line: 1056
+  calculated_length: 8
+  canonical_name: accident_symptom_date
+- field_number: '08.0'
+  start_position: 36
+  end_position: 40
+  cobol_picture: X(05)
+  requirement_code: N
+  field_name: External Cause Of Accident - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 1066
+  calculated_length: 5
+  canonical_name: external_cause_of_accident_not_used_blank
+- field_number: '09.0'
+  start_position: 41
+  end_position: 41
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Responsibility Indicator - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1070
+  calculated_length: 1
+  canonical_name: responsibility_indicator_not_used_may_be
+- field_number: '10.0'
+  start_position: 42
+  end_position: 43
+  cobol_picture: X(02)
+  requirement_code: C
+  field_name: Accident State
+  description: If EA0-05.0 = A, submit 2 character state code indicating where auto
+    accident occurred. Blank fill.
+  allowed_values: []
+  conditional_rules:
+  - If EA0-05.0 = A, submit 2 character state code
+  formatting_notes:
+  - fill.
+  source_line: 1074
+  calculated_length: 2
+  canonical_name: accident_state
+- field_number: '11.0'
+  start_position: 44
+  end_position: 45
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Accident Hour - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1079
+  calculated_length: 2
+  canonical_name: accident_hour_not_used_may_be_blank
+- field_number: '12.0'
+  start_position: 46
+  end_position: 46
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Abuse Indicator - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1081
+  calculated_length: 1
+  canonical_name: abuse_indicator_not_used_may_be_blank
+- field_number: '13.0'
+  start_position: 47
+  end_position: 47
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Release Of Information Indicator - Not used
+  description: May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1083
+  calculated_length: 1
+  canonical_name: release_of_information_indicator_not_used
+- field_number: '14.0'
+  start_position: 48
+  end_position: 55
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Release Of Information Date - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1086
+  calculated_length: 8
+  canonical_name: release_of_information_date_not_used_may_be
+- field_number: '15.0'
+  start_position: 56
+  end_position: 58
+  cobol_picture: X(03)
+  requirement_code: C
+  field_name: Other Date Qualifier - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1089
+  calculated_length: 3
+  canonical_name: other_date_qualifier_not_used_may_be_blank
+- field_number: '16.0'
+  start_position: 59
+  end_position: 66
+  cobol_picture: X(08)
+  requirement_code: C
+  field_name: Other Date – Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1093
+  calculated_length: 8
+  canonical_name: other_date_not_used_may_be_blank
+- field_number: '17.0'
+  start_position: 67
+  end_position: 67
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Disability Type - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1095
+  calculated_length: 1
+  canonical_name: disability_type_not_used_may_be_blank
+- field_number: '18.0'
+  start_position: 68
+  end_position: 75
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Disability - From Date - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1097
+  calculated_length: 8
+  canonical_name: disability_from_date_not_used_may_be
+- field_number: '19.0'
+  start_position: 76
+  end_position: 83
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Disability - To Date - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1100
+  calculated_length: 8
+  canonical_name: disability_to_date_not_used_may_be_blank
+- field_number: '20.0'
+  start_position: 84
+  end_position: 85
+  cobol_picture: X(02)
+  requirement_code: C
+  field_name: Referring/Other Provider Qualifier
+  description: '- Not used. May be blank.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1102
+  calculated_length: 2
+  canonical_name: referring_other_provider_qualifier
+- field_number: '21.0'
+  start_position: 86
+  end_position: 105
+  cobol_picture: X(20)
+  requirement_code: C
+  field_name: Referring/Other Provider Last Name
+  description: See General Instruction for Name 1 entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1110
+  calculated_length: 20
+  canonical_name: referring_other_provider_last_name
+- field_number: '22.0'
+  start_position: 106
+  end_position: 117
+  cobol_picture: X(12)
+  requirement_code: C
+  field_name: Referring/Other Provider First Name
+  description: See General Instruction for Name 1 entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1114
+  calculated_length: 12
+  canonical_name: referring_other_provider_first_name
+- field_number: '23.0'
+  start_position: 118
+  end_position: 118
+  cobol_picture: X(01)
+  requirement_code: O
+  field_name: Referring/Other Provider Middle Initial
+  description: See General Instruction for Name 1 entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1118
+  calculated_length: 1
+  canonical_name: referring_other_provider_middle_initial
+- field_number: '24.0'
+  start_position: 119
+  end_position: 120
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Referring/Other Provider State - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1122
+  calculated_length: 2
+  canonical_name: referring_other_provider_state_not_used_may
+- field_number: '25.0'
+  start_position: 121
+  end_position: 122
+  cobol_picture: X(02)
+  requirement_code: C
+  field_name: Referring/Other ID Qualifier - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1125
+  calculated_length: 2
+  canonical_name: referring_other_id_qualifier_not_used_may
+- field_number: '26.0'
+  start_position: 123
+  end_position: 139
+  cobol_picture: X(17)
+  requirement_code: C
+  field_name: Referring/Other ID Number
+  description: The identification number for the referring/other provider. May be
+    blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1128
+  calculated_length: 17
+  canonical_name: referring_other_id_number
+- field_number: '27.0'
+  start_position: 140
+  end_position: 149
+  cobol_picture: X(10)
+  requirement_code: C
+  field_name: Referring/Other Provider NPI
+  description: The NPI of the referring/other provider. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1132
+  calculated_length: 10
+  canonical_name: referring_other_provider_npi
+- field_number: '28.0'
+  start_position: 150
+  end_position: 157
+  cobol_picture: X(08)
+  requirement_code: C
+  field_name: Admission Date
+  description: Use if services submitted were performed while the patient was confined
+    in a health care facility. If entered, must be a valid date. May be blank.
+  allowed_values:
+  - facility. If entered, must be a valid date. May
+  conditional_rules:
+  - Use if services submitted were performed while
+  - facility. If entered, must be a valid date. May
+  formatting_notes:
+  - facility. If entered, must be a valid date. May
+  source_line: 1136
+  calculated_length: 8
+  canonical_name: admission_date
+- field_number: '29.0'
+  start_position: 158
+  end_position: 165
+  cobol_picture: X(08)
+  requirement_code: C
+  field_name: Discharge Date
+  description: Use if services submitted were performed while the patient was confined
+    in a health care facility. If entered, must be valid date. May be blank.
+  allowed_values:
+  - facility. If entered, must be valid date. May be
+  conditional_rules:
+  - Use if services submitted were performed while
+  - facility. If entered, must be valid date. May be
+  formatting_notes:
+  - facility. If entered, must be valid date. May be
+  source_line: 1143
+  calculated_length: 8
+  canonical_name: discharge_date
+- field_number: '30.0'
+  start_position: 166
+  end_position: 166
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Laboratory Indicator
+  description: 'Refer to NSF for information. Values: Y or N. May not be blank.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - 'Refer to NSF for information. Values: Y or N.'
+  source_line: 1150
+  calculated_length: 1
+  canonical_name: laboratory_indicator
+- field_number: '31.0'
+  start_position: 167
+  end_position: 173
+  cobol_picture: 9(05)V99
+  requirement_code: O
+  field_name: Laboratory Charges - May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1154
+  calculated_length: 7
+  canonical_name: laboratory_charges_may_be_blank
+- field_number: '32.0'
+  start_position: 174
+  end_position: 180
+  cobol_picture: X(07)
+  requirement_code: R
+  field_name: Diagnosis Code 1
+  description: ICD code. Do not use decimal point. Alpha characters must be in upper
+    case. May not be blank
+  allowed_values:
+  - characters must be in upper case. May not be
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1156
+  calculated_length: 7
+  canonical_name: diagnosis_code_1
+- field_number: '33.0'
+  start_position: 181
+  end_position: 187
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 2
+  description: Do not use decimal point. Alpha characters must be in upper case. May
+    be blank.
+  allowed_values:
+  - must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1161
+  calculated_length: 7
+  canonical_name: diagnosis_code_2
+- field_number: '34.0'
+  start_position: 188
+  end_position: 194
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 3
+  description: Do not use decimal point. Alpha characters must be in upper case. May
+    be blank.
+  allowed_values:
+  - must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1165
+  calculated_length: 7
+  canonical_name: diagnosis_code_3
+- field_number: '35.0'
+  start_position: 195
+  end_position: 201
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 4
+  description: Do not use decimal point. Alpha characters must be in upper case. May
+    be blank.
+  allowed_values:
+  - must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1170
+  calculated_length: 7
+  canonical_name: diagnosis_code_4
+- field_number: '36.0'
+  start_position: 202
+  end_position: 202
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Provider Assignment Indicator
+  description: 'Indicates whether the provider accepted Medicare’s assignment. Code
+    Values: A = Assigned N = Not Assigned'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1175
+  calculated_length: 1
+  canonical_name: provider_assignment_indicator
+- field_number: '37.0'
+  start_position: 203
+  end_position: 203
+  cobol_picture: X(01)
+  requirement_code: O
+  field_name: Provider Signature Indicator
+  description: 'May be blank. Code Values: Y = Signature of provider is on file N
+    = Signature of provider is NOT on file'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1188
+  calculated_length: 1
+  canonical_name: provider_signature_indicator
+- field_number: '38.0'
+  start_position: 204
+  end_position: 211
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Provider Signature Date - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1194
+  calculated_length: 8
+  canonical_name: provider_signature_date_not_used_may_be
+- field_number: '39.0'
+  start_position: 212
+  end_position: 244
+  cobol_picture: X(33)
+  requirement_code: C
+  field_name: Facility/Laboratory Name
+  description: Name of Hospital, Nursing facility, Laboratory or other facility where
+    the services on this claim were rendered. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1197
+  calculated_length: 33
+  canonical_name: facility_laboratory_name
+- field_number: '40.0'
+  start_position: 245
+  end_position: 245
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Documentation Indicator
+  description: 'Accept Assignment indicator (HICF box 27). May be blank Values: Y
+    = Yes N = No'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1202
+  calculated_length: 1
+  canonical_name: documentation_indicator
+- field_number: '41.0'
+  start_position: 246
+  end_position: 246
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Type Of Documentation - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1207
+  calculated_length: 1
+  canonical_name: type_of_documentation_not_used_may_be
+- field_number: '42.0'
+  start_position: 247
+  end_position: 248
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Functional Status Code - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1210
+  calculated_length: 2
+  canonical_name: functional_status_code_not_used_may_be
+- field_number: '43.0'
+  start_position: 249
+  end_position: 250
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Special Program Indicator - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1213
+  calculated_length: 2
+  canonical_name: special_program_indicator_not_used_may_be
+- field_number: '44.0'
+  start_position: 251
+  end_position: 251
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Champus Non-Availability Indicator - Not used
+  description: May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1216
+  calculated_length: 1
+  canonical_name: champus_non_availability_indicator_not_used
+- field_number: '45.0'
+  start_position: 252
+  end_position: 252
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Supervising Provider Indicator - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1219
+  calculated_length: 1
+  canonical_name: supervising_provider_indicator_not_used_may
+- field_number: '46.0'
+  start_position: 253
+  end_position: 253
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Resubmission Code
+  description: For resubmission of a prior claim. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1222
+  calculated_length: 1
+  canonical_name: resubmission_code
+- field_number: '47.0'
+  start_position: 254
+  end_position: 271
+  cobol_picture: X(18)
+  requirement_code: N
+  field_name: Resubmission Reference Number - May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1226
+  calculated_length: 18
+  canonical_name: resubmission_reference_number_may_be_blank
+- field_number: '48.0'
+  start_position: 272
+  end_position: 279
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Date Last Seen By Physician - Not Used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1228
+  calculated_length: 8
+  canonical_name: date_last_seen_by_physician_not_used_may_be
+- field_number: '49.0'
+  start_position: 280
+  end_position: 287
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Date Documentation Sent - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1231
+  calculated_length: 8
+  canonical_name: date_documentation_sent_not_used_may_be
+- field_number: '50.0'
+  start_position: 288
+  end_position: 288
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: Homebound Indicator
+  description: 'Indicates whether an independent lab rendered services to a homebound
+    patient. May be blank. Code Values: Y = Patient is homebound N = Patient is not
+    homebound'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1234
+  calculated_length: 1
+  canonical_name: homebound_indicator
+- field_number: '51.0'
+  start_position: 289
+  end_position: 298
+  cobol_picture: X(10)
+  requirement_code: N
+  field_name: Filler - National - Unused reserved space for
+  description: National use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - National use. Blank fill.
+  source_line: 1241
+  calculated_length: 10
+  canonical_name: filler_national_unused_reserved_space_for
+- field_number: '52.0'
+  start_position: 299
+  end_position: 315
+  cobol_picture: X(17)
+  requirement_code: N
+  field_name: Filler – Local - Unused reserved space for
+  description: Local use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Local use. Blank fill.
+  source_line: 1244
+  calculated_length: 17
+  canonical_name: filler_local_unused_reserved_space_for
+- field_number: '53.0'
+  start_position: 316
+  end_position: 316
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: ICD Version
+  description: An indicator which denotes the version of the International Classification
+    of Diseases (ICD). 0=ICD10 9=ICD9 Space = default value
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1247
+  calculated_length: 1
+  canonical_name: icd_version
+- field_number: '54.0'
+  start_position: 317
+  end_position: 320
+  cobol_picture: X(04)
+  requirement_code: N
+  field_name: Filler – Local - Unused reserved space for
+  description: Local use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Local use. Blank fill.
+  source_line: 1255
+  calculated_length: 4
+  canonical_name: filler_local_unused_reserved_space_for

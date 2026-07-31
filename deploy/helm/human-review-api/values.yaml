@@ -1,0 +1,47 @@
+replicaCount: 2
+
+image:
+  repository: idp-claims-platform-human-review-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+command: ["uvicorn", "apps.human_review_api.main:app", "--host", "0.0.0.0", "--port", "8001"]
+
+service:
+  type: ClusterIP
+  port: 8001
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+env:
+  OBJECT_STORE_BUCKET: "idp-documents"
+  OBJECT_STORE_USE_SSL: "false"
+  DEFAULT_TENANT_ID: "default"
+
+# See ingestion-api's values.yaml comment -- same convention.
+secretName: idp-human-review-api-secrets
+
+serviceAccount:
+  create: true
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8001"
+  prometheus.io/path: "/metrics"

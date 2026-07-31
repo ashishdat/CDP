@@ -1,0 +1,25 @@
+# GPU OCR/layout-model pool (LayoutLMv3, Table Transformer). Authored
+# ahead of the worker's own consumer entrypoint and Helm chart -- see
+# standard-form-extraction-worker-scaledobject.yaml's header for why.
+# A GPU node pool / nodeSelector-taint pairing belongs on the Deployment
+# this targets, not here -- KEDA only controls replica count.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: unstructured-extraction-worker-scaler
+  namespace: idp-claims-platform
+spec:
+  scaleTargetRef:
+    name: idp-unstructured-extraction-worker
+  minReplicaCount: 0
+  maxReplicaCount: 4  # GPU capacity is typically scarcer/costlier than CPU
+  cooldownPeriod: 120
+  pollingInterval: 15
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.idp-claims-platform.svc.cluster.local:9092
+        consumerGroup: unstructured-extraction-worker
+        topic: extraction.unstructured.requested
+        lagThreshold: "5"
+        activationLagThreshold: "1"

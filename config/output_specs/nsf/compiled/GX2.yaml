@@ -1,0 +1,10 @@
+record_type: GX2
+record_name: Oxygen Certification Record --
+record_length: 320
+order: 29
+preceding_rules: []
+following_rules: []
+record_rules:
+- Facility Information for Oxygen
+- This record is not used for commercial claims.
+fields: []

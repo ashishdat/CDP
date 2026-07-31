@@ -1,0 +1,359 @@
+record_type: '20'
+record_name: Patient Data 9
+record_length: 192
+order: 2
+preceding_rules:
+- ◆ Preceding record types 10, 90 or 91.
+following_rules:
+- ◆ All records following up through record type 91 must have the same
+- ◆ Following record types 21 or 30.
+record_rules:
+- ◆ This record is required.
+- Patient Control Number.
+- ◆ Do not repeat record type 10, if multiple patient claims for same
+- provider (unless batching by type of bill).
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- 'Patient Address (Fields 12-16) - The address of the patient. See Exhibit #'
+- 2 Standard Address Checks
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘20’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 381
+  calculated_length: 2
+  canonical_name: record_type_must_be_20
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: X(2)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 383
+  calculated_length: 2
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Unique alpha-numeric ID assigned by the provider.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 385
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 44
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Last Name
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 389
+  calculated_length: 20
+  canonical_name: patient_last_name
+- field_number: '05'
+  start_position: 45
+  end_position: 53
+  cobol_picture: X(9)
+  requirement_code: R
+  field_name: Patient First Name
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 391
+  calculated_length: 9
+  canonical_name: patient_first_name
+- field_number: '06'
+  start_position: 54
+  end_position: 54
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: Patient Middle Initial
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 393
+  calculated_length: 1
+  canonical_name: patient_middle_initial
+- field_number: '07'
+  start_position: 55
+  end_position: 55
+  cobol_picture: X(1)
+  requirement_code: R
+  field_name: Patient Sex
+  description: 'Values: M = Male F = Female U = Unknown'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 395
+  calculated_length: 1
+  canonical_name: patient_sex
+- field_number: 08
+  start_position: 56
+  end_position: 63
+  cobol_picture: 9(8)
+  requirement_code: R
+  field_name: Patient Birthdate
+  description: Must be less than or equal to 20-19 Statement Covers Period From Date.
+    Must be a valid date and in MMDDCCYY format.
+  allowed_values:
+  - Must be less than or equal to 20-19 Statement
+  - Covers Period From Date. Must be a valid date
+  conditional_rules: []
+  formatting_notes:
+  - Covers Period From Date. Must be a valid date
+  - and in MMDDCCYY format.
+  source_line: 401
+  calculated_length: 8
+  canonical_name: patient_birthdate
+- field_number: 09
+  start_position: 64
+  end_position: 64
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: Patient Marital Status
+  description: 'Code Values: S = Single M = Married P = Life Partner X = Legally Separated
+    D = Divorced W = Widowed U = Unknown 10 65 65 X(1) R/I Type of Admission Identifies
+    the priority of this admission. Must equal 1, 2, 3, 4 or 9 if 10-02 Type of Batch
+    is inpatient. Code Values: 1 = Emergency 2 = Urgent 3 = Elective 4 = Newborn 5
+    - 8 = Reserved 9 = Information Not Available 11 66 66 X(1) R/I Source of Admission
+    Indicates the source of this admission. See Exhibit #4 for valid code values and
+    descriptions. If 20-10 Type of Admission = 1, 2, 3, or 9 then Source of Admission
+    must equal 1, 2, 3, 4, 5, 6, 7, 8, 9 or A. If 20-10 Type of Admission = 4 then
+    Source of Admission must equal 1, 2, 3, 4 or 9.'
+  allowed_values: []
+  conditional_rules:
+  - Must equal 1, 2, 3, 4 or 9 if 10-02 Type of
+  - If 20-10 Type of Admission = 1, 2, 3, or 9
+  - 5, 6, 7, 8, 9 or A. If 20-10 Type of Admission
+  formatting_notes:
+  - 9 = Information Not Available
+  source_line: 406
+  calculated_length: 1
+  canonical_name: patient_marital_status
+- field_number: '12'
+  start_position: 67
+  end_position: 84
+  cobol_picture: X(18)
+  requirement_code: R
+  field_name: Patient Address Line 1
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 447
+  calculated_length: 18
+  canonical_name: patient_address_line_1
+- field_number: '13'
+  start_position: 85
+  end_position: 96
+  cobol_picture: X(12)
+  requirement_code: C
+  field_name: Patient Address Line 2
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 449
+  calculated_length: 12
+  canonical_name: patient_address_line_2
+- field_number: '14'
+  start_position: 97
+  end_position: 111
+  cobol_picture: X(15)
+  requirement_code: R
+  field_name: Patient City
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 451
+  calculated_length: 15
+  canonical_name: patient_city
+- field_number: '15'
+  start_position: 112
+  end_position: 113
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Patient State
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 453
+  calculated_length: 2
+  canonical_name: patient_state
+- field_number: '16'
+  start_position: 114
+  end_position: 122
+  cobol_picture: X(9)
+  requirement_code: R
+  field_name: Patient Zip Code
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 455
+  calculated_length: 9
+  canonical_name: patient_zip_code
+- field_number: '17'
+  start_position: 123
+  end_position: 130
+  cobol_picture: 9(8)
+  requirement_code: R
+  field_name: Admission/Start of Care Date
+  description: 'Date patient was admitted for inpatient, outpatient or start of care.
+    Must be less than or equal to 20-19 Statement Covers Period From date. Format
+    CCYYMMDD. 18 131 132 X(2) R/I Admission Hour Indicates the hour that the patient
+    was admitted for inpatient or outpatient care. See Exhibit # 1 for values.'
+  allowed_values:
+  - outpatient or start of care. Must be less than
+  conditional_rules: []
+  formatting_notes:
+  - Date patient was admitted for inpatient,
+  - date. Format CCYYMMDD.
+  source_line: 457
+  calculated_length: 8
+  canonical_name: admission_start_of_care_date
+- field_number: '19'
+  start_position: 133
+  end_position: 140
+  cobol_picture: 9(8)
+  requirement_code: R
+  field_name: Statement Covers Period From Date
+  description: 'The first service date of the period included on this claim. Format
+    = CCYYMMDD. Must be equal to or greater than 20- 17 Admission/ Start of Care.
+    See Exhibit # 1.'
+  allowed_values:
+  - CCYYMMDD. Must be equal to or greater than 20-
+  conditional_rules: []
+  formatting_notes:
+  - The first service date of the period included
+  - on this claim. Format =
+  source_line: 468
+  calculated_length: 8
+  canonical_name: statement_covers_period_from_date
+- field_number: '20'
+  start_position: 141
+  end_position: 148
+  cobol_picture: 9(8)
+  requirement_code: R
+  field_name: Statement Covers Period Thru Date
+  description: 'The last service date of the period included on this claim. Format
+    = CCYYMMDD. Must be greater than or equal to 20-19 Statement From Date. Must be
+    less than or equal to 01-20 Processing Date. Statement Thru Date century and year
+    must equal 20-19 Statement From Date century and year. 21 149 150 9(2) R/I Patient
+    Status Indicates patient’s status as of the THROUGH date. See Exhibit # 4 for
+    valid values and descriptions.'
+  allowed_values:
+  - CCYYMMDD. Must be greater than or equal to 20-19
+  - Statement From Date. Must be less than or equal
+  - 'date. See Exhibit # 4 for valid values and'
+  conditional_rules: []
+  formatting_notes:
+  - The last service date of the period included
+  - on this claim. Format =
+  - Statement From Date. Must be less than or equal
+  - to 01-20 Processing Date.
+  - Statement Thru Date century and year must
+  - equal 20-19 Statement From Date century and
+  - 'date. See Exhibit # 4 for valid values and'
+  source_line: 474
+  calculated_length: 8
+  canonical_name: statement_covers_period_thru_date
+- field_number: '22'
+  start_position: 151
+  end_position: 152
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Discharge Hour
+  description: 'Identifies the hour patient was discharged. Must be entered if 10-02
+    Type of Batch = X10, X11, X14, or X17 and 20-19 Statement From Date = 20-20 Statement
+    Thru Date. See Exhibit # 1 for valid values.'
+  allowed_values:
+  - Must be entered if 10-02 Type of Batch = X10,
+  - for valid values.
+  conditional_rules:
+  - Must be entered if 10-02 Type of Batch = X10,
+  formatting_notes:
+  - X11, X14, or X17 and 20-19 Statement From Date
+  - '= 20-20 Statement Thru Date. See Exhibit # 1'
+  source_line: 491
+  calculated_length: 2
+  canonical_name: discharge_hour
+- field_number: '23'
+  start_position: 153
+  end_position: 162
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Patient Payment Received
+  description: Amount patient has paid to the provider towards this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 498
+  calculated_length: 10
+  canonical_name: patient_payment_received
+- field_number: '24'
+  start_position: 163
+  end_position: 172
+  cobol_picture: S9(8)V99
+  requirement_code: N
+  field_name: Patient Estimated Amount Due
+  description: The amount estimated by the provider which is due from the patient
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 502
+  calculated_length: 10
+  canonical_name: patient_estimated_amount_due
+- field_number: '25'
+  start_position: 173
+  end_position: 189
+  cobol_picture: X(17)
+  requirement_code: C
+  field_name: Medical Record Number
+  description: Assigned by provider. Must be entered if different than 20-03 Patient
+    Control Number.
+  allowed_values:
+  - Assigned by provider. Must be entered if
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 506
+  calculated_length: 17
+  canonical_name: medical_record_number
+- field_number: '26'
+  start_position: 190
+  end_position: 192
+  cobol_picture: X(3)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 510
+  calculated_length: 3
+  canonical_name: filler_national_use_unused_record_space

@@ -1,0 +1,463 @@
+record_type: '60'
+record_name: IP Ancillary Services Data 28
+record_length: 192
+order: 13
+preceding_rules:
+- ▪ Preceding record types 40, 41, 46, 50 or 60
+following_rules:
+- ▪ Following record types 60, 66, or 70
+record_rules:
+- ▪ Record Type 60 is conditional. Must be entered for inpatient late
+- charge claims if RT 50 is not present. A late charge is identified by a
+- 10-02 Type of Batch containing a value of xx5. Must be entered for
+- inpatient claims if there are ancillary charges associated with the
+- claim. At least one line item must be entered.
+- ▪ There may be a maximum of 99 Record Type 60 per claim. Each occurrence
+- of RT 60 may contain up to three line items, for a total of up to 297
+- ancillaries per claim.
+- ▪ Record Type 60 may not be included on outpatient claims.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- 81 136 9(56) C Inpatient Ancillaries - 2
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘60’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1542
+  calculated_length: 2
+  canonical_name: record_type_must_be_60
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be equal to 01 - 99.
+  allowed_values:
+  - Must be equal to 01 - 99.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1544
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must equal the preceding 20-03 Patient Control Number. Inpatient Ancillaries
+    (occurs 3 times) 25 80 9(56) R Inpatient Ancillaries - 1 04 25 28 9(4) R/I Inpatient
+    Ancillaries Revenue Code - 1 Ancillary revenue codes are 002 - 099 and 220 - 999.
+    See Exhibit 9 for valid values and descriptions. Revenue code 001 is required
+    as a summary for every claim and must be the last revenue code on a claim. Only
+    one revenue code 001 may be entered per claim and it may not be the first ancillary
+    line item if 60-02 = 01. Revenue codes 001 - 099 are not included in Record Types
+    90, 95, or 99 control totals, but are for informational purposes only.
+  allowed_values:
+  - '- 999. See Exhibit 9 for valid values and'
+  - every claim and must be the last revenue code
+  conditional_rules:
+  - ancillary line item if 60-02 = 01. Revenue
+  formatting_notes:
+  - informational purposes only.
+  source_line: 1547
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '05'
+  start_position: 29
+  end_position: 33
+  cobol_picture: X(5)
+  requirement_code: C
+  field_name: HCPCS Procedure Code - 1
+  description: Common Procedure Code System applicable to the ancillary service.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1569
+  calculated_length: 5
+  canonical_name: hcpcs_procedure_code_1
+- field_number: '06'
+  start_position: 34
+  end_position: 35
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 1 (HCPCS & CPT-4) - 1
+  description: Must be entered if applicable to procedure.
+  allowed_values:
+  - Must be entered if applicable to procedure.
+  conditional_rules:
+  - Must be entered if applicable to procedure.
+  formatting_notes: []
+  source_line: 1573
+  calculated_length: 2
+  canonical_name: modifier_1_hcpcs_cpt_4_1
+- field_number: '07'
+  start_position: 36
+  end_position: 37
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 2 (HCPCS & CPT-4) - 1
+  description: Must be entered if applicable to procedure.
+  allowed_values:
+  - Must be entered if applicable to procedure.
+  conditional_rules:
+  - Must be entered if applicable to procedure.
+  formatting_notes: []
+  source_line: 1576
+  calculated_length: 2
+  canonical_name: modifier_2_hcpcs_cpt_4_1
+- field_number: 08
+  start_position: 38
+  end_position: 44
+  cobol_picture: 9(7)
+  requirement_code: C
+  field_name: Inpatient Ancillary Units of Service - 1
+  description: 'Number of units for the service See Exhibit # 9 for when required.'
+  allowed_values: []
+  conditional_rules:
+  - 9 for when required.
+  formatting_notes: []
+  source_line: 1579
+  calculated_length: 7
+  canonical_name: inpatient_ancillary_units_of_service_1
+- field_number: 09
+  start_position: 45
+  end_position: 54
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Inpatient Ancillary Total Charges - 1
+  description: Total line charges for the Inpatient Ancillary service.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1583
+  calculated_length: 10
+  canonical_name: inpatient_ancillary_total_charges_1
+- field_number: '10'
+  start_position: 55
+  end_position: 64
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Inpatient Ancillary Noncov. Charges - 1
+  description: Non-covered Inpatient Ancillary charges for the primary payer.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1587
+  calculated_length: 10
+  canonical_name: inpatient_ancillary_noncov_charges_1
+- field_number: '11'
+  start_position: 65
+  end_position: 68
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Form Locator 49 – 1 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1591
+  calculated_length: 4
+  canonical_name: form_locator_49_1_not_used_blank_fill
+- field_number: '12'
+  start_position: 69
+  end_position: 76
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Inpatient Ancillary Service Date - 1
+  description: The date of service in CCYYMMDD format. May only be entered if 60-04
+    Revenue Code-1 has been entered. May not be greater than the 20- 20. May not be
+    greater than 72 hours prior to the 20-17.
+  allowed_values: []
+  conditional_rules:
+  - only be entered if 60-04 Revenue Code-1 has
+  formatting_notes:
+  - The date of service in CCYYMMDD format. May
+  source_line: 1593
+  calculated_length: 8
+  canonical_name: inpatient_ancillary_service_date_1
+- field_number: '13'
+  start_position: 77
+  end_position: 80
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record
+  description: space.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1600
+  calculated_length: 4
+  canonical_name: filler_national_use_unused_record
+- field_number: '14'
+  start_position: 81
+  end_position: 84
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Inpatient Ancillaries Revenue Code - 2
+  description: Refer to 60-04 Inpatient Ancillary Revenue Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1612
+  calculated_length: 4
+  canonical_name: inpatient_ancillaries_revenue_code_2
+- field_number: '15'
+  start_position: 85
+  end_position: 89
+  cobol_picture: X(5)
+  requirement_code: C
+  field_name: HCPCS Procedure Code - 2
+  description: Refer to 60-05 HCPCS Procedure Code -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1616
+  calculated_length: 5
+  canonical_name: hcpcs_procedure_code_2
+- field_number: '16'
+  start_position: 90
+  end_position: 91
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 1 (HCPCS & CPT-4) - 2
+  description: Refer to 60-06 Modifier - 1 - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1619
+  calculated_length: 2
+  canonical_name: modifier_1_hcpcs_cpt_4_2
+- field_number: '17'
+  start_position: 92
+  end_position: 93
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 2 (HCPCS & CPT-4) - 2
+  description: Refer to 60-07 Modifier - 2 - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1622
+  calculated_length: 2
+  canonical_name: modifier_2_hcpcs_cpt_4_2
+- field_number: '18'
+  start_position: 94
+  end_position: 100
+  cobol_picture: 9(7)
+  requirement_code: C
+  field_name: Inpatient Ancillary Units of Service - 2
+  description: Refer to 60-08 Inpatient Ancillary Units of Service - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1625
+  calculated_length: 7
+  canonical_name: inpatient_ancillary_units_of_service_2
+- field_number: '19'
+  start_position: 101
+  end_position: 110
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Inpatient Ancillary Total Charges - 2
+  description: Refer to 60-09 Inpatient Ancillary Total Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1629
+  calculated_length: 10
+  canonical_name: inpatient_ancillary_total_charges_2
+- field_number: '20'
+  start_position: 111
+  end_position: 120
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Inpatient Ancillary Noncov. Chrges - 2
+  description: Refer to 60-10 Inpatient Ancillary Noncovered Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1633
+  calculated_length: 10
+  canonical_name: inpatient_ancillary_noncov_chrges_2
+- field_number: '21'
+  start_position: 121
+  end_position: 124
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Form Locator 49 – 2 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1637
+  calculated_length: 4
+  canonical_name: form_locator_49_2_not_used_blank_fill
+- field_number: '22'
+  start_position: 125
+  end_position: 132
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Inpatient Ancillary Service Date - 2
+  description: Refer to 60-12 Inpatient Ancillary Service Date - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Date - 1.
+  source_line: 1639
+  calculated_length: 8
+  canonical_name: inpatient_ancillary_service_date_2
+- field_number: '23'
+  start_position: 133
+  end_position: 136
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: 137 192 9(56) C Inpatient Ancillaries - 3
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1643
+  calculated_length: 4
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '24'
+  start_position: 137
+  end_position: 140
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Inpatient Ancillaries Revenue Code - 3
+  description: Refer to 60-04 Inpatient Ancillary Revenue Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1647
+  calculated_length: 4
+  canonical_name: inpatient_ancillaries_revenue_code_3
+- field_number: '25'
+  start_position: 141
+  end_position: 145
+  cobol_picture: X(5)
+  requirement_code: C
+  field_name: HCPCS Procedure Code - 3
+  description: Refer to 60-05 HCPCS Procedure Code -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1651
+  calculated_length: 5
+  canonical_name: hcpcs_procedure_code_3
+- field_number: '26'
+  start_position: 146
+  end_position: 147
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 1 (HCPCS & CPT-4) - 3
+  description: Refer to 60-06 Modifier - 1 - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1654
+  calculated_length: 2
+  canonical_name: modifier_1_hcpcs_cpt_4_3
+- field_number: '27'
+  start_position: 148
+  end_position: 149
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 2 (HCPCS & CPT-4) - 3
+  description: Refer to 60-07 Modifier - 2 - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1657
+  calculated_length: 2
+  canonical_name: modifier_2_hcpcs_cpt_4_3
+- field_number: '28'
+  start_position: 150
+  end_position: 156
+  cobol_picture: 9(7)
+  requirement_code: C
+  field_name: Inpatient Ancillary Units of Service - 3
+  description: Refer to 60-08 Inpatient Ancillary Units of Service - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1660
+  calculated_length: 7
+  canonical_name: inpatient_ancillary_units_of_service_3
+- field_number: '29'
+  start_position: 157
+  end_position: 166
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Inpatient Ancillary Total Charges - 3
+  description: Refer to 60-09 Inpatient Ancillary Total Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1664
+  calculated_length: 10
+  canonical_name: inpatient_ancillary_total_charges_3
+- field_number: '30'
+  start_position: 167
+  end_position: 176
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Inpatient Ancillary Noncov. Chrges - 3
+  description: Refer to 60-10 Inpatient Ancillary Noncovered Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1668
+  calculated_length: 10
+  canonical_name: inpatient_ancillary_noncov_chrges_3
+- field_number: '31'
+  start_position: 177
+  end_position: 180
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Form Locator 49 – 3 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1672
+  calculated_length: 4
+  canonical_name: form_locator_49_3_not_used_blank_fill
+- field_number: '32'
+  start_position: 181
+  end_position: 188
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Inpatient Ancillary Service Date - 3
+  description: Refer to 60-12 Inpatient Ancillary Service Date - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Date - 1.
+  source_line: 1674
+  calculated_length: 8
+  canonical_name: inpatient_ancillary_service_date_3
+- field_number: '33'
+  start_position: 189
+  end_position: 192
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1678
+  calculated_length: 4
+  canonical_name: filler_national_use_unused_record_space

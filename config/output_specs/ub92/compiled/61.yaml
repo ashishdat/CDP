@@ -1,0 +1,458 @@
+record_type: '61'
+record_name: Outpatient Procedures 30
+record_length: 192
+order: 14
+preceding_rules:
+- ▪ Preceding record types 40, 41, 46 or 61
+following_rules:
+- ▪ Following record types 61, 66, or 70
+record_rules:
+- ▪ Record Type 61 is required for outpatient claims. There may be a
+- maximum of 99 RT 61 per claim. Each occurrence of RT 61 may contain up to
+- three service line items, for a total of up to 297 services per claim.
+- ▪ Record Type 61 may not be included on inpatient claims
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘61’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1693
+  calculated_length: 2
+  canonical_name: record_type_must_be_61
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be equal to 01 through 99.
+  allowed_values:
+  - Must be equal to 01 through 99.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1695
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: 'Must equal the preceding 20-03 Patient Control Number. Revenue Center
+    (occurs 3 times) 25 80 9(56) R Revenue Center - 1 04 25 28 9(4) R/O Revenue Code
+    - 1 Outpatient revenue codes are 002 - 099 & 220 - 999. See Exhibit # 9 Revenue
+    Codes and Unit Requirements for valid values & descriptions. Revenue code 001
+    is required as a summary for every claim and must be the last revenue code on
+    a claim. Only one revenue code 001 may be entered per claim and it may not be
+    the first service line item if 61-02 = 01. Revenue codes 001 - 099 are not included
+    in Record Types 90, 95, or 99 control totals, but are for informational purposes
+    only.'
+  allowed_values:
+  - Requirements for valid values & descriptions.
+  - every claim and must be the last revenue code
+  conditional_rules:
+  - service line item if 61-02 = 01. Revenue codes
+  formatting_notes:
+  - informational purposes only.
+  source_line: 1698
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '05'
+  start_position: 29
+  end_position: 33
+  cobol_picture: X(5)
+  requirement_code: C
+  field_name: HCPCS Procedure Code - 1
+  description: Common Procedure Code System applicable to the outpatient service.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1720
+  calculated_length: 5
+  canonical_name: hcpcs_procedure_code_1
+- field_number: '06'
+  start_position: 34
+  end_position: 35
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 1 (HCPCS & CPT-4) - 1
+  description: Must be entered if applicable to procedure.
+  allowed_values:
+  - Must be entered if applicable to procedure.
+  conditional_rules:
+  - Must be entered if applicable to procedure.
+  formatting_notes: []
+  source_line: 1724
+  calculated_length: 2
+  canonical_name: modifier_1_hcpcs_cpt_4_1
+- field_number: '07'
+  start_position: 36
+  end_position: 37
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 2 (HCPCS & CPT-4) - 1
+  description: Must be entered if applicable to procedure.
+  allowed_values:
+  - Must be entered if applicable to procedure.
+  conditional_rules:
+  - Must be entered if applicable to procedure.
+  formatting_notes: []
+  source_line: 1727
+  calculated_length: 2
+  canonical_name: modifier_2_hcpcs_cpt_4_1
+- field_number: 08
+  start_position: 38
+  end_position: 44
+  cobol_picture: 9(7)
+  requirement_code: C
+  field_name: Units of Service - 1
+  description: 'Number of units for the service. See Exhibit # 9 for when required.'
+  allowed_values: []
+  conditional_rules:
+  - 9 for when required.
+  formatting_notes: []
+  source_line: 1730
+  calculated_length: 7
+  canonical_name: units_of_service_1
+- field_number: 09
+  start_position: 45
+  end_position: 50
+  cobol_picture: X(6)
+  requirement_code: N
+  field_name: Form Locator 49 – 1 -Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1734
+  calculated_length: 6
+  canonical_name: form_locator_49_1_not_used_blank_fill
+- field_number: '10'
+  start_position: 51
+  end_position: 60
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Outpatient Total Charges - 1
+  description: Total line charges for the Outpatient service.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1736
+  calculated_length: 10
+  canonical_name: outpatient_total_charges_1
+- field_number: '11'
+  start_position: 61
+  end_position: 70
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Outpatient Noncovered Charges - 1
+  description: Non-covered Outpatient charges for the primary payer.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1739
+  calculated_length: 10
+  canonical_name: outpatient_noncovered_charges_1
+- field_number: '12'
+  start_position: 71
+  end_position: 78
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Date of Service - 1
+  description: Service date in CCYYMMDD format. Enter if 61- 04 Revenue Code -1 has
+    been entered. May not be greater than the 20-20. May not be greater than 72 hours
+    prior to the 20-17.
+  allowed_values: []
+  conditional_rules:
+  - Service date in CCYYMMDD format. Enter if 61-
+  formatting_notes:
+  - Service date in CCYYMMDD format. Enter if 61-
+  source_line: 1743
+  calculated_length: 8
+  canonical_name: date_of_service_1
+- field_number: '13'
+  start_position: 79
+  end_position: 80
+  cobol_picture: X(2)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: 81 136 9(56) C Revenue Center - 2
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1749
+  calculated_length: 2
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '14'
+  start_position: 81
+  end_position: 84
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Revenue Code - 2
+  description: Refer to 61-04 Revenue Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1753
+  calculated_length: 4
+  canonical_name: revenue_code_2
+- field_number: '15'
+  start_position: 85
+  end_position: 89
+  cobol_picture: X(5)
+  requirement_code: C
+  field_name: HCPCS Procedure Code - 2
+  description: Refer to 61-05 HCPCS Procedure Code -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1756
+  calculated_length: 5
+  canonical_name: hcpcs_procedure_code_2
+- field_number: '16'
+  start_position: 90
+  end_position: 91
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 1 (HCPCS & CPT-4) - 2
+  description: Refer to 61-06 Modifier - 1 - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1763
+  calculated_length: 2
+  canonical_name: modifier_1_hcpcs_cpt_4_2
+- field_number: '17'
+  start_position: 92
+  end_position: 93
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 2 (HCPCS & CPT-4) - 2
+  description: Refer to 61-07 Modifier - 2 - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1766
+  calculated_length: 2
+  canonical_name: modifier_2_hcpcs_cpt_4_2
+- field_number: '18'
+  start_position: 94
+  end_position: 100
+  cobol_picture: 9(7)
+  requirement_code: C
+  field_name: Units of Service - 2
+  description: Refer to 61-08 Outpatient Units of Service - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1769
+  calculated_length: 7
+  canonical_name: units_of_service_2
+- field_number: '19'
+  start_position: 101
+  end_position: 106
+  cobol_picture: X(6)
+  requirement_code: N
+  field_name: Form Locator 49 – 2 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1773
+  calculated_length: 6
+  canonical_name: form_locator_49_2_not_used_blank_fill
+- field_number: '20'
+  start_position: 107
+  end_position: 116
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Outpatient Total Charges - 2
+  description: Refer to 61-10 Outpatient Total Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1775
+  calculated_length: 10
+  canonical_name: outpatient_total_charges_2
+- field_number: '21'
+  start_position: 117
+  end_position: 126
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Outpatient Noncovered Charges - 2
+  description: Refer to 61-11 Outpatient Noncovered Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1778
+  calculated_length: 10
+  canonical_name: outpatient_noncovered_charges_2
+- field_number: '22'
+  start_position: 127
+  end_position: 134
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Date of Service - 2
+  description: Refer to 61-12 Date of Service - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 61-12 Date of Service - 1.
+  source_line: 1782
+  calculated_length: 8
+  canonical_name: date_of_service_2
+- field_number: '23'
+  start_position: 135
+  end_position: 136
+  cobol_picture: X(2)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: 137 192 9(56) C Revenue Center - 3
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1785
+  calculated_length: 2
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '24'
+  start_position: 137
+  end_position: 140
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Revenue Code - 3
+  description: Refer to 61-04 Revenue Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1789
+  calculated_length: 4
+  canonical_name: revenue_code_3
+- field_number: '25'
+  start_position: 141
+  end_position: 145
+  cobol_picture: X(5)
+  requirement_code: C
+  field_name: HCPCS Procedure Code - 3
+  description: Refer to 61-05 HCPCS Procedure Code -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1792
+  calculated_length: 5
+  canonical_name: hcpcs_procedure_code_3
+- field_number: '26'
+  start_position: 146
+  end_position: 147
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 1 (HCPCS & CPT-4) - 3
+  description: Refer to 61-06 Modifier - 1 - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1795
+  calculated_length: 2
+  canonical_name: modifier_1_hcpcs_cpt_4_3
+- field_number: '27'
+  start_position: 148
+  end_position: 149
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Modifier 2 (HCPCS & CPT-4) - 3
+  description: Refer to 61-07 Modifier - 2 - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1798
+  calculated_length: 2
+  canonical_name: modifier_2_hcpcs_cpt_4_3
+- field_number: '28'
+  start_position: 150
+  end_position: 156
+  cobol_picture: 9(7)
+  requirement_code: C
+  field_name: Units of Service - 3
+  description: Refer to 61-08 Outpatient Units of Service - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1801
+  calculated_length: 7
+  canonical_name: units_of_service_3
+- field_number: '29'
+  start_position: 157
+  end_position: 162
+  cobol_picture: X(6)
+  requirement_code: N
+  field_name: Form Locator 49 – 3 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1805
+  calculated_length: 6
+  canonical_name: form_locator_49_3_not_used_blank_fill
+- field_number: '30'
+  start_position: 163
+  end_position: 172
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Outpatient Total Charges - 3
+  description: Refer to 61-10 Outpatient Total Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1807
+  calculated_length: 10
+  canonical_name: outpatient_total_charges_3
+- field_number: '31'
+  start_position: 173
+  end_position: 182
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Outpatient Noncovered Charges - 3
+  description: Refer to 61-11 Outpatient Noncovered Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1810
+  calculated_length: 10
+  canonical_name: outpatient_noncovered_charges_3
+- field_number: '32'
+  start_position: 183
+  end_position: 190
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Date of Service - 3
+  description: Refer to 61-12 Date of Service - 1
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 61-12 Date of Service - 1
+  source_line: 1814
+  calculated_length: 8
+  canonical_name: date_of_service_3
+- field_number: '33'
+  start_position: 191
+  end_position: 192
+  cobol_picture: X(2)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1817
+  calculated_length: 2
+  canonical_name: filler_national_use_unused_record_space

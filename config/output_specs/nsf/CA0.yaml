@@ -1,0 +1,199 @@
+# NSF Record Type CA0 -- Patient Data. Transcribed from "NSF Matrix
+# Version 2 15 - June 2013.doc". Exactly one CA0 per claim.
+record_type: CA0
+record_length: 320
+fields:
+  - field_name: record_id
+    start_position: 1
+    length: 3
+    data_type: string
+    required: true
+    default: "CA0"
+  - field_name: filler_1
+    start_position: 4
+    length: 2
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_control_number
+    start_position: 6
+    length: 17
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: patient_last_name
+    start_position: 23
+    length: 20
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: patient_first_name
+    start_position: 43
+    length: 12
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: patient_middle_initial
+    start_position: 55
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_generation
+    start_position: 56
+    length: 3
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_date_of_birth
+    start_position: 59
+    length: 8
+    data_type: date
+    format: CCYYMMDD
+    required: true
+    source_field: null
+  - field_name: patient_sex_code
+    start_position: 67
+    length: 1
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: patient_type_of_residence
+    start_position: 68
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_address_1
+    start_position: 69
+    length: 30
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: patient_address_2
+    start_position: 99
+    length: 30
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_city
+    start_position: 129
+    length: 20
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: patient_state
+    start_position: 149
+    length: 2
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: patient_zip
+    start_position: 151
+    length: 9
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: patient_telephone
+    start_position: 160
+    length: 10
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_marital_status
+    start_position: 170
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_student_status
+    start_position: 171
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_employment_status
+    start_position: 172
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_death_indicator
+    start_position: 173
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: patient_date_of_death
+    start_position: 174
+    length: 8
+    data_type: date
+    format: CCYYMMDD
+    required: false
+    default: ""
+  - field_name: other_insurance_indicator
+    start_position: 182
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: claim_editing_indicator
+    start_position: 183
+    length: 1
+    data_type: string
+    required: true
+    default: "F"
+  - field_name: type_of_claim_indicator
+    start_position: 184
+    length: 2
+    data_type: string
+    required: false
+    default: ""
+  - field_name: legal_representative_indicator
+    start_position: 186
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: origin_code
+    start_position: 187
+    length: 9
+    data_type: string
+    required: false
+    default: ""
+  - field_name: payer_claim_control_number
+    start_position: 196
+    length: 17
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_number
+    start_position: 213
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: claim_identification_number
+    start_position: 228
+    length: 6
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_national
+    start_position: 234
+    length: 42
+    data_type: string
+    required: false
+    default: ""
+  - field_name: property_casualty_claim_number
+    start_position: 276
+    length: 28
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_local
+    start_position: 304
+    length: 17
+    data_type: string
+    required: false
+    default: ""

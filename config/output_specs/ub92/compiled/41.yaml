@@ -1,0 +1,586 @@
+record_type: '41'
+record_name: Claim Data Condition Value 22
+record_length: 192
+order: 10
+preceding_rules:
+- ▪ Preceding record types 40 or 41
+following_rules:
+- ▪ Following record types 41, 46, 50, or 60 (inpatient)
+- ▪ Following record types 41, 46, or 61 (outpatient)
+record_rules:
+- ▪ Record Type 41 is required for inpatient claims and conditional for
+- outpatient claims. There must be at least one RT 41 for each inpatient
+- claim. There may be up to 99 Record Type 41 per claim.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘41’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1138
+  calculated_length: 2
+  canonical_name: record_type_must_be_41
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be equal to 01 - 99.
+  allowed_values:
+  - Must be equal to 01 - 99.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1140
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must equal the preceding 20-03 Patient Control Number.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1143
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 26
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 1
+  description: See Exhibit 7 for valid values & descriptions. Must be valid value
+    or blank If Condition Code = 07, the 1st position of 40- 04 Type of Bill must
+    be 8 & the 2nd position must be 2. If Condition Code = 40, 20-19 & 20- 20 Statement
+    Covers From/Thru Dates must be equal and 30-20 Covered Days must be zero.
+  allowed_values:
+  - See Exhibit 7 for valid values & descriptions.
+  - Must be valid value or blank
+  - 04 Type of Bill must be 8 & the 2nd position
+  - must be 2. If Condition Code = 40, 20-19 & 20-
+  - 20 Statement Covers From/Thru Dates must be
+  - equal and 30-20 Covered Days must be zero.
+  conditional_rules:
+  - If Condition Code = 07, the 1st position of 40-
+  - must be 2. If Condition Code = 40, 20-19 & 20-
+  formatting_notes:
+  - 20 Statement Covers From/Thru Dates must be
+  source_line: 1147
+  calculated_length: 2
+  canonical_name: condition_code_1
+- field_number: '05'
+  start_position: 27
+  end_position: 28
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 2
+  description: Refer to 41-04 Condition Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1158
+  calculated_length: 2
+  canonical_name: condition_code_2
+- field_number: '06'
+  start_position: 29
+  end_position: 30
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 3
+  description: Refer to 41-04 Condition Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1161
+  calculated_length: 2
+  canonical_name: condition_code_3
+- field_number: '07'
+  start_position: 31
+  end_position: 32
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 4
+  description: Refer to 41-04 Condition Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1164
+  calculated_length: 2
+  canonical_name: condition_code_4
+- field_number: 08
+  start_position: 33
+  end_position: 34
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 5
+  description: Refer to 41-04 Condition Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1167
+  calculated_length: 2
+  canonical_name: condition_code_5
+- field_number: 09
+  start_position: 35
+  end_position: 36
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 6
+  description: Refer to 41-04 Condition Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1170
+  calculated_length: 2
+  canonical_name: condition_code_6
+- field_number: '10'
+  start_position: 37
+  end_position: 38
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 7
+  description: Refer to 41-04 Condition Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1173
+  calculated_length: 2
+  canonical_name: condition_code_7
+- field_number: '11'
+  start_position: 39
+  end_position: 40
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 8
+  description: Refer to 41-04 Condition Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1176
+  calculated_length: 2
+  canonical_name: condition_code_8
+- field_number: '12'
+  start_position: 41
+  end_position: 42
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 9
+  description: Refer to 41-04 Condition Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1179
+  calculated_length: 2
+  canonical_name: condition_code_9
+- field_number: '13'
+  start_position: 43
+  end_position: 44
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Condition Code - 10
+  description: Refer to 41-04 Condition Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1182
+  calculated_length: 2
+  canonical_name: condition_code_10
+- field_number: '14'
+  start_position: 45
+  end_position: 49
+  cobol_picture: X(5)
+  requirement_code: N
+  field_name: Form Locator 31 (upper) - Not used, blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 1185
+  calculated_length: 5
+  canonical_name: form_locator_31_upper_not_used_blank
+- field_number: '15'
+  start_position: 50
+  end_position: 55
+  cobol_picture: X(6)
+  requirement_code: N
+  field_name: Form Locator 31 (lower) - Not used, blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 1188
+  calculated_length: 6
+  canonical_name: form_locator_31_lower_not_used_blank
+- field_number: '16'
+  start_position: 56
+  end_position: 57
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 1
+  description: See Exhibit 8 for valid values & descriptions. If Value Code = 04 or
+    05, there must be Revenue Code 31X, 32X, 33X, 34X, or 35X (Fields 60-04, 60-14
+    or 60-24). If Value Code = 08, 09, 10 or 11 then 40-04 Type of Bill, Bill Classification
+    must = inpatient. If 40-04 Type of Bill, Bill Classification = inpatient, there
+    must be Value Code 01 or 02.
+  allowed_values:
+  - See Exhibit 8 for valid values & descriptions.
+  - If Value Code = 04 or 05, there must be Revenue
+  - Classification = inpatient, there must be Value
+  conditional_rules:
+  - If Value Code = 04 or 05, there must be Revenue
+  - 60-14 or 60-24). If Value Code = 08, 09, 10 or
+  - must = inpatient. If 40-04 Type of Bill, Bill
+  formatting_notes: []
+  source_line: 1191
+  calculated_length: 2
+  canonical_name: value_code_1
+- field_number: '17'
+  start_position: 58
+  end_position: 66
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 1
+  description: Amount related to the value code in the preceding 41-16 field. Enter
+    if the corresponding Value Code - 1 has been entered otherwise, zero fill.
+  allowed_values: []
+  conditional_rules:
+  - preceding 41-16 field. Enter if the
+  formatting_notes:
+  - otherwise, zero fill.
+  source_line: 1207
+  calculated_length: 9
+  canonical_name: value_amount_1
+- field_number: '18'
+  start_position: 67
+  end_position: 68
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 2
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1213
+  calculated_length: 2
+  canonical_name: value_code_2
+- field_number: '19'
+  start_position: 69
+  end_position: 77
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 2
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1216
+  calculated_length: 9
+  canonical_name: value_amount_2
+- field_number: '20'
+  start_position: 78
+  end_position: 79
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 3
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1219
+  calculated_length: 2
+  canonical_name: value_code_3
+- field_number: '21'
+  start_position: 80
+  end_position: 88
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 3
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1222
+  calculated_length: 9
+  canonical_name: value_amount_3
+- field_number: '22'
+  start_position: 89
+  end_position: 90
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 4
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1225
+  calculated_length: 2
+  canonical_name: value_code_4
+- field_number: '23'
+  start_position: 91
+  end_position: 99
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 4
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1228
+  calculated_length: 9
+  canonical_name: value_amount_4
+- field_number: '24'
+  start_position: 100
+  end_position: 101
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 5
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1231
+  calculated_length: 2
+  canonical_name: value_code_5
+- field_number: '25'
+  start_position: 102
+  end_position: 110
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 5
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1234
+  calculated_length: 9
+  canonical_name: value_amount_5
+- field_number: '26'
+  start_position: 111
+  end_position: 112
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 6
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1237
+  calculated_length: 2
+  canonical_name: value_code_6
+- field_number: '27'
+  start_position: 113
+  end_position: 121
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 6
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1240
+  calculated_length: 9
+  canonical_name: value_amount_6
+- field_number: '28'
+  start_position: 122
+  end_position: 123
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 7
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1243
+  calculated_length: 2
+  canonical_name: value_code_7
+- field_number: '29'
+  start_position: 124
+  end_position: 132
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 7
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1246
+  calculated_length: 9
+  canonical_name: value_amount_7
+- field_number: '30'
+  start_position: 133
+  end_position: 134
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 8
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1249
+  calculated_length: 2
+  canonical_name: value_code_8
+- field_number: '31'
+  start_position: 135
+  end_position: 143
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 8
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1252
+  calculated_length: 9
+  canonical_name: value_amount_8
+- field_number: '32'
+  start_position: 144
+  end_position: 145
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 9
+  description: Refer to 41-16 Value Code - 1
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1255
+  calculated_length: 2
+  canonical_name: value_code_9
+- field_number: '33'
+  start_position: 146
+  end_position: 154
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 9
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1258
+  calculated_length: 9
+  canonical_name: value_amount_9
+- field_number: '34'
+  start_position: 155
+  end_position: 156
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 10
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1261
+  calculated_length: 2
+  canonical_name: value_code_10
+- field_number: '35'
+  start_position: 157
+  end_position: 165
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 10
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1264
+  calculated_length: 9
+  canonical_name: value_amount_10
+- field_number: '36'
+  start_position: 166
+  end_position: 167
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 11
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1275
+  calculated_length: 2
+  canonical_name: value_code_11
+- field_number: '37'
+  start_position: 168
+  end_position: 176
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 11
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1278
+  calculated_length: 9
+  canonical_name: value_amount_11
+- field_number: '38'
+  start_position: 177
+  end_position: 178
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Value Code - 12
+  description: Refer to 41-16 Value Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1281
+  calculated_length: 2
+  canonical_name: value_code_12
+- field_number: '39'
+  start_position: 179
+  end_position: 187
+  cobol_picture: S9(7)V99
+  requirement_code: C
+  field_name: Value Amount - 12
+  description: Refer to 41-17 Value Amount - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1284
+  calculated_length: 9
+  canonical_name: value_amount_12
+- field_number: '40'
+  start_position: 188
+  end_position: 192
+  cobol_picture: 9(5)
+  requirement_code: C
+  field_name: DRG (PPS) Code
+  description: The Prospective Payment System (PPS) code related to the claim. Must
+    be entered if a Value Code of ‘ZZ’ is present in fields 41-16, 41-18, 41-20, 41-22,
+    41-24, 41-26, 41-28, 41-30, 41-32, 41-34, 41-36 or 41-38.
+  allowed_values:
+  - Must be entered if a Value Code of ‘ZZ’ is
+  conditional_rules:
+  - Must be entered if a Value Code of ‘ZZ’ is
+  formatting_notes: []
+  source_line: 1287
+  calculated_length: 5
+  canonical_name: drg_pps_code
+- field_number: '41'
+  start_position: 191
+  end_position: 192
+  cobol_picture: X(2)
+  requirement_code: N
+  field_name: Filler (National Use) – DRG (PPS) Code,
+  description: continued The space from this field is included in the DRG (PPS) field
+    above. It no longer exists as a separate field.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1296
+  calculated_length: 2
+  canonical_name: filler_national_use_drg_pps_code

@@ -1,0 +1,13 @@
+template_id: psychological_receipt
+form_family: PSYCHOLOGICAL_RECEIPT
+version: "1"
+reference_dimensions: [1700, 2200]
+anchors:
+  - {phrase: "receipt", required: true}
+  - {phrase: "counseling", required: false}
+fields:
+  - {field_name: patient_name, region: {x0: 0.25, y0: 0.20, x1: 0.75, y1: 0.38}, field_type: person_name}
+checkbox_regions: []
+table_regions: []
+preprocessing_profile: receipt
+alignment_thresholds: {minimum_inlier_ratio: 0.25, maximum_reprojection_error: 7.0}

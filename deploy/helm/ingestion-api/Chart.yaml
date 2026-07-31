@@ -1,0 +1,6 @@
+apiVersion: v2
+name: ingestion-api
+description: IDP claims platform -- ingestion API (upload, batch intake, dedup, outbox)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

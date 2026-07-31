@@ -1,0 +1,469 @@
+record_type: '78'
+record_name: Additional Diagnosis & Procedure Code Data 44
+record_length: 192
+order: 24
+preceding_rules:
+- ▪ Preceding record type 70 or 78.
+following_rules:
+- ▪ Following record types 78, 80 or 90.
+record_rules:
+- Data
+- ▪ Record Type 78 is conditional and is only used when there are more than
+- five (5) Other Diagnosis Codes/POA or more than five (5) Other Procedure
+- Codes/Date fields reported on the claim on RT70.
+- ▪ There can be a maximum of three (3) Record Type 78 per claim.
+- ▪ Other Diagnosis/POA Codes 6 - 12 and Other Procedure Codes/Date 6 - 12
+- will be output on sequence 01.
+- ▪ Other Diagnosis/POA Codes 13 - 19 and Other Procedure Codes/Date 13 -
+- 19 will be output on sequence 02.
+- ▪ Other Diagnosis/POA Codes 20 - 25 and Other Procedure Codes/Date 20 -
+- 25 will be output on sequence 03.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Data
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘78’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2229
+  calculated_length: 2
+  canonical_name: record_type_must_be_78
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be equal to 01-03.
+  allowed_values:
+  - Must be equal to 01-03.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2231
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must be equal to the preceding 20-03 Patient Control Number.
+  allowed_values:
+  - Must be equal to the preceding 20-03 Patient
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2234
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 31
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 6
+  description: Must be a valid ICD diagnosis code. Do not report the decimal as it
+    is implied. Must have a diagnosis code in field 70-14. No Other Diagnosis Code
+    nor the Principal Diagnosis may be duplicated. If any other diagnosis code indicates
+    sex specificity, then sex must match the sex of the patient in field 20-07 Patient
+    Sex. If Other Diagnosis is an E800 - E929 or E950 - E999 then 70-04 or any Other
+    Diagnosis code must be within range 800-999. If Principal Diagnosis Code is 650
+    then any Other Diagnosis Code must not be within the ranges of 640-648 or 651-676.
+    If Principal Diagnosis Code is 640-648 or 651- 658 then any Other Diagnosis Code
+    (fields 70-05 thru 70-12) must not equal 650.
+  allowed_values:
+  - Must be a valid ICD diagnosis code. Do not
+  - must be within range 800-999.
+  conditional_rules:
+  - If any other diagnosis code indicates sex
+  - If Other Diagnosis is an E800 - E929 or E950 -
+  - If Principal Diagnosis Code is 650 then any
+  - If Principal Diagnosis Code is 640-648 or 651-
+  formatting_notes: []
+  source_line: 2238
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_6
+- field_number: '05'
+  start_position: 32
+  end_position: 32
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 6
+  description: Present on Admission indicator for corresponding Other Diagnosis Code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2262
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_6
+- field_number: '06'
+  start_position: 33
+  end_position: 39
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 7
+  description: Refer to 78-04. Must have a diagnosis code in field 78-04.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2266
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_7
+- field_number: '07'
+  start_position: 40
+  end_position: 40
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 7
+  description: Present on Admission indicator for corresponding Other Diagnosis Code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2270
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_7
+- field_number: 08
+  start_position: 41
+  end_position: 47
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 8
+  description: Refer to 78-04. Must have a diagnosis code in field 78-06.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2274
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_8
+- field_number: 09
+  start_position: 48
+  end_position: 48
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 8
+  description: Present on Admission indicator for corresponding Other Diagnosis Code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2278
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_8
+- field_number: '10'
+  start_position: 49
+  end_position: 55
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 9/16
+  description: Refer to 78-04. Must have a diagnosis code in field 78-08.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2282
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_9_16
+- field_number: '11'
+  start_position: 56
+  end_position: 56
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 9
+  description: Present on Admission indicator for corresponding Other Diagnosis Code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2286
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_9
+- field_number: '12'
+  start_position: 57
+  end_position: 63
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 10
+  description: Refer to 78-04. Must have a diagnosis code in field 78-10.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2290
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_10
+- field_number: '13'
+  start_position: 64
+  end_position: 64
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 10
+  description: Present on Admission indicator for corresponding Other Diagnosis Code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2294
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_10
+- field_number: '14'
+  start_position: 65
+  end_position: 71
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 11
+  description: Refer to 78-04. Must have a diagnosis code in field 78-12.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2306
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_11
+- field_number: '15'
+  start_position: 72
+  end_position: 72
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 11
+  description: Present on Admission indicator for corresponding Other Diagnosis Code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2310
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_11
+- field_number: '16'
+  start_position: 73
+  end_position: 79
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 12
+  description: Refer to 78-04. Must have a diagnosis code in field 78-14.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2314
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_12
+- field_number: '17'
+  start_position: 80
+  end_position: 80
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 12
+  description: Present on Admission indicator for corresponding Other Diagnosis Code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2318
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_12
+- field_number: '18'
+  start_position: 81
+  end_position: 87
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 6
+  description: Procedure other than the principal procedure. The decimal is implied
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2322
+  calculated_length: 7
+  canonical_name: other_procedure_code_6
+- field_number: '19'
+  start_position: 88
+  end_position: 95
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 6
+  description: The date on which the Other Procedure was performed. Must be a valid
+    date and in CCYYMMDD format.
+  allowed_values:
+  - performed. Must be a valid date and in CCYYMMDD
+  conditional_rules: []
+  formatting_notes:
+  - The date on which the Other Procedure was
+  - performed. Must be a valid date and in CCYYMMDD
+  - format.
+  source_line: 2326
+  calculated_length: 8
+  canonical_name: other_procedure_date_6
+- field_number: '20'
+  start_position: 96
+  end_position: 102
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 7
+  description: Refer to 78-18 Other Procedure Code. Must have a code in field 78-18.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2331
+  calculated_length: 7
+  canonical_name: other_procedure_code_7
+- field_number: '21'
+  start_position: 103
+  end_position: 110
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 7
+  description: Refer to 78-19 Other Procedure Date.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 78-19 Other Procedure Date.
+  source_line: 2335
+  calculated_length: 8
+  canonical_name: other_procedure_date_7
+- field_number: '22'
+  start_position: 111
+  end_position: 117
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 8
+  description: Refer to 78-18 Other Procedure Code. Must have a code in field 78-20.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2338
+  calculated_length: 7
+  canonical_name: other_procedure_code_8
+- field_number: '23'
+  start_position: 118
+  end_position: 125
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 8
+  description: Refer to 78-19 Other Procedure Date.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 78-19 Other Procedure Date.
+  source_line: 2342
+  calculated_length: 8
+  canonical_name: other_procedure_date_8
+- field_number: '24'
+  start_position: 126
+  end_position: 132
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 9
+  description: Refer to 78-18 Other Procedure Code. Must have a code in field 78-22.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2345
+  calculated_length: 7
+  canonical_name: other_procedure_code_9
+- field_number: '25'
+  start_position: 133
+  end_position: 140
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 9
+  description: Refer to 78-19 Other Procedure Date.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 78-19 Other Procedure Date.
+  source_line: 2349
+  calculated_length: 8
+  canonical_name: other_procedure_date_9
+- field_number: '26'
+  start_position: 141
+  end_position: 147
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 10
+  description: Refer to 78-18 Other Procedure Code. Must have a code in field 78-24
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2352
+  calculated_length: 7
+  canonical_name: other_procedure_code_10
+- field_number: '27'
+  start_position: 148
+  end_position: 155
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 10
+  description: Refer to 78-19 Other Procedure Date.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 78-19 Other Procedure Date.
+  source_line: 2356
+  calculated_length: 8
+  canonical_name: other_procedure_date_10
+- field_number: '28'
+  start_position: 156
+  end_position: 162
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 11
+  description: Refer to 78-18 Other Procedure Code. Must have a code in field 78-26
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2359
+  calculated_length: 7
+  canonical_name: other_procedure_code_11
+- field_number: '29'
+  start_position: 163
+  end_position: 170
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 11
+  description: Refer to 78-19 Other Procedure Date.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 78-19 Other Procedure Date.
+  source_line: 2363
+  calculated_length: 8
+  canonical_name: other_procedure_date_11
+- field_number: '30'
+  start_position: 171
+  end_position: 177
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 12
+  description: Refer to 78-18 Other Procedure Code. Must have a code in field 78-28.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2366
+  calculated_length: 7
+  canonical_name: other_procedure_code_12
+- field_number: '31'
+  start_position: 178
+  end_position: 185
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 12
+  description: Refer to 78-19 Other Procedure Date.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 78-19 Other Procedure Date.
+  source_line: 2370
+  calculated_length: 8
+  canonical_name: other_procedure_date_12
+- field_number: '32'
+  start_position: 186
+  end_position: 192
+  cobol_picture: X(7)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2373
+  calculated_length: 7
+  canonical_name: filler_national_use_unused_record_space

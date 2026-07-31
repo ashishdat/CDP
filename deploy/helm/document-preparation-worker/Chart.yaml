@@ -1,0 +1,6 @@
+apiVersion: v2
+name: document-preparation-worker
+description: IDP claims platform -- document preparation worker (TIFF/PDF decode, preprocess)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

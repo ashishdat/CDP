@@ -1,0 +1,78 @@
+{
+  "title": "IDP Claims Platform",
+  "uid": "idp-claims-platform",
+  "timezone": "utc",
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Documents received (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "sum(rate(documents_received_total[5m])) by (detected_format)" }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Straight-through processing rate",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [{ "expr": "straight_through_rate" }],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "min": 0, "max": 1 }
+      }
+    },
+    {
+      "id": 3,
+      "title": "OCR latency (p50/p95/p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(ocr_latency_seconds_bucket[5m])) by (le, extraction_method))", "legendFormat": "p50 {{extraction_method}}" },
+        { "expr": "histogram_quantile(0.95, sum(rate(ocr_latency_seconds_bucket[5m])) by (le, extraction_method))", "legendFormat": "p95 {{extraction_method}}" },
+        { "expr": "histogram_quantile(0.99, sum(rate(ocr_latency_seconds_bucket[5m])) by (le, extraction_method))", "legendFormat": "p99 {{extraction_method}}" }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Validation failures by rule",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        { "expr": "sum(rate(validation_failure_total[15m])) by (rule_name, criticality)" }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Escalation funnel (retry / VLM / human review)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        { "expr": "sum(rate(retry_total[15m])) by (improved)", "legendFormat": "retry ({{improved}})" },
+        { "expr": "sum(rate(vlm_invocation_total[15m]))", "legendFormat": "VLM invocations" },
+        { "expr": "sum(rate(human_review_total[15m])) by (reason)", "legendFormat": "human review ({{reason}})" }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Estimated cost (USD/hour, by extraction method)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        { "expr": "sum(rate(estimated_cost_usd_total[1h]) * 3600) by (extraction_method)" }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Kafka consumer lag",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "targets": [
+        { "expr": "kafka_consumer_lag", "legendFormat": "{{topic}} / {{consumer_group}}" }
+      ]
+    }
+  ]
+}

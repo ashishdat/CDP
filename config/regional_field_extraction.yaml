@@ -1,0 +1,63 @@
+schema_version: "1"
+profiles:
+  name_mixed: {psm: 7, allow_line_removal: false}
+  address_multiline: {psm: 6, allow_line_removal: false}
+  date_numeric: {psm: 7, allow_line_removal: true, allowed_characters: "0123456789/-"}
+  numeric_identifier: {psm: 7, allow_line_removal: true, allowed_characters: "0123456789"}
+  medical_code: {psm: 7, allow_line_removal: true, allowed_characters: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-"}
+  currency: {psm: 7, allow_line_removal: true, allowed_characters: "0123456789.,$-"}
+  checkbox: {psm: 10, allow_line_removal: false}
+  free_text: {psm: 6, allow_line_removal: false}
+fields:
+  patient_name:
+    coordinate_frame: ANCHOR_RELATIVE
+    padding: [12, 10, 20, 14]
+    crop_mode: anchor_relative
+    preprocessing_profile: name_mixed
+  provider_npi:
+    coordinate_frame: ALIGNED_PAGE
+    padding: [5, 5, 5, 5]
+    crop_mode: template_region
+    preprocessing_profile: numeric_identifier
+    allowed_characters: "0123456789"
+  federal_tax_id:
+    coordinate_frame: ALIGNED_PAGE
+    padding: [5, 5, 14, 5]
+    crop_mode: template_region
+    preprocessing_profile: numeric_identifier
+    allowed_characters: "0123456789"
+  patient_dob:
+    coordinate_frame: ALIGNED_PAGE
+    padding: [5, 5, 5, 5]
+    crop_mode: template_region
+    preprocessing_profile: date_numeric
+  patient_zip:
+    coordinate_frame: ALIGNED_PAGE
+    padding: [5, 5, 5, 5]
+    crop_mode: template_region
+    preprocessing_profile: numeric_identifier
+  type_of_bill:
+    coordinate_frame: ALIGNED_PAGE
+    padding: [5, 5, 5, 5]
+    crop_mode: template_region
+    preprocessing_profile: medical_code
+  principal_diagnosis:
+    coordinate_frame: ALIGNED_PAGE
+    padding: [6, 6, 6, 6]
+    crop_mode: template_region
+    preprocessing_profile: medical_code
+  patient_control_number:
+    coordinate_frame: ALIGNED_PAGE
+    padding: [5, 5, 5, 5]
+    crop_mode: template_region
+    preprocessing_profile: numeric_identifier
+  patient_sex:
+    coordinate_frame: ALIGNED_PAGE
+    padding: [3, 3, 3, 3]
+    crop_mode: checkbox_pixels
+    preprocessing_profile: checkbox
+  total_charge:
+    coordinate_frame: ALIGNED_PAGE
+    padding: [6, 6, 6, 6]
+    crop_mode: template_region
+    preprocessing_profile: currency

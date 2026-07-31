@@ -1,0 +1,60 @@
+"""Shared runtime settings, loaded from environment variables (see
+`.env.example` for the full list). One source of truth for env var names so
+every app/worker agrees on them."""
+
+from __future__ import annotations
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    # Versioning — part of the idempotency key
+    pipeline_version: str = "0.1.0"
+    schema_version: str = "1.0"
+
+    # Database
+    database_url: str = "sqlite:///:memory:"
+
+    # Object storage (MinIO locally / any S3-compatible endpoint in prod)
+    object_store_endpoint: str = "http://localhost:9000"
+    object_store_access_key: str = "minioadmin"
+    object_store_secret_key: str = "minioadmin"
+    object_store_bucket: str = "idp-documents"
+    object_store_use_ssl: bool = False
+
+    # Kafka-compatible bus
+    kafka_bootstrap_servers: str = "localhost:19092"
+    use_in_memory_bus: bool = False  # true for local dev/tests without Docker
+
+    # Redis (caching layer for the hybrid router's cache stage)
+    redis_url: str = "redis://localhost:6379/0"
+
+    # Ingestion limits
+    max_upload_size_bytes: int = 50 * 1024 * 1024  # 50 MB
+
+    # VLM — disabled by default; pipeline must run fully without it
+    vlm_enabled: bool = False
+    vlm_endpoint: str = "http://localhost:8001/v1"
+    vlm_model_name: str = "qwen2.5-vl-3b-instruct"
+
+    # Handwriting OCR -- opt-in because the model is large and is downloaded
+    # separately from the lightweight application image.
+    handwriting_enabled: bool = False
+    trocr_model_name: str = "microsoft/trocr-base-handwritten"
+    trocr_device: str = "auto"
+    trocr_min_confidence: float = 0.55
+
+    cloud_handwriting_enabled: bool = False
+    cloud_handwriting_provider: str = "azure"
+    cloud_handwriting_endpoint: str | None = None
+    cloud_handwriting_credential: str | None = None
+    cloud_handwriting_timeout_seconds: float = 10.0
+
+    # Multi-tenancy default (overridden per-request where applicable)
+    default_tenant_id: str = "default"
+
+
+def get_settings() -> Settings:
+    return Settings()

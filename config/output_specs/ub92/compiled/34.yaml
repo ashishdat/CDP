@@ -1,0 +1,13 @@
+record_type: '34'
+record_name: Currently not used. 19
+record_length: 192
+order: 8
+preceding_rules: []
+following_rules: []
+record_rules:
+- ▪ Record Type 34 currently not used. If submitted, will not be
+- processed.
+- Field Positions Req
+- No. From To Picture Field Field
+- Name/Description
+fields: []

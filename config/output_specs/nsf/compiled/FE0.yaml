@@ -1,0 +1,256 @@
+record_type: FE0
+record_name: Third Party Organization Segment
+record_length: 320
+order: 19
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is conditional and is used to provide information related to
+- Third Party Organization (TPO) claims. There may be up to 99 FXX (ALL 'F'
+- Records) per claim.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be FE0
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1935
+  calculated_length: 3
+  canonical_name: record_id_must_be_fe0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Sequence number of line detail record. Must have matching FA0 record
+    segment.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1937
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1941
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 39
+  cobol_picture: X(17)
+  requirement_code: O
+  field_name: Line Item Control Number
+  description: Identifier assigned by the submitter to this line. May be blank. The
+    value must equal the Line Item Control Number from the preceding FA0 Record (FA0-04.0).
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1945
+  calculated_length: 17
+  canonical_name: line_item_control_number
+- field_number: '05.0'
+  start_position: 40
+  end_position: 48
+  cobol_picture: X(09)
+  requirement_code: R
+  field_name: TPO ID Number
+  description: The EIN of the Third Party Organization (TPO) from which the claim
+    is being returned after pricing and/or review.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1952
+  calculated_length: 9
+  canonical_name: tpo_id_number
+- field_number: '06.0'
+  start_position: 49
+  end_position: 63
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: TPO Reference Number
+  description: Control number assigned by TPO for tracking purposes. May be blank
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1958
+  calculated_length: 15
+  canonical_name: tpo_reference_number
+- field_number: '07.0'
+  start_position: 64
+  end_position: 65
+  cobol_picture: X(02)
+  requirement_code: C
+  field_name: Pricing Methodology
+  description: 'Code specifying the pricing methodology used to price or reprice this
+    line item has been. Code Values: 00 = Zero Pricing (Not Covered Under Contract)
+    01 = Priced as Billed at 100% 02 = Priced at the Standard Fee Schedule 04 = Bundled
+    Pricing 05 = Peer Review Pricing 10 = Other Pricing 14 = Adjustment Pricing If
+    FE0-12 Rejection Message equals T1, T2 or T3, this field must be equal to space.
+    If FE0-07 Pricing Methodology equals 00, 04, 05 or 10, an explanation must be
+    entered in HA0-05.0.'
+  allowed_values:
+  - T3, this field must be equal to space. If FE0-07
+  - explanation must be entered in HA0-05.0.
+  conditional_rules:
+  - If FE0-12 Rejection Message equals T1, T2 or
+  - T3, this field must be equal to space. If FE0-07
+  formatting_notes: []
+  source_line: 1964
+  calculated_length: 2
+  canonical_name: pricing_methodology
+- field_number: '08.0'
+  start_position: 66
+  end_position: 72
+  cobol_picture: 9(05)V99
+  requirement_code: C
+  field_name: Allowed Amount
+  description: The amount allowed by the payer. Right justify, zero fill. May be blank.
+    Field is required if FE0-07.0 Pricing Methodology equals 01, 02 or 05.
+  allowed_values: []
+  conditional_rules:
+  - required if FE0-07.0 Pricing Methodology equals
+  formatting_notes:
+  - justify, zero fill. May be blank. Field is
+  source_line: 1983
+  calculated_length: 7
+  canonical_name: allowed_amount
+- field_number: '09.0'
+  start_position: 73
+  end_position: 79
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Savings Amount - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1989
+  calculated_length: 7
+  canonical_name: savings_amount_not_used_blank_fill
+- field_number: '10.0'
+  start_position: 80
+  end_position: 84
+  cobol_picture: X(05)
+  requirement_code: C
+  field_name: Approved HCPCS Procedure Code
+  description: The procedure code the TPO approved for payment, if different than
+    the preceding FA0-09 Procedure Code. This field must be blank if preceding FA0-09
+    Procedure Code has been approved for payment.
+  allowed_values:
+  - Procedure Code. This field must be blank if
+  conditional_rules:
+  - payment, if different than the preceding FA0-09
+  formatting_notes: []
+  source_line: 1992
+  calculated_length: 5
+  canonical_name: approved_hcpcs_procedure_code
+- field_number: '11.0'
+  start_position: 85
+  end_position: 88
+  cobol_picture: 9(03)V9
+  requirement_code: C
+  field_name: Approved Units Of Service
+  description: 'Units of service the TPO approved for payment, if different than the
+    preceding FA0-18 Units of Service. This field must be blank if preceding FA0-18
+    Units of Service has been approved for payment. Note: Fractional services not
+    accepted. Maximum value is 999. Should be entered as 9990. Field layout 999V9.'
+  allowed_values:
+  - Service. This field must be blank if preceding
+  conditional_rules:
+  - if different than the preceding FA0-18 Units of
+  - Service. This field must be blank if preceding
+  formatting_notes: []
+  source_line: 1999
+  calculated_length: 4
+  canonical_name: approved_units_of_service
+- field_number: '12.0'
+  start_position: 89
+  end_position: 90
+  cobol_picture: X(02)
+  requirement_code: C
+  field_name: Rejection Message
+  description: 'Code used to identify reasons a TPO may not be able to provide pricing
+    information. Field may be blank. Code Values: T1 = Cannot identify Provider as
+    TPO Participant. T2 = Cannot identify Payer as TPO Participant. T3 = Cannot identify
+    Insured as TPO Participant.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - able to provide pricing information. Field may
+  source_line: 2013
+  calculated_length: 2
+  canonical_name: rejection_message
+- field_number: '13.0'
+  start_position: 91
+  end_position: 110
+  cobol_picture: X(20)
+  requirement_code: O
+  field_name: Authorization Number
+  description: Assigned by the TPO to indicate that the treatment in the line item
+    has been authorized. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2024
+  calculated_length: 20
+  canonical_name: authorization_number
+- field_number: '14.0'
+  start_position: 111
+  end_position: 112
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Policy Compliance Code - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 2030
+  calculated_length: 2
+  canonical_name: policy_compliance_code_not_used_blank
+- field_number: '15.0'
+  start_position: 113
+  end_position: 114
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Exception Code - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2034
+  calculated_length: 2
+  canonical_name: exception_code_not_used_blank_fill
+- field_number: '16.0'
+  start_position: 115
+  end_position: 320
+  cobol_picture: X(206)
+  requirement_code: N
+  field_name: Filler – National - Unused reserved space
+  description: for National use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - for National use. Blank fill.
+  source_line: 2036
+  calculated_length: 206
+  canonical_name: filler_national_unused_reserved_space

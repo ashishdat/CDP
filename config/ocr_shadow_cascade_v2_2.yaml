@@ -1,0 +1,23 @@
+policy_version: ocr-shadow-cascade-v2.2
+status: SHADOW_ONLY
+base_release: extraction-v2
+router_policy: frozen-v1
+candidate_authority: REVIEW_ONLY
+preprocessing_profiles:
+  - {name: original, border_px: 16, upscale: 2}
+  - {name: clahe, border_px: 16, upscale: 3}
+  - {name: adaptive_threshold, border_px: 20, upscale: 3}
+  - {name: sharpen, border_px: 16, upscale: 3}
+writing_routes:
+  PRINTED: [PP-OCRv6_medium_rec, PP-OCRv5_server_rec]
+  MIXED: [PP-OCRv6_medium_rec, PP-OCRv5_server_rec, TrOCR-review-only]
+  HANDWRITTEN: [PP-OCRv6_medium_rec, PP-OCRv5_server_rec, TrOCR-review-only]
+complete_blocks:
+  preserve_geometry: true
+  segment_multiline_before_recognition: true
+  component_candidates_retain_parent_lineage: true
+promotion:
+  minimum_additional_correct_candidates: 5
+  critical_false_accepts: 0
+  overwrite_previously_correct: false
+  require_fixed_holdout: true

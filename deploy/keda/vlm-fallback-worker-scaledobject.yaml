@@ -1,0 +1,26 @@
+# VLM pool. Authored ahead of the worker's own consumer entrypoint and
+# Helm chart -- workers/vlm_fallback is a complete, tested adapter +
+# service (Phase 4) but has no `consumer.py` wiring it to the
+# `vlm.requested` topic yet. `minReplicaCount: 0` matters most here: with
+# VLM_ENABLED=false (the default), this topic should see zero traffic and
+# the pool should scale to nothing.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: vlm-fallback-worker-scaler
+  namespace: idp-claims-platform
+spec:
+  scaleTargetRef:
+    name: idp-vlm-fallback-worker
+  minReplicaCount: 0
+  maxReplicaCount: 3
+  cooldownPeriod: 180
+  pollingInterval: 15
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.idp-claims-platform.svc.cluster.local:9092
+        consumerGroup: vlm-fallback-worker
+        topic: vlm.requested
+        lagThreshold: "2"
+        activationLagThreshold: "1"

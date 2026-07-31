@@ -1,0 +1,71 @@
+{
+  "report_metadata": {
+    "dataset_label": "Synthetic UI preview",
+    "synthetic_demo": true
+  },
+  "field_count": 24,
+  "raw_exact_match_accuracy": 0.875,
+  "normalized_field_accuracy": 0.9167,
+  "critical_field_accuracy": 1.0,
+  "character_error_rate": 0.021,
+  "missing_field_rate": 0.0417,
+  "false_accept_rate": 0.0,
+  "critical_false_accept_rate": 0.0,
+  "false_review_rate": 0.0833,
+  "perfect_claim_rate": 0.6667,
+  "straight_through_processing_rate": 0.6667,
+  "hitl_rate": 0.3333,
+  "accuracy_before_fallback": 0.5,
+  "accuracy_after_fallback": 0.8333,
+  "accuracy_by_field": {
+    "billing_provider_npi": 1.0,
+    "insured_member_id": 1.0,
+    "patient_dob": 1.0,
+    "diagnosis_code": 0.875,
+    "cpt_hcpcs": 0.9167,
+    "total_charge": 0.8333
+  },
+  "accuracy_by_form_type": {
+    "CMS1500": 0.9231,
+    "UB04": 0.9091
+  },
+  "accuracy_by_extraction_method": {
+    "REGIONAL_PADDLEOCR": 0.9048,
+    "ALTERNATE_PREPROCESS_OCR": 1.0
+  },
+  "accuracy_by_image_quality_bucket": {
+    "good": 1.0,
+    "fair": 0.9167,
+    "poor": 0.75
+  },
+  "mismatches": [
+    {
+      "document_id": "DEMO-CMS-01",
+      "form_type": "CMS1500",
+      "field_name": "total_charge",
+      "expected_value": "1280.00",
+      "extracted_value": "128.00",
+      "normalized_value": "128.00",
+      "ocr_confidence": 0.94,
+      "validation_result": "INVALID",
+      "extraction_method": "REGIONAL_PADDLEOCR",
+      "bounding_box": null,
+      "crop_reference": null,
+      "failure_category": "MISMATCH"
+    },
+    {
+      "document_id": "DEMO-UB04-02",
+      "form_type": "UB04",
+      "field_name": "revenue_code",
+      "expected_value": "0450",
+      "extracted_value": null,
+      "normalized_value": null,
+      "ocr_confidence": null,
+      "validation_result": "NOT_EXTRACTED",
+      "extraction_method": "MISSING",
+      "bounding_box": null,
+      "crop_reference": null,
+      "failure_category": "MISSING"
+    }
+  ]
+}

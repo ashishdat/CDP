@@ -1,0 +1,182 @@
+# NSF Record Type BA0 -- Batch Header Record "Provider Data 1".
+# Transcribed from "NSF Matrix Version 2 15 - June 2013.doc". Verified
+# byte-for-byte against the real sample output (dataset_raw/Group A/...
+# line 2) -- see docs/DATASET_FINDINGS.md. Exactly one BA0 per claim/batch.
+record_type: BA0
+record_length: 320
+fields:
+  - field_name: record_id
+    start_position: 1
+    length: 3
+    data_type: string
+    required: true
+    default: "BA0"
+  - field_name: emc_provider_id
+    start_position: 4
+    length: 15
+    data_type: string
+    required: true
+    source_field: provider_tax_id
+  - field_name: batch_type
+    start_position: 19
+    length: 3
+    data_type: string
+    required: false
+    default: ""
+  - field_name: batch_number
+    start_position: 22
+    length: 4
+    data_type: numeric
+    padding_character: "0"
+    required: true
+    source_field: null
+  - field_name: batch_identification
+    start_position: 26
+    length: 6
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_tax_id
+    start_position: 32
+    length: 9
+    data_type: string
+    required: true
+    source_field: provider_tax_id
+  - field_name: reserved_1
+    start_position: 41
+    length: 6
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_tax_id_type
+    start_position: 47
+    length: 1
+    data_type: string
+    required: true
+    default: "E"
+  - field_name: provider_medicare_number
+    start_position: 48
+    length: 15
+    data_type: string
+    required: false
+    source_field: provider_npi
+  - field_name: provider_upin
+    start_position: 63
+    length: 6
+    data_type: string
+    required: false
+    default: ""
+  - field_name: reserved_2
+    start_position: 69
+    length: 6
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_medicaid_number
+    start_position: 75
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_champus_number
+    start_position: 90
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_blue_shield_number
+    start_position: 105
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_commercial_number
+    start_position: 120
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_other_number_1
+    start_position: 135
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_other_number_2
+    start_position: 150
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_organization_name
+    start_position: 165
+    length: 33
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_last_name
+    start_position: 198
+    length: 20
+    data_type: string
+    required: false
+    source_field: null
+  - field_name: provider_first_name
+    start_position: 218
+    length: 12
+    data_type: string
+    required: false
+    source_field: null
+  - field_name: provider_middle_initial
+    start_position: 230
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_specialty
+    start_position: 231
+    length: 3
+    data_type: string
+    required: true
+    default: ""
+  - field_name: specialty_license_number
+    start_position: 234
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: state_license_number
+    start_position: 249
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: dentist_credentials
+    start_position: 264
+    length: 4
+    data_type: string
+    required: false
+    default: ""
+  - field_name: dentist_license_number
+    start_position: 268
+    length: 11
+    data_type: string
+    required: false
+    default: ""
+  - field_name: anesthesia_license_number
+    start_position: 279
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_national
+    start_position: 294
+    length: 13
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_local
+    start_position: 307
+    length: 14
+    data_type: string
+    required: false
+    default: ""

@@ -1,0 +1,514 @@
+record_type: '70'
+record_name: Medical Data 34
+record_length: 192
+order: 16
+preceding_rules:
+- ▪ Preceding record types 50, 60, 61, or 66.
+following_rules:
+- ▪ Following record types 78, 80 or 90.
+record_rules:
+- ▪ Record Type 70 is required.
+- ▪ There must be at least one (1) and only one (1) Record Type 70 per
+- claim.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘70’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1946
+  calculated_length: 2
+  canonical_name: record_type_must_be_70
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be equal to 01.
+  allowed_values:
+  - Must be equal to 01.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1948
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must be equal to the preceding 20-03 Patient Control Number.
+  allowed_values:
+  - Must be equal to the preceding 20-03 Patient
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1951
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 31
+  cobol_picture: X(7)
+  requirement_code: R
+  field_name: Principal Diagnosis Code
+  description: The ICD code describing the principal diagnosis. Do not report the
+    decimal as it is implied.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1955
+  calculated_length: 7
+  canonical_name: principal_diagnosis_code
+- field_number: '05'
+  start_position: 32
+  end_position: 32
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: Principal Diagnosis POA
+  description: Present on Admission (POA) indicator for the Principal Diagnosis.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1960
+  calculated_length: 1
+  canonical_name: principal_diagnosis_poa
+- field_number: '06'
+  start_position: 33
+  end_position: 39
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 1
+  description: Must be a valid ICD diagnosis code. Do not report the decimal as it
+    is implied. Must have a diagnosis code in 70-04 Principal Diagnosis Code. No Other
+    Diagnosis nor the Principal Diagnosis may be duplicated. If any diagnosis code
+    indicates sex specificity, then sex must match the sex of the patient in field
+    20-07 Patient Sex. If Other Diagnosis is E800 - E929 or E950 - E999 then 70-04
+    or any Other Diagnosis code must be within range 800-999. If Principal Diagnosis
+    Code is 650 then any Other Diagnosis Code must not be within the ranges of 640-648
+    or 651-676. If Principal Diagnosis Code is 640-648 or 651- 658 then any Other
+    Diagnosis Code (fields 70-05 thru 70-12) must not equal 650.
+  allowed_values:
+  - Must be a valid ICD diagnosis code. Do not
+  - must be within range 800-999.
+  conditional_rules:
+  - If any diagnosis code indicates sex
+  - If Other Diagnosis is E800 - E929 or E950 -
+  - If Principal Diagnosis Code is 650 then any
+  - If Principal Diagnosis Code is 640-648 or 651-
+  formatting_notes: []
+  source_line: 1964
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_1
+- field_number: '07'
+  start_position: 40
+  end_position: 40
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 1
+  description: Present on Admission (POA) indicator for Other Diagnosis Code.1
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1988
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_1
+- field_number: 08
+  start_position: 41
+  end_position: 47
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 2
+  description: Refer to 70-06 Other Diagnosis Code 1. Must have a diagnosis code in
+    field 70-06.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1992
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_2
+- field_number: 09
+  start_position: 48
+  end_position: 48
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 2
+  description: Present on Admission (POA) indicator for Other Diagnosis Code 2.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1996
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_2
+- field_number: '10'
+  start_position: 49
+  end_position: 55
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 3
+  description: Refer to 70-06 Other Diagnosis Code 1. Must have a diagnosis code in
+    field 70-08.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2000
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_3
+- field_number: '11'
+  start_position: 56
+  end_position: 56
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 3
+  description: Present on Admission (POA) indicator for Other Diagnosis Code 3.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2004
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_3
+- field_number: '12'
+  start_position: 57
+  end_position: 63
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 4
+  description: Refer to 70-06 Other Diagnosis Code 1. Must have a diagnosis code in
+    field 70-10.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2008
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_4
+- field_number: '13'
+  start_position: 64
+  end_position: 64
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 4
+  description: Present on Admission (POA) indicator for Other Diagnosis Code 4
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2012
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_4
+- field_number: '14'
+  start_position: 65
+  end_position: 71
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Diagnosis Code 5
+  description: Refer to 70-06 Other Diagnosis Code 1. Must have a diagnosis code in
+    field 70-12.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2022
+  calculated_length: 7
+  canonical_name: other_diagnosis_code_5
+- field_number: '15'
+  start_position: 72
+  end_position: 72
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: POA Other Diagnosis Code 5
+  description: Present on Admission (POA) indicator for Other Diagnosis Code 5.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2026
+  calculated_length: 1
+  canonical_name: poa_other_diagnosis_code_5
+- field_number: '16'
+  start_position: 73
+  end_position: 79
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Principal Procedure Code
+  description: The principal procedure performed. Do not report the decimal as it
+    is implied. Must be a valid ICD-CM procedure code. If sex specific code is used,
+    sex must match sex of the patient in field 20-07 Patient Sex.
+  allowed_values:
+  - report the decimal as it is implied. Must be a
+  conditional_rules:
+  - valid ICD-CM procedure code. If sex specific
+  formatting_notes: []
+  source_line: 2030
+  calculated_length: 7
+  canonical_name: principal_procedure_code
+- field_number: '17'
+  start_position: 80
+  end_position: 87
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Principal Procedure Date
+  description: Date principal procedure was done. Must be valid date in CCYMMDD format.
+    Enter if Principal Procedure Code is entered. Date cannot be earlier than 20-17
+    Admission/Start of Care Date or later than 20-20 Statement Covers Period Thru
+    Date.
+  allowed_values:
+  - Date principal procedure was done. Must be
+  conditional_rules: []
+  formatting_notes:
+  - Date principal procedure was done. Must be
+  - valid date in CCYMMDD format. Enter if
+  - Principal Procedure Code is entered. Date
+  - Care Date or later than 20-20 Statement Covers
+  - Period Thru Date.
+  source_line: 2037
+  calculated_length: 8
+  canonical_name: principal_procedure_date
+- field_number: '18'
+  start_position: 88
+  end_position: 94
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 1
+  description: Procedure other than the principal procedure. Do not report the decimal
+    as it is implied. Must be a valid ICD procedure code. Enter if 70- 13 Principal
+    Procedure Code is reported. If procedure code indicates sex specificity then it
+    must match the sex of the patient in field 20-07.
+  allowed_values:
+  - Must be a valid ICD procedure code. Enter if 70-
+  conditional_rules:
+  - Must be a valid ICD procedure code. Enter if 70-
+  formatting_notes: []
+  source_line: 2045
+  calculated_length: 7
+  canonical_name: other_procedure_code_1
+- field_number: '19'
+  start_position: 95
+  end_position: 102
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 1
+  description: Date Other Procedure 1 was done. Must be valid date in CCYMMDD format.
+    Enter if 70-15 Other Procedure Code 1 is entered. Must not be earlier than 20-19
+    Statement Covers Period From Date or later than 20-20 Statement Covers Period
+    Thru Date.
+  allowed_values:
+  - Date Other Procedure 1 was done. Must be valid
+  conditional_rules:
+  - date in CCYMMDD format. Enter if 70-15 Other
+  formatting_notes:
+  - Date Other Procedure 1 was done. Must be valid
+  - date in CCYMMDD format. Enter if 70-15 Other
+  - Date or later than 20-20 Statement Covers
+  - Period Thru Date.
+  source_line: 2054
+  calculated_length: 8
+  canonical_name: other_procedure_date_1
+- field_number: '20'
+  start_position: 103
+  end_position: 109
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 2
+  description: Refer to 70-18 Other Procedure Code 1. Must have a code in field 70-18.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2062
+  calculated_length: 7
+  canonical_name: other_procedure_code_2
+- field_number: '21'
+  start_position: 110
+  end_position: 117
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 2
+  description: Date Other Procedure 2 was done. Must be a valid date in CCYMMDD format.
+    Enter if 70-17 Other Procedure Code 2 is entered.
+  allowed_values:
+  - Date Other Procedure 2 was done. Must be a
+  conditional_rules:
+  - valid date in CCYMMDD format. Enter if 70-17
+  formatting_notes:
+  - Date Other Procedure 2 was done. Must be a
+  - valid date in CCYMMDD format. Enter if 70-17
+  source_line: 2066
+  calculated_length: 8
+  canonical_name: other_procedure_date_2
+- field_number: '22'
+  start_position: 118
+  end_position: 124
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 3
+  description: Refer to 70-18 Other Procedure Code 1. Must have a code in field 70-20.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2071
+  calculated_length: 7
+  canonical_name: other_procedure_code_3
+- field_number: '23'
+  start_position: 125
+  end_position: 132
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 3
+  description: Date Other Procedure 3 was done. Must be valid date in CCYYMMDD format.
+    Must be entered if 70- 19 Other Procedure Code 3 is entered.
+  allowed_values:
+  - Date Other Procedure 3 was done. Must be valid
+  - date in CCYYMMDD format. Must be entered if 70-
+  conditional_rules:
+  - date in CCYYMMDD format. Must be entered if 70-
+  formatting_notes:
+  - Date Other Procedure 3 was done. Must be valid
+  - date in CCYYMMDD format. Must be entered if 70-
+  source_line: 2075
+  calculated_length: 8
+  canonical_name: other_procedure_date_3
+- field_number: '24'
+  start_position: 133
+  end_position: 139
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 4
+  description: Refer to 70-18 Other Procedure Code 1. Must have a code in field 70-22
+    .
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2080
+  calculated_length: 7
+  canonical_name: other_procedure_code_4
+- field_number: '25'
+  start_position: 140
+  end_position: 147
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 4
+  description: Date Other Procedure 4 was done. Must be valid date in CCYMMDD format.
+    Must be entered if 70- 21 Other Procedure Code 4 is entered.
+  allowed_values:
+  - Date Other Procedure 4 was done. Must be valid
+  - date in CCYMMDD format. Must be entered if 70-
+  conditional_rules:
+  - date in CCYMMDD format. Must be entered if 70-
+  formatting_notes:
+  - Date Other Procedure 4 was done. Must be valid
+  - date in CCYMMDD format. Must be entered if 70-
+  source_line: 2084
+  calculated_length: 8
+  canonical_name: other_procedure_date_4
+- field_number: '26'
+  start_position: 148
+  end_position: 154
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Other Procedure Code 5
+  description: Refer to 70-18 Other Procedure Code 1. Must have a code in field 70-24.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2089
+  calculated_length: 7
+  canonical_name: other_procedure_code_5
+- field_number: '27'
+  start_position: 155
+  end_position: 162
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Other Procedure Date 5
+  description: Date Other Procedure 5 was done. Must be a valid date in CCYMMDD format.
+    Must be entered if 70-23 Other Procedure Code 5 is entered.
+  allowed_values:
+  - Date Other Procedure 5 was done. Must be a
+  - valid date in CCYMMDD format. Must be entered
+  conditional_rules:
+  - if 70-23 Other Procedure Code 5 is entered.
+  formatting_notes:
+  - Date Other Procedure 5 was done. Must be a
+  - valid date in CCYMMDD format. Must be entered
+  source_line: 2093
+  calculated_length: 8
+  canonical_name: other_procedure_date_5
+- field_number: '28'
+  start_position: 163
+  end_position: 169
+  cobol_picture: X(7)
+  requirement_code: C
+  field_name: Admitting Diagnosis Code
+  description: The ICD diagnosis code provided at the time of admission. The reporting
+    of the decimal is unnecessary because it is implied.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2106
+  calculated_length: 7
+  canonical_name: admitting_diagnosis_code
+- field_number: '29'
+  start_position: 170
+  end_position: 176
+  cobol_picture: X(7)
+  requirement_code: O
+  field_name: External Cause of Injury Code (E-code)
+  description: The ICD code for the external cause of injury.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2111
+  calculated_length: 7
+  canonical_name: external_cause_of_injury_code_e_code
+- field_number: '30'
+  start_position: 177
+  end_position: 177
+  cobol_picture: 9(1)
+  requirement_code: C
+  field_name: Procedure Coding Method Used
+  description: 'Identifies the coding method used for procedure coding on this claim.
+    Must be entered if 70-13 Principal Procedure Code is entered. Values: 1 - 3 =
+    Reserved for State Assignment 4 = CPT-4 5 = HCPCS (HCFCA Common Procedure Coding
+    System) 6 - 8 = Reserved for National Assignment 9 = ICD-9-CM'
+  allowed_values:
+  - procedure coding on this claim. Must be entered
+  conditional_rules:
+  - if 70-13 Principal Procedure Code is entered.
+  formatting_notes: []
+  source_line: 2114
+  calculated_length: 1
+  canonical_name: procedure_coding_method_used
+- field_number: '31'
+  start_position: 178
+  end_position: 178
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: ICD Version Indicator
+  description: 'An indicator that denotes the version of the International Classification
+    of Diseases (ICD) Code Values: 0 = ICD-10 9 = ICD-9'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2126
+  calculated_length: 1
+  canonical_name: icd_version_indicator
+- field_number: '32'
+  start_position: 179
+  end_position: 192
+  cobol_picture: X(14)
+  requirement_code: N
+  field_name: Filler (National Use)
+  description: Unused record space.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2133
+  calculated_length: 14
+  canonical_name: filler_national_use

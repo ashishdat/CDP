@@ -1,0 +1,9 @@
+record_type: FB2
+record_name: Service Line Detail Medical Segment
+record_length: 320
+order: 17
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is not used for commercial claims.
+fields: []

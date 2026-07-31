@@ -1,0 +1,68 @@
+groups:
+  - name: idp-claims-platform
+    rules:
+      - alert: HighProcessingErrorRate
+        expr: rate(processing_errors_total[5m]) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated processing error rate ({{ $labels.worker }}/{{ $labels.stage }})"
+          description: >-
+            processing_errors_total is increasing faster than 0.05/s over 5m for
+            worker={{ $labels.worker }} stage={{ $labels.stage }}.
+
+      - alert: HighValidationFailureRate
+        expr: rate(validation_failure_total{criticality="CRITICAL"}[15m]) > 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated critical-field validation failure rate ({{ $labels.rule_name }})"
+          description: >-
+            Critical-field validation failures for rule={{ $labels.rule_name }} are
+            unusually frequent -- check for an upstream extraction or template
+            regression before assuming it's data quality.
+
+      - alert: LowStraightThroughRate
+        expr: straight_through_rate < 0.5
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Straight-through processing rate below 50%"
+          description: >-
+            Fewer than half of claims are completing without human review over the
+            current window -- investigate before review queue backlog grows.
+
+      - alert: KafkaConsumerLagGrowing
+        expr: kafka_consumer_lag > 500
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Consumer lag on {{ $labels.topic }} ({{ $labels.consumer_group }})"
+          description: >-
+            kafka_consumer_lag exceeds 500 for topic={{ $labels.topic }}
+            group={{ $labels.consumer_group }} -- check KEDA scaling
+            (deploy/keda) is actually adding replicas, not just failing to keep up.
+
+      - alert: UnexpectedVLMInvocations
+        expr: increase(vlm_invocation_total[1h]) > 0
+        labels:
+          severity: info
+        annotations:
+          summary: "VLM fallback was invoked"
+          description: >-
+            vlm_invocation_total increased -- expected only when VLM_ENABLED=true
+            AND cheaper extraction stages already failed for a field. If
+            VLM_ENABLED=false in this environment, this firing at all is a bug.
+
+      - alert: IngestionAPIDown
+        expr: up{service="ingestion-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ingestion API target down"
+          description: "Prometheus has not been able to scrape ingestion-api for 2m."

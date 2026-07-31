@@ -1,0 +1,32 @@
+schema_version: "1.0"
+reference_version_required: true
+sources:
+  eligibility_member_master:
+    lookup_keys: [member_id, payer_id]
+    verification_fields: [member_id, patient_name, patient_dob, postal_code]
+  provider_directory:
+    lookup_keys: [provider_npi, tax_id]
+    verification_fields: [provider_npi, provider_name, address]
+  previous_validated_claims:
+    lookup_keys: [member_id, patient_account_number]
+    verification_fields: [patient_name, patient_dob, postal_code, provider_npi]
+acceptance:
+  member_identity:
+    required_exact: [member_id, patient_dob]
+    fuzzy:
+      field: patient_name
+      minimum_similarity: 0.92
+    reject_on_contradiction: true
+  provider_identity:
+    required_exact: [provider_npi]
+    reject_on_contradiction: true
+prohibited:
+  - name_only_auto_accept
+  - evaluation_ground_truth_as_reference
+audit_fields:
+  - source_name
+  - reference_record_id
+  - reference_version
+  - matched_attributes
+  - contradictory_attributes
+  - evaluated_at

@@ -1,0 +1,490 @@
+record_type: FB0
+record_name: Medical Segment
+record_length: 320
+order: 15
+preceding_rules: []
+following_rules: []
+record_rules:
+- Required for Secondary Payer claims. Used to show amounts derived from the
+- primary payer EOB at the line item level. Fields FB0-06.0 through FB0-08.0
+- must be completed. There may be up to 99 FXX (ALL 'F' Records) per claim.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be FB0
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1787
+  calculated_length: 3
+  canonical_name: record_id_must_be_fb0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Sequence number of line detail record. Must have a matching FA0 record
+    segment.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1789
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1793
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 39
+  cobol_picture: X(17)
+  requirement_code: O
+  field_name: Line Item Control Number
+  description: Assigned by the submitter to this line item. May be blank. Must equal
+    the Line Item Control Number in preceding FA0 Record (FA0-04.0).
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1797
+  calculated_length: 17
+  canonical_name: line_item_control_number
+- field_number: '05.0'
+  start_position: 40
+  end_position: 46
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Purchase Service Charge - Not applicable
+  description: May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1803
+  calculated_length: 7
+  canonical_name: purchase_service_charge_not_applicable
+- field_number: '06.0'
+  start_position: 47
+  end_position: 53
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Allowed Amount
+  description: Amount allowed by a prior payer for this line item. Derived from the
+    EOB. Right justify, zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - item. Derived from the EOB. Right justify, zero
+  - fill.
+  source_line: 1806
+  calculated_length: 7
+  canonical_name: allowed_amount
+- field_number: '07.0'
+  start_position: 54
+  end_position: 60
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Deductible Amount
+  description: The amount applied to the deductible by a prior payer for this line
+    item. Derived from the EOB. Right justify, zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - EOB. Right justify, zero fill.
+  source_line: 1811
+  calculated_length: 7
+  canonical_name: deductible_amount
+- field_number: '08.0'
+  start_position: 61
+  end_position: 67
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Coinsurance Amount
+  description: The amount applied to the coinsurance by a prior payer for this line
+    item. Derived from the EOB. Right justify, zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - EOB. Right justify, zero fill.
+  source_line: 1816
+  calculated_length: 7
+  canonical_name: coinsurance_amount
+- field_number: '09.0'
+  start_position: 68
+  end_position: 82
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Ordering Provider Identification - Not used
+  description: May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1821
+  calculated_length: 15
+  canonical_name: ordering_provider_identification_not_used
+- field_number: '10.0'
+  start_position: 83
+  end_position: 84
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Ordering Provider State - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1824
+  calculated_length: 2
+  canonical_name: ordering_provider_state_not_used_may_be
+- field_number: '11.0'
+  start_position: 85
+  end_position: 99
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Purchase Service Provider ID - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1827
+  calculated_length: 15
+  canonical_name: purchase_service_provider_id_not_used_may
+- field_number: '12.0'
+  start_position: 100
+  end_position: 101
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Purchase Service State - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1830
+  calculated_length: 2
+  canonical_name: purchase_service_state_not_used_may_be
+- field_number: '13.0'
+  start_position: 102
+  end_position: 105
+  cobol_picture: 9(04)
+  requirement_code: N
+  field_name: PEN Grams Of Protein - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1833
+  calculated_length: 4
+  canonical_name: pen_grams_of_protein_not_used_may_be_blank
+- field_number: '14.0'
+  start_position: 106
+  end_position: 109
+  cobol_picture: 9(04)
+  requirement_code: N
+  field_name: PEN Calories - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1835
+  calculated_length: 4
+  canonical_name: pen_calories_not_used_may_be_blank
+- field_number: '15.0'
+  start_position: 110
+  end_position: 120
+  cobol_picture: X(11)
+  requirement_code: N
+  field_name: National Drug Code
+  description: When applicable for the procedure, enter the National Drug Code.
+  allowed_values: []
+  conditional_rules:
+  - When applicable for the procedure, enter the
+  formatting_notes: []
+  source_line: 1837
+  calculated_length: 11
+  canonical_name: national_drug_code
+- field_number: '16.0'
+  start_position: 121
+  end_position: 127
+  cobol_picture: 9(07)
+  requirement_code: N
+  field_name: National Drug Units - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1841
+  calculated_length: 7
+  canonical_name: national_drug_units_not_used_may_be_blank
+- field_number: '17.0'
+  start_position: 128
+  end_position: 142
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Prescription Number
+  description: 'Indicates the type of drug. May be blank. Code Values: Y = Prescription
+    Drug N = Over the Counter Drug D = Diabetic Supply S = Shipping Charge'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1843
+  calculated_length: 15
+  canonical_name: prescription_number
+- field_number: '18.0'
+  start_position: 143
+  end_position: 150
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Prescription Date - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1851
+  calculated_length: 8
+  canonical_name: prescription_date_not_used_may_be_blank
+- field_number: '19.0'
+  start_position: 151
+  end_position: 152
+  cobol_picture: 9(02)
+  requirement_code: N
+  field_name: Prescription Number Of Months - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1853
+  calculated_length: 2
+  canonical_name: prescription_number_of_months_not_used_may
+- field_number: '20.0'
+  start_position: 153
+  end_position: 153
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Special Pricing Indicator
+  description: Enter ‘G’ if the drug is a generic.
+  allowed_values: []
+  conditional_rules:
+  - Enter ‘G’ if the drug is a generic.
+  formatting_notes: []
+  source_line: 1862
+  calculated_length: 1
+  canonical_name: special_pricing_indicator
+- field_number: '21.0'
+  start_position: 154
+  end_position: 154
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Copay Status Indicator
+  description: 'Code to indicate if the Allowed Amount (FB0- 06.0) is due to a negotiated
+    rate. Values: Y = The allowed amount is a negotiated rate N = The allowed amount
+    is not a negotiated rate Blank = Unknown if the allowed amount is a negotiated
+    rate or not.'
+  allowed_values: []
+  conditional_rules:
+  - Code to indicate if the Allowed Amount (FB0-
+  - Blank = Unknown if the allowed amount is
+  formatting_notes: []
+  source_line: 1865
+  calculated_length: 1
+  canonical_name: copay_status_indicator
+- field_number: '22.0'
+  start_position: 155
+  end_position: 155
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: EPSDT Indicator (Medicaid)
+  description: Refer to NSF for information regarding this field.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to NSF for information regarding this
+  source_line: 1875
+  calculated_length: 1
+  canonical_name: epsdt_indicator_medicaid
+- field_number: '23.0'
+  start_position: 156
+  end_position: 156
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Family Planning Indicator (Medicaid) - Not
+  description: used. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1879
+  calculated_length: 1
+  canonical_name: family_planning_indicator_medicaid_not
+- field_number: '24.0'
+  start_position: 157
+  end_position: 157
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: DME Charge Indicator - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1882
+  calculated_length: 1
+  canonical_name: dme_charge_indicator_not_used_may_be_blank
+- field_number: '25.0'
+  start_position: 158
+  end_position: 172
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: HPSA Facility Identification - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1884
+  calculated_length: 15
+  canonical_name: hpsa_facility_identification_not_used_may
+- field_number: '26.0'
+  start_position: 173
+  end_position: 181
+  cobol_picture: X(09)
+  requirement_code: N
+  field_name: HPSA Facility Zip Code - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1887
+  calculated_length: 9
+  canonical_name: hpsa_facility_zip_code_not_used_may_be
+- field_number: '27.0'
+  start_position: 182
+  end_position: 214
+  cobol_picture: X(33)
+  requirement_code: N
+  field_name: Purchase Service Name - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1890
+  calculated_length: 33
+  canonical_name: purchase_service_name_not_used_may_be
+- field_number: '28.0'
+  start_position: 215
+  end_position: 244
+  cobol_picture: X(30)
+  requirement_code: N
+  field_name: Purchase Service Address 1 - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1893
+  calculated_length: 30
+  canonical_name: purchase_service_address_1_not_used_may_be
+- field_number: '29.0'
+  start_position: 245
+  end_position: 274
+  cobol_picture: X(30)
+  requirement_code: N
+  field_name: Purchase Service Address 2 - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1896
+  calculated_length: 30
+  canonical_name: purchase_service_address_2_not_used_may_be
+- field_number: '30.0'
+  start_position: 275
+  end_position: 294
+  cobol_picture: X(20)
+  requirement_code: N
+  field_name: Purchase Service City - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1899
+  calculated_length: 20
+  canonical_name: purchase_service_city_not_used_may_be
+- field_number: '31.0'
+  start_position: 295
+  end_position: 303
+  cobol_picture: X(09)
+  requirement_code: N
+  field_name: Purchase Service Zip - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1902
+  calculated_length: 9
+  canonical_name: purchase_service_zip_not_used_may_be_blank
+- field_number: '32.0'
+  start_position: 304
+  end_position: 313
+  cobol_picture: X(10)
+  requirement_code: N
+  field_name: Purchase Service Phone - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1904
+  calculated_length: 10
+  canonical_name: purchase_service_phone_not_used_may_be
+- field_number: '33.0'
+  start_position: 314
+  end_position: 316
+  cobol_picture: 9(03)
+  requirement_code: N
+  field_name: Drug Days Supply - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1907
+  calculated_length: 3
+  canonical_name: drug_days_supply_not_used_may_be_blank
+- field_number: '34.0'
+  start_position: 317
+  end_position: 318
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Filler – National - Unused reserved space for
+  description: National use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - National use. Blank fill.
+  source_line: 1909
+  calculated_length: 2
+  canonical_name: filler_national_unused_reserved_space_for
+- field_number: '35.0'
+  start_position: 319
+  end_position: 320
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Filler – Local - Unused reserved space for
+  description: Local use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Local use. Blank fill.
+  source_line: 1912
+  calculated_length: 2
+  canonical_name: filler_local_unused_reserved_space_for

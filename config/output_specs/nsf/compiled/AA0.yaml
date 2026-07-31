@@ -1,0 +1,435 @@
+record_type: AA0
+record_name: File Header Record - Submitter Data
+record_length: 320
+order: 0
+preceding_rules: []
+following_rules: []
+record_rules:
+- HA0 Extra Narrative Record 3
+- XA0 Claim Trailer Record 3
+- YA0 Batch Trailer Record 3
+- ZA0 File Trailer Record 3
+- Appendix - United HealthCare Commercial Provider Specialty Codes 3
+- 'Legend:'
+- R = REQUIRED
+- C = CONDITIONAL
+- O = OPTIONAL
+- N = NOT USED/ NOT APPLICABLE
+- This record is required for every submission.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: RECORD ID - Must be AA0
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 89
+  calculated_length: 3
+  canonical_name: record_id_must_be_aa0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 19
+  cobol_picture: X(16)
+  requirement_code: R
+  field_name: Submitter Id - Nine digits
+  description: Submitter ID assigned by UnitedHealthcare. Must equal Submitter ID
+    in Record ZA0- 02.0. See "General Instructions". Left justify, blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - '"General Instructions". Left justify, blank'
+  - fill.
+  source_line: 91
+  calculated_length: 16
+  canonical_name: submitter_id_nine_digits
+- field_number: '03.0'
+  start_position: 20
+  end_position: 28
+  cobol_picture: X(09)
+  requirement_code: N
+  field_name: Reserved record space - Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 97
+  calculated_length: 9
+  canonical_name: reserved_record_space_blank_fill
+- field_number: '04.0'
+  start_position: 29
+  end_position: 34
+  cobol_picture: X(06)
+  requirement_code: R
+  field_name: Submission Type
+  description: Identifies Input Medium or Method Used to submit claims. Async BISYNC
+    RJE SYNC TAPE CPU ASY BSY RJE NDM TPCRTG CPU ASY003 BSY024 RJE024 TP0800 ASY012
+    BSY048 RJE048 TP1600 ASY024 BSY096 RJE096 TP6250 ASY048 BSY192 RJE192 ASY096 Diskette
+    SCANNER DSK8SS DSK5SS DSK3SS SCN DSK8SD DSK5SD DSK3SD SCNOCR DSK8DD DSK5DD DSK3DD
+    SCNICR DSK5HD DSK3HD
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 99
+  calculated_length: 6
+  canonical_name: submission_type
+- field_number: '05.0'
+  start_position: 35
+  end_position: 40
+  cobol_picture: X(06)
+  requirement_code: R
+  field_name: Submission Number
+  description: The inventory file number assigned by the submitter. Must be unique
+    for every new file submitted.
+  allowed_values:
+  - submitter. Must be unique for every new file
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 120
+  calculated_length: 6
+  canonical_name: submission_number
+- field_number: '06.0'
+  start_position: 41
+  end_position: 73
+  cobol_picture: X(33)
+  requirement_code: O
+  field_name: Submitter Name
+  description: Vendor Name that inquiries regarding this file should be directed to.
+    See "General Instructions" for Name 2 entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 125
+  calculated_length: 33
+  canonical_name: submitter_name
+- field_number: '07.0'
+  start_position: 74
+  end_position: 103
+  cobol_picture: X(30)
+  requirement_code: O
+  field_name: Submitter Street Address 1
+  description: Mailing address of above Vendor. See "General Instructions" for Address
+    entry. May be blank
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 130
+  calculated_length: 30
+  canonical_name: submitter_street_address_1
+- field_number: '08.0'
+  start_position: 104
+  end_position: 133
+  cobol_picture: X(30)
+  requirement_code: O
+  field_name: Submitter Street Address 2
+  description: See "General Instructions" for Address entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 134
+  calculated_length: 30
+  canonical_name: submitter_street_address_2
+- field_number: '09.0'
+  start_position: 134
+  end_position: 153
+  cobol_picture: X(20)
+  requirement_code: O
+  field_name: Submitter City
+  description: See "General Instructions" for Address entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 138
+  calculated_length: 20
+  canonical_name: submitter_city
+- field_number: '10.0'
+  start_position: 154
+  end_position: 155
+  cobol_picture: X(02)
+  requirement_code: O
+  field_name: Submitter State
+  description: See "General Instructions" for Address entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 142
+  calculated_length: 2
+  canonical_name: submitter_state
+- field_number: '11.0'
+  start_position: 156
+  end_position: 164
+  cobol_picture: X(09)
+  requirement_code: O
+  field_name: Submitter Zip Code
+  description: See "General Instructions" for Address entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 146
+  calculated_length: 9
+  canonical_name: submitter_zip_code
+- field_number: '12.0'
+  start_position: 165
+  end_position: 169
+  cobol_picture: X(05)
+  requirement_code: N
+  field_name: Submitter Region - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 150
+  calculated_length: 5
+  canonical_name: submitter_region_not_used_blank_fill
+- field_number: '13.0'
+  start_position: 170
+  end_position: 202
+  cobol_picture: X(33)
+  requirement_code: O
+  field_name: Submitter Contact
+  description: Name of person to be contacted for issues concerning this submission.
+    May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 152
+  calculated_length: 33
+  canonical_name: submitter_contact
+- field_number: '14.0'
+  start_position: 203
+  end_position: 212
+  cobol_picture: X(10)
+  requirement_code: O
+  field_name: Submitter Telephone Number
+  description: Telephone number for the above contact. See "General Instructions"
+    for Telephone entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 162
+  calculated_length: 10
+  canonical_name: submitter_telephone_number
+- field_number: '15.0'
+  start_position: 213
+  end_position: 220
+  cobol_picture: X(08)
+  requirement_code: R
+  field_name: Creation Date
+  description: Date file was created. Must not be later than date file is received
+    by payer. Must be a valid date. See "General Instructions" for date entry.
+  allowed_values:
+  - date file is received by payer. Must be a valid
+  conditional_rules: []
+  formatting_notes:
+  - Date file was created. Must not be later than
+  - date file is received by payer. Must be a valid
+  - date. See "General Instructions" for date entry.
+  source_line: 167
+  calculated_length: 8
+  canonical_name: creation_date
+- field_number: '16.0'
+  start_position: 221
+  end_position: 226
+  cobol_picture: X(06)
+  requirement_code: R
+  field_name: Submission Time
+  description: The time file is submitted. HHMMSS (Military Time). May not be blank
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 172
+  calculated_length: 6
+  canonical_name: submission_time
+- field_number: '17.0'
+  start_position: 227
+  end_position: 242
+  cobol_picture: X(16)
+  requirement_code: R
+  field_name: Receiver Identification
+  description: See "General Instructions" for ID number entry. Must equal Receiver
+    ID in ZA0.04.0. Left justify, blank fill. 87726 = United HealthCare.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - justify, blank fill. 87726 = United HealthCare.
+  source_line: 176
+  calculated_length: 16
+  canonical_name: receiver_identification
+- field_number: '18.0'
+  start_position: 243
+  end_position: 243
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Receiver Type Code
+  description: Indicates organization designated to receive this file. F = Insurance
+    Company. Must Be Entered.
+  allowed_values:
+  - this file. F = Insurance Company. Must Be
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 183
+  calculated_length: 1
+  canonical_name: receiver_type_code
+- field_number: '19.0'
+  start_position: 244
+  end_position: 248
+  cobol_picture: 9(03)V99
+  requirement_code: R
+  field_name: Version Code - National
+  description: 'Specific National version being used. Format: 999V99. Decimal is implied.
+    Must enter 00215. No decimal.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - 'Specific National version being used. Format:'
+  source_line: 188
+  calculated_length: 5
+  canonical_name: version_code_national
+- field_number: '20.0'
+  start_position: 249
+  end_position: 253
+  cobol_picture: 9(09)V99
+  requirement_code: R
+  field_name: Version Code - Local
+  description: 'Specific Local version being used. Format: 999V99. Decimal is implied.
+    Must enter 00215. No decimal.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - 'Specific Local version being used. Format:'
+  source_line: 193
+  calculated_length: 5
+  canonical_name: version_code_local
+- field_number: '21.0'
+  start_position: 254
+  end_position: 257
+  cobol_picture: X(04)
+  requirement_code: R
+  field_name: Test/Production Indicator
+  description: 'Code Values: Test = File for test. Test Submitter ID required. Prod
+    = File should be run through production system.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 198
+  calculated_length: 4
+  canonical_name: test_production_indicator
+- field_number: '22.0'
+  start_position: 258
+  end_position: 265
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Password - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 205
+  calculated_length: 8
+  canonical_name: password_not_used_blank_fill
+- field_number: '23.0'
+  start_position: 266
+  end_position: 266
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Retransmission Status - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 207
+  calculated_length: 1
+  canonical_name: retransmission_status_not_used_blank_fill
+- field_number: '24.0'
+  start_position: 267
+  end_position: 282
+  cobol_picture: X(16)
+  requirement_code: N
+  field_name: Original Submitter ID - Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 209
+  calculated_length: 16
+  canonical_name: original_submitter_id_blank_fill
+- field_number: '25.0'
+  start_position: 283
+  end_position: 283
+  cobol_picture: X(01)
+  requirement_code: O
+  field_name: Vendor Application Category
+  description: The application category to identify the category the vendor's software
+    that created this file applies to. For example, Medicare Part B, Medicare Durable
+    Medical Equipment Regional Center, Medicaid, commercial, etc. Commercial = "C".
+    May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 211
+  calculated_length: 1
+  canonical_name: vendor_application_category
+- field_number: '26.0'
+  start_position: 284
+  end_position: 288
+  cobol_picture: X(05)
+  requirement_code: O
+  field_name: Vendor Software Version
+  description: The version of the software package that was used to create this file.
+    May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 219
+  calculated_length: 5
+  canonical_name: vendor_software_version
+- field_number: '27.0'
+  start_position: 289
+  end_position: 290
+  cobol_picture: X(02)
+  requirement_code: O
+  field_name: Vendor Software Update
+  description: The update number of the version of software used to create this file.
+    May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - The update number of the version of software
+  source_line: 223
+  calculated_length: 2
+  canonical_name: vendor_software_update
+- field_number: '28.0'
+  start_position: 291
+  end_position: 292
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Filler – National - Unused record space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 227
+  calculated_length: 2
+  canonical_name: filler_national_unused_record_space_blank
+- field_number: '29.0'
+  start_position: 293
+  end_position: 320
+  cobol_picture: X(28)
+  requirement_code: N
+  field_name: Filler – Local - Unused record space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 230
+  calculated_length: 28
+  canonical_name: filler_local_unused_record_space_blank

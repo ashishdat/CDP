@@ -1,0 +1,381 @@
+record_type: DA1
+record_name: Insurance Information Payer Data 2
+record_length: 320
+order: 7
+preceding_rules: []
+following_rules: []
+record_rules:
+- A DA1 record is required for every payer who has received and/or processed
+- the claim prior to this submission.
+- A claim may have up to three DA1 records. Each must have a corresponding
+- DA0 record. Provides the EOB/ remittance information from primary payer to
+- secondary and tertiary payer.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must equal DA1
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 822
+  calculated_length: 3
+  canonical_name: record_id_must_equal_da1
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Sequence Number
+  description: 'Used to sequence DA1 records and relate DA1 records with DA0 and DA2
+    records. Must equal: 01 = UHG Payer Record 02 = Medicare Payer Record or Primary
+    OI Payer Record 03 = OI or Secondary OI Payer Record'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 824
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 832
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 52
+  cobol_picture: X(30)
+  requirement_code: O
+  field_name: Payer Address Line 1
+  description: See General Instructions for address. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 836
+  calculated_length: 30
+  canonical_name: payer_address_line_1
+- field_number: '05.0'
+  start_position: 53
+  end_position: 82
+  cobol_picture: X(30)
+  requirement_code: O
+  field_name: Payer Address Line 2
+  description: See General Instructions for address. May be blank
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 840
+  calculated_length: 30
+  canonical_name: payer_address_line_2
+- field_number: '06.0'
+  start_position: 83
+  end_position: 102
+  cobol_picture: X(20)
+  requirement_code: O
+  field_name: Payer City
+  description: See General Instructions for address. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 844
+  calculated_length: 20
+  canonical_name: payer_city
+- field_number: '07.0'
+  start_position: 103
+  end_position: 104
+  cobol_picture: X(02)
+  requirement_code: O
+  field_name: Payer State
+  description: See General Instructions for address. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 848
+  calculated_length: 2
+  canonical_name: payer_state
+- field_number: '08.0'
+  start_position: 105
+  end_position: 113
+  cobol_picture: X(09)
+  requirement_code: O
+  field_name: Payer Zip Code
+  description: See General Instructions for address. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 852
+  calculated_length: 9
+  canonical_name: payer_zip_code
+- field_number: '09.0'
+  start_position: 114
+  end_position: 120
+  cobol_picture: 9(05)V99
+  requirement_code: C
+  field_name: Disallowed Cost Containment Amount
+  description: Enter from Explanation of Benefits (EOB). Must be a positive, unsigned
+    number. Right justify. Zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - be a positive, unsigned number. Right justify.
+  - Zero fill. May not be blank.
+  source_line: 856
+  calculated_length: 7
+  canonical_name: disallowed_cost_containment_amount
+- field_number: '10.0'
+  start_position: 121
+  end_position: 127
+  cobol_picture: 9(05)V99
+  requirement_code: C
+  field_name: Disallowed Other Amount
+  description: Enter from Explanation of Benefits (EOB). Must be a positive, unsigned
+    number. Right justify. Zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - be a positive, unsigned number. Right justify.
+  - Zero fill. May not be blank.
+  source_line: 861
+  calculated_length: 7
+  canonical_name: disallowed_other_amount
+- field_number: '11.0'
+  start_position: 128
+  end_position: 134
+  cobol_picture: 9(05)V99
+  requirement_code: C
+  field_name: Allowed Amount
+  description: Enter from Explanation of Benefits (EOB). Must be a positive, unsigned
+    number. Right justify. Zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - be a positive, unsigned number. Right justify.
+  - Zero fill. May not be blank.
+  source_line: 866
+  calculated_length: 7
+  canonical_name: allowed_amount
+- field_number: '12.0'
+  start_position: 135
+  end_position: 141
+  cobol_picture: 9(05)V99
+  requirement_code: C
+  field_name: Deductible Amount
+  description: Enter from Explanation of Benefits (EOB). Must be a positive, unsigned
+    number. Right justify. Zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - be a positive, unsigned number. Right justify.
+  - Zero fill. May not be blank.
+  source_line: 871
+  calculated_length: 7
+  canonical_name: deductible_amount
+- field_number: '13.0'
+  start_position: 142
+  end_position: 148
+  cobol_picture: 9(05)V99
+  requirement_code: C
+  field_name: Coinsurance Amount
+  description: Enter from Explanation of Benefits (EOB). Must be a positive, unsigned
+    number. Right justify. Zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - be a positive, unsigned number. Right justify.
+  - Zero fill. May not be blank.
+  source_line: 876
+  calculated_length: 7
+  canonical_name: coinsurance_amount
+- field_number: '14.0'
+  start_position: 149
+  end_position: 155
+  cobol_picture: 9(05)V99
+  requirement_code: C
+  field_name: Payer Paid Amount
+  description: Enter from Explanation of Benefits (EOB). Must be a positive, unsigned
+    number. Right justify. Zero fill. May not be blank.
+  allowed_values:
+  - Must be a positive, unsigned number. Right
+  conditional_rules: []
+  formatting_notes:
+  - justify. Zero fill. May not be blank.
+  source_line: 881
+  calculated_length: 7
+  canonical_name: payer_paid_amount
+- field_number: '15.0'
+  start_position: 156
+  end_position: 156
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: Zero Payment Indicator - Not used. May be
+  description: 'blank. If used, values are: Z = Zero payment, N = Payment greater
+    than zero'
+  allowed_values: []
+  conditional_rules:
+  - 'If used, values are: Z = Zero payment, N ='
+  formatting_notes: []
+  source_line: 886
+  calculated_length: 1
+  canonical_name: zero_payment_indicator_not_used_may_be
+- field_number: '16.0'
+  start_position: 157
+  end_position: 158
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Adjudication Indicator 1 - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 896
+  calculated_length: 2
+  canonical_name: adjudication_indicator_1_not_used_may_be
+- field_number: '17.0'
+  start_position: 159
+  end_position: 160
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Adjudication Indicator 2 - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 899
+  calculated_length: 2
+  canonical_name: adjudication_indicator_2_not_used_may_be
+- field_number: '18.0'
+  start_position: 161
+  end_position: 162
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Adjudication Indicator 3 - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 902
+  calculated_length: 2
+  canonical_name: adjudication_indicator_3_not_used_may_be
+- field_number: '19.0'
+  start_position: 163
+  end_position: 163
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Champus Sponsor Branch - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 905
+  calculated_length: 1
+  canonical_name: champus_sponsor_branch_not_used_may_be
+- field_number: '20.0'
+  start_position: 164
+  end_position: 165
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Champus Sponsor Grade - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 908
+  calculated_length: 2
+  canonical_name: champus_sponsor_grade_not_used_may_be
+- field_number: '21.0'
+  start_position: 166
+  end_position: 166
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Champus Sponsor Status - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 911
+  calculated_length: 1
+  canonical_name: champus_sponsor_status_not_used_may_be
+- field_number: '22.0'
+  start_position: 167
+  end_position: 174
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Insurance Card Effective Date - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 914
+  calculated_length: 8
+  canonical_name: insurance_card_effective_date_not_used_may
+- field_number: '23.0'
+  start_position: 175
+  end_position: 182
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Insurance Card Termination Date - Not used
+  description: May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 917
+  calculated_length: 8
+  canonical_name: insurance_card_termination_date_not_used
+- field_number: '24.0'
+  start_position: 183
+  end_position: 189
+  cobol_picture: 9(05)V99
+  requirement_code: O
+  field_name: Balance Due/Patient Responsibility
+  description: Amount. Enter from the Explanation of Benefits (EOB). Must be a positive,
+    unsigned number. May be blank.
+  allowed_values:
+  - Must be a positive, unsigned number. May be
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 920
+  calculated_length: 7
+  canonical_name: balance_due_patient_responsibility
+- field_number: '25.0'
+  start_position: 190
+  end_position: 252
+  cobol_picture: X(63)
+  requirement_code: N
+  field_name: Filler – National - Unused record space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 926
+  calculated_length: 63
+  canonical_name: filler_national_unused_record_space_blank
+- field_number: '26.0'
+  start_position: 253
+  end_position: 312
+  cobol_picture: X(60)
+  requirement_code: N
+  field_name: Filler – Local - Unused record space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 929
+  calculated_length: 60
+  canonical_name: filler_local_unused_record_space_blank

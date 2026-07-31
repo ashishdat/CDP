@@ -1,0 +1,9 @@
+record_type: GD1
+record_name: Narrative Information for DME
+record_length: 320
+order: 23
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is not used for commercial claims.
+fields: []

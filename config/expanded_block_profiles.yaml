@@ -1,0 +1,10 @@
+schema_version: "1"
+profiles:
+  cms1500_patient_name:
+    normalized_bbox: [0.035, 0.015, 0.36, 0.04]
+    expansions: [standard, wider_horizontal, full_block]
+    max_neighbor_overlap: 0.05
+  cms1500_insured_address:
+    normalized_bbox: [0.59, 0.035, 0.91, 0.125]
+    expansions: [standard, wider_horizontal, full_block, local_alignment]
+    max_neighbor_overlap: 0.05

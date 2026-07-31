@@ -1,0 +1,297 @@
+record_type: '80'
+record_name: Physician Data 46
+record_length: 192
+order: 25
+preceding_rules:
+- ▪ Preceding record type 70 or 78.
+following_rules:
+- ▪ Following record types 80 or 90.
+record_rules:
+- ▪ Record Type 80 is desirable, but not required.
+- ▪ The sequence number for Record Type 80 can be 01 - 03. The 01 Sequence
+- is always for the UHG payer. If the secondary payer uses a different
+- physician ID from the primary payer, the secondary’s payer ID number is
+- used on the 02 sequence. If the tertiary uses different physician ID
+- numbers from the primary and secondary, then the 03 sequence is used.
+- All sequences must match those on Record Type 30.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘80’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2389
+  calculated_length: 2
+  canonical_name: record_type_must_be_80
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must equal 01 - 03 and have a matching Record Type 30 Sequence.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2391
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must be equal to the preceding 20-03 Patient Control Number.
+  allowed_values:
+  - Must be equal to the preceding 20-03 Patient
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2395
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 26
+  cobol_picture: X(2)
+  requirement_code: O
+  field_name: Physician Number Qualifying Codes
+  description: 'The type of ID Number in the physician ID number fields. Code Values:
+    UP = UPIN FI = Federal Taxpayer’s Identification Number SL = State License Number
+    SP = Specialty License Number'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2399
+  calculated_length: 2
+  canonical_name: physician_number_qualifying_codes
+- field_number: '05'
+  start_position: 27
+  end_position: 42
+  cobol_picture: X(16)
+  requirement_code: O
+  field_name: Attending Physician Identifier
+  description: ID number of the Attending physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2408
+  calculated_length: 16
+  canonical_name: attending_physician_identifier
+- field_number: '06'
+  start_position: 43
+  end_position: 58
+  cobol_picture: X(16)
+  requirement_code: O
+  field_name: Operating Physician Identifier
+  description: The identification number of the operating physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2411
+  calculated_length: 16
+  canonical_name: operating_physician_identifier
+- field_number: '07'
+  start_position: 59
+  end_position: 74
+  cobol_picture: X(16)
+  requirement_code: O
+  field_name: Other Physician Identifier
+  description: The ID number of the licensed physician, other than the attending.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2415
+  calculated_length: 16
+  canonical_name: other_physician_identifier
+- field_number: 08
+  start_position: 75
+  end_position: 90
+  cobol_picture: X(16)
+  requirement_code: O
+  field_name: Other Physician Identifier
+  description: The ID number of the licensed physician, other than the attending.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2419
+  calculated_length: 16
+  canonical_name: other_physician_identifier
+- field_number: 09
+  start_position: 91
+  end_position: 106
+  cobol_picture: X(16)
+  requirement_code: O
+  field_name: Attending Physician Last Name
+  description: The last name of the attending physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2423
+  calculated_length: 16
+  canonical_name: attending_physician_last_name
+- field_number: '10'
+  start_position: 107
+  end_position: 114
+  cobol_picture: X(8)
+  requirement_code: O
+  field_name: Attending Physician First Name
+  description: The first name of the attending physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2426
+  calculated_length: 8
+  canonical_name: attending_physician_first_name
+- field_number: '11'
+  start_position: 115
+  end_position: 115
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: Attending Physician Middle Initial
+  description: The middle initial of the attending physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2429
+  calculated_length: 1
+  canonical_name: attending_physician_middle_initial
+- field_number: '12'
+  start_position: 116
+  end_position: 131
+  cobol_picture: X(16)
+  requirement_code: O
+  field_name: Operating Physician Last Name
+  description: The last name of the operating physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2433
+  calculated_length: 16
+  canonical_name: operating_physician_last_name
+- field_number: '13'
+  start_position: 132
+  end_position: 139
+  cobol_picture: X(8)
+  requirement_code: O
+  field_name: Operating Physician First Name
+  description: The first name of the operating physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2436
+  calculated_length: 8
+  canonical_name: operating_physician_first_name
+- field_number: '14'
+  start_position: 140
+  end_position: 140
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: Operating Physician Middle Initial
+  description: The middle initial of the operating physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2439
+  calculated_length: 1
+  canonical_name: operating_physician_middle_initial
+- field_number: '15'
+  start_position: 141
+  end_position: 156
+  cobol_picture: X(16)
+  requirement_code: O
+  field_name: Other Physician Last Name
+  description: The last name of the other physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2443
+  calculated_length: 16
+  canonical_name: other_physician_last_name
+- field_number: '16'
+  start_position: 157
+  end_position: 164
+  cobol_picture: X(8)
+  requirement_code: O
+  field_name: Other Physician First Name
+  description: The first name of the other physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2446
+  calculated_length: 8
+  canonical_name: other_physician_first_name
+- field_number: '17'
+  start_position: 165
+  end_position: 165
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: Other Physician Middle Initial
+  description: The middle initial of the operating physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2453
+  calculated_length: 1
+  canonical_name: other_physician_middle_initial
+- field_number: '18'
+  start_position: 166
+  end_position: 181
+  cobol_picture: X(16)
+  requirement_code: O
+  field_name: Other Physician Last Name
+  description: The last name of the other physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2458
+  calculated_length: 16
+  canonical_name: other_physician_last_name
+- field_number: '19'
+  start_position: 182
+  end_position: 189
+  cobol_picture: X(8)
+  requirement_code: O
+  field_name: Other Physician First Name
+  description: The first name of the other physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2461
+  calculated_length: 8
+  canonical_name: other_physician_first_name
+- field_number: '20'
+  start_position: 190
+  end_position: 190
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: Other Physician Middle Initial
+  description: The middle initial of the operating physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2464
+  calculated_length: 1
+  canonical_name: other_physician_middle_initial
+- field_number: '21'
+  start_position: 191
+  end_position: 192
+  cobol_picture: X(2)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2469
+  calculated_length: 2
+  canonical_name: filler_national_use_unused_record_space

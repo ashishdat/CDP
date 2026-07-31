@@ -1,0 +1,13 @@
+schema_version: "1"
+fields:
+  cms1500_relationship:
+    options:
+      SELF: [68, 22, 93, 49]
+      SPOUSE: [168, 22, 195, 49]
+      CHILD: [246, 22, 273, 49]
+      OTHER: [345, 22, 373, 49]
+    minimum_score: 0.08
+    minimum_margin: 0.04
+    multiple_selection_threshold: 0.10
+    border_inset: 3
+    output_codes: {SELF: "01", SPOUSE: "02", CHILD: "19", OTHER: "G8"}

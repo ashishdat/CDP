@@ -1,0 +1,127 @@
+# NSF Record Type BA1 -- Batch Header Record "Provider Data 2".
+# Transcribed from "NSF Matrix Version 2 15 - June 2013.doc". Required for
+# every commercial claim submission; exactly one BA1 per batch.
+record_type: BA1
+record_length: 320
+fields:
+  - field_name: record_id
+    start_position: 1
+    length: 3
+    data_type: string
+    required: true
+    default: "BA1"
+  - field_name: emc_provider_id
+    start_position: 4
+    length: 15
+    data_type: string
+    required: true
+    source_field: provider_tax_id
+  - field_name: batch_type
+    start_position: 19
+    length: 3
+    data_type: string
+    required: false
+    default: ""
+  - field_name: batch_number
+    start_position: 22
+    length: 4
+    data_type: numeric
+    padding_character: "0"
+    required: true
+    source_field: null
+  - field_name: batch_identification
+    start_position: 26
+    length: 6
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_type_organization
+    start_position: 32
+    length: 3
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_service_address_1
+    start_position: 35
+    length: 30
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: provider_service_address_2
+    start_position: 65
+    length: 30
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_service_city
+    start_position: 95
+    length: 20
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: provider_service_state
+    start_position: 115
+    length: 2
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: provider_service_zip
+    start_position: 117
+    length: 9
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: provider_service_telephone
+    start_position: 126
+    length: 10
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: provider_pay_to_address_1
+    start_position: 136
+    length: 30
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_pay_to_address_2
+    start_position: 166
+    length: 30
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_pay_to_city
+    start_position: 196
+    length: 20
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_pay_to_state
+    start_position: 216
+    length: 2
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_pay_to_zip
+    start_position: 218
+    length: 9
+    data_type: string
+    required: false
+    default: ""
+  - field_name: provider_pay_to_telephone
+    start_position: 227
+    length: 10
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_national
+    start_position: 237
+    length: 42
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_local
+    start_position: 279
+    length: 42
+    data_type: string
+    required: false
+    default: ""

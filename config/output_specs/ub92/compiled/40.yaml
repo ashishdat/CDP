@@ -1,0 +1,447 @@
+record_type: '40'
+record_name: Claim Data Tan-Occurrence 20
+record_length: 192
+order: 9
+preceding_rules:
+- ◆ Preceding record types 30, 31 or 40
+following_rules:
+- '◆ Following record types: 40 or 41 (inpatient); 40, 41, 46, or 61'
+record_rules:
+- ◆ Record Type 40 is required. Must be at least one RT 40 per claim. There
+- may be up to 99 RT 40 per claim
+- (outpatient)
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘40’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 983
+  calculated_length: 2
+  canonical_name: record_type_must_be_40
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be equal to 01 through 99.
+  allowed_values:
+  - Must be equal to 01 through 99.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 985
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must be equal to the preceding 20-03 Patient Control Number.
+  allowed_values:
+  - Must be equal to the preceding 20-03 Patient
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 988
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 27
+  cobol_picture: 9(3)
+  requirement_code: R
+  field_name: Type of Bill
+  description: 'Indicates the type of bill. Must equal the preceding 10-02 Type of
+    Batch. See Exhibit # 3 Batch and Bill Type Codes.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 992
+  calculated_length: 3
+  canonical_name: type_of_bill
+- field_number: '05'
+  start_position: 28
+  end_position: 45
+  cobol_picture: X(18)
+  requirement_code: N
+  field_name: Treatment Authorization Code-A - Not used
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 997
+  calculated_length: 18
+  canonical_name: treatment_authorization_code_a_not_used
+- field_number: '06'
+  start_position: 46
+  end_position: 63
+  cobol_picture: X(18)
+  requirement_code: N
+  field_name: Treatment Authorization Code-B - Not used
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 1000
+  calculated_length: 18
+  canonical_name: treatment_authorization_code_b_not_used
+- field_number: '07'
+  start_position: 64
+  end_position: 81
+  cobol_picture: X(18)
+  requirement_code: N
+  field_name: Treatment Authorization Code-C - Not used
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 1003
+  calculated_length: 18
+  canonical_name: treatment_authorization_code_c_not_used
+- field_number: 08
+  start_position: 82
+  end_position: 83
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Occurrence Code -1
+  description: 'Defines an event relating to this bill that may affect processing.
+    All Occurrence Codes must be valid two characters, entered in alphanumeric sequence.
+    See Exhibit # 5 for valid values and definitions. If 70-04 Principal Diagnosis
+    Code is equal to 80000 thru 99999 then an Accident Occurrence Code of 01 thru
+    06 is required. If 70-04 Principal Diagnosis Code equals 63000 - 67500, V2200,
+    V2300 or V2400, then Occurrence Code 10, “Last Menstrual Period” is required If
+    Occurrence Code 20, 21, 22, or 26 is reported then 40-04 Type of Bill, 2nd digit
+    must be 1 (inpatient). If Occurrence Code 40 is reported then Occurrence Code
+    41 is required and 40-04 Type of Bill, 2nd digit must be 3 (outpatient). If Occurrence
+    Code 41 is reported then Occurrence Code 40 is required and 40-04 Type of Bill,
+    2nd digit must be 3 (outpatient).'
+  allowed_values:
+  - must be valid two characters, entered in
+  - valid values and definitions.
+  - must be 1 (inpatient).
+  - of Bill, 2nd digit must be 3 (outpatient).
+  - of Bill, 2nd digit must be 3 (outpatient).
+  conditional_rules:
+  - If 70-04 Principal Diagnosis Code is equal to
+  - If 70-04 Principal Diagnosis Code equals 63000
+  - If Occurrence Code 20, 21, 22, or 26 is
+  - If Occurrence Code 40 is reported then
+  - If Occurrence Code 41 is reported then
+  formatting_notes: []
+  source_line: 1006
+  calculated_length: 2
+  canonical_name: occurrence_code_1
+- field_number: 09
+  start_position: 84
+  end_position: 91
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Date - 1
+  description: The date associated with the Occurrence Code in the preceding field.
+    Must be a valid date and in CCYYMMDD format. Date for Occurrence Codes 01 -06,
+    10, 11 or 12 must be less than or equal to 20-19 Statement Covers Period From
+    Date. Date for Occurrence Code 10 must not be less than 20-19 Statement Covers
+    Period From Date minus one year. Date for Occurrence Code 20 cannot be greater
+    than 20-17 Admission/ Start Of Care plus six working days. Date for Occurrence
+    Code 21 cannot be greater than 20-20 Statement Thru Date or less than 20- 19 Statement
+    From Date minus three days. Date for Occurrence Code 41 must be within seven days
+    of date for Occurrence Code 40.
+  allowed_values:
+  - in the preceding field. Must be a valid date
+  - must be less than or equal to 20-19 Statement
+  - Date for Occurrence Code 41 must be within
+  conditional_rules: []
+  formatting_notes:
+  - The date associated with the Occurrence Code
+  - in the preceding field. Must be a valid date
+  - and in CCYYMMDD format.
+  - Date for Occurrence Codes 01 -06, 10, 11 or 12
+  - Covers Period From Date.
+  - Date for Occurrence Code 10 must not be less
+  - than 20-19 Statement Covers Period From Date
+  - Date for Occurrence Code 20 cannot be greater
+  - Date for Occurrence Code 21 cannot be greater
+  - than 20-20 Statement Thru Date or less than 20-
+  - 19 Statement From Date minus three days.
+  - Date for Occurrence Code 41 must be within
+  - seven days of date for Occurrence Code 40.
+  source_line: 1033
+  calculated_length: 8
+  canonical_name: occurrence_date_1
+- field_number: '10'
+  start_position: 92
+  end_position: 93
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Occurrence Code - 2
+  description: Refer to 40-08 Occurrence Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1057
+  calculated_length: 2
+  canonical_name: occurrence_code_2
+- field_number: '11'
+  start_position: 94
+  end_position: 101
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Date - 2
+  description: Refer to 40-09 Occurrence Date -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 40-09 Occurrence Date -1.
+  source_line: 1066
+  calculated_length: 8
+  canonical_name: occurrence_date_2
+- field_number: '12'
+  start_position: 102
+  end_position: 103
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Occurrence Code - 3
+  description: Refer to 40-08 Occurrence Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1069
+  calculated_length: 2
+  canonical_name: occurrence_code_3
+- field_number: '13'
+  start_position: 104
+  end_position: 111
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Date - 3
+  description: Refer to 40-09 Occurrence Date -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 40-09 Occurrence Date -1.
+  source_line: 1072
+  calculated_length: 8
+  canonical_name: occurrence_date_3
+- field_number: '14'
+  start_position: 112
+  end_position: 113
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Occurrence Code - 4
+  description: Refer to 40-08 Occurrence Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1075
+  calculated_length: 2
+  canonical_name: occurrence_code_4
+- field_number: '15'
+  start_position: 114
+  end_position: 121
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Date - 4
+  description: Refer to 40-09 Occurrence Date -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 40-09 Occurrence Date -1.
+  source_line: 1078
+  calculated_length: 8
+  canonical_name: occurrence_date_4
+- field_number: '16'
+  start_position: 122
+  end_position: 123
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Occurrence Code - 5
+  description: Refer to 40-08 Occurrence Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1081
+  calculated_length: 2
+  canonical_name: occurrence_code_5
+- field_number: '17'
+  start_position: 124
+  end_position: 131
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Date - 5
+  description: Refer to 40-09 Occurrence Date -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 40-09 Occurrence Date -1.
+  source_line: 1084
+  calculated_length: 8
+  canonical_name: occurrence_date_5
+- field_number: '18'
+  start_position: 132
+  end_position: 133
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Occurrence Code - 6
+  description: Refer to 40-08 Occurrence Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1087
+  calculated_length: 2
+  canonical_name: occurrence_code_6
+- field_number: '19'
+  start_position: 134
+  end_position: 141
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Date - 6
+  description: Refer to 40-09 Occurrence Date -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 40-09 Occurrence Date -1.
+  source_line: 1090
+  calculated_length: 8
+  canonical_name: occurrence_date_6
+- field_number: '20'
+  start_position: 142
+  end_position: 143
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Occurrence Code - 7
+  description: Refer to 40-08 Occurrence Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1093
+  calculated_length: 2
+  canonical_name: occurrence_code_7
+- field_number: '21'
+  start_position: 144
+  end_position: 151
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Date - 7
+  description: Refer to 40-09 Occurrence Date -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 40-09 Occurrence Date -1.
+  source_line: 1096
+  calculated_length: 8
+  canonical_name: occurrence_date_7
+- field_number: '22'
+  start_position: 152
+  end_position: 153
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Occurrence Span Code - 1
+  description: 'Identifies an event that relates to the claim. See Exhibit #6 for
+    valid values and definitions. The occurrence span code/dates are repeated for
+    a total of 2 iterations.'
+  allowed_values:
+  - 'See Exhibit #6 for valid values and'
+  conditional_rules: []
+  formatting_notes:
+  - definitions. The occurrence span code/dates are
+  source_line: 1099
+  calculated_length: 2
+  canonical_name: occurrence_span_code_1
+- field_number: '23'
+  start_position: 154
+  end_position: 161
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Span From Date - 1
+  description: Must be in a valid CCYYMMDD format.
+  allowed_values:
+  - Must be in a valid CCYYMMDD format.
+  conditional_rules: []
+  formatting_notes:
+  - Must be in a valid CCYYMMDD format.
+  source_line: 1105
+  calculated_length: 8
+  canonical_name: occurrence_span_from_date_1
+- field_number: '24'
+  start_position: 162
+  end_position: 169
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Span Thru Date - 1
+  description: Must be in a valid CCYYMMDD format.
+  allowed_values:
+  - Must be in a valid CCYYMMDD format.
+  conditional_rules: []
+  formatting_notes:
+  - Must be in a valid CCYYMMDD format.
+  source_line: 1108
+  calculated_length: 8
+  canonical_name: occurrence_span_thru_date_1
+- field_number: '25'
+  start_position: 170
+  end_position: 171
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Occurrence Span Code - 2
+  description: Refer to 40-22 Occurrence Span Code -1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1111
+  calculated_length: 2
+  canonical_name: occurrence_span_code_2
+- field_number: '26'
+  start_position: 172
+  end_position: 179
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Span From Date - 2
+  description: Refer to 40-23 Occurrence Span From Date-1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 40-23 Occurrence Span From Date-1.
+  source_line: 1114
+  calculated_length: 8
+  canonical_name: occurrence_span_from_date_2
+- field_number: '27'
+  start_position: 180
+  end_position: 187
+  cobol_picture: 9(8)
+  requirement_code: C
+  field_name: Occurrence Span Thru Date - 2
+  description: Refer to 40-24 Occurrence Span Thru Date-1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Refer to 40-24 Occurrence Span Thru Date-1.
+  source_line: 1117
+  calculated_length: 8
+  canonical_name: occurrence_span_thru_date_2
+- field_number: '28'
+  start_position: 188
+  end_position: 192
+  cobol_picture: X(5)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1120
+  calculated_length: 5
+  canonical_name: filler_national_use_unused_record_space

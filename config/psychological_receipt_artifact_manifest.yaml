@@ -1,0 +1,9 @@
+schema_version: "1"
+family: psychological_receipt
+provider_name: psychological_receipt
+provider_version: "2.0"
+artifacts:
+  - {document_id: D-01, page_number: 2, field_name: patient_name, source_crop: evaluation_results/field_crops/D-01/patient_name_anchor.png, crop_quality: 0.9}
+  - {document_id: D-01, page_number: 2, field_name: patient_address, source_crop: evaluation_results/field_crops/D-01/patient_address_anchor.png, crop_quality: 0.9}
+  - {document_id: D-02, page_number: 2, field_name: patient_name, source_crop: evaluation_results/field_crops/D-02/patient_name_anchor.png, crop_quality: 0.95}
+  - {document_id: D-02, page_number: 2, field_name: patient_address, source_crop: evaluation_results/field_crops/D-02/patient_address_anchor.png, crop_quality: 0.95}

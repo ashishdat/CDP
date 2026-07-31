@@ -1,0 +1,381 @@
+record_type: '30'
+record_name: Third Party Payer Data 14
+record_length: 192
+order: 5
+preceding_rules:
+- ▪ Preceding record types 20, 21, 30 or 31.
+following_rules:
+- ▪ Following record types 30, 31, or 40.
+record_rules:
+- ▪ There must be at least one Record Type 30. There can be a maximum of
+- three Record Types 30.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘30’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 675
+  calculated_length: 2
+  canonical_name: record_type_must_be_30
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be equal to 01 - 03. 01 - UnitedHealth Group Payer 02 – Medicare
+    or the primary OI Payer 03 – OI or the secondary OI Payer
+  allowed_values:
+  - Must be equal to 01 - 03.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 677
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must equal the preceding 20-03 Patient Control Number.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 683
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 25
+  cobol_picture: X(1)
+  requirement_code: R
+  field_name: Source of Payment Code
+  description: 'Indicates the source of payment for this payer record. Code Values:
+    A = Self Pay B = Workers Compensation C = Medicare D = Medicaid E = Other Federal
+    Program F = UnitedHealth Group G = Blue Cross/Blue Shield H = Champus I = Other
+    Insurance Carrier Q = Automobile Accident Insurance'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 687
+  calculated_length: 1
+  canonical_name: source_of_payment_code
+- field_number: '05'
+  start_position: 26
+  end_position: 30
+  cobol_picture: 9(5)
+  requirement_code: R
+  field_name: Payer Identification
+  description: Must be 87726 on the UnitedHealth Group record; Default to 00000 on
+    the 02 Sequence when there is no 03 Sequence When there is a Medicare payer and
+    a non Medicare payer, use 00001 for the non-Medicare payer; default to 00000 for
+    the Medicare payer. When there are two non-Medicare payers, use 00001 for the
+    primary payer; default to 00000 for the secondary payer.
+  allowed_values:
+  - Must be 87726 on the UnitedHealth Group
+  conditional_rules:
+  - when there is no 03 Sequence
+  - When there is a Medicare payer and a non
+  - When there are two non-Medicare payers, use
+  formatting_notes: []
+  source_line: 701
+  calculated_length: 5
+  canonical_name: payer_identification
+- field_number: '06'
+  start_position: 31
+  end_position: 34
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Payer Sub-Identification
+  description: 'The ID of the office that is responsible for this claim. Not used.
+    Note: Payer Identification and Payer Sub-Identification will be redefined as Payer
+    Identifier when implemented.'
+  allowed_values: []
+  conditional_rules:
+  - as Payer Identifier when implemented.
+  formatting_notes: []
+  source_line: 714
+  calculated_length: 4
+  canonical_name: payer_sub_identification
+- field_number: '07'
+  start_position: 35
+  end_position: 53
+  cobol_picture: X(19)
+  requirement_code: R
+  field_name: Certificate/SSN/Health Insurance
+  description: Claim/Identification Number Insured’s unique ID number assigned by
+    the payer. Left justify, blank fill. 08a 54 55 X(2) N Payer Identification Indicator
+    - Not used. 08b 56 78 X(23) O Payer Name The name of the payer that the provider
+    expects reimbursement from.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - payer. Left justify, blank fill.
+  source_line: 721
+  calculated_length: 19
+  canonical_name: certificate_ssn_health_insurance
+- field_number: 09
+  start_position: 79
+  end_position: 79
+  cobol_picture: X(1)
+  requirement_code: N
+  field_name: Primary Payer Code - Not used
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 732
+  calculated_length: 1
+  canonical_name: primary_payer_code_not_used
+- field_number: '10'
+  start_position: 80
+  end_position: 96
+  cobol_picture: X(17)
+  requirement_code: O
+  field_name: Insurance Group Number
+  description: The ID number of the group that the individual is covered under.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 734
+  calculated_length: 17
+  canonical_name: insurance_group_number
+- field_number: '11'
+  start_position: 97
+  end_position: 110
+  cobol_picture: X(14)
+  requirement_code: O
+  field_name: Insured’s Group Name
+  description: Group or Plan name of the insurance that is provided to the insured.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 738
+  calculated_length: 14
+  canonical_name: insured_s_group_name
+- field_number: '12'
+  start_position: 111
+  end_position: 130
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Insured’s Last Name
+  description: Last name of the individual who carries the insurance.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 749
+  calculated_length: 20
+  canonical_name: insured_s_last_name
+- field_number: '13'
+  start_position: 131
+  end_position: 139
+  cobol_picture: X(9)
+  requirement_code: R
+  field_name: Insured’s First Name
+  description: First name of the individual who carries the insurance.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 753
+  calculated_length: 9
+  canonical_name: insured_s_first_name
+- field_number: '14'
+  start_position: 140
+  end_position: 140
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: Insured’s Middle Initial
+  description: Middle initial of the individual who carries the insurance.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 757
+  calculated_length: 1
+  canonical_name: insured_s_middle_initial
+- field_number: '15'
+  start_position: 141
+  end_position: 141
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: Insured’s Sex
+  description: 'Code Values: M = Male; F = Female; U = Unknown'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 761
+  calculated_length: 1
+  canonical_name: insured_s_sex
+- field_number: '16'
+  start_position: 142
+  end_position: 142
+  cobol_picture: X(1)
+  requirement_code: R
+  field_name: Release of Information Certification Number
+  description: 'Indicates if there is permission to release medical information. Values:
+    Y = Yes Release on File N = No Release R = Restricted or Modified Release'
+  allowed_values: []
+  conditional_rules:
+  - Indicates if there is permission to release
+  formatting_notes:
+  - 'medical information. Values:'
+  source_line: 764
+  calculated_length: 1
+  canonical_name: release_of_information_certification_number
+- field_number: '17'
+  start_position: 143
+  end_position: 143
+  cobol_picture: X(1)
+  requirement_code: R
+  field_name: Assignment of Benefits Certification Number
+  description: Indicates if there is consent for the third party payer to pay the
+    provider. Y = Yes, benefits assigned N = No, benefits NOT assigned
+  allowed_values: []
+  conditional_rules:
+  - Indicates if there is consent for the third
+  formatting_notes: []
+  source_line: 773
+  calculated_length: 1
+  canonical_name: assignment_of_benefits_certification_number
+- field_number: '18'
+  start_position: 144
+  end_position: 145
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Patient’s Relationship to Insured
+  description: 'Indicates the relationship of the patient to the insured. Code Values:
+    01 = Patient is Insured 02 = Spouse 03 = Natural Child/Insured Financial Responsibility
+    04 = Natural Child/Insured does not have Financial Responsibility 05 = Step Child
+    06 = Foster Child 07 = Ward of the State 08 = Employee 09 = Unknown 10 = Handicapped
+    Dependent 11 = Organ Donor 12 = Cadaver Donor 13 = Grandchild 14 = Niece/Nephew
+    15 = Injured Plaintiff 16 = Sponsored 17 = Minor Dependent of a Minor Dependent
+    18 = Parent 19 = Grandparent 20 = Life Partner (e.g., significant other)'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 781
+  calculated_length: 2
+  canonical_name: patient_s_relationship_to_insured
+- field_number: '19'
+  start_position: 146
+  end_position: 146
+  cobol_picture: 9(1)
+  requirement_code: R
+  field_name: Employment Status Code
+  description: 'The employment status of the insured. Code Values: 1 = Employed Full
+    Time 2 = Employed Part Time 3 = Not Employed 4 = Self Employed 5 = Retired 6 =
+    On Active Military Duty 7 & 8 = Reserved for National Assignment 9 = Unknown'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 808
+  calculated_length: 1
+  canonical_name: employment_status_code
+- field_number: '20'
+  start_position: 147
+  end_position: 149
+  cobol_picture: 9(3)
+  requirement_code: N
+  field_name: Covered Days
+  description: The number of days covered by the primary payer.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 826
+  calculated_length: 3
+  canonical_name: covered_days
+- field_number: '21'
+  start_position: 150
+  end_position: 153
+  cobol_picture: 9(4)
+  requirement_code: N
+  field_name: Non Covered Days
+  description: Days of care not covered by the primary payer.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 830
+  calculated_length: 4
+  canonical_name: non_covered_days
+- field_number: '22'
+  start_position: 154
+  end_position: 156
+  cobol_picture: 9(3)
+  requirement_code: N
+  field_name: Coinsurance Days
+  description: The inpatient Medicare days occurring after the 60th day & before the
+    91st day or inpatient SNF/Swing Bed days occurring after the 20th and before the
+    101st day in a single spell of illness.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 835
+  calculated_length: 3
+  canonical_name: coinsurance_days
+- field_number: '23'
+  start_position: 157
+  end_position: 159
+  cobol_picture: 9(3)
+  requirement_code: N
+  field_name: Lifetime Reserve Days
+  description: Medicare’s lifetime reserve days of inpatient hospital services after
+    using 90 days of inpatient hospital services during a spell of illness.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 842
+  calculated_length: 3
+  canonical_name: lifetime_reserve_days
+- field_number: '24'
+  start_position: 160
+  end_position: 172
+  cobol_picture: X(13)
+  requirement_code: O
+  field_name: Provider Identification Number
+  description: The identification number assigned to the provider by the payer.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 848
+  calculated_length: 13
+  canonical_name: provider_identification_number
+- field_number: '25'
+  start_position: 173
+  end_position: 182
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Payments Received
+  description: The amount the provider has received toward payment of the claim prior
+    to this current billing date.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - billing date.
+  source_line: 852
+  calculated_length: 10
+  canonical_name: payments_received
+- field_number: '26'
+  start_position: 183
+  end_position: 192
+  cobol_picture: S9(8)V99
+  requirement_code: N
+  field_name: Estimated Amount Due
+  description: The amount estimated by the provider to be due from the indicated payer.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 857
+  calculated_length: 10
+  canonical_name: estimated_amount_due

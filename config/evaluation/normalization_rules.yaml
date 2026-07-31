@@ -1,0 +1,36 @@
+schema_version: "1.0"
+default: text
+fields:
+  patient_last: identifier
+  patient_first: identifier
+  patient_addr1: identifier
+  patient_addr2: identifier
+  patient_city: identifier
+  patient_state: identifier
+  patient_zip: digits
+  insured_addr1: identifier
+  insured_addr2: identifier
+  insured_city: identifier
+  insured_state: identifier
+  insured_zip: digits
+  rel_code: digits
+  provider_npi: digits
+  patient_control_number: digits
+  patient_sex: identifier
+  type_of_bill: digits
+  principal_diagnosis: identifier
+  billing_provider_npi: digits
+  attending_provider_npi: digits
+  rendering_provider_npi: digits
+  federal_tax_id: digits
+  insured_member_id: identifier
+  patient_dob: date
+  service_date_from: date
+  service_date_to: date
+  statement_period_from: date
+  statement_period_to: date
+  total_charge: amount
+  charge_amount: amount
+  diagnosis_code: code
+  cpt_hcpcs: code
+  revenue_code: code

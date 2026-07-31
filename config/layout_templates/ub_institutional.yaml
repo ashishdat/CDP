@@ -1,0 +1,15 @@
+template_id: ub_institutional
+form_family: UB_INSTITUTIONAL
+version: "510"
+reference_dimensions: [1728, 2214]
+anchors:
+  - {phrase: "UB-04", required: false}
+  - {phrase: "FL 1", required: false}
+fields:
+  - {field_name: patient_control_number, region: {x0: 0.01, y0: 0.08, x1: 0.25, y1: 0.12}, field_type: identifier}
+  - {field_name: patient_name, region: {x0: 0.01, y0: 0.22, x1: 0.35, y1: 0.26}, field_type: person_name}
+checkbox_regions: []
+table_regions:
+  - {x0: 0.01, y0: 0.34, x1: 0.99, y1: 0.70}
+preprocessing_profile: structured_form
+alignment_thresholds: {minimum_inlier_ratio: 0.35, maximum_reprojection_error: 5.0}

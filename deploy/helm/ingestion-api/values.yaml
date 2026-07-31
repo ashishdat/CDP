@@ -1,0 +1,57 @@
+replicaCount: 2
+
+image:
+  repository: idp-claims-platform-ingestion-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+command: ["uvicorn", "apps.ingestion_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+service:
+  type: ClusterIP
+  port: 8000
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# Non-secret configuration -- rendered into a ConfigMap. Secret values
+# (DB password, object-store credentials) come from `secretName` instead,
+# never from `env` (see docs/ARCHITECTURE.md "SECURITY").
+env:
+  PIPELINE_VERSION: "0.1.0"
+  SCHEMA_VERSION: "1.0"
+  OBJECT_STORE_BUCKET: "idp-documents"
+  OBJECT_STORE_USE_SSL: "false"
+  MAX_UPLOAD_SIZE_BYTES: "52428800"
+  VLM_ENABLED: "false"
+  USE_IN_MEMORY_BUS: "false"
+
+# Name of a pre-existing Secret (created out of band -- see
+# docs/RUNBOOK.md) providing DATABASE_URL, OBJECT_STORE_ACCESS_KEY,
+# OBJECT_STORE_SECRET_KEY, OBJECT_STORE_ENDPOINT, KAFKA_BOOTSTRAP_SERVERS,
+# REDIS_URL. Never committed, never templated from `values.yaml`.
+secretName: idp-ingestion-api-secrets
+
+serviceAccount:
+  create: true
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"

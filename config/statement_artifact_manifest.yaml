@@ -1,0 +1,6 @@
+schema_version: "1"
+family: statement
+provider_name: grow_insurance_statement
+provider_version: "1.0"
+artifacts:
+  - {document_id: D-07, page_number: 2, field_name: patient_name, source_crop: evaluation_results/field_crops/D-07/patient_name_fixed.png, crop_quality: 1.0}

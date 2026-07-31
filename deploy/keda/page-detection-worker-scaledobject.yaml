@@ -1,0 +1,26 @@
+# CPU preprocessing pool. The consumer entrypoint now exists
+# (workers/page_detection/consumer.py, wired into docker-compose for local
+# dev) but this worker still has no Helm chart, so `scaleTargetRef.name`
+# names a Deployment that would need to be created following the same
+# chart pattern as document-preparation-worker before this ScaledObject
+# targets anything real in a cluster.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: page-detection-worker-scaler
+  namespace: idp-claims-platform
+spec:
+  scaleTargetRef:
+    name: idp-page-detection-worker
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  cooldownPeriod: 60
+  pollingInterval: 15
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.idp-claims-platform.svc.cluster.local:9092
+        consumerGroup: page-detection-worker
+        topic: document.prepared
+        lagThreshold: "5"
+        activationLagThreshold: "1"

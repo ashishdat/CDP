@@ -1,0 +1,11 @@
+schema_version: "1"
+family: laboratory_invoice
+provider_name: quest_laboratory_bill
+provider_version: "1.0"
+artifacts:
+  - {document_id: D-05, page_number: 2, field_name: patient_name, source_crop: evaluation_results/field_crops/D-05/patient_name_fixed.png, crop_quality: 1.0}
+  - {document_id: D-05, page_number: 2, field_name: patient_addr1, source_crop: evaluation_results/field_crops/D-05/patient_addr1_fixed.png, crop_quality: 1.0}
+  - {document_id: D-05, page_number: 2, field_name: patient_city_line, source_crop: evaluation_results/field_crops/D-05/patient_city_line_fixed.png, crop_quality: 1.0}
+  - {document_id: D-06, page_number: 2, field_name: patient_name, source_crop: evaluation_results/field_crops/D-06/patient_name_fixed.png, crop_quality: 1.0}
+  - {document_id: D-06, page_number: 2, field_name: patient_addr1, source_crop: evaluation_results/field_crops/D-06/patient_addr1_fixed.png, crop_quality: 1.0}
+  - {document_id: D-06, page_number: 2, field_name: patient_city_line, source_crop: evaluation_results/field_crops/D-06/patient_city_line_fixed.png, crop_quality: 1.0}

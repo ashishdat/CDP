@@ -1,0 +1,10 @@
+record_type: GU0
+record_name: Certification Record -- DMEPOS
+record_length: 320
+order: 26
+preceding_rules: []
+following_rules: []
+record_rules:
+- Items
+- This record is not used for commercial claims.
+fields: []

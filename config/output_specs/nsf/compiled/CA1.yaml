@@ -1,0 +1,9 @@
+record_type: CA1
+record_name: Patient Data
+record_length: 320
+order: 4
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is not used for commercial claims.
+fields: []

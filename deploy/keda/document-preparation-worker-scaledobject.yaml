@@ -1,0 +1,24 @@
+# CPU preprocessing pool. The only worker with both a real consumer
+# entrypoint (workers/document_preparation/consumer.py) and a Helm chart
+# (deploy/helm/document-preparation-worker) today -- this ScaledObject
+# targets a Deployment that actually exists.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: document-preparation-worker-scaler
+  namespace: idp-claims-platform
+spec:
+  scaleTargetRef:
+    name: idp-document-preparation-worker  # {{ .Release.Name }}-document-preparation-worker
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  cooldownPeriod: 60
+  pollingInterval: 15
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.idp-claims-platform.svc.cluster.local:9092
+        consumerGroup: document-preparation-worker
+        topic: document.received
+        lagThreshold: "5"
+        activationLagThreshold: "1"

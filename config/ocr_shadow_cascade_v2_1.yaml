@@ -1,0 +1,28 @@
+policy_version: ocr-shadow-cascade-v2.1
+status: SHADOW_ONLY
+base_release: extraction-v2
+stages:
+  - {order: 1, engine: PaddleOCR, model: PP-OCRv4, authority: CURRENT_PRIMARY}
+  - {order: 2, engine: PaddleOCR-Recognition, model: PP-OCRv6_medium_rec, authority: REVIEW_ONLY}
+  - {order: 3, engine: PaddleOCR-Recognition, model: PP-OCRv5_server_rec, authority: REVIEW_ONLY}
+  - {order: 4, engine: Tesseract, model: field-specific-psm, authority: CURRENT_CONSTRAINED}
+  - {order: 5, engine: Azure-Document-Intelligence, model: prebuilt-read, authority: REVIEW_ONLY}
+  - {order: 6, engine: TrOCR, model: microsoft/trocr-base-handwritten, authority: REVIEW_ONLY}
+  - {order: 7, engine: Human-Review, model: null, authority: FINAL}
+regional_crop:
+  preserve_original: true
+  white_border_px: [10, 16, 20]
+  upscale_factors: [2, 3]
+  recognition_only: true
+cloud_gate:
+  enabled: false
+  crop_only: true
+  requires: [phi_contract_approved, region_approved, security_approved, provider_authorized]
+confidence:
+  compare_raw_across_engines: false
+  calibration_required_per_engine_model: true
+promotion:
+  minimum_unresolved_readable_recovery: 0.20
+  critical_false_accepts: 0
+  previously_correct_regressions: 0
+  holdout_after_freeze: true

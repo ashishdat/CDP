@@ -1,0 +1,7 @@
+schema_version: "1"
+family: cms_attachment
+provider_name: cms1500_attachment
+provider_version: "2.0"
+artifacts:
+  - {document_id: D-03, page_number: 2, field_name: patient_name, source_crop: evaluation_results/field_crops/D-03/patient_name_anchor.png, crop_quality: 0.98}
+  - {document_id: D-03, page_number: 2, field_name: patient_address, source_crop: evaluation_results/field_crops/D-03/patient_address_anchor.png, crop_quality: 0.98}

@@ -1,0 +1,453 @@
+record_type: CA0
+record_name: Patient Data
+record_length: 320
+order: 3
+preceding_rules: []
+following_rules: []
+record_rules:
+- Only one CA0 record is allowed for each claim.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - must be CA0
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 448
+  calculated_length: 3
+  canonical_name: record_id_must_be_ca0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Filler - Reserved record space. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 450
+  calculated_length: 2
+  canonical_name: filler_reserved_record_space_blank_fill
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Required on CA0 through
+    XA0 records. See "General Instructions" for Patient Control Number entry. First
+    position must not be blank. May contain only the following characters. No other
+    special characters are allowed. A - Z 0 - 9 forward slash (/) blank ( ) period
+    (.) comma (,) hyphen (-) number sign (#)
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 452
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 42
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Last Name
+  description: Last name of the person who received services. Truncate if necessary
+  allowed_values: []
+  conditional_rules:
+  - Truncate if necessary
+  formatting_notes: []
+  source_line: 470
+  calculated_length: 20
+  canonical_name: patient_last_name
+- field_number: '05.0'
+  start_position: 43
+  end_position: 54
+  cobol_picture: X(12)
+  requirement_code: R
+  field_name: Patient First Name
+  description: First name of person who received services. Truncate if necessary
+  allowed_values: []
+  conditional_rules:
+  - Truncate if necessary
+  formatting_notes: []
+  source_line: 474
+  calculated_length: 12
+  canonical_name: patient_first_name
+- field_number: '06.0'
+  start_position: 55
+  end_position: 55
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: Patient Middle Initial
+  description: Middle initial of the person who received services. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 478
+  calculated_length: 1
+  canonical_name: patient_middle_initial
+- field_number: '07.0'
+  start_position: 56
+  end_position: 58
+  cobol_picture: X(03)
+  requirement_code: N
+  field_name: Patient Generation - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 482
+  calculated_length: 3
+  canonical_name: patient_generation_not_used_blank_fill
+- field_number: '08.0'
+  start_position: 59
+  end_position: 66
+  cobol_picture: X(08)
+  requirement_code: R
+  field_name: Patient Date Of Birth
+  description: See General Instructions for Date entry. Must be less than or equal
+    to from date of service.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - See General Instructions for Date entry. Must
+  - be less than or equal to from date of service.
+  source_line: 484
+  calculated_length: 8
+  canonical_name: patient_date_of_birth
+- field_number: '09.0'
+  start_position: 67
+  end_position: 67
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Patient Sex Code
+  description: Must be M or F
+  allowed_values:
+  - Must be M or F
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 488
+  calculated_length: 1
+  canonical_name: patient_sex_code
+- field_number: '10.0'
+  start_position: 68
+  end_position: 68
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Patient Type Of Residence - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 491
+  calculated_length: 1
+  canonical_name: patient_type_of_residence_not_used_may_be
+- field_number: '11.0'
+  start_position: 69
+  end_position: 98
+  cobol_picture: X(30)
+  requirement_code: R
+  field_name: Patient Address 1
+  description: Permanent address of the patient. See General Instructions for Address
+    entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 494
+  calculated_length: 30
+  canonical_name: patient_address_1
+- field_number: '12.0'
+  start_position: 99
+  end_position: 128
+  cobol_picture: X(30)
+  requirement_code: C
+  field_name: Patient Address 2
+  description: See General Instructions for Address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 498
+  calculated_length: 30
+  canonical_name: patient_address_2
+- field_number: '13.0'
+  start_position: 129
+  end_position: 148
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient City
+  description: See General Instructions for Address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 501
+  calculated_length: 20
+  canonical_name: patient_city
+- field_number: '14.0'
+  start_position: 149
+  end_position: 150
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Patient State
+  description: See General Instructions. Use U.S. Postal Service abbreviations.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 504
+  calculated_length: 2
+  canonical_name: patient_state
+- field_number: '15.0'
+  start_position: 151
+  end_position: 159
+  cobol_picture: X(09)
+  requirement_code: R
+  field_name: Patient Zip Code
+  description: May not be blank, all zeros or nines.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 508
+  calculated_length: 9
+  canonical_name: patient_zip_code
+- field_number: '16.0'
+  start_position: 160
+  end_position: 169
+  cobol_picture: X(10)
+  requirement_code: N
+  field_name: Patient Telephone Number - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 516
+  calculated_length: 10
+  canonical_name: patient_telephone_number_not_used_may_be
+- field_number: '17.0'
+  start_position: 170
+  end_position: 170
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Patient Marital Status - Not Used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 519
+  calculated_length: 1
+  canonical_name: patient_marital_status_not_used_may_be
+- field_number: '18.0'
+  start_position: 171
+  end_position: 171
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Patient Student Status
+  description: 'The student status of the patient if 19 years of age or older, not
+    handicapped and not the insured. May be blank. Values: F = Full-time student P
+    = part-time student N = Not a student'
+  allowed_values: []
+  conditional_rules:
+  - The student status of the patient if 19 years
+  formatting_notes: []
+  source_line: 522
+  calculated_length: 1
+  canonical_name: patient_student_status
+- field_number: '19.0'
+  start_position: 172
+  end_position: 172
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Patient Employment Status
+  description: 'Indicates the employment status of the patient. May be blank. Code
+    Values: 1 = Employed full-time 2 = Employed part-time 3 = Not Employed 4 = Self
+    employed 5 = Retired 6 = On active military duty 9 = Unknown'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 530
+  calculated_length: 1
+  canonical_name: patient_employment_status
+- field_number: '20.0'
+  start_position: 173
+  end_position: 173
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Patient Death Indicator - Not used. May be
+  description: blank
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 541
+  calculated_length: 1
+  canonical_name: patient_death_indicator_not_used_may_be
+- field_number: '21.0'
+  start_position: 174
+  end_position: 181
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Patient Date Of Death - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 544
+  calculated_length: 8
+  canonical_name: patient_date_of_death_not_used_may_be
+- field_number: '22.0'
+  start_position: 182
+  end_position: 182
+  cobol_picture: X(01)
+  requirement_code: O
+  field_name: Other Insurance Indicator
+  description: 'Indicates whether the patient has other insurance. Values: 1 = Yes,
+    patient has other insurance 2 = Yes, patient has other insurance not reflected
+    on this bill 3 = No, patient does not have other insurance Field may be blank.
+    If equals 1, there must be a DA0 record with DA0-0.02 = 2 and a DA2 record with
+    DA2-0.02 = 2.'
+  allowed_values:
+  - Field may be blank. If equals 1, there must be
+  conditional_rules:
+  - Field may be blank. If equals 1, there must be
+  formatting_notes: []
+  source_line: 547
+  calculated_length: 1
+  canonical_name: other_insurance_indicator
+- field_number: '23.0'
+  start_position: 183
+  end_position: 183
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Claim Editing Indicator
+  description: Must equal "F" for commercial claims.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 560
+  calculated_length: 1
+  canonical_name: claim_editing_indicator
+- field_number: '24.0'
+  start_position: 184
+  end_position: 185
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Type Of Claim Indicator - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 563
+  calculated_length: 2
+  canonical_name: type_of_claim_indicator_not_used_may_be
+- field_number: '25.0'
+  start_position: 186
+  end_position: 186
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Legal Representative Indicator - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 566
+  calculated_length: 1
+  canonical_name: legal_representative_indicator_not_used_may
+- field_number: '26.0'
+  start_position: 187
+  end_position: 195
+  cobol_picture: X(09)
+  requirement_code: N
+  field_name: Origin Code - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 569
+  calculated_length: 9
+  canonical_name: origin_code_not_used_may_be_blank
+- field_number: '27.0'
+  start_position: 196
+  end_position: 212
+  cobol_picture: X(17)
+  requirement_code: N
+  field_name: Payer Claim Control Number - Not used. Must be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 571
+  calculated_length: 17
+  canonical_name: payer_claim_control_number_not_used_must_be
+- field_number: '28.0'
+  start_position: 213
+  end_position: 227
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: Provider Number
+  description: The number assigned to the provider by the payer/. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 574
+  calculated_length: 15
+  canonical_name: provider_number
+- field_number: '29.0'
+  start_position: 228
+  end_position: 233
+  cobol_picture: X(06)
+  requirement_code: O
+  field_name: Claim Identification Number
+  description: Unique ID number assigned to the claim by the sender. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 578
+  calculated_length: 6
+  canonical_name: claim_identification_number
+- field_number: '30.0'
+  start_position: 234
+  end_position: 275
+  cobol_picture: X(20)
+  requirement_code: N
+  field_name: Filler – National - Unused record space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 582
+  calculated_length: 42
+  canonical_name: filler_national_unused_record_space_blank
+- field_number: '31.0'
+  start_position: 276
+  end_position: 303
+  cobol_picture: X(28)
+  requirement_code: N
+  field_name: Property Casualty Claim Number – Not Used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 585
+  calculated_length: 28
+  canonical_name: property_casualty_claim_number_not_used_may
+- field_number: '32.0'
+  start_position: 304
+  end_position: 320
+  cobol_picture: X(17)
+  requirement_code: N
+  field_name: Filler – Local - Unused record space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 588
+  calculated_length: 17
+  canonical_name: filler_local_unused_record_space_blank

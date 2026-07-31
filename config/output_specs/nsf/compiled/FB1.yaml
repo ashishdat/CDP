@@ -1,0 +1,9 @@
+record_type: FB1
+record_name: Service Line Detail
+record_length: 320
+order: 16
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is not used for commercial claims.
+fields: []

@@ -1,0 +1,21 @@
+policy_version: docling_candidate_pilot_v1
+enabled: false
+mode: additive_candidate_provider
+families:
+  - laboratory_invoice
+  - insurance_statement
+  - psychological_receipt
+  - cms1500_attachment
+  - unknown_unstructured
+constraints:
+  alter_page_router: false
+  alter_reconciliation_weights: false
+  critical_names_auto_accept: false
+  persist_provenance: true
+  ground_truth_available_during_inference: false
+promotion_gates:
+  incremental_missing_candidates_recovered: 3
+  critical_false_accepts: 0
+  previously_correct_field_regressions: 0
+  eligible_outputs_with_provenance: 1.0
+  unreadable_critical_review_routed: 1.0

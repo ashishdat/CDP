@@ -1,0 +1,250 @@
+record_type: '90'
+record_name: Claim Control Screen 48
+record_length: 192
+order: 26
+preceding_rules:
+- ▪ Preceding record types 70, 78 or 80.
+following_rules:
+- ▪ Following record types 20, 91 or 95.
+record_rules:
+- ▪ Record Type 90 is required.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘90’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2481
+  calculated_length: 2
+  canonical_name: record_type_must_be_90
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: X(2)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2483
+  calculated_length: 2
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must equal the preceding 20-03 Patient Control Number.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2485
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 27
+  cobol_picture: 9(3)
+  requirement_code: R
+  field_name: Physical Record Count
+  description: Number of physical records submitted for this claim. Must equal the
+    computed sum of Record Types 20 - 80 (exclude record types 90 & 91).
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2489
+  calculated_length: 3
+  canonical_name: physical_record_count
+- field_number: '05'
+  start_position: 28
+  end_position: 29
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Record Type 2N Count
+  description: The sum of the total number of 2N records for this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2494
+  calculated_length: 2
+  canonical_name: record_type_2n_count
+- field_number: '06'
+  start_position: 30
+  end_position: 31
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Record Type 3N Count
+  description: The sum of the total number of 3N records for this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2498
+  calculated_length: 2
+  canonical_name: record_type_3n_count
+- field_number: '07'
+  start_position: 32
+  end_position: 33
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Record Type 4N Count
+  description: The sum of the total number of 4N records for this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2502
+  calculated_length: 2
+  canonical_name: record_type_4n_count
+- field_number: 08
+  start_position: 34
+  end_position: 35
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Record Type 5N Count
+  description: The sum of the total number of 5N records for this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2506
+  calculated_length: 2
+  canonical_name: record_type_5n_count
+- field_number: 09
+  start_position: 36
+  end_position: 37
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Record Type 6N Count
+  description: The sum of the total number of 6N records for this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2510
+  calculated_length: 2
+  canonical_name: record_type_6n_count
+- field_number: '10'
+  start_position: 38
+  end_position: 39
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Record Type 7N Count
+  description: The sum of the total number of 7N records for this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2514
+  calculated_length: 2
+  canonical_name: record_type_7n_count
+- field_number: '11'
+  start_position: 40
+  end_position: 41
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Record Type 8N Count
+  description: The sum of the total number of 8N records for this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2518
+  calculated_length: 2
+  canonical_name: record_type_8n_count
+- field_number: '12'
+  start_position: 42
+  end_position: 42
+  cobol_picture: 9(1)
+  requirement_code: R
+  field_name: Record Type 91 Qualifier
+  description: 'Indicates if a record type 91 is present. Must equal = 1 if record
+    type 91 follows this record type 90. Values: 0 = No, record type 91 is not present.
+    1 = Yes, record type 91 is present.'
+  allowed_values: []
+  conditional_rules:
+  - Indicates if a record type 91 is present. Must
+  - equal = 1 if record type 91 follows this record
+  formatting_notes: []
+  source_line: 2522
+  calculated_length: 1
+  canonical_name: record_type_91_qualifier
+- field_number: '13'
+  start_position: 43
+  end_position: 52
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Total Accommodation Charges - Revenue
+  description: Centers Sum of Accommodation Total Charges on Record Type 50 fields
+    07, 14, 21 & 28.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2529
+  calculated_length: 10
+  canonical_name: total_accommodation_charges_revenue
+- field_number: '14'
+  start_position: 53
+  end_position: 62
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Noncovered Accommodation Charges -
+  description: Revenue Centers Sum of Accommodation Noncovered Charges on Record Type
+    50 fields 08, 15, 22 & 29 for this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2534
+  calculated_length: 10
+  canonical_name: noncovered_accommodation_charges
+- field_number: '15'
+  start_position: 63
+  end_position: 72
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Total Ancillary Charges – Revenue Centers
+  description: Sum of ancillary charges for this claim. For in-patient claims must
+    equal the sum of Ancillary Total Charges on Record Type 60 fields 09, 19 & 29
+    For out-patient claims must equal the sum of Total Charges on Record Type 61 fields
+    10, 20 & 30.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2540
+  calculated_length: 10
+  canonical_name: total_ancillary_charges_revenue_centers
+- field_number: '16'
+  start_position: 73
+  end_position: 82
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Noncovered Ancillary Charges - Revenue
+  description: Centers Sum of ancillary non-covered charges for this claim. For inpatient
+    claims must equal sum of Ancillary Non-Covered Charges on Record Type 60 fields
+    10, 20 and 30. For outpatient claims must equal sum of Ancillary Non-Covered Charges
+    on Record Type 61 fields 11, 21 and 31.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2558
+  calculated_length: 10
+  canonical_name: noncovered_ancillary_charges_revenue
+- field_number: '17'
+  start_position: 83
+  end_position: 192
+  cobol_picture: X(110)
+  requirement_code: C
+  field_name: Remarks
+  description: A freeform area to be used in those situations where supplementary
+    data is helpful in processing of this claim.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2569
+  calculated_length: 110
+  canonical_name: remarks

@@ -1,0 +1,202 @@
+record_type: ZA0
+record_name: File Trailer Record
+record_length: 320
+order: 33
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is required for every submission. This is the last record of
+- any file submitted. It contains information pertinent to the balancing of
+- the file (i.e., File Record Counts, File Charges) within a file.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be ZA0
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2379
+  calculated_length: 3
+  canonical_name: record_id_must_be_za0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 19
+  cobol_picture: X(16)
+  requirement_code: R
+  field_name: Submitter Identifier
+  description: Submitter ID assigned by United HealthCare. Must be identical to SUBMITTER
+    ID in AA0-02.0. See General Instructions for ID Number entry. Left justify, blank
+    fill.
+  allowed_values:
+  - Must be identical to SUBMITTER ID in AA0-02.0.
+  conditional_rules: []
+  formatting_notes:
+  - Left justify, blank fill.
+  source_line: 2381
+  calculated_length: 16
+  canonical_name: submitter_identifier
+- field_number: '03.0'
+  start_position: 20
+  end_position: 28
+  cobol_picture: X(09)
+  requirement_code: N
+  field_name: Reserved Record Space - Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2387
+  calculated_length: 9
+  canonical_name: reserved_record_space_blank_fill
+- field_number: '04.0'
+  start_position: 29
+  end_position: 44
+  cobol_picture: X(16)
+  requirement_code: R
+  field_name: Receiver Identification
+  description: Carrier ID. Must be identical to Receiver ID in AA0-17.0 record. See
+    General Instructions for ID Number entry. Left justify, blank fill.
+  allowed_values:
+  - Carrier ID. Must be identical to Receiver ID
+  conditional_rules: []
+  formatting_notes:
+  - ID Number entry. Left justify, blank fill.
+  source_line: 2389
+  calculated_length: 16
+  canonical_name: receiver_identification
+- field_number: '05.0'
+  start_position: 45
+  end_position: 51
+  cobol_picture: 9(07)
+  requirement_code: R
+  field_name: File Service Line Count
+  description: Must be computed sum of all Batch Service Line Count fields (YA0-08.0)
+    within this file. Right justify. Zero fill. May not be blank.
+  allowed_values:
+  - Must be computed sum of all Batch Service Line
+  conditional_rules: []
+  formatting_notes:
+  - justify. Zero fill. May not be blank.
+  source_line: 2394
+  calculated_length: 7
+  canonical_name: file_service_line_count
+- field_number: '06.0'
+  start_position: 52
+  end_position: 58
+  cobol_picture: 9(07)
+  requirement_code: R
+  field_name: Record Count
+  description: The number of records included in this file. Must be computed sum of
+    all Batch Record Count fields (YA0-09.0) within this file. This field does not
+    include any count of the AA0 or the ZA0 records. Right justify. Zero fill. May
+    not be blank.
+  allowed_values:
+  - Must be computed sum of all Batch Record Count
+  conditional_rules: []
+  formatting_notes:
+  - records. Right justify. Zero fill. May not be
+  source_line: 2399
+  calculated_length: 7
+  canonical_name: record_count
+- field_number: '07.0'
+  start_position: 59
+  end_position: 65
+  cobol_picture: 9(07)
+  requirement_code: R
+  field_name: File Claim Count
+  description: Must be the computed sum of all Batch Claim Count fields (YA0-10.0)
+    included within this file. Right justify, zero fill. May not be blank.
+  allowed_values:
+  - Must be the computed sum of all Batch Claim
+  conditional_rules: []
+  formatting_notes:
+  - file. Right justify, zero fill. May not be
+  source_line: 2407
+  calculated_length: 7
+  canonical_name: file_claim_count
+- field_number: '08.0'
+  start_position: 66
+  end_position: 69
+  cobol_picture: 9(04)
+  requirement_code: R
+  field_name: Batch Count
+  description: 'May not be blank. Must be computed sum of all Record Types YA0 within
+    this file. Right justify. Zero fill. Note: Only submissions using the same Submitter
+    ID# (AA0-02.0) are able to transmit more than one batch per AA0 through ZA0.'
+  allowed_values:
+  - May not be blank. Must be computed sum of all
+  conditional_rules: []
+  formatting_notes:
+  - 'justify. Zero fill. Note: Only submissions'
+  source_line: 2413
+  calculated_length: 4
+  canonical_name: batch_count
+- field_number: '09.0'
+  start_position: 70
+  end_position: 80
+  cobol_picture: 9(09)V99
+  requirement_code: R
+  field_name: File Total Charges
+  description: May not be blank. Must be positive, unsigned number. Must be computed
+    sum of all Batch Total Charges fields (YA0-11.0) included within this file. Right
+    justify, zero fill.
+  allowed_values:
+  - May not be blank. Must be positive, unsigned
+  - number. Must be computed sum of all Batch Total
+  conditional_rules: []
+  formatting_notes:
+  - file. Right justify, zero fill.
+  source_line: 2421
+  calculated_length: 11
+  canonical_name: file_total_charges
+- field_number: '10.0'
+  start_position: 81
+  end_position: 200
+  cobol_picture: X(120)
+  requirement_code: N
+  field_name: Filler – National - Unused reserved space
+  description: for National use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - for National use. Blank fill.
+  source_line: 2427
+  calculated_length: 120
+  canonical_name: filler_national_unused_reserved_space
+- field_number: '11.0'
+  start_position: 201
+  end_position: 320
+  cobol_picture: X(120)
+  requirement_code: N
+  field_name: Filler – Local - Unused reserved space
+  description: for Local use. Blank fill. Appendix - UnitedHealthCare Commercial Provider
+    Specialty Codes CODE DESCRIPTION AD Adult Day Care AT Alcoholic Treatment Center
+    AM Ambulance AS Ambulatory Surgical Center AN Anesthetist (CRNA Only) AU Audiologist
+    DC Chiropractors (DC) CS Christian Science Practitioners CL Clinic CF Convalescent
+    Facility ST Department Store DR Drug Rehabilitation Center RX Drug Store/Pharmacy
+    HS Hospice IL Independent Laboratory MD Medical Doctor MS Medical Supply Company
+    LN Nurse, Licensed Practical RN Nurse, Registered TN Nurse, Trained OD Optometrist
+    (OD) DO Osteopath (DO) OT Other PC Pastoral Counselor PT Physical Therapist DP
+    Podiatrist (DPM) PX Portable X-Ray Supplier PS Psychiatrist PG Psychologist (PHD)
+    PH Public Health or Welfare Agency SC School XR X-Ray Clinic VH Voluntary Health
+    or Charitable Agency OP Optician BC Free Standing Birthing Center FS Free Medical
+    Clinic MW Master of Social Work PW Psychiatric Social Work DW Doctor of Social
+    Work CO Counselor CA Certified Alcohol Counselor AA Alcohol and Drug Abuse Counselor
+    CP Licensed Professional Counselor PN Psychiatric Nurse Practitioner AC Acupuncturist
+    RC Respite Center JM Homemaker Services NM Nurse Midwife CW Licensed Clinical
+    Social Worker MN Clinical Specialist in Mental Health Nursing NU Nutritionist
+    SE Speech Therapist OC Occupational Therapist UC Urgent Care Center JH Home Health
+    Care Agency IV Home IV Therapy Agency DS Dental/Oral Surgeon SW Social Worker
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - for Local use. Blank fill.
+  source_line: 2430
+  calculated_length: 120
+  canonical_name: filler_local_unused_reserved_space

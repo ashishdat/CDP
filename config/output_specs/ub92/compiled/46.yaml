@@ -1,0 +1,248 @@
+record_type: '46'
+record_name: Additional Provider Information 25
+record_length: 192
+order: 11
+preceding_rules:
+- ▪ Preceding record types 40 or 41.
+following_rules:
+- ▪ Following record types 50 or 60 (inpatient).
+- ▪ Following record type 61 (outpatient).
+record_rules:
+- ▪ Record Type 46 is conditional. There may be only one Record Type 46 per
+- claim. It may be used to identify rendering provider information when
+- different from the billing information on Record Type 10. It is also used
+- to capture the medical record number and the Operating Physician NPI when
+- provided on the claim.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘46’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1321
+  calculated_length: 2
+  canonical_name: record_type_must_be_46
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: X(2)
+  requirement_code: N
+  field_name: Filler - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1323
+  calculated_length: 2
+  canonical_name: filler_unused_record_space
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must equal the preceding 20-03 Patient Control Number.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1325
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 25
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: HMO Indicator
+  description: 'Not used. May be blank. Code Values: Y = claim is to be processed
+    under a HMO agreement as an “encounter”.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1329
+  calculated_length: 1
+  canonical_name: hmo_indicator
+- field_number: '05'
+  start_position: 26
+  end_position: 35
+  cobol_picture: 9(10)
+  requirement_code: R
+  field_name: Federal Tax Number Or EIN
+  description: The Federal Tax Number or EIN of the rendering provider. Right justify,
+    zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - provider. Right justify, zero fill.
+  source_line: 1334
+  calculated_length: 10
+  canonical_name: federal_tax_number_or_ein
+- field_number: '06'
+  start_position: 36
+  end_position: 60
+  cobol_picture: X(25)
+  requirement_code: C
+  field_name: Organization Name
+  description: The name of the rendering provider. Either an Organization Name or
+    a Provider First and Last name (Fields 46-07 and 46-08) must be entered.
+  allowed_values:
+  - name (Fields 46-07 and 46-08) must be entered.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1338
+  calculated_length: 25
+  canonical_name: organization_name
+- field_number: '07'
+  start_position: 61
+  end_position: 80
+  cobol_picture: X(20)
+  requirement_code: C
+  field_name: Provider Last Name
+  description: The Last Name of the rendering provider. Either a Provider First and
+    Last Name or an Organization Name (field 46-06) must be entered.
+  allowed_values:
+  - Organization Name (field 46-06) must be
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1343
+  calculated_length: 20
+  canonical_name: provider_last_name
+- field_number: 08
+  start_position: 81
+  end_position: 90
+  cobol_picture: X(10)
+  requirement_code: C
+  field_name: Provider First Name
+  description: The First Name of the rendering provider. Either a Provider First &
+    Last Name or an Organization name (field 46-06) must be entered.
+  allowed_values:
+  - Organization name (field 46-06) must be
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1349
+  calculated_length: 10
+  canonical_name: provider_first_name
+- field_number: 09
+  start_position: 91
+  end_position: 91
+  cobol_picture: X(1)
+  requirement_code: O
+  field_name: Provider Middle Initial
+  description: The middle initial of the rendering provider.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1355
+  calculated_length: 1
+  canonical_name: provider_middle_initial
+- field_number: '10'
+  start_position: 92
+  end_position: 116
+  cobol_picture: X(25)
+  requirement_code: R
+  field_name: Street Address
+  description: The street address of the rendering provider.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1358
+  calculated_length: 25
+  canonical_name: street_address
+- field_number: '11'
+  start_position: 117
+  end_position: 130
+  cobol_picture: X(14)
+  requirement_code: R
+  field_name: City
+  description: The city of the rendering provider.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1361
+  calculated_length: 14
+  canonical_name: city
+- field_number: '12'
+  start_position: 131
+  end_position: 132
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: State
+  description: The state code of the rendering provider.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1364
+  calculated_length: 2
+  canonical_name: state
+- field_number: '13'
+  start_position: 133
+  end_position: 141
+  cobol_picture: X(9)
+  requirement_code: R
+  field_name: Zip Code
+  description: The zip code of the rendering provider.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1367
+  calculated_length: 9
+  canonical_name: zip_code
+- field_number: '14'
+  start_position: 142
+  end_position: 165
+  cobol_picture: X(24)
+  requirement_code: R
+  field_name: Medical Record Number
+  description: The Medical Record Number assigned by the provider.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1370
+  calculated_length: 24
+  canonical_name: medical_record_number
+- field_number: '15'
+  start_position: 166
+  end_position: 175
+  cobol_picture: X(10)
+  requirement_code: N
+  field_name: Operating Physician NPI
+  description: The National Provider ID of the operating physician.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1374
+  calculated_length: 10
+  canonical_name: operating_physician_npi
+- field_number: '16'
+  start_position: 176
+  end_position: 176
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: Medicaid Reclamation Indicator
+  description: R = Medicaid Reclamation claim. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1378
+  calculated_length: 1
+  canonical_name: medicaid_reclamation_indicator
+- field_number: '17'
+  start_position: 177
+  end_position: 192
+  cobol_picture: X(16)
+  requirement_code: N
+  field_name: Filler - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1381
+  calculated_length: 16
+  canonical_name: filler_unused_record_space

@@ -1,0 +1,13 @@
+template_id: cms_attachment
+form_family: CMS_ATTACHMENT
+version: "1"
+reference_dimensions: [1700, 2200]
+anchors:
+  - {phrase: "attachment", required: false}
+  - {phrase: "claim", required: true}
+fields:
+  - {field_name: patient_name, region: {x0: 0.05, y0: 0.05, x1: 0.65, y1: 0.30}, field_type: person_name}
+checkbox_regions: []
+table_regions: []
+preprocessing_profile: unstructured
+alignment_thresholds: {minimum_inlier_ratio: 0.25, maximum_reprojection_error: 7.0}

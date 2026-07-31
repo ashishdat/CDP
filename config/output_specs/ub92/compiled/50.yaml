@@ -1,0 +1,426 @@
+record_type: '50'
+record_name: IP Accommodations Data 26
+record_length: 192
+order: 12
+preceding_rules:
+- ▪ Preceding record types 40, 41, 46, or 50
+following_rules:
+- ▪ Following record types 50, 60, 66, or 70
+record_rules:
+- ▪ Record Type 50 is conditional. Must be entered for all inpatient claims
+- (except late charges) with at least one accommodation charge. An
+- inpatient late charge claim must contain at least one Record Type 50 or
+- one Record Type 60. A late charge is identified by a 10-02 Type of Batch
+- containing a value of xx5.
+- ▪ There may be a maximum of 99 Record Type 50 per claim. Each occurrence
+- of Record Type 50 may contain up to four accommodations, for a total of
+- up to 396 accommodations per claim
+- ▪ Record Type 50 may not be included on outpatient claims.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘50’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1402
+  calculated_length: 2
+  canonical_name: record_type_must_be_50
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be equal to 01 - 99.
+  allowed_values:
+  - Must be equal to 01 - 99.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1404
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must equal the preceding 20-03 Patient Control Number. Accommodations
+    (occurs 4 times) 25 66 9(42) R Accommodations - 1 04 25 28 9(4) R/I Accommodations
+    Revenue Code - 1 Accommodation revenue codes are 100 - 219 and 1000 - 1005. See
+    Exhibit 9 for valid values & descriptions. Revenue code 001 is required as a summary
+    for every claim and must be the last revenue code on a claim. Revenue code 001
+    charges are not included in Record Types 90, 95, or 99 control totals, but are
+    for informational purposes only. Revenue code 001 may be entered in Record Type
+    50 only if Record Type 60 is not present.
+  allowed_values:
+  - 1000 - 1005. See Exhibit 9 for valid values &
+  - every claim and must be the last revenue code
+  conditional_rules:
+  - Type 50 only if Record Type 60 is not present.
+  formatting_notes:
+  - totals, but are for informational purposes
+  source_line: 1407
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '05'
+  start_position: 29
+  end_position: 37
+  cobol_picture: 9(7)V99
+  requirement_code: R
+  field_name: Accommodations Rate - 1
+  description: The rate for this accommodation.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1428
+  calculated_length: 9
+  canonical_name: accommodations_rate_1
+- field_number: '06'
+  start_position: 38
+  end_position: 41
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Accommodations Days - 1
+  description: 'Number of accommodation days. See Exhibit # 9 for when required.'
+  allowed_values: []
+  conditional_rules:
+  - for when required.
+  formatting_notes: []
+  source_line: 1431
+  calculated_length: 4
+  canonical_name: accommodations_days_1
+- field_number: '07'
+  start_position: 42
+  end_position: 51
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Accommodations Total Charges - 1
+  description: Total line charges for the accommodations.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1435
+  calculated_length: 10
+  canonical_name: accommodations_total_charges_1
+- field_number: 08
+  start_position: 52
+  end_position: 61
+  cobol_picture: S9(8)V99
+  requirement_code: R
+  field_name: Accommodations Noncovered Chrgs - 1
+  description: Non-covered accommodations charges for the primary payer.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1438
+  calculated_length: 10
+  canonical_name: accommodations_noncovered_chrgs_1
+- field_number: 09
+  start_position: 62
+  end_position: 65
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Form Locator 49 – 1 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1442
+  calculated_length: 4
+  canonical_name: form_locator_49_1_not_used_blank_fill
+- field_number: '10'
+  start_position: 66
+  end_position: 66
+  cobol_picture: X(1)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: 67 108 9(42) C Accommodations - 2
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1444
+  calculated_length: 1
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '11'
+  start_position: 67
+  end_position: 70
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Accommodations Revenue Code - 2
+  description: Refer to 50-04 Accommodations Revenue Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1448
+  calculated_length: 4
+  canonical_name: accommodations_revenue_code_2
+- field_number: '12'
+  start_position: 71
+  end_position: 79
+  cobol_picture: 9(7)V99
+  requirement_code: C
+  field_name: Accommodations Rate - 2
+  description: Refer to 50-05 Accommodations Rate - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1452
+  calculated_length: 9
+  canonical_name: accommodations_rate_2
+- field_number: '13'
+  start_position: 80
+  end_position: 83
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Accommodations Days - 2
+  description: Refer to 50-06 Accommodations Days - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1455
+  calculated_length: 4
+  canonical_name: accommodations_days_2
+- field_number: '14'
+  start_position: 84
+  end_position: 93
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Accommodations Total Charges - 2
+  description: Refer to 50-07 Accommodations Total Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1458
+  calculated_length: 10
+  canonical_name: accommodations_total_charges_2
+- field_number: '15'
+  start_position: 94
+  end_position: 103
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Accommodations Noncovered Charges-2
+  description: Refer to 50-08 Accommodations Noncovered Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1468
+  calculated_length: 10
+  canonical_name: accommodations_noncovered_charges_2
+- field_number: '16'
+  start_position: 104
+  end_position: 107
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Form Locator 49 – 2 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1472
+  calculated_length: 4
+  canonical_name: form_locator_49_2_not_used_blank_fill
+- field_number: '17'
+  start_position: 108
+  end_position: 108
+  cobol_picture: X(1)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: 109 150 9(42) C Accommodations - 3
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1474
+  calculated_length: 1
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '18'
+  start_position: 109
+  end_position: 112
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Accommodations Revenue Code - 3
+  description: Refer to 50-04 Accommodations Revenue Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1478
+  calculated_length: 4
+  canonical_name: accommodations_revenue_code_3
+- field_number: '19'
+  start_position: 113
+  end_position: 121
+  cobol_picture: 9(7)V99
+  requirement_code: C
+  field_name: Accommodations Rate - 3
+  description: Refer to 50-05 Accommodations Rate - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1482
+  calculated_length: 9
+  canonical_name: accommodations_rate_3
+- field_number: '20'
+  start_position: 122
+  end_position: 125
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Accommodations Days - 3
+  description: Refer to 50-06 Accommodations Days - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1485
+  calculated_length: 4
+  canonical_name: accommodations_days_3
+- field_number: '21'
+  start_position: 126
+  end_position: 135
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Accommodations Total Charges - 3
+  description: Refer to 50-07 Accommodations Total Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1488
+  calculated_length: 10
+  canonical_name: accommodations_total_charges_3
+- field_number: '22'
+  start_position: 136
+  end_position: 145
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Accommodations Noncovered Chrgs-3
+  description: Refer to 50-08 Accommodations Noncovered Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1492
+  calculated_length: 10
+  canonical_name: accommodations_noncovered_chrgs_3
+- field_number: '23'
+  start_position: 146
+  end_position: 149
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Form Locator 49 – 3 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1496
+  calculated_length: 4
+  canonical_name: form_locator_49_3_not_used_blank_fill
+- field_number: '24'
+  start_position: 150
+  end_position: 150
+  cobol_picture: X(1)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: 151 192 9(42) C Accommodations - 4
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1498
+  calculated_length: 1
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '25'
+  start_position: 151
+  end_position: 154
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Accommodations Revenue Code - 4
+  description: Refer to 50-04 Accommodations Revenue Code - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1502
+  calculated_length: 4
+  canonical_name: accommodations_revenue_code_4
+- field_number: '26'
+  start_position: 155
+  end_position: 163
+  cobol_picture: 9(7)V99
+  requirement_code: C
+  field_name: Accommodations Rate - 4
+  description: Refer to 50-05 Accommodations Rate - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1506
+  calculated_length: 9
+  canonical_name: accommodations_rate_4
+- field_number: '27'
+  start_position: 164
+  end_position: 167
+  cobol_picture: 9(4)
+  requirement_code: C
+  field_name: Accommodations Days - 4
+  description: Refer to 50-06 Accommodations Days - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1509
+  calculated_length: 4
+  canonical_name: accommodations_days_4
+- field_number: '28'
+  start_position: 168
+  end_position: 177
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Accommodations Total Charges - 4
+  description: Refer to 50-07 Accommodations Total Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1512
+  calculated_length: 10
+  canonical_name: accommodations_total_charges_4
+- field_number: '29'
+  start_position: 178
+  end_position: 187
+  cobol_picture: S9(8)V99
+  requirement_code: C
+  field_name: Accommodations Noncovered Chrgs-4
+  description: Refer to 50-08 Accommodations Noncovered Charges - 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1516
+  calculated_length: 10
+  canonical_name: accommodations_noncovered_chrgs_4
+- field_number: '30'
+  start_position: 188
+  end_position: 191
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Form Locator 49 – 4 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1520
+  calculated_length: 4
+  canonical_name: form_locator_49_4_not_used_blank_fill
+- field_number: '31'
+  start_position: 192
+  end_position: 192
+  cobol_picture: X(1)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1522
+  calculated_length: 1
+  canonical_name: filler_national_use_unused_record_space

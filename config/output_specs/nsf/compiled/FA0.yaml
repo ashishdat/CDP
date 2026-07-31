@@ -1,0 +1,832 @@
+record_type: FA0
+record_name: Claim Root Segment
+record_length: 320
+order: 14
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is required for commercial claims. There may be up to 99 FXX
+- Records per claim.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be FA0
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1476
+  calculated_length: 3
+  canonical_name: record_id_must_be_fa0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Sequence Number
+  description: 'The record sequence number of the service line detail. Values: 01-99'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1478
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1482
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 39
+  cobol_picture: X(17)
+  requirement_code: O
+  field_name: Line Item Control Numbers
+  description: Identifier assigned by the submitter to this line item. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1486
+  calculated_length: 17
+  canonical_name: line_item_control_numbers
+- field_number: '05.0'
+  start_position: 40
+  end_position: 47
+  cobol_picture: X(08)
+  requirement_code: R
+  field_name: Service From Date
+  description: Date service initiated. See General Instruction for Date entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Date service initiated. See General
+  - Instruction for Date entry.
+  source_line: 1490
+  calculated_length: 8
+  canonical_name: service_from_date
+- field_number: '06.0'
+  start_position: 48
+  end_position: 55
+  cobol_picture: X(08)
+  requirement_code: R
+  field_name: Service To Date
+  description: Must be equal to or greater than service from date. Service dates cannot
+    span years. Separate claims are required for each year
+  allowed_values:
+  - Must be equal to or greater than service from
+  conditional_rules: []
+  formatting_notes:
+  - date. Service dates cannot span years. Separate
+  source_line: 1494
+  calculated_length: 8
+  canonical_name: service_to_date
+- field_number: '07.0'
+  start_position: 56
+  end_position: 57
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Place Of Services
+  description: 'Identifies where service was performed. Code Values: 11 = Office 12
+    = Home 21 = Inpatient Hospital 22 = Outpatient Hospital 23 = Emergency Room Hospital
+    24 = Ambulatory Surgical Center 25 = Birthing Center 26 = Military Treatment Facility
+    31 = Skilled Nursing Facility 32 = Nursing Facility 33 = Custodial Care Facility
+    34 = Hospice 41 = Ambulance - Land 42 = Ambulance - Air or Water 50 = Federally
+    Qualified Health Center 51 = Inpatient Psychiatric Facility 52 = Psychiatric Facility
+    Partial Hospitalization 53 = Community Mental Health Center 54 = Intermediate
+    Care Facility/Mentally Retarded 55 = Residential Substance Abuse Treatment Center
+    56 = Psychiatric Residential Treatment Center 61 = Comprehensive Inpatient Rehabilitation
+    Facility 62 = Comprehensive Outpatient Rehabilitation Facility 65 = End Stage
+    Renal Disease Treatment Facility 71 = State or Local Public Health Clinic 72 =
+    Rural Health Clinic 81 = Independent Laboratory 90-98 = Unassigned 99 = Other
+    Unspecified Facility'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1499
+  calculated_length: 2
+  canonical_name: place_of_services
+- field_number: '08.0'
+  start_position: 58
+  end_position: 59
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Type Of Service Codes
+  description: 'May not be blank. Code values: 01 = Medical Care 02 = Surgery 03 =
+    Consultation 04 = Diagnostic X-Ray 05 = Diagnostic Lab 06 = Radiation Therapy
+    07 = Anesthesia 08 = Surgical Assistance 09 = Other Medical 10 = Blood Charges
+    11 = Used DME 12 = DME Purchase 13 = ASC Facility 14 = Renal Supplies in the Home
+    15 = Alternate Method Dialysis Payment 16 = CRD Equipment 17 = Pre-Admission Testing
+    18 = DME Rental 19 = Pneumonia Vaccine 20 = Second Surgical Opinion 21 = Third
+    Surgical Opinion'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1548
+  calculated_length: 2
+  canonical_name: type_of_service_codes
+- field_number: '09.0'
+  start_position: 60
+  end_position: 64
+  cobol_picture: X(05)
+  requirement_code: R
+  field_name: Procedure Code
+  description: May be CPT-4 or HCPCS code. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1572
+  calculated_length: 5
+  canonical_name: procedure_code
+- field_number: '10.0'
+  start_position: 65
+  end_position: 66
+  cobol_picture: X(02)
+  requirement_code: C
+  field_name: Procedure Code MODIFIER 1
+  description: Must be entered if applicable to procedure. Do not use dashes or periods.
+    May be blank.
+  allowed_values:
+  - Must be entered if applicable to procedure. Do
+  conditional_rules:
+  - Must be entered if applicable to procedure. Do
+  formatting_notes: []
+  source_line: 1575
+  calculated_length: 2
+  canonical_name: procedure_code_modifier_1
+- field_number: '11.0'
+  start_position: 67
+  end_position: 68
+  cobol_picture: X(02)
+  requirement_code: C
+  field_name: Procedure Code MODIFIER 2
+  description: Must be entered if applicable to procedure.
+  allowed_values:
+  - Must be entered if applicable to procedure.
+  conditional_rules:
+  - Must be entered if applicable to procedure.
+  formatting_notes: []
+  source_line: 1580
+  calculated_length: 2
+  canonical_name: procedure_code_modifier_2
+- field_number: '12.0'
+  start_position: 69
+  end_position: 70
+  cobol_picture: X(02)
+  requirement_code: C
+  field_name: Procedure Code MODIFIER 3
+  description: Must be entered if applicable to procedure.
+  allowed_values:
+  - Must be entered if applicable to procedure.
+  conditional_rules:
+  - Must be entered if applicable to procedure.
+  formatting_notes: []
+  source_line: 1584
+  calculated_length: 2
+  canonical_name: procedure_code_modifier_3
+- field_number: '13.0'
+  start_position: 71
+  end_position: 77
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Line Charges
+  description: Charge submitted for this service line. Sum of the line charges must
+    equal claim charges in XA0- 12.0. Must be positive unsigned number. Right justify,
+    zero fill. Decimal is implied; do not enter decimal.
+  allowed_values:
+  - 12.0. Must be positive unsigned number. Right
+  conditional_rules: []
+  formatting_notes:
+  - justify, zero fill. Decimal is implied; do not
+  source_line: 1587
+  calculated_length: 7
+  canonical_name: line_charges
+- field_number: '14.0'
+  start_position: 78
+  end_position: 78
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Diagnosis Code Pointer 1
+  description: 'Order of importance of diagnosis codes to the specific procedure.
+    Can not point to a blank diagnosis field. If numbers are used (old HICF), all
+    pointers must be numeric and up to 4 diagnosis codes may be referenced. If alphas
+    are used (new HICF), all pointers must be alphabetic and up to 12 diagnosis codes
+    may be referenced. Valid values: 1 = Indicates 1st header diagnosis. 2 = Indicates
+    2nd header diagnosis. 3 = Indicates 3rd header diagnosis. 4 = Indicates 4th header
+    diagnosis. A = Indicates 1st header diagnosis B = Indicates 2nd header diagnosis
+    C = Indicates 3st header diagnosis D = Indicates 4th header diagnosis E = Indicates
+    5th header diagnosis F = Indicates 6th header diagnosis G = Indicates 7th header
+    diagnosis H = Indicates 8th header diagnosis I = Indicates 9th header diagnosis
+    J = Indicates 10th header diagnosis K = Indicates 11th header diagnosis L = Indicates
+    12th header diagnosis'
+  allowed_values:
+  - all pointers must be numeric and up to 4
+  - used (new HICF), all pointers must be alphabetic
+  - 'Valid values:'
+  conditional_rules:
+  - diagnosis field. If numbers are used (old HICF),
+  - diagnosis codes may be referenced. If alphas are
+  formatting_notes: []
+  source_line: 1602
+  calculated_length: 1
+  canonical_name: diagnosis_code_pointer_1
+- field_number: '15.0'
+  start_position: 79
+  end_position: 79
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: Diagnosis Code Pointer 2
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1628
+  calculated_length: 1
+  canonical_name: diagnosis_code_pointer_2
+- field_number: '16.0'
+  start_position: 80
+  end_position: 80
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: Diagnosis Code Pointer 3
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1630
+  calculated_length: 1
+  canonical_name: diagnosis_code_pointer_3
+- field_number: '17.0'
+  start_position: 81
+  end_position: 81
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: Diagnosis Code Pointer 4
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1632
+  calculated_length: 1
+  canonical_name: diagnosis_code_pointer_4
+- field_number: '18.0'
+  start_position: 82
+  end_position: 85
+  cobol_picture: 9(03)V9
+  requirement_code: R
+  field_name: Units Of Services
+  description: Number of services in days or units. Must be positive, unsigned number.
+    Right justify, zero fill. Fractional services not accepted. Max value is 999.
+    Should be entered as 9990 - Field Layout 999V9.
+  allowed_values:
+  - Number of services in days or units. Must be
+  conditional_rules: []
+  formatting_notes:
+  - positive, unsigned number. Right justify, zero
+  - fill. Fractional services not accepted. Max
+  source_line: 1634
+  calculated_length: 4
+  canonical_name: units_of_services
+- field_number: '19.0'
+  start_position: 86
+  end_position: 89
+  cobol_picture: 9(04)
+  requirement_code: C
+  field_name: Anesthesia/Oxygen Minutes
+  description: If FA0-08 Type of Service is equal to 07, this field must be greater
+    than zero. Maximum value is 999. Zero fill.
+  allowed_values:
+  - field must be greater than zero. Maximum value
+  conditional_rules:
+  - If FA0-08 Type of Service is equal to 07, this
+  formatting_notes:
+  - is 999. Zero fill.
+  source_line: 1641
+  calculated_length: 4
+  canonical_name: anesthesia_oxygen_minutes
+- field_number: '20.0'
+  start_position: 90
+  end_position: 90
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Emergency Indicator
+  description: 'May be blank. Code Values: Y = Yes, emergency related N = No, emergency
+    not related'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1646
+  calculated_length: 1
+  canonical_name: emergency_indicator
+- field_number: '21.0'
+  start_position: 91
+  end_position: 91
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: COB Indicator - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1653
+  calculated_length: 1
+  canonical_name: cob_indicator_not_used_may_be_blank
+- field_number: '22.0'
+  start_position: 92
+  end_position: 92
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: HPSA Indicator - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1655
+  calculated_length: 1
+  canonical_name: hpsa_indicator_not_used_may_be_blank
+- field_number: '23.0'
+  start_position: 93
+  end_position: 107
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Rendering Provider Identification - Not used
+  description: May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1657
+  calculated_length: 15
+  canonical_name: rendering_provider_identification_not_used
+- field_number: '24.0'
+  start_position: 108
+  end_position: 122
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Referring Provider Identification - Not used
+  description: May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1660
+  calculated_length: 15
+  canonical_name: referring_provider_identification_not_used
+- field_number: '25.0'
+  start_position: 123
+  end_position: 124
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Referring Provider State - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1663
+  calculated_length: 2
+  canonical_name: referring_provider_state_not_used_may_be
+- field_number: '26.0'
+  start_position: 125
+  end_position: 125
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Purchase Service Indicator - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1666
+  calculated_length: 1
+  canonical_name: purchase_service_indicator_not_used_may_be
+- field_number: '27.0'
+  start_position: 126
+  end_position: 132
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Disallowed Cost Containment
+  description: The provider write-off amount for this line item. Derived from the
+    prior payer’s EOB.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1676
+  calculated_length: 7
+  canonical_name: disallowed_cost_containment
+- field_number: '28.0'
+  start_position: 133
+  end_position: 139
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Disallowed Other - Not used. Zero fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1680
+  calculated_length: 7
+  canonical_name: disallowed_other_not_used_zero_fill
+- field_number: '29.0'
+  start_position: 140
+  end_position: 140
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Review By Code Indicator - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1682
+  calculated_length: 1
+  canonical_name: review_by_code_indicator_not_used_may_be
+- field_number: '30.0'
+  start_position: 141
+  end_position: 141
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Multiple Procedure Indicator - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1685
+  calculated_length: 1
+  canonical_name: multiple_procedure_indicator_not_used_may
+- field_number: '31.0'
+  start_position: 142
+  end_position: 151
+  cobol_picture: X(10)
+  requirement_code: N
+  field_name: Mammography Certification Number - Not used
+  description: May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1688
+  calculated_length: 10
+  canonical_name: mammography_certification_number_not_used
+- field_number: '32.0'
+  start_position: 152
+  end_position: 160
+  cobol_picture: X(09)
+  requirement_code: N
+  field_name: Class Findings - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1692
+  calculated_length: 9
+  canonical_name: class_findings_not_used_may_be_blank
+- field_number: '33.0'
+  start_position: 161
+  end_position: 163
+  cobol_picture: X(03)
+  requirement_code: N
+  field_name: Podiatry Service Condition - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1696
+  calculated_length: 3
+  canonical_name: podiatry_service_condition_not_used_may_be
+- field_number: '34.0'
+  start_position: 164
+  end_position: 178
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Clinical Laboratory Improvement Amendments
+  description: (CLIA ID No.) - Not used. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1700
+  calculated_length: 15
+  canonical_name: clinical_laboratory_improvement_amendments
+- field_number: '35.0'
+  start_position: 179
+  end_position: 185
+  cobol_picture: 9(05)V99
+  requirement_code: C
+  field_name: Primary Paid Amount
+  description: Amount paid by the primary carrier. Zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Amount paid by the primary carrier. Zero fill.
+  source_line: 1703
+  calculated_length: 7
+  canonical_name: primary_paid_amount
+- field_number: '36.0'
+  start_position: 186
+  end_position: 187
+  cobol_picture: X(02)
+  requirement_code: O
+  field_name: HCPCS Modifier 4
+  description: Must be entered if applicable to procedure. May be blank.
+  allowed_values:
+  - Must be entered if applicable to procedure.
+  conditional_rules:
+  - Must be entered if applicable to procedure.
+  formatting_notes: []
+  source_line: 1707
+  calculated_length: 2
+  canonical_name: hcpcs_modifier_4
+- field_number: '37.0'
+  start_position: 188
+  end_position: 190
+  cobol_picture: X(03)
+  requirement_code: N
+  field_name: Provider Specialty - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1712
+  calculated_length: 3
+  canonical_name: provider_specialty_not_used_may_be_blank
+- field_number: '38.0'
+  start_position: 191
+  end_position: 191
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Podiatry Therapy Indicator - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1714
+  calculated_length: 1
+  canonical_name: podiatry_therapy_indicator_not_used_may_be
+- field_number: '39.0'
+  start_position: 192
+  end_position: 192
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Podiatry Therapy Type - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1717
+  calculated_length: 1
+  canonical_name: podiatry_therapy_type_not_used_may_be
+- field_number: '40.0'
+  start_position: 193
+  end_position: 193
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Hospice Employed Provider Indicator - Not
+  description: used. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1720
+  calculated_length: 1
+  canonical_name: hospice_employed_provider_indicator_not
+- field_number: '41.0'
+  start_position: 194
+  end_position: 201
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: HGB / HCT Date - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1723
+  calculated_length: 8
+  canonical_name: hgb_hct_date_not_used_may_be_blank
+- field_number: '42.0'
+  start_position: 202
+  end_position: 204
+  cobol_picture: 9(03)
+  requirement_code: N
+  field_name: HGB Result - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1725
+  calculated_length: 3
+  canonical_name: hgb_result_not_used_may_be_blank
+- field_number: '43.0'
+  start_position: 205
+  end_position: 206
+  cobol_picture: 9(02)
+  requirement_code: N
+  field_name: Hematocrit Result
+  description: Hematocrit (HCT) level. Must be positive, unsigned number. Fractional
+    services not accepted. May be blank.
+  allowed_values:
+  - Hematocrit (HCT) level. Must be positive,
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1727
+  calculated_length: 2
+  canonical_name: hematocrit_result
+- field_number: '44.0'
+  start_position: 207
+  end_position: 209
+  cobol_picture: 9(03)
+  requirement_code: N
+  field_name: Patient Weight - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1732
+  calculated_length: 3
+  canonical_name: patient_weight_not_used_may_be_blank
+- field_number: '45.0'
+  start_position: 210
+  end_position: 212
+  cobol_picture: 9(03)
+  requirement_code: N
+  field_name: Epoetin Dosage - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1734
+  calculated_length: 3
+  canonical_name: epoetin_dosage_not_used_may_be_blank
+- field_number: '46.0'
+  start_position: 213
+  end_position: 220
+  cobol_picture: X(08)
+  requirement_code: N
+  field_name: Serum Create Date - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1736
+  calculated_length: 8
+  canonical_name: serum_create_date_not_used_may_be_blank
+- field_number: '47.0'
+  start_position: 221
+  end_position: 223
+  cobol_picture: 9(03)
+  requirement_code: N
+  field_name: Creatine Result - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1738
+  calculated_length: 3
+  canonical_name: creatine_result_not_used_may_be_blank
+- field_number: '48.0'
+  start_position: 224
+  end_position: 230
+  cobol_picture: 9(05)V99
+  requirement_code: C
+  field_name: Obligated To Accept Amount
+  description: Amount the provider agreed to accept as payment in full under the provisions
+    of the contract. Zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - contract. Zero fill. May not be blank.
+  source_line: 1740
+  calculated_length: 7
+  canonical_name: obligated_to_accept_amount
+- field_number: '49.0'
+  start_position: 231
+  end_position: 237
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Drug Discount Amount - Not used. Zero
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 1745
+  calculated_length: 7
+  canonical_name: drug_discount_amount_not_used_zero
+- field_number: '50.0'
+  start_position: 238
+  end_position: 245
+  cobol_picture: X(1)
+  requirement_code: N
+  field_name: Filler – National - Unused reserved space for
+  description: National use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - National use. Blank fill.
+  source_line: 1748
+  calculated_length: 8
+  canonical_name: filler_national_unused_reserved_space_for
+- field_number: '51.0'
+  start_position: 239
+  end_position: 245
+  cobol_picture: X(7)
+  requirement_code: N
+  field_name: Approved Amount - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1751
+  calculated_length: 7
+  canonical_name: approved_amount_not_used_may_be_blank
+- field_number: '52.0'
+  start_position: 246
+  end_position: 252
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Secondary Paid Amount (Filler – National)
+  description: Enter the amount paid by the secondary payer for this charge
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1758
+  calculated_length: 7
+  canonical_name: secondary_paid_amount_filler_national
+- field_number: '53.0'
+  start_position: 253
+  end_position: 259
+  cobol_picture: 9(05)V99
+  requirement_code: O
+  field_name: Patient Responsibility Amount
+  description: The amount determined to be the patient’s liability. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1762
+  calculated_length: 7
+  canonical_name: patient_responsibility_amount
+- field_number: '54.0'
+  start_position: 260
+  end_position: 266
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Copay Amount (Filler – National )
+  description: The copay amount for this line. Derived from the prior payer’s EOB.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1766
+  calculated_length: 7
+  canonical_name: copay_amount_filler_national
+- field_number: '55.0'
+  start_position: 267
+  end_position: 273
+  cobol_picture: X(07)
+  requirement_code: N
+  field_name: Filler – National - Unused reserved space for
+  description: National use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - National use. Blank fill.
+  source_line: 1770
+  calculated_length: 7
+  canonical_name: filler_national_unused_reserved_space_for
+- field_number: '56.0'
+  start_position: 274
+  end_position: 283
+  cobol_picture: X(10)
+  requirement_code: N
+  field_name: Rendering Provider NPI (Filler – National)
+  description: The provider’s NPI who rendered this service.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1773
+  calculated_length: 10
+  canonical_name: rendering_provider_npi_filler_national
+- field_number: '57.0'
+  start_position: 284
+  end_position: 320
+  cobol_picture: X(37)
+  requirement_code: N
+  field_name: Filler – National
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1776
+  calculated_length: 37
+  canonical_name: filler_national

@@ -1,0 +1,86 @@
+schema_version: "1.0"
+families:
+  psychological_receipt:
+    required_any:
+      - "receipt for psychological services"
+      - "professional service"
+      - "client name"
+      - "client:"
+    fields:
+      patient_name:
+        anchors: ["client name", "client:"]
+        direction: right_or_below
+        width_px: 900
+        height_px: 100
+        field_type: person_name
+      patient_address:
+        anchors: ["client:", "client name"]
+        direction: below
+        offset_y: 0
+        width_px: 900
+        height_px: 180
+        field_type: address
+
+  cms1500_attachment:
+    required_any:
+      - "health insurance claim form"
+      - "patient's name"
+      - "insured's name"
+    fields:
+      patient_name:
+        anchors: ["patient's name", "patients name"]
+        direction: below
+        width_px: 500
+        height_px: 80
+        field_type: person_name
+      patient_address:
+        anchors: ["patient's address", "patients address"]
+        direction: below
+        width_px: 500
+        height_px: 180
+        field_type: address
+      insured_address:
+        anchors: ["insured's name", "insureds name"]
+        direction: below
+        offset_x: 850
+        width_px: 650
+        height_px: 260
+        field_type: address
+
+  laboratory_invoice:
+    required_any:
+      - "quest diagnostics"
+      - "laboratory bill"
+      - "laboratory tests were requested by"
+    fields:
+      patient_name:
+        anchors: ["patient name", "bill to", "patient:"]
+        direction: right_or_below
+        width_px: 850
+        height_px: 100
+        field_type: person_name
+      patient_address:
+        anchors: ["patient name", "bill to", "patient:"]
+        direction: below
+        width_px: 850
+        height_px: 220
+        field_type: address
+
+  insurance_statement:
+    required_any:
+      - "receipt & insurance statement"
+      - "insurance statement"
+      - "member submitted claims form"
+    fields:
+      patient_name:
+        anchors: ["patient", "client", "member name"]
+        direction: right_or_below
+        width_px: 850
+        height_px: 100
+        field_type: person_name
+      patient_address:
+        anchors: ["patient", "client", "member name"]
+        direction: below
+        width_px: 850
+        height_px: 220
+        field_type: address

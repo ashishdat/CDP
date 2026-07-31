@@ -1,0 +1,15 @@
+template_id: laboratory_invoice
+form_family: LABORATORY_INVOICE
+version: "1"
+reference_dimensions: [1700, 2200]
+anchors:
+  - {phrase: "Laboratory Bill", required: true}
+  - {phrase: "Quest Diagnostics", required: false}
+fields:
+  - {field_name: patient_name, region: {x0: 0.08, y0: 0.13, x1: 0.33, y1: 0.15}, field_type: person_name}
+  - {field_name: patient_address, region: {x0: 0.08, y0: 0.14, x1: 0.37, y1: 0.18}, field_type: address}
+checkbox_regions: []
+table_regions:
+  - {x0: 0.04, y0: 0.44, x1: 0.96, y1: 0.55}
+preprocessing_profile: invoice
+alignment_thresholds: {minimum_inlier_ratio: 0.25, maximum_reprojection_error: 7.0}

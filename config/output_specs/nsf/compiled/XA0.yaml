@@ -1,0 +1,371 @@
+record_type: XA0
+record_name: Claim Trailer Record
+record_length: 320
+order: 31
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is required for every submission.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be XA0
+  description: This is the last record of every electronically submitted claim. It
+    contains information pertinent to the balancing of each claim (i.e., claim record
+    counts and claim charges).
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - information pertinent to the balancing of each
+  source_line: 2177
+  calculated_length: 3
+  canonical_name: record_id_must_be_xa0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Filler - Reserved for National use. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 2184
+  calculated_length: 2
+  canonical_name: filler_reserved_for_national_use_blank
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2187
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 24
+  cobol_picture: 9(02)
+  requirement_code: R
+  field_name: Record CXX Count
+  description: Count of all records beginning with "C" in this claim. Right justify,
+    zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - this claim. Right justify, zero fill. May not be
+  source_line: 2191
+  calculated_length: 2
+  canonical_name: record_cxx_count
+- field_number: '05.0'
+  start_position: 25
+  end_position: 26
+  cobol_picture: 9(02)
+  requirement_code: R
+  field_name: Record DXX Count
+  description: Count of all records beginning with "D" in this claim. Right justify,
+    zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - this claim. Right justify, zero fill. May not be
+  source_line: 2196
+  calculated_length: 2
+  canonical_name: record_dxx_count
+- field_number: '06.0'
+  start_position: 27
+  end_position: 28
+  cobol_picture: 9(02)
+  requirement_code: R
+  field_name: Record EXX Count
+  description: Count of all records beginning with "E" in this claim. Right justify,
+    zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - this claim. Right justify, zero fill. May not be
+  source_line: 2201
+  calculated_length: 2
+  canonical_name: record_exx_count
+- field_number: '07.0'
+  start_position: 29
+  end_position: 30
+  cobol_picture: 9(02)
+  requirement_code: R
+  field_name: Record FXX Count
+  description: Count of all records beginning with "F" in this claim. Right justify,
+    zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - this claim. Right justify, zero fill. May not be
+  source_line: 2206
+  calculated_length: 2
+  canonical_name: record_fxx_count
+- field_number: '08.0'
+  start_position: 31
+  end_position: 32
+  cobol_picture: 9(02)
+  requirement_code: R
+  field_name: Record GXX Count
+  description: Count of all records beginning with "G" in this claim. Right justify,
+    zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - this claim. Right justify, zero fill. May not be
+  source_line: 2211
+  calculated_length: 2
+  canonical_name: record_gxx_count
+- field_number: '09.0'
+  start_position: 33
+  end_position: 34
+  cobol_picture: 9(02)
+  requirement_code: R
+  field_name: Record HXX Count
+  description: Count of all records beginning with "H" in this claim. Right justify,
+    zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - this claim. Right justify, zero fill. May not be
+  source_line: 2216
+  calculated_length: 2
+  canonical_name: record_hxx_count
+- field_number: '10.0'
+  start_position: 35
+  end_position: 37
+  cobol_picture: 9(03)
+  requirement_code: R
+  field_name: Claim Record Count
+  description: Computed sum of all records in this claim from CA0 record to (but not
+    including) XA0 record. Right justify, zero fill. May not be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Right justify, zero fill. May not be blank.
+  source_line: 2221
+  calculated_length: 3
+  canonical_name: claim_record_count
+- field_number: '11.0'
+  start_position: 38
+  end_position: 77
+  cobol_picture: X(40)
+  requirement_code: N
+  field_name: Reserved - Unused reserved record space
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 2227
+  calculated_length: 40
+  canonical_name: reserved_unused_reserved_record_space
+- field_number: '12.0'
+  start_position: 78
+  end_position: 84
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Total Claim Charges
+  description: Computed sum of all line charges, (FA0-13.0) in this claim. Must be
+    positive, numeric. Total charges and the cumulative total of individual line charges
+    must be in balance. Right justify, zero fill. $$$$$¢¢. Do not enter decimal. May
+    not be blank. Maximum value is 9999.99.
+  allowed_values:
+  - in this claim. Must be positive, numeric. Total
+  - line charges must be in balance. Right justify,
+  conditional_rules: []
+  formatting_notes:
+  - line charges must be in balance. Right justify,
+  - zero fill. $$$$$¢¢. Do not enter decimal. May
+  source_line: 2231
+  calculated_length: 7
+  canonical_name: total_claim_charges
+- field_number: '13.0'
+  start_position: 85
+  end_position: 91
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Total Disallowed Cost Containment Charges
+  description: Computed sum of all disallowed cost containment charges (FA0-27.0)
+    included in this claim. Right justify. Zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - claim. Right justify. Zero fill.
+  source_line: 2239
+  calculated_length: 7
+  canonical_name: total_disallowed_cost_containment_charges
+- field_number: '14.0'
+  start_position: 92
+  end_position: 98
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Total Disallowed Other Charges
+  description: Computed sum of all the disallowed charges (FA0-28.0) included in this
+    claim. Right justify, zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - justify, zero fill.
+  source_line: 2244
+  calculated_length: 7
+  canonical_name: total_disallowed_other_charges
+- field_number: '15.0'
+  start_position: 99
+  end_position: 105
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Total Allowed Amount
+  description: Computed sum of all allowed amount fields (FB0- 06.0) included in this
+    claim. Right justify. Zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - 06.0) included in this claim. Right justify.
+  - Zero fill.
+  source_line: 2254
+  calculated_length: 7
+  canonical_name: total_allowed_amount
+- field_number: '16.0'
+  start_position: 106
+  end_position: 112
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Total Deductible Amount
+  description: Computed sum of all the deductible amount fields (FB0-07.0) in this
+    claim. Right justify, zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fields (FB0-07.0) in this claim. Right justify,
+  - zero fill.
+  source_line: 2259
+  calculated_length: 7
+  canonical_name: total_deductible_amount
+- field_number: '17.0'
+  start_position: 113
+  end_position: 119
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Total Coinsurance Amounts
+  description: Computed sum of all the coinsurance amount fields (FB0-08.0) included
+    in this claim. Right justify, zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - justify, zero fill.
+  source_line: 2264
+  calculated_length: 7
+  canonical_name: total_coinsurance_amounts
+- field_number: '18.0'
+  start_position: 120
+  end_position: 126
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Total Payer Amount Paid
+  description: Computed sum of all payer amount paid fields (DA1-14.0) included in
+    this claim. Right justify, zero fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - justify, zero fill.
+  source_line: 2269
+  calculated_length: 7
+  canonical_name: total_payer_amount_paid
+- field_number: '19.0'
+  start_position: 127
+  end_position: 133
+  cobol_picture: 9(05)V99
+  requirement_code: R
+  field_name: Patient Paid Amount
+  description: The amount provider has received from the patient (or insured) toward
+    payment of this claim. Right justify, zero fill. Maximum value is 9999.99. Must
+    not exceed total claim charges (XA0-12).
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - claim. Right justify, zero fill. Maximum value
+  source_line: 2274
+  calculated_length: 7
+  canonical_name: patient_paid_amount
+- field_number: '20.0'
+  start_position: 134
+  end_position: 140
+  cobol_picture: 9(05)V99
+  requirement_code: N
+  field_name: Total Purchase Service Charges - Not
+  description: used. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2281
+  calculated_length: 7
+  canonical_name: total_purchase_service_charges_not
+- field_number: '21.0'
+  start_position: 141
+  end_position: 156
+  cobol_picture: X(16)
+  requirement_code: N
+  field_name: Provider Discount Information - Not used. May
+  description: be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2285
+  calculated_length: 16
+  canonical_name: provider_discount_information_not_used_may
+- field_number: '22.0'
+  start_position: 157
+  end_position: 259
+  cobol_picture: X(103)
+  requirement_code: N
+  field_name: Remarks
+  description: See NSF for additional information regarding this field.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - See NSF for additional information regarding
+  source_line: 2289
+  calculated_length: 103
+  canonical_name: remarks
+- field_number: '23.0'
+  start_position: 260
+  end_position: 290
+  cobol_picture: X(31)
+  requirement_code: N
+  field_name: Filler – National - Unused reserved space for
+  description: National use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - National use. Blank fill.
+  source_line: 2293
+  calculated_length: 31
+  canonical_name: filler_national_unused_reserved_space_for
+- field_number: '24.0'
+  start_position: 291
+  end_position: 320
+  cobol_picture: X(30)
+  requirement_code: N
+  field_name: Filler – Local - Unused reserved space for
+  description: Local use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Local use. Blank fill.
+  source_line: 2296
+  calculated_length: 30
+  canonical_name: filler_local_unused_reserved_space_for

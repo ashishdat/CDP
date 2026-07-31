@@ -1,0 +1,164 @@
+record_type: EK0
+record_name: Miscellaneous Claim Data - Keyed
+record_length: 320
+order: 13
+preceding_rules: []
+following_rules: []
+record_rules:
+- Claims
+- EK0 record is optional and only one is allowed per claim. Valid only for
+- keying submitters.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be EK0
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1413
+  calculated_length: 3
+  canonical_name: record_id_must_be_ek0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Unused Reserved Record Space. Blank Fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1415
+  calculated_length: 2
+  canonical_name: unused_reserved_record_space_blank_fill
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1417
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 37
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: Diagnosis Description - 1
+  description: The diagnosis description that is linked with diagnosis code 1.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1421
+  calculated_length: 15
+  canonical_name: diagnosis_description_1
+- field_number: '05.0'
+  start_position: 38
+  end_position: 52
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: Diagnosis Description - 2
+  description: The diagnosis description that is linked with diagnosis code 2.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1425
+  calculated_length: 15
+  canonical_name: diagnosis_description_2
+- field_number: '06.0'
+  start_position: 53
+  end_position: 67
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: Diagnosis Description - 3
+  description: The diagnosis description that is linked with diagnosis code 3.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1429
+  calculated_length: 15
+  canonical_name: diagnosis_description_3
+- field_number: '07.0'
+  start_position: 68
+  end_position: 82
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: Diagnosis Description - 4
+  description: The diagnosis description that is linked with diagnosis code 4.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1434
+  calculated_length: 15
+  canonical_name: diagnosis_description_4
+- field_number: '08.0'
+  start_position: 83
+  end_position: 90
+  cobol_picture: 9(06)V99
+  requirement_code: O
+  field_name: Discount Amount
+  description: Any discount amount shown on the claim other than prompt payment discount.
+    Right justify, zero fill. $$$$$$cc. Decimal is implied; do not enter decimal.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - than prompt payment discount. Right justify,
+  - zero fill. $$$$$$cc. Decimal is implied; do not
+  source_line: 1439
+  calculated_length: 8
+  canonical_name: discount_amount
+- field_number: '09.0'
+  start_position: 91
+  end_position: 98
+  cobol_picture: 9(06)V99
+  requirement_code: O
+  field_name: Tax Amount
+  description: Any tax amount shown on the claim. Right justify, zero fill. Decimal
+    is implied; do not enter decimal.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - justify, zero fill. Decimal is implied; do not
+  source_line: 1445
+  calculated_length: 8
+  canonical_name: tax_amount
+- field_number: '10.0'
+  start_position: 99
+  end_position: 106
+  cobol_picture: 9(06)V99
+  requirement_code: O
+  field_name: NY Surcharge Amount
+  description: The NY surcharge amount shown on the claim. Right justify, zero fill.
+    Decimal is implied; do not enter the decimal.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Right justify, zero fill. Decimal is implied; do
+  source_line: 1450
+  calculated_length: 8
+  canonical_name: ny_surcharge_amount
+- field_number: '11.0'
+  start_position: 107
+  end_position: 320
+  cobol_picture: X(214)
+  requirement_code: N
+  field_name: Filler – Local - Unused record space for
+  description: local use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - local use. Blank fill.
+  source_line: 1455
+  calculated_length: 214
+  canonical_name: filler_local_unused_record_space_for

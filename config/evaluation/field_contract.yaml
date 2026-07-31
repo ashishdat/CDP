@@ -1,0 +1,43 @@
+schema_version: "1.0"
+forms:
+  CMS1500:
+    fields:
+      patient_last: {required: true, critical: true, type: person_name}
+      patient_first: {required: true, critical: true, type: person_name}
+      patient_addr1: {required: false, critical: false, type: address}
+      patient_addr2: {required: false, critical: false, type: address}
+      patient_city: {required: false, critical: false, type: city}
+      patient_state: {required: false, critical: false, type: state}
+      patient_zip: {required: false, critical: false, type: zip}
+      rel_code: {required: true, critical: false, type: relationship}
+      insured_addr1: {required: false, critical: false, type: address}
+      insured_addr2: {required: false, critical: false, type: address}
+      insured_city: {required: false, critical: false, type: city}
+      insured_state: {required: false, critical: false, type: state}
+      insured_zip: {required: false, critical: false, type: zip}
+  UB04:
+    fields:
+      federal_tax_id: {required: true, critical: true, type: tax_id}
+      provider_npi: {required: true, critical: true, type: npi}
+      patient_control_number: {required: true, critical: false, type: identifier}
+      patient_last: {required: true, critical: true, type: person_name}
+      patient_first: {required: true, critical: true, type: person_name}
+      patient_sex: {required: false, critical: false, type: sex}
+      patient_dob: {required: true, critical: true, type: date}
+      type_of_bill: {required: true, critical: true, type: bill_type}
+      principal_diagnosis: {required: true, critical: true, type: diagnosis}
+  UNSTRUCTURED:
+    fields:
+      patient_last: {required: true, critical: true, type: person_name}
+      patient_first: {required: true, critical: true, type: person_name}
+      patient_addr1: {required: false, critical: false, type: address}
+      patient_addr2: {required: false, critical: false, type: address}
+      patient_city: {required: false, critical: false, type: city}
+      patient_state: {required: false, critical: false, type: state}
+      patient_zip: {required: false, critical: false, type: zip}
+      rel_code: {required: true, critical: false, type: relationship}
+      insured_addr1: {required: false, critical: false, type: address}
+      insured_addr2: {required: false, critical: false, type: address}
+      insured_city: {required: false, critical: false, type: city}
+      insured_state: {required: false, critical: false, type: state}
+      insured_zip: {required: false, critical: false, type: zip}

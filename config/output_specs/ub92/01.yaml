@@ -1,0 +1,143 @@
+# UB92 Record Type 01 -- Processor Data. Transcribed from "UB92 File
+# Specs - February 2012.doc" (v510). Only one 01 record per file, must be
+# the first record. Verified byte-for-byte against the real sample output
+# (dataset_raw/Group C/... line 1) -- see docs/DATASET_FINDINGS.md.
+record_type: "01"
+record_length: 192
+fields:
+  - field_name: record_type_code
+    start_position: 1
+    length: 2
+    data_type: string
+    required: true
+    default: "01"
+  - field_name: submitter_ein
+    start_position: 3
+    length: 10
+    data_type: numeric
+    padding_character: "0"
+    required: true
+    source_field: null
+  - field_name: multiple_provider_indicator
+    start_position: 13
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_national_1
+    start_position: 14
+    length: 17
+    data_type: string
+    required: false
+    default: ""
+  - field_name: receiver_type_code
+    start_position: 31
+    length: 1
+    data_type: string
+    required: true
+    default: "F"
+  - field_name: receiver_id
+    start_position: 32
+    length: 5
+    data_type: numeric
+    padding_character: "0"
+    required: true
+    default: "87726"
+  - field_name: receiver_sub_id
+    start_position: 37
+    length: 4
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_national_2
+    start_position: 41
+    length: 6
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_name
+    start_position: 47
+    length: 21
+    data_type: string
+    required: false
+    source_field: null
+  - field_name: submitter_address
+    start_position: 68
+    length: 18
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_city
+    start_position: 86
+    length: 15
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_state
+    start_position: 101
+    length: 2
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_zip
+    start_position: 103
+    length: 9
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_fax
+    start_position: 112
+    length: 10
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_country_code
+    start_position: 122
+    length: 4
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_telephone
+    start_position: 126
+    length: 10
+    data_type: string
+    required: false
+    default: ""
+  - field_name: file_sequence_serial_number
+    start_position: 136
+    length: 7
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: test_production_indicator
+    start_position: 143
+    length: 4
+    data_type: string
+    required: true
+    default: "PROD"
+  - field_name: date_of_receipt
+    start_position: 147
+    length: 8
+    data_type: date
+    format: CCYYMMDD
+    required: false
+    default: ""
+  - field_name: processing_date
+    start_position: 155
+    length: 8
+    data_type: date
+    format: CCYYMMDD
+    required: true
+    source_field: null
+  - field_name: filler_local
+    start_position: 163
+    length: 27
+    data_type: string
+    required: false
+    default: ""
+  - field_name: version_code
+    start_position: 190
+    length: 3
+    data_type: string
+    required: true
+    default: "510"

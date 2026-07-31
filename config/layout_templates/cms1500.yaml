@@ -1,0 +1,16 @@
+template_id: cms1500
+form_family: CMS1500
+version: "02-12"
+reference_dimensions: [1712, 2214]
+anchors:
+  - {phrase: "HEALTH INSURANCE CLAIM FORM", required: true}
+  - {phrase: "FORM 1500", required: false}
+fields:
+  - {field_name: patient_name, region: {x0: 0.01, y0: 0.14, x1: 0.28, y1: 0.18}, field_type: person_name}
+  - {field_name: patient_dob, region: {x0: 0.28, y0: 0.14, x1: 0.43, y1: 0.18}, field_type: date}
+checkbox_regions:
+  - {x0: 0.42, y0: 0.14, x1: 0.48, y1: 0.18}
+table_regions:
+  - {x0: 0.01, y0: 0.65, x1: 0.99, y1: 0.80}
+preprocessing_profile: structured_form
+alignment_thresholds: {minimum_inlier_ratio: 0.35, maximum_reprojection_error: 5.0}

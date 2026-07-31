@@ -1,0 +1,286 @@
+record_type: '10'
+record_name: Provider Data 8
+record_length: 192
+order: 1
+preceding_rules:
+- ▪ Preceding record types 01 or 95
+following_rules:
+- ▪ Following record type 20
+record_rules:
+- ▪ Record Type 10 must be present for each unique Provider Batch
+- combination (i.e., Field 02-Type of Batch and Field 04-Federal Tax
+- Number)
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘10’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 299
+  calculated_length: 2
+  canonical_name: record_type_must_be_10
+- field_number: '02'
+  start_position: 3
+  end_position: 5
+  cobol_picture: X(3)
+  requirement_code: R
+  field_name: Type of Batch
+  description: 'Indicates the types of bills that occur in this batch. Batch by first
+    two characters of Type of Bill. See Exhibit # 3 Batch Type Codes.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 301
+  calculated_length: 3
+  canonical_name: type_of_batch
+- field_number: '03'
+  start_position: 6
+  end_position: 7
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Batch Number
+  description: Sequential number 01 – 99 assigned to each batch of claims for a provider.
+    When the Federal Tax Number or EIN changes from the previous batch, the batch
+    number must be reset to 01.
+  allowed_values:
+  - previous batch, the batch number must be reset
+  conditional_rules:
+  - batch of claims for a provider. When the
+  formatting_notes: []
+  source_line: 308
+  calculated_length: 2
+  canonical_name: batch_number
+- field_number: '04'
+  start_position: 8
+  end_position: 17
+  cobol_picture: 9(10)
+  requirement_code: R
+  field_name: Federal Tax Number or EIN
+  description: The provider’s Tax ID Number (TIN) or Employer ID Number (EIN). First
+    position must be 0.
+  allowed_values:
+  - ID Number (EIN). First position must be 0.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 315
+  calculated_length: 10
+  canonical_name: federal_tax_number_or_ein
+- field_number: '05'
+  start_position: 18
+  end_position: 21
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Federal Tax Sub ID
+  description: Modifier to the Federal Tax Number listed above. Not used.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 319
+  calculated_length: 4
+  canonical_name: federal_tax_sub_id
+- field_number: '06'
+  start_position: 22
+  end_position: 34
+  cobol_picture: X(13)
+  requirement_code: O
+  field_name: Medicare Provider Number
+  description: The National Provider Identifier (NPI) assigned to the provider.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 323
+  calculated_length: 13
+  canonical_name: medicare_provider_number
+- field_number: '07'
+  start_position: 35
+  end_position: 47
+  cobol_picture: X(13)
+  requirement_code: N
+  field_name: Medicaid Provider Number
+  description: The provider taxonomy code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 327
+  calculated_length: 13
+  canonical_name: medicaid_provider_number
+- field_number: 08
+  start_position: 48
+  end_position: 60
+  cobol_picture: X(13)
+  requirement_code: N
+  field_name: CHAMPUS Insurer Provider Number - Not used
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 330
+  calculated_length: 13
+  canonical_name: champus_insurer_provider_number_not_used
+- field_number: 09
+  start_position: 61
+  end_position: 73
+  cobol_picture: X(13)
+  requirement_code: O
+  field_name: Other Insurer Provider Number - 1
+  description: Provider ID number assigned by United HealthCare. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 332
+  calculated_length: 13
+  canonical_name: other_insurer_provider_number_1
+- field_number: '10'
+  start_position: 74
+  end_position: 86
+  cobol_picture: X(13)
+  requirement_code: N
+  field_name: Other Insurer Provider Number – 2 - Not used
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 336
+  calculated_length: 13
+  canonical_name: other_insurer_provider_number_2_not_used
+- field_number: '11'
+  start_position: 87
+  end_position: 96
+  cobol_picture: 9(10)
+  requirement_code: R
+  field_name: Provider Telephone Number
+  description: Telephone number of the provider. Format = XXXYYYZZZZ XXX = Area Code
+    YYY = Exchange ZZZZ = Station Number
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Telephone number of the provider. Format =
+  source_line: 338
+  calculated_length: 10
+  canonical_name: provider_telephone_number
+- field_number: '12'
+  start_position: 97
+  end_position: 121
+  cobol_picture: X(25)
+  requirement_code: R
+  field_name: Provider Name
+  description: 'Name of the billing provider submitting this batch of bills. Provider
+    Address (Fields 13 - 16) - Mailing address of the provider. See Exhibit # 2 Standard
+    Address Checks. 3'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 344
+  calculated_length: 25
+  canonical_name: provider_name
+- field_number: '13'
+  start_position: 122
+  end_position: 146
+  cobol_picture: X(25)
+  requirement_code: R
+  field_name: Provider Address
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 351
+  calculated_length: 25
+  canonical_name: provider_address
+- field_number: '14'
+  start_position: 147
+  end_position: 160
+  cobol_picture: X(14)
+  requirement_code: R
+  field_name: Provider City
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 353
+  calculated_length: 14
+  canonical_name: provider_city
+- field_number: '15'
+  start_position: 161
+  end_position: 162
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Provider State
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 355
+  calculated_length: 2
+  canonical_name: provider_state
+- field_number: '16'
+  start_position: 163
+  end_position: 171
+  cobol_picture: X(9)
+  requirement_code: R
+  field_name: Provider Zip Code
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 357
+  calculated_length: 9
+  canonical_name: provider_zip_code
+- field_number: '17'
+  start_position: 172
+  end_position: 181
+  cobol_picture: 9(10)
+  requirement_code: O
+  field_name: Provider Fax Number - Not used
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 359
+  calculated_length: 10
+  canonical_name: provider_fax_number_not_used
+- field_number: '18'
+  start_position: 182
+  end_position: 185
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Provider Country Code - Not used
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 361
+  calculated_length: 4
+  canonical_name: provider_country_code_not_used
+- field_number: '19'
+  start_position: 186
+  end_position: 189
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 363
+  calculated_length: 4
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '20'
+  start_position: 190
+  end_position: 192
+  cobol_picture: X(3)
+  requirement_code: N
+  field_name: Filler (State Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 365
+  calculated_length: 3
+  canonical_name: filler_state_use_unused_record_space

@@ -1,0 +1,469 @@
+record_type: DA0
+record_name: Insurance Information - Payer Data1
+record_length: 320
+order: 6
+preceding_rules: []
+following_rules: []
+record_rules:
+- At least one DA0 record is required on every commercial claim. May also be
+- used when other insurance applies. A maximum of three may be provided.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- '1'
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- '1'
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be DA0
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 610
+  calculated_length: 3
+  canonical_name: record_id_must_be_da0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Sequence Number
+  description: 'Code Values: 01 = UHG Payer Record 02 = Medicare Payer Record or Primary
+    OI Payer Record 03 = OI or Secondary OI Payer Record Note: If CA0-22.0 is equal
+    to 1, there must be a DA0 record with DA0-0.02 = 2 and a DA2 record with DA2-0.02
+    = 2'
+  allowed_values:
+  - 'Note: If CA0-22.0 is equal to 1, there must be a DA0 record with DA0-0.02 ='
+  conditional_rules:
+  - 'Note: If CA0-22.0 is equal to 1, there must be a DA0 record with DA0-0.02 ='
+  formatting_notes: []
+  source_line: 612
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 622
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 23
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Claim Filing Indicator
+  description: 'Code Values: P = Payment is being requested of this payer. I = Payment
+    is not being requested of this payer. Note: There must be one and only one DA0
+    record with DA0-0.04 = P and DA0- 0.04 = P must always have Payer ID = 87726.'
+  allowed_values:
+  - 'Note: There must be one and only one DA0 record with DA0-0.04 = P and DA0-'
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 626
+  calculated_length: 1
+  canonical_name: claim_filing_indicator
+- field_number: '05.0'
+  start_position: 24
+  end_position: 24
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Source Of Payment For This Claim
+  description: 'Code Values: A = Self Pay B = Worker''s Compensation C = Medicare
+    D = Medicaid E = Other Federal Program F = Commercial Insurance Company G = Blue
+    Cross / Blue Shield H = CHAMPUS I = HMO J = Federal Employee''s Program (FEP)
+    K = Central Certification L = Self Administered M = Family or Friends N = Managed
+    Care - Non-HMO P = Blue Cross Q = Automobile Accident Insurance T = Title V V
+    = Veteran Administration Plan Z = Other'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 636
+  calculated_length: 1
+  canonical_name: source_of_payment_for_this_claim
+- field_number: '06.0'
+  start_position: 25
+  end_position: 26
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Insurance Type Code - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 658
+  calculated_length: 2
+  canonical_name: insurance_type_code_not_used_may_be_blank
+- field_number: '07.0'
+  start_position: 27
+  end_position: 31
+  cobol_picture: X(05)
+  requirement_code: R
+  field_name: Payer Identification
+  description: Record sequence 01 must be 87726 for UnitedHealth Group payer; default
+    to 00000 on the 02 Sequence when there is no 03 Sequence When there is a Medicare
+    payer and a non Medicare payer - Use 00001 for the non-Medicare payer; default
+    to 00000 for the Medicare payer. When there are two non-Medicare payers - Use
+    00001 for the primary payer; default to 00000 for the secondary payer.
+  allowed_values:
+  - Record sequence 01 must be 87726 for
+  conditional_rules:
+  - the 02 Sequence when there is no 03 Sequence
+  - When there is a Medicare payer and a non
+  - When there are two non-Medicare payers - Use
+  formatting_notes: []
+  source_line: 660
+  calculated_length: 5
+  canonical_name: payer_identification
+- field_number: '08.0'
+  start_position: 32
+  end_position: 35
+  cobol_picture: X(04)
+  requirement_code: O
+  field_name: Payer Claim Office Number
+  description: Office number assigned by the payer. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 673
+  calculated_length: 4
+  canonical_name: payer_claim_office_number
+- field_number: '09.0'
+  start_position: 36
+  end_position: 68
+  cobol_picture: X(33)
+  requirement_code: O
+  field_name: Payer Name
+  description: Payer’s organization name. Left justify, blank fill. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Payer’s organization name. Left justify, blank
+  - fill. May be blank.
+  source_line: 683
+  calculated_length: 33
+  canonical_name: payer_name
+- field_number: '10.0'
+  start_position: 69
+  end_position: 88
+  cobol_picture: X(20)
+  requirement_code: O
+  field_name: Group Number
+  description: Number assigned by the payer to the group or plan that provides the
+    insurance. Left justify, blank fill. Field may be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - plan that provides the insurance. Left justify,
+  - blank fill. Field may be blank.
+  source_line: 687
+  calculated_length: 20
+  canonical_name: group_number
+- field_number: '11.0'
+  start_position: 89
+  end_position: 121
+  cobol_picture: X(33)
+  requirement_code: O
+  field_name: Group Name
+  description: The group or plan name that provides the insurance. Left justify, blank
+    fill. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - insurance. Left justify, blank fill. May be
+  source_line: 692
+  calculated_length: 33
+  canonical_name: group_name
+- field_number: '12.0'
+  start_position: 122
+  end_position: 122
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: PPO/HMO Indicator
+  description: Value Y = provider is submitting this claim under a special processing
+    agreement. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 697
+  calculated_length: 1
+  canonical_name: ppo_hmo_indicator
+- field_number: '13.0'
+  start_position: 123
+  end_position: 137
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: PPO Identification - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 702
+  calculated_length: 15
+  canonical_name: ppo_identification_not_used_may_be_blank
+- field_number: '14.0'
+  start_position: 138
+  end_position: 152
+  cobol_picture: X(15)
+  requirement_code: C
+  field_name: Prior Authorization Number - May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 704
+  calculated_length: 15
+  canonical_name: prior_authorization_number_may_be_blank
+- field_number: '15.0'
+  start_position: 153
+  end_position: 153
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: Assignment Of Benefits Indicator
+  description: 'Required when DA0-0.04 = P. Code Values: Y = Benefits HAVE been assigned
+    to provider N = Benefits HAVE NOT been assigned to provider.'
+  allowed_values: []
+  conditional_rules:
+  - 'Required when DA0-0.04 = P. Code Values:'
+  formatting_notes: []
+  source_line: 706
+  calculated_length: 1
+  canonical_name: assignment_of_benefits_indicator
+- field_number: '16.0'
+  start_position: 154
+  end_position: 154
+  cobol_picture: X(01)
+  requirement_code: O
+  field_name: Patient Signature Source
+  description: 'May be blank. Code Values: C = Signed -1500 claim form on file. S
+    = Signed signature authorization form for bx12 on file. M = Signed signature authorization
+    form for box 13 on file. B = Signed authorization forms for both box 12 & 13 on
+    file. P = Patient was not physically present for services.'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 713
+  calculated_length: 1
+  canonical_name: patient_signature_source
+- field_number: '17.0'
+  start_position: 155
+  end_position: 156
+  cobol_picture: 9(02)
+  requirement_code: R
+  field_name: Patient Relationship To Insured
+  description: 'May not be blank. Code values: 01 = Patient is Insured 02 = Spouse
+    03 = Natural/Adopted Child - Insured is financially responsible 04 = Natural/Adopted
+    Child - Insured is not financially responsible 05 = Step Child 06 = Foster Child
+    07 = Ward of the Court 08 = Employee 09 = Unknown 10 = Handicapped Dependent 11
+    = Organ Donor 12 = Cadaver Donor 13 = Grandchild 14 = Niece/Nephew 15 = Injured
+    Plaintiff 16 = Sponsored Dependent 17 = Minor Dependent of a Minor Dependent 18
+    = Parent 19 = Grandparent'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 725
+  calculated_length: 2
+  canonical_name: patient_relationship_to_insured
+- field_number: '18.0'
+  start_position: 157
+  end_position: 181
+  cobol_picture: X(25)
+  requirement_code: R
+  field_name: Insured Identification Number
+  description: Enter the insured's SSN or ID number. Left justify. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - justify. Blank fill.
+  source_line: 755
+  calculated_length: 25
+  canonical_name: insured_identification_number
+- field_number: '19.0'
+  start_position: 182
+  end_position: 201
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Insured Last Name
+  description: See General Instructions for Name 1 entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 759
+  calculated_length: 20
+  canonical_name: insured_last_name
+- field_number: '20.0'
+  start_position: 202
+  end_position: 213
+  cobol_picture: X(12)
+  requirement_code: R
+  field_name: Insured First Name
+  description: See General Instructions for Name 1 entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 762
+  calculated_length: 12
+  canonical_name: insured_first_name
+- field_number: '21.0'
+  start_position: 214
+  end_position: 214
+  cobol_picture: X(01)
+  requirement_code: O
+  field_name: Insured Middle Initial
+  description: See General Instructions for Name 1 entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 765
+  calculated_length: 1
+  canonical_name: insured_middle_initial
+- field_number: '22.0'
+  start_position: 215
+  end_position: 217
+  cobol_picture: X(03)
+  requirement_code: N
+  field_name: Insured Generation - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 768
+  calculated_length: 3
+  canonical_name: insured_generation_not_used_blank_fill
+- field_number: '23.0'
+  start_position: 218
+  end_position: 218
+  cobol_picture: X(01)
+  requirement_code: O
+  field_name: Insured Sex
+  description: 'May be blank. Code Values: M = Male F = Female U = Unknown'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 770
+  calculated_length: 1
+  canonical_name: insured_sex
+- field_number: '24.0'
+  start_position: 219
+  end_position: 226
+  cobol_picture: X(08)
+  requirement_code: O
+  field_name: Insured Date Of Birth
+  description: See General Instructions for Date entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - See General Instructions for Date entry. May
+  source_line: 776
+  calculated_length: 8
+  canonical_name: insured_date_of_birth
+- field_number: '25.0'
+  start_position: 227
+  end_position: 227
+  cobol_picture: X(01)
+  requirement_code: O
+  field_name: Insured Employment Status Code
+  description: 'May be blank. Code Values: 1 = Employed Full Time 2 = Employed Part
+    Time 3 = Not Employed 4 = Self Employed 5 = Retired 6 = On Active Military Duty
+    7- 8 Not Used 9 = Unknown'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 780
+  calculated_length: 1
+  canonical_name: insured_employment_status_code
+- field_number: '26.0'
+  start_position: 228
+  end_position: 228
+  cobol_picture: X(01)
+  requirement_code: N
+  field_name: Supplemental Insurance Indicator - Not used
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 791
+  calculated_length: 1
+  canonical_name: supplemental_insurance_indicator_not_used
+- field_number: '27.0'
+  start_position: 229
+  end_position: 235
+  cobol_picture: X(07)
+  requirement_code: N
+  field_name: Insurance Location Identifier - Not used
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 794
+  calculated_length: 7
+  canonical_name: insurance_location_identifier_not_used
+- field_number: '28.0'
+  start_position: 236
+  end_position: 260
+  cobol_picture: X(25)
+  requirement_code: N
+  field_name: Medicaid ID Number - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 797
+  calculated_length: 25
+  canonical_name: medicaid_id_number_not_used_blank_fill
+- field_number: '29.0'
+  start_position: 261
+  end_position: 273
+  cobol_picture: X(13)
+  requirement_code: N
+  field_name: Filler – National - Unused reserved space
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 799
+  calculated_length: 13
+  canonical_name: filler_national_unused_reserved_space
+- field_number: '30.0'
+  start_position: 274
+  end_position: 287
+  cobol_picture: X(14)
+  requirement_code: N
+  field_name: Filler – Local - Unused reserved space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 802
+  calculated_length: 14
+  canonical_name: filler_local_unused_reserved_space_blank
+- field_number: '31.0'
+  start_position: 288
+  end_position: 288
+  cobol_picture: X(1)
+  requirement_code: N
+  field_name: Medicaid Reclamation Indicator
+  description: R = Medicaid Reclamation Claim. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 805
+  calculated_length: 1
+  canonical_name: medicaid_reclamation_indicator

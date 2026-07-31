@@ -1,0 +1,214 @@
+record_type: YA0
+record_name: Batch Trailer Record
+record_length: 320
+order: 32
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is required for every submission.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be YA0
+  description: This is the last record of any electronically submitted batch. It contains
+    information pertinent to the balancing of each batch (i.e., batch record count,
+    batch charges) within a file.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - submitted batch. It contains information
+  source_line: 2306
+  calculated_length: 3
+  canonical_name: record_id_must_be_ya0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 18
+  cobol_picture: X(15)
+  requirement_code: R
+  field_name: EMC Provider Identifier
+  description: Must be identical to EMC Provider ID in BA0- 02.0. Must equal value
+    in YA0-06.0 entry. See "General Instructions" for ID number entry. Left Justify.
+    Blank Fill. May not be blank.
+  allowed_values:
+  - Must be identical to EMC Provider ID in BA0-
+  conditional_rules: []
+  formatting_notes:
+  - Justify. Blank Fill. May not be blank.
+  source_line: 2313
+  calculated_length: 15
+  canonical_name: emc_provider_identifier
+- field_number: '03.0'
+  start_position: 19
+  end_position: 21
+  cobol_picture: X(03)
+  requirement_code: N
+  field_name: Batch Type - Not used. May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2319
+  calculated_length: 3
+  canonical_name: batch_type_not_used_may_be_blank
+- field_number: '04.0'
+  start_position: 22
+  end_position: 25
+  cobol_picture: 9(04)
+  requirement_code: R
+  field_name: Batch Number
+  description: Sequential number assigned by the submitter to each batch of claims.
+    Must be "0001" through "9999". Must be identical to the Batch Header Record BATCH
+    NUMBER (BA0-04.0). May not be blank.
+  allowed_values:
+  - each batch of claims. Must be "0001" through
+  - '"9999". Must be identical to the Batch Header'
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2321
+  calculated_length: 4
+  canonical_name: batch_number
+- field_number: '05.0'
+  start_position: 26
+  end_position: 31
+  cobol_picture: X(06)
+  requirement_code: O
+  field_name: Batch Identifier
+  description: The identifier assigned by the submitter to identify a batch within
+    his own system. If entered, must equal BA0-05 and BA1-05. See "General Instructions"
+    for ID number entry. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2328
+  calculated_length: 6
+  canonical_name: batch_identifier
+- field_number: '06.0'
+  start_position: 32
+  end_position: 40
+  cobol_picture: X(09)
+  requirement_code: R
+  field_name: Provider Tax ID
+  description: Must be identical to provider tax ID entered in BA0-06.0. May not be
+    blank. See general instructions for identification number entry.
+  allowed_values:
+  - Must be identical to provider tax ID entered
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2335
+  calculated_length: 9
+  canonical_name: provider_tax_id
+- field_number: '07.0'
+  start_position: 41
+  end_position: 46
+  cobol_picture: X(06)
+  requirement_code: N
+  field_name: Reserved - Unused space. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2340
+  calculated_length: 6
+  canonical_name: reserved_unused_space_blank_fill
+- field_number: '08.0'
+  start_position: 47
+  end_position: 53
+  cobol_picture: 9(07)
+  requirement_code: R
+  field_name: Batch Service Line Count
+  description: May not be blank. Must be computed sum of all Record Types FA0 within
+    batch. Right justify, zero fill.
+  allowed_values:
+  - May not be blank. Must be computed sum of all
+  conditional_rules: []
+  formatting_notes:
+  - Record Types FA0 within batch. Right justify,
+  - zero fill.
+  source_line: 2342
+  calculated_length: 7
+  canonical_name: batch_service_line_count
+- field_number: '09.0'
+  start_position: 54
+  end_position: 60
+  cobol_picture: 9(07)
+  requirement_code: R
+  field_name: Batch Record Count
+  description: May not be blank. Must be computed sum of all Record Types BA0 through
+    YA0. Right justify, blank fill.
+  allowed_values:
+  - May not be blank. Must be computed sum of all
+  conditional_rules: []
+  formatting_notes:
+  - Record Types BA0 through YA0. Right justify,
+  - blank fill.
+  source_line: 2347
+  calculated_length: 7
+  canonical_name: batch_record_count
+- field_number: '10.0'
+  start_position: 61
+  end_position: 67
+  cobol_picture: 9(07)
+  requirement_code: R
+  field_name: Batch Claim Count
+  description: May not be blank. Must be computed sum of all Record Types CA0 included
+    between this Batch Trailer Record (YA0) and preceding Batch Header Record (BA0).
+    Right justify, zero fill.
+  allowed_values:
+  - May not be blank. Must be computed sum of all
+  conditional_rules: []
+  formatting_notes:
+  - Record (BA0). Right justify, zero fill.
+  source_line: 2352
+  calculated_length: 7
+  canonical_name: batch_claim_count
+- field_number: '11.0'
+  start_position: 68
+  end_position: 76
+  cobol_picture: 9(07)V99
+  requirement_code: R
+  field_name: Batch Total Charges
+  description: May not be blank. Must be a positive, unsigned number. Must be computed
+    sum of all TOTAL CLAIM CHARGES fields (XA0-12.0) within this batch. Right justify,
+    zero fill.
+  allowed_values:
+  - May not be blank. Must be a positive, unsigned
+  - number. Must be computed sum of all TOTAL CLAIM
+  conditional_rules: []
+  formatting_notes:
+  - Right justify, zero fill.
+  source_line: 2358
+  calculated_length: 9
+  canonical_name: batch_total_charges
+- field_number: '12.0'
+  start_position: 77
+  end_position: 197
+  cobol_picture: X(121)
+  requirement_code: N
+  field_name: Filler – National - Unused reserved space
+  description: for National use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - for National use. Blank fill.
+  source_line: 2364
+  calculated_length: 121
+  canonical_name: filler_national_unused_reserved_space
+- field_number: '13.0'
+  start_position: 198
+  end_position: 320
+  cobol_picture: X(123)
+  requirement_code: N
+  field_name: Filler – Local - Unused reserved space
+  description: for Local use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - for Local use. Blank fill.
+  source_line: 2367
+  calculated_length: 123
+  canonical_name: filler_local_unused_reserved_space

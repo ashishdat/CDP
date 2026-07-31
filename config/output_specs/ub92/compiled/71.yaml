@@ -1,0 +1,16 @@
+record_type: '71'
+record_name: Currently not used. 37
+record_length: 192
+order: 17
+preceding_rules: []
+following_rules: []
+record_rules:
+- Health Data Elements for Medical Review of Home
+- Health Claims - Plan of Treatment and Patient
+- Information
+- ◆ Record Type 71 currently not used. If submitted, will not be
+- processed.
+- Field Positions Req
+- No. From To Picture Field Field
+- Name/Description
+fields: []

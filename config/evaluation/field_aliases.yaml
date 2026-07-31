@@ -1,0 +1,5 @@
+schema_version: "1.0"
+aliases:
+  provider_npi: billing_provider_npi
+  subscriber_id: insured_member_id
+  procedure_code: cpt_hcpcs

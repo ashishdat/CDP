@@ -1,0 +1,56 @@
+# Raw dataset (potentially sensitive claim data) - never commit
+/dataset_raw/
+
+# Operator-supplied template reference scans (potentially sensitive) - never commit
+/config/templates/reference_images/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+.uv-cache/
+.test-tmp*/
+.pytest-tmp-*/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+evaluation_results/
+.ocr-cache/
+build/
+dist/
+
+# Evaluation truth, predictions, and reviewer events can contain PHI.
+# Keep only the data-handling documentation in source control.
+/evaluation_data/*
+!/evaluation_data/README.md
+
+# Generated/local bundle executions and scratch reports
+/bundle_runs/
+/scratchpad_reports/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# Local data volumes
+deploy/docker/volumes/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (review UI)
+node_modules/
+apps/human_review_api/frontend/dist/
+apps/evaluation_ui/dist/

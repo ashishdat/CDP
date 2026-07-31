@@ -1,0 +1,14 @@
+schema_version: "1.0"
+CMS1500:
+  - insured_member_id
+  - billing_provider_npi
+  - patient_dob
+  - diagnosis_codes
+  - cpt_hcpcs
+  - total_charge
+UB04:
+  - insured_member_id
+  - attending_provider_npi
+  - principal_diagnosis
+  - revenue_code
+  - total_charge

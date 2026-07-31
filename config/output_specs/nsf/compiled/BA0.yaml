@@ -1,0 +1,413 @@
+record_type: BA0
+record_name: Batch Header Record "Provider
+record_length: 320
+order: 1
+preceding_rules: []
+following_rules: []
+record_rules:
+- Data 1"
+- This record is required for every submission. Only one BA0 record is
+- allowed for each batch.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Data 1"
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be "BA0"
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 242
+  calculated_length: 3
+  canonical_name: record_id_must_be_ba0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 18
+  cobol_picture: X(15)
+  requirement_code: R
+  field_name: EMC Provider Identifier
+  description: The federally assigned Tax ID of the billing provider. May be the Employee
+    Identification (EIN) or the Social Security number (SSN). Must equal value in
+    BA0-06.0. Must also be same as EMC Provider ID in YA0-02.0. See "General Instructions"
+    for ID number entry. Left justify. May not be Blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Instructions" for ID number entry. Left justify.
+  source_line: 244
+  calculated_length: 15
+  canonical_name: emc_provider_identifier
+- field_number: '03.0'
+  start_position: 19
+  end_position: 21
+  cobol_picture: X(03)
+  requirement_code: N
+  field_name: Batch Type - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 253
+  calculated_length: 3
+  canonical_name: batch_type_not_used_blank_fill
+- field_number: '04.0'
+  start_position: 22
+  end_position: 25
+  cobol_picture: 9(04)
+  requirement_code: R
+  field_name: Batch Number
+  description: Sequential number assigned by the submitter to each batch of claims.
+    Must be 0001 through 9999. Increment by 1 for each BA0 record.
+  allowed_values:
+  - each batch of claims. Must be 0001 through 9999.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 255
+  calculated_length: 4
+  canonical_name: batch_number
+- field_number: '05.0'
+  start_position: 26
+  end_position: 31
+  cobol_picture: X(06)
+  requirement_code: O
+  field_name: Batch Identification
+  description: The ID assigned by the submitter to identify a batch within his own
+    system. If entered, must equal BA1-05 & YA0-05. See "General Instructions" for
+    ID number entry. May be blank.
+  allowed_values: []
+  conditional_rules:
+  - batch within his own system. If entered, must
+  formatting_notes: []
+  source_line: 260
+  calculated_length: 6
+  canonical_name: batch_identification
+- field_number: '06.0'
+  start_position: 32
+  end_position: 40
+  cobol_picture: X(09)
+  requirement_code: R
+  field_name: Provider Tax ID
+  description: The federally assigned Tax Identification of the billing provider.
+    May be the Employee Identification (EIN) or the Social Security number (SSN).
+    May not be blank. Must equal the Provider Tax ID entered in YA0-06.0. See general
+    instructions for ID number entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 266
+  calculated_length: 9
+  canonical_name: provider_tax_id
+- field_number: '07.0'
+  start_position: 41
+  end_position: 46
+  cobol_picture: X(06)
+  requirement_code: N
+  field_name: Reserved - Unused Space - May be blank
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 274
+  calculated_length: 6
+  canonical_name: reserved_unused_space_may_be_blank
+- field_number: '08.0'
+  start_position: 47
+  end_position: 47
+  cobol_picture: X(01)
+  requirement_code: R
+  field_name: Provider Tax ID Type
+  description: 'Code values: E = Employer identification number S = Social security
+    number X = Corporate name but social security number If equals "E" or "X", then
+    provider organization name (BA0-18) must not be blank.'
+  allowed_values: []
+  conditional_rules:
+  - If equals "E" or "X", then provider
+  formatting_notes: []
+  source_line: 276
+  calculated_length: 1
+  canonical_name: provider_tax_id_type
+- field_number: '09.0'
+  start_position: 48
+  end_position: 62
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: Provider Medicare Number
+  description: Billing provider’s National Provider Identification (NPI) number.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 284
+  calculated_length: 15
+  canonical_name: provider_medicare_number
+- field_number: '10.0'
+  start_position: 63
+  end_position: 68
+  cobol_picture: X(06)
+  requirement_code: N
+  field_name: Provider UPIN Number - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 288
+  calculated_length: 6
+  canonical_name: provider_upin_number_not_used_blank_fill
+- field_number: '11.0'
+  start_position: 69
+  end_position: 74
+  cobol_picture: X(06)
+  requirement_code: N
+  field_name: Reserved - Unused Space. Blank Fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 290
+  calculated_length: 6
+  canonical_name: reserved_unused_space_blank_fill
+- field_number: '12.0'
+  start_position: 75
+  end_position: 89
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Provider Medicaid Number
+  description: Provider Atypical Provider Number (API).
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 292
+  calculated_length: 15
+  canonical_name: provider_medicaid_number
+- field_number: '13.0'
+  start_position: 90
+  end_position: 104
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Provider Champus Number - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 295
+  calculated_length: 15
+  canonical_name: provider_champus_number_not_used_blank
+- field_number: '14.0'
+  start_position: 105
+  end_position: 119
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Provider Blue Shield Number - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 298
+  calculated_length: 15
+  canonical_name: provider_blue_shield_number_not_used_blank
+- field_number: '15.0'
+  start_position: 120
+  end_position: 134
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Provider Commercial Number - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 301
+  calculated_length: 15
+  canonical_name: provider_commercial_number_not_used_blank
+- field_number: '16.0'
+  start_position: 135
+  end_position: 149
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Provider Other Number 1
+  description: Provider identification number (PIN). May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 304
+  calculated_length: 15
+  canonical_name: provider_other_number_1
+- field_number: '17.0'
+  start_position: 150
+  end_position: 164
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Provider Other Number 2 - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 314
+  calculated_length: 15
+  canonical_name: provider_other_number_2_not_used_blank
+- field_number: '18.0'
+  start_position: 165
+  end_position: 197
+  cobol_picture: X(33)
+  requirement_code: C
+  field_name: Provider Organization Name
+  description: Required when BA0-08.0 = "E" or "X".
+  allowed_values: []
+  conditional_rules:
+  - Required when BA0-08.0 = "E" or "X".
+  formatting_notes: []
+  source_line: 317
+  calculated_length: 33
+  canonical_name: provider_organization_name
+- field_number: '19.0'
+  start_position: 198
+  end_position: 217
+  cobol_picture: X(20)
+  requirement_code: C
+  field_name: Provider Last Name
+  description: The last name of the provider who rendered services on this batch of
+    claims. If BA0-22 equals IL and BA0-18 is not equal to space, this field may be
+    blank.
+  allowed_values: []
+  conditional_rules:
+  - services on this batch of claims. If BA0-22
+  formatting_notes: []
+  source_line: 320
+  calculated_length: 20
+  canonical_name: provider_last_name
+- field_number: '20.0'
+  start_position: 218
+  end_position: 229
+  cobol_picture: X(12)
+  requirement_code: C
+  field_name: Provider First Name
+  description: The first name of the provider who rendered services on this batch
+    of claims. If BA0-22 equals IL and BA0-18 is not equal to space, this field may
+    be blank.
+  allowed_values: []
+  conditional_rules:
+  - services on this batch of claims. If BA0-22
+  formatting_notes: []
+  source_line: 326
+  calculated_length: 12
+  canonical_name: provider_first_name
+- field_number: '21.0'
+  start_position: 230
+  end_position: 230
+  cobol_picture: X(01)
+  requirement_code: C
+  field_name: Provider Middle Initial
+  description: Should be entered on commercial claims. The middle initial of the provider
+    who rendered services on this batch of claims.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 332
+  calculated_length: 1
+  canonical_name: provider_middle_initial
+- field_number: '22.0'
+  start_position: 231
+  end_position: 233
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Provider Specialty
+  description: The specialty of the provider who rendered services on this batch of
+    claims. See Appendix A for valid values.
+  allowed_values:
+  - for valid values.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 337
+  calculated_length: 3
+  canonical_name: provider_specialty
+- field_number: '23.0'
+  start_position: 234
+  end_position: 248
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Specialty License Number
+  description: Provider’s taxonomy code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 342
+  calculated_length: 15
+  canonical_name: specialty_license_number
+- field_number: '24.0'
+  start_position: 249
+  end_position: 263
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: State License Number
+  description: Should be entered on commercial claims. Left justify, blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - justify, blank fill.
+  source_line: 346
+  calculated_length: 15
+  canonical_name: state_license_number
+- field_number: '25.0'
+  start_position: 264
+  end_position: 267
+  cobol_picture: X(4)
+  requirement_code: N
+  field_name: Dentist License Number
+  description: Provider’s credentials
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 351
+  calculated_length: 4
+  canonical_name: dentist_license_number
+- field_number: '26.0'
+  start_position: 279
+  end_position: 293
+  cobol_picture: X(15)
+  requirement_code: N
+  field_name: Anesthesia License Number - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 357
+  calculated_length: 15
+  canonical_name: anesthesia_license_number_not_used_blank
+- field_number: '27.0'
+  start_position: 294
+  end_position: 306
+  cobol_picture: X(13)
+  requirement_code: N
+  field_name: Filler – National - Unused record space
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 360
+  calculated_length: 13
+  canonical_name: filler_national_unused_record_space
+- field_number: '28.0'
+  start_position: 307
+  end_position: 320
+  cobol_picture: X(14)
+  requirement_code: N
+  field_name: Filler – Local - Unused record space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 363
+  calculated_length: 14
+  canonical_name: filler_local_unused_record_space_blank

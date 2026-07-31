@@ -1,0 +1,83 @@
+record_type: '91'
+record_name: Claim Remarks 50
+record_length: 192
+order: 27
+preceding_rules:
+- ◆ Preceding record type 90.
+following_rules:
+- ◆ Following record type 20 or 95.
+record_rules:
+- ◆ Record Type 91 is conditional.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be equal to ‘91’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2583
+  calculated_length: 2
+  canonical_name: record_type_must_be_equal_to_91
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: X(2)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2585
+  calculated_length: 2
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must equal the preceding 20-03 Patient Control Number.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2587
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 106
+  cobol_picture: X(82)
+  requirement_code: C
+  field_name: Remarks
+  description: A freeform area designed to be used in those situations where supplementary
+    information is helpful in processing a claim. Must be entered if 90-12 Remarks
+    Qualifier contains a value of ‘1’.
+  allowed_values:
+  - Must be entered if 90-12 Remarks Qualifier
+  conditional_rules:
+  - Must be entered if 90-12 Remarks Qualifier
+  formatting_notes:
+  - situations where supplementary information is
+  source_line: 2591
+  calculated_length: 82
+  canonical_name: remarks
+- field_number: '05'
+  start_position: 107
+  end_position: 192
+  cobol_picture: X(86)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2599
+  calculated_length: 86
+  canonical_name: filler_national_use_unused_record_space

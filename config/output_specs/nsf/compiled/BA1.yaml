@@ -1,0 +1,282 @@
+record_type: BA1
+record_name: Batch Header Record "Provider Data
+record_length: 320
+order: 2
+preceding_rules: []
+following_rules: []
+record_rules:
+- 2"
+- This record is required for all Commercial claim submissions. Only one BA1
+- record is allowed for each batch.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be "BA1"
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 375
+  calculated_length: 3
+  canonical_name: record_id_must_be_ba1
+- field_number: '02.0'
+  start_position: 4
+  end_position: 18
+  cobol_picture: X(15)
+  requirement_code: R
+  field_name: EMC Provider Identifier
+  description: The federally assigned Tax ID of the billing provider. Must equal BA0-06.0.
+    Must be equal EMC Provider ID in BA0-02.0 and YA0-02.0. See "General Instructions"
+    for ID number entry. May not be blank.
+  allowed_values:
+  - provider. Must equal BA0-06.0. Must be equal EMC
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 377
+  calculated_length: 15
+  canonical_name: emc_provider_identifier
+- field_number: '03.0'
+  start_position: 19
+  end_position: 21
+  cobol_picture: X(03)
+  requirement_code: N
+  field_name: Batch Type - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 384
+  calculated_length: 3
+  canonical_name: batch_type_not_used_blank_fill
+- field_number: '04.0'
+  start_position: 22
+  end_position: 25
+  cobol_picture: 9(04)
+  requirement_code: R
+  field_name: Batch Number
+  description: Must be identical to BA0-04.0.
+  allowed_values:
+  - Must be identical to BA0-04.0.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 386
+  calculated_length: 4
+  canonical_name: batch_number
+- field_number: '05.0'
+  start_position: 26
+  end_position: 31
+  cobol_picture: X(06)
+  requirement_code: O
+  field_name: Batch Identification
+  description: Assigned by the submitter. If entered, must equal BA0-05 and YA0-05.
+    See "General Instructions" for ID number entry. May be blank.
+  allowed_values: []
+  conditional_rules:
+  - Assigned by the submitter. If entered, must
+  formatting_notes: []
+  source_line: 389
+  calculated_length: 6
+  canonical_name: batch_identification
+- field_number: '06.0'
+  start_position: 32
+  end_position: 34
+  cobol_picture: X(03)
+  requirement_code: O
+  field_name: Provider Type Organization
+  description: See NSF for acceptable values. May be blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 394
+  calculated_length: 3
+  canonical_name: provider_type_organization
+- field_number: '07.0'
+  start_position: 35
+  end_position: 64
+  cobol_picture: X(30)
+  requirement_code: R
+  field_name: Provider Service Address 1
+  description: See General Instructions for Address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 397
+  calculated_length: 30
+  canonical_name: provider_service_address_1
+- field_number: '08.0'
+  start_position: 65
+  end_position: 94
+  cobol_picture: X(30)
+  requirement_code: N
+  field_name: Provider Service Address 2 - Not used. May be
+  description: blank.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 400
+  calculated_length: 30
+  canonical_name: provider_service_address_2_not_used_may_be
+- field_number: '09.0'
+  start_position: 95
+  end_position: 114
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Provider Service City
+  description: See General Instructions for Address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 403
+  calculated_length: 20
+  canonical_name: provider_service_city
+- field_number: '10.0'
+  start_position: 115
+  end_position: 116
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Provider Service State
+  description: See General instructions for address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 406
+  calculated_length: 2
+  canonical_name: provider_service_state
+- field_number: '11.0'
+  start_position: 117
+  end_position: 125
+  cobol_picture: X(09)
+  requirement_code: R
+  field_name: Provider Service Zip
+  description: See General instructions for address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 409
+  calculated_length: 9
+  canonical_name: provider_service_zip
+- field_number: '12.0'
+  start_position: 126
+  end_position: 135
+  cobol_picture: X(10)
+  requirement_code: R
+  field_name: Provider Service Telephone Number
+  description: See General Instructions for telephone number entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 412
+  calculated_length: 10
+  canonical_name: provider_service_telephone_number
+- field_number: '13.0'
+  start_position: 136
+  end_position: 165
+  cobol_picture: X(30)
+  requirement_code: O
+  field_name: Provider Pay To Address 1
+  description: See General Instructions for Address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 416
+  calculated_length: 30
+  canonical_name: provider_pay_to_address_1
+- field_number: '14.0'
+  start_position: 166
+  end_position: 195
+  cobol_picture: X(30)
+  requirement_code: N
+  field_name: Provider Pay To Address 2 - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 419
+  calculated_length: 30
+  canonical_name: provider_pay_to_address_2_not_used_blank
+- field_number: '15.0'
+  start_position: 196
+  end_position: 215
+  cobol_picture: X(20)
+  requirement_code: O
+  field_name: Provider Pay To City
+  description: See General Instructions for Address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 422
+  calculated_length: 20
+  canonical_name: provider_pay_to_city
+- field_number: '16.0'
+  start_position: 216
+  end_position: 217
+  cobol_picture: X(02)
+  requirement_code: O
+  field_name: Provider Pay To State
+  description: See General Instructions for Address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 425
+  calculated_length: 2
+  canonical_name: provider_pay_to_state
+- field_number: '17.0'
+  start_position: 218
+  end_position: 226
+  cobol_picture: X(09)
+  requirement_code: O
+  field_name: Provider Pay To Zip Code
+  description: See General Instructions for Address entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 428
+  calculated_length: 9
+  canonical_name: provider_pay_to_zip_code
+- field_number: '18.0'
+  start_position: 227
+  end_position: 236
+  cobol_picture: X(10)
+  requirement_code: O
+  field_name: Provider Pay To Telephone Number
+  description: See General Instructions for Telephone Number entry.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 431
+  calculated_length: 10
+  canonical_name: provider_pay_to_telephone_number
+- field_number: '19.0'
+  start_position: 237
+  end_position: 278
+  cobol_picture: X(42)
+  requirement_code: N
+  field_name: Filler – National - Unused record space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 435
+  calculated_length: 42
+  canonical_name: filler_national_unused_record_space_blank
+- field_number: '20.0'
+  start_position: 279
+  end_position: 320
+  cobol_picture: X(42)
+  requirement_code: N
+  field_name: Filler – Local - Unused record space. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 438
+  calculated_length: 42
+  canonical_name: filler_local_unused_record_space_blank

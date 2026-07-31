@@ -1,0 +1,24 @@
+# Output-generation pool. Authored ahead of the worker's own consumer
+# entrypoint and Helm chart -- workers/output_generation has the writer/
+# reader/reconciliation logic (Phase 3) but no `consumer.py` wiring it to
+# the `output.requested` topic yet.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: output-generation-worker-scaler
+  namespace: idp-claims-platform
+spec:
+  scaleTargetRef:
+    name: idp-output-generation-worker
+  minReplicaCount: 0
+  maxReplicaCount: 6
+  cooldownPeriod: 60
+  pollingInterval: 15
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: redpanda.idp-claims-platform.svc.cluster.local:9092
+        consumerGroup: output-generation-worker
+        topic: output.requested
+        lagThreshold: "10"
+        activationLagThreshold: "1"

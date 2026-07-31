@@ -1,0 +1,268 @@
+record_type: '21'
+record_name: Currently not used. 11
+record_length: 192
+order: 3
+preceding_rules:
+- ▪ Preceding record types 20 or 21
+following_rules:
+- ▪ Following record types 21 or 30
+record_rules:
+- ▪ Currently not used.
+- ▪ Record Type 21 is conditional. There may be a maximum of two record
+- types 21.
+- ▪ This record contains employment information pertaining to individuals
+- 'not claiming insurance. May apply to: patient, patient’s spouse,'
+- patient’s father, and patient’s mother. If more than two of these persons
+- are involved in this claim, use a 2nd RT 21 to submit the employment data
+- for the others involved.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘21’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 533
+  calculated_length: 2
+  canonical_name: record_type_must_be_21
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number - Must be equal to 01 - 02
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 535
+  calculated_length: 2
+  canonical_name: sequence_number_must_be_equal_to_01_02
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must equal the preceding 20-03 Patient Control Number. Employment Information
+    Packet One - Enter if 30-18 Patient Relationship is not 01 and 21-09 & 21-16 Employment
+    Status Code = 1-2 or 4-6.
+  allowed_values: []
+  conditional_rules:
+  - Employment Information Packet One - Enter if 30-18 Patient Relationship is
+  formatting_notes:
+  - Employment Information Packet One - Enter if 30-18 Patient Relationship is
+  source_line: 537
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 48
+  cobol_picture: X(24)
+  requirement_code: C
+  field_name: Employer Name
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 545
+  calculated_length: 24
+  canonical_name: employer_name
+- field_number: '05'
+  start_position: 49
+  end_position: 66
+  cobol_picture: X(18)
+  requirement_code: C
+  field_name: Employer Address
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 547
+  calculated_length: 18
+  canonical_name: employer_address
+- field_number: '06'
+  start_position: 67
+  end_position: 81
+  cobol_picture: X(15)
+  requirement_code: C
+  field_name: Employer City
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 549
+  calculated_length: 15
+  canonical_name: employer_city
+- field_number: '07'
+  start_position: 82
+  end_position: 83
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Employer State
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 551
+  calculated_length: 2
+  canonical_name: employer_state
+- field_number: 08
+  start_position: 84
+  end_position: 92
+  cobol_picture: X(9)
+  requirement_code: C
+  field_name: Employer Zip Code
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 553
+  calculated_length: 9
+  canonical_name: employer_zip_code
+- field_number: 09
+  start_position: 93
+  end_position: 93
+  cobol_picture: 9(1)
+  requirement_code: C
+  field_name: Employment Status Code
+  description: 'Employment status of the individual. Code Values: 1 = Employed Full
+    Time 2 = Employed Part Time 3 = Not Employed 4 = Self Employed 5 = Retired 6 =
+    On Active Military Duty 9 = Unknown 7 & 8 = Not Used 09a 94 95 9(2) C Employer
+    Qualifier (COB only) Patient relationship to the person not claiming insurance.
+    Code Values: 01 = Patient is insured 02 = Spouse 03 = Natural Child/Insured Financial
+    Responsibility 04 = Natural Child/Insured Does Not Have Financial Responsibility
+    05 = Step Child 06 = Foster Child 07 = Ward of the State 08 = Employee 09 = Unknown
+    10 = Handicapped Dependent 11 = Organ Donor 12 = Cadaver Donor 13 = Grandchild
+    14 = Niece/Nephew 15 = Injured Plaintiff 16 = Sponsored 17 = Minor Dependent of
+    a Minor Dependent 18 = Parent 19 = Grandparent 20 = Life Partner (e.g., significant
+    other)'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 555
+  calculated_length: 1
+  canonical_name: employment_status_code
+- field_number: '10'
+  start_position: 96
+  end_position: 108
+  cobol_picture: X(13)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: Employment Information Packet Two
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Employment Information Packet Two
+  source_line: 600
+  calculated_length: 13
+  canonical_name: filler_national_use_unused_record_space
+- field_number: '11'
+  start_position: 109
+  end_position: 132
+  cobol_picture: X(24)
+  requirement_code: C
+  field_name: Employer Name
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 604
+  calculated_length: 24
+  canonical_name: employer_name
+- field_number: '12'
+  start_position: 133
+  end_position: 150
+  cobol_picture: X(18)
+  requirement_code: C
+  field_name: Employer Address
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 606
+  calculated_length: 18
+  canonical_name: employer_address
+- field_number: '13'
+  start_position: 151
+  end_position: 165
+  cobol_picture: X(15)
+  requirement_code: C
+  field_name: Employer City
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 608
+  calculated_length: 15
+  canonical_name: employer_city
+- field_number: '14'
+  start_position: 166
+  end_position: 167
+  cobol_picture: X(2)
+  requirement_code: C
+  field_name: Employer State
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 610
+  calculated_length: 2
+  canonical_name: employer_state
+- field_number: '15'
+  start_position: 168
+  end_position: 176
+  cobol_picture: X(9)
+  requirement_code: C
+  field_name: Employer Zip Code
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 612
+  calculated_length: 9
+  canonical_name: employer_zip_code
+- field_number: '16'
+  start_position: 177
+  end_position: 177
+  cobol_picture: 9(1)
+  requirement_code: C
+  field_name: Employment Status Code
+  description: 'A code used to define the employment status of the individual. Code
+    Values: 1 = Employed Full Time 2 = Employed Part Time 3 = Not Employed 4 = Self
+    Employed 5 = Retired 6 = On Active Military Duty 9 = Unknown 7 & 8 = Not Used
+    16a 178 179 9(2) C Employer Qualifier (COB only) Identifies the patient’s relationship
+    to the person not claiming insurance. Code Values: 01 = Patient is Insured 02
+    = Spouse 03 = Natural Child/Insured has Financial Responsibility 04 = Natural
+    Child/Insured does not have Financial Responsibility 05 = Step Child 06 = Foster
+    Child 07 = Ward of the State 08 = Employee 09 = Unknown 10 = Handicapped Dependent
+    11 = Organ Donor 12 = Cadaver Donor 13 = Grandchild 14 = Niece/Nephew 15 = Injured
+    Plaintiff 16 = Sponsored 17 = Minor Dependent of a Minor Dependent 18 = Parent
+    19 = Grandparent 20 = Life Partner (e.g., significant other)'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 614
+  calculated_length: 1
+  canonical_name: employment_status_code
+- field_number: '17'
+  start_position: 180
+  end_position: 192
+  cobol_picture: X(13)
+  requirement_code: N
+  field_name: Filler (National Use) - Unused record space
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 653
+  calculated_length: 13
+  canonical_name: filler_national_use_unused_record_space

@@ -1,0 +1,216 @@
+name: idp-claims-platform
+
+x-app-build: &app-build
+  context: .
+  dockerfile: deploy/docker/app.Dockerfile
+
+x-ocr-build: &ocr-build
+  context: .
+  dockerfile: deploy/docker/ocr.Dockerfile
+
+x-handwriting-build: &handwriting-build
+  context: .
+  dockerfile: deploy/docker/handwriting-ocr.Dockerfile
+
+x-app-env: &app-env
+  env_file:
+    - .env
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: idp
+      POSTGRES_PASSWORD: idp_dev_password
+      POSTGRES_DB: idp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U idp -d idp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"  # host-side only; other containers reach it as redis:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.18
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092,OUTSIDE://localhost:19092
+      - --pandaproxy-addr=0.0.0.0:8082
+      - --advertise-pandaproxy-addr=localhost:8082
+    ports:
+      - "19092:19092"
+      - "9644:9644"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  ingestion-api:
+    build: *app-build
+    <<: *app-env
+    command: ["uvicorn", "apps.ingestion_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  document-preparation-worker:
+    build: *app-build
+    <<: *app-env
+    command: ["python", "-m", "workers.document_preparation.consumer"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  page-detection-worker:
+    build: *ocr-build
+    <<: *app-env
+    command: ["python", "-m", "workers.page_detection.consumer"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  standard-form-extraction-worker:
+    build: *ocr-build
+    <<: *app-env
+    command: ["python", "-m", "workers.standard_form_extraction.consumer"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+
+  human-review-api:
+    build: *app-build
+    <<: *app-env
+    command: ["uvicorn", "apps.human_review_api.main:app", "--host", "0.0.0.0", "--port", "8001"]
+    ports:
+      - "8100:8001"  # host 8100 -- the entire 8000-8021 range is already bound by unrelated containers on this host
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  evaluation-ui:
+    build:
+      context: .
+      dockerfile: deploy/docker/evaluation-ui.Dockerfile
+    ports:
+      - "8180:80"
+    volumes:
+      - ./evaluation_results:/usr/share/nginx/html/reports:ro
+
+  handwriting-ocr:
+    profiles: ["ml"]
+    build: *handwriting-build
+    <<: *app-env
+    volumes:
+      - huggingface_models:/models/huggingface
+      - ./evaluation_results:/app/evaluation_results:rw
+
+  ppocr-v5:
+    profiles: ["ppocr-v5"]
+    build:
+      context: .
+      dockerfile: deploy/docker/ppocr-v5.Dockerfile
+    volumes:
+      - paddle_models:/root/.paddlex
+
+  ocr-shadow-ppocr-next:
+    profiles: ["ocr-shadow"]
+    build:
+      context: .
+      dockerfile: deploy/docker/ocr-shadow-ppocr-next.Dockerfile
+    volumes:
+      - ./evaluation_results/ocr_shadow_bakeoff:/work:rw
+      - paddle_models:/root/.paddlex
+    command:
+      - --artifacts
+      - /work/normalized_crops/artifacts.json
+      - --output
+      - /work/inference
+
+  table-shadow:
+    profiles: ["table-shadow"]
+    build:
+      context: .
+      dockerfile: deploy/docker/table-shadow.Dockerfile
+    volumes:
+      - ./evaluation_results:/app/evaluation_results:rw
+      - ./evaluation_data:/app/evaluation_data:ro
+
+volumes:
+  postgres_data:
+  minio_data:
+  redpanda_data:
+  huggingface_models:
+  paddle_models:

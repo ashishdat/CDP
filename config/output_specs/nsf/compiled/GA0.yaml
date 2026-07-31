@@ -1,0 +1,9 @@
+record_type: GA0
+record_name: Ambulance Certification Record
+record_length: 320
+order: 20
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is not used for commercial claims.
+fields: []

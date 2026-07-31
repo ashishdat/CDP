@@ -1,0 +1,13 @@
+template_id: statement
+form_family: STATEMENT
+version: "1"
+reference_dimensions: [1700, 2200]
+anchors:
+  - {phrase: "statement", required: true}
+fields:
+  - {field_name: patient_name, region: {x0: 0.05, y0: 0.05, x1: 0.60, y1: 0.35}, field_type: person_name}
+checkbox_regions: []
+table_regions:
+  - {x0: 0.05, y0: 0.30, x1: 0.95, y1: 0.80}
+preprocessing_profile: statement
+alignment_thresholds: {minimum_inlier_ratio: 0.25, maximum_reprojection_error: 7.0}

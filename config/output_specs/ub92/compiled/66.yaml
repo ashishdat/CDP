@@ -1,0 +1,268 @@
+record_type: '66'
+record_name: Third Party Organization (TPO) Output Record 32
+record_length: 192
+order: 15
+preceding_rules:
+- ▪ Preceding record types 50, 60, or 61
+following_rules:
+- must follow the last sequence of RT 50. If Record Type 60 is present, RT
+- 66 must follow the last sequence of Record Type 60.
+- ▪ For Outpatient Claims, Record Type 66 must follow the last sequence of
+- ▪ Following record type 70
+record_rules:
+- Record
+- ▪ Record Type 66 is conditional and is used by a TPO to provide repricing
+- information to the payer.
+- ▪ Record Type 66 may be included on inpatient or outpatient claims. There
+- may be only one RT 66.
+- ▪ For Inpatient Claims, if Record Type 60 is not present, Record Type 66
+- Record Type 61.
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+- Output Record
+- Field Positions Req
+- No. From To Picture Field Field Name/Description
+fields:
+- field_number: '01'
+  start_position: 1
+  end_position: 2
+  cobol_picture: X(2)
+  requirement_code: R
+  field_name: Record Type - Must be ‘66’
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1838
+  calculated_length: 2
+  canonical_name: record_type_must_be_66
+- field_number: '02'
+  start_position: 3
+  end_position: 4
+  cobol_picture: 9(2)
+  requirement_code: R
+  field_name: Sequence Number
+  description: Must be equal to 01.
+  allowed_values:
+  - Must be equal to 01.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1840
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03'
+  start_position: 5
+  end_position: 24
+  cobol_picture: X(20)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Must be equal to the preceding 20-03 Patient Control Number.
+  allowed_values:
+  - Must be equal to the preceding 20-03 Patient
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1843
+  calculated_length: 20
+  canonical_name: patient_control_number
+- field_number: '04'
+  start_position: 25
+  end_position: 33
+  cobol_picture: X(9)
+  requirement_code: R
+  field_name: TPO ID Number
+  description: 'The EIN # of the TPO that the claim is being sent from'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1847
+  calculated_length: 9
+  canonical_name: tpo_id_number
+- field_number: '05'
+  start_position: 34
+  end_position: 48
+  cobol_picture: X(15)
+  requirement_code: O
+  field_name: TPO Reference Number
+  description: Internal control number assigned by the TPO for tracking purposes.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1851
+  calculated_length: 15
+  canonical_name: tpo_reference_number
+- field_number: '06'
+  start_position: 49
+  end_position: 49
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: Rejection Message
+  description: 'The reason TPO may not be able to provide pricing information. Values:
+    1 = Cannot identify provider as TPO participant 2 = Cannot identify payer as TPO
+    participant 3 = Cannot identify insured as TPO participant'
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - 'pricing information. Values:'
+  source_line: 1855
+  calculated_length: 1
+  canonical_name: rejection_message
+- field_number: '07'
+  start_position: 50
+  end_position: 69
+  cobol_picture: X(20)
+  requirement_code: O
+  field_name: Authorization Number
+  description: The authorization number assigned by the TPO. May be blank. 08 70 72
+    9(3) C/I Days Approved Total number of inpatient days the TPO has approved for
+    payment.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1865
+  calculated_length: 20
+  canonical_name: authorization_number
+- field_number: 09
+  start_position: 73
+  end_position: 73
+  cobol_picture: X(1)
+  requirement_code: C
+  field_name: Pricing Methodology
+  description: 'Specifies pricing methodology applied to claim. Code Values: 0 = Zero
+    pricing (not covered under contract) 1 = Priced at 100% as billed (applies to
+    ancillary lines only) 2 = Priced at a contractual percentage 3 = Bundled pricing
+    4 = Peer review pricing (by report) 5 = Per diem pricing 6 = Flat rate pricing
+    7 = Combination pricing (for any combination of codes 0-6 & 8-9) 8 = Other pricing
+    9 = Maternity pricing A = Adjustment to the original repricing If code 3, 4, 7-9,
+    or 0: enter an explanation in 66 -16 Free Form Remarks. If 66-06 Rejection Message
+    = 1, 2, or 3, this field must be blank.'
+  allowed_values:
+  - Message = 1, 2, or 3, this field must be blank.
+  conditional_rules:
+  - 'If code 3, 4, 7-9, or 0: enter an explanation'
+  - in 66 -16 Free Form Remarks. If 66-06 Rejection
+  formatting_notes: []
+  source_line: 1873
+  calculated_length: 1
+  canonical_name: pricing_methodology
+- field_number: '10'
+  start_position: 74
+  end_position: 81
+  cobol_picture: S9(6)V99
+  requirement_code: C
+  field_name: Pricing Rate
+  description: Dollar amount of the pricing methodology. If 66-09 Pricing Methodology
+    is 5-7 (when code 7 includes combination pricing of per diem or flat rate), this
+    field is required.
+  allowed_values: []
+  conditional_rules:
+  - 66-09 Pricing Methodology is 5-7 (when code 7
+  formatting_notes: []
+  source_line: 1895
+  calculated_length: 8
+  canonical_name: pricing_rate
+- field_number: '11'
+  start_position: 82
+  end_position: 89
+  cobol_picture: S9(6)V99
+  requirement_code: C
+  field_name: Allowed Amount
+  description: The dollar amount allowed by the repricing vendor.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1901
+  calculated_length: 8
+  canonical_name: allowed_amount
+- field_number: '12'
+  start_position: 90
+  end_position: 97
+  cobol_picture: S9(6)V99
+  requirement_code: N
+  field_name: Savings Amount
+  description: Not used. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Not used. Blank fill.
+  source_line: 1911
+  calculated_length: 8
+  canonical_name: savings_amount
+- field_number: '13'
+  start_position: 98
+  end_position: 102
+  cobol_picture: X(5)
+  requirement_code: C
+  field_name: Approved DRG Code
+  description: The DRG code the TPO has approved for payment.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1914
+  calculated_length: 5
+  canonical_name: approved_drg_code
+- field_number: '14'
+  start_position: 103
+  end_position: 110
+  cobol_picture: S9(6)V99
+  requirement_code: C
+  field_name: Approved DRG Amount
+  description: The dollar amount allowed for the indicated DRG Code.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1917
+  calculated_length: 8
+  canonical_name: approved_drg_amount
+- field_number: '15'
+  start_position: 111
+  end_position: 129
+  cobol_picture: X(19)
+  requirement_code: N
+  field_name: Filler
+  description: Unused record space.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1921
+  calculated_length: 19
+  canonical_name: filler
+- field_number: '16'
+  start_position: 130
+  end_position: 179
+  cobol_picture: X(50)
+  requirement_code: C
+  field_name: Free Form Remarks
+  description: Used to provide additional pricing information.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - information.
+  source_line: 1924
+  calculated_length: 50
+  canonical_name: free_form_remarks
+- field_number: '17'
+  start_position: 180
+  end_position: 189
+  cobol_picture: S9(8)V99
+  requirement_code: N
+  field_name: Total Allowed Amount
+  description: Not used.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1928
+  calculated_length: 10
+  canonical_name: total_allowed_amount
+- field_number: '18'
+  start_position: 190
+  end_position: 192
+  cobol_picture: X(3)
+  requirement_code: N
+  field_name: Filler
+  description: Unused record space.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1931
+  calculated_length: 3
+  canonical_name: filler

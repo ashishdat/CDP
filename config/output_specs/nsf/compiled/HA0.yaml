@@ -1,0 +1,88 @@
+record_type: HA0
+record_name: Extra Narrative Record
+record_length: 320
+order: 30
+preceding_rules: []
+following_rules: []
+record_rules:
+- This record is used for Third Party Organization (TPO) claims only and is
+- conditional based on the Pricing Methodology (FE0-07.0) value.There may be
+- up to 99 FXX (ALL 'F' Records) records per claim.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be HA0
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2137
+  calculated_length: 3
+  canonical_name: record_id_must_be_ha0
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: R
+  field_name: Sequence Number
+  description: 'This is the record sequence number of the Narrative Record. Values:
+    01-99. This field is required. Must be the same as Sequence Number in proceeding
+    FA0-02.'
+  allowed_values:
+  - required. Must be the same as Sequence Number in
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2139
+  calculated_length: 2
+  canonical_name: sequence_number
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2145
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 39
+  cobol_picture: X(17)
+  requirement_code: O
+  field_name: Line Item Control Number
+  description: An identifier assigned by the submitter/provider to this line item.
+    May be blank. The value must be equal to the Line Item Control Number from the
+    preceding FA0 Record (FA0-04.0).
+  allowed_values:
+  - blank. The value must be equal to the Line Item
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 2150
+  calculated_length: 17
+  canonical_name: line_item_control_number
+- field_number: '05.0'
+  start_position: 40
+  end_position: 320
+  cobol_picture: X(281)
+  requirement_code: R
+  field_name: Extra Narrative Data
+  description: This field is required. This field is used to provide additional data
+    and also pricing information when the Pricing Methodology (FE0- 07.0) equals 00,
+    04, 05, or 10 on the preceding FE0 record.
+  allowed_values: []
+  conditional_rules:
+  - information when the Pricing Methodology (FE0-
+  formatting_notes:
+  - information when the Pricing Methodology (FE0-
+  source_line: 2159
+  calculated_length: 281
+  canonical_name: extra_narrative_data

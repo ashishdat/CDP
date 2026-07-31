@@ -1,0 +1,608 @@
+record_type: EA4
+record_name: Additional Claim Data
+record_length: 320
+order: 12
+preceding_rules: []
+following_rules: []
+record_rules:
+- EA4 record is conditional and is only used when there are more than 4
+- diagnosis codes on a claim. Condition codes & attachment fields are
+- currently Not Used. There may be only one (1) EA4 record per claim.
+- Field Positions Req
+- No. From To Picture Field Name/Description
+- Field Positions Req
+- No. From To Picture Field Name/Description
+fields:
+- field_number: '01.0'
+  start_position: 1
+  end_position: 3
+  cobol_picture: X(03)
+  requirement_code: R
+  field_name: Record ID - Must be "EA4"
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1279
+  calculated_length: 3
+  canonical_name: record_id_must_be_ea4
+- field_number: '02.0'
+  start_position: 4
+  end_position: 5
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Unused Reserved Record Space. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1281
+  calculated_length: 2
+  canonical_name: unused_reserved_record_space_blank_fill
+- field_number: '03.0'
+  start_position: 6
+  end_position: 22
+  cobol_picture: X(17)
+  requirement_code: R
+  field_name: Patient Control Number
+  description: Patient account number assigned by provider. Refer to CA0-03.0.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1283
+  calculated_length: 17
+  canonical_name: patient_control_number
+- field_number: '04.0'
+  start_position: 23
+  end_position: 29
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 5
+  description: ICD code. Do not use decimal point. Alpha characters must be in upper
+    case. May be blank.
+  allowed_values:
+  - characters must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1287
+  calculated_length: 7
+  canonical_name: diagnosis_code_5
+- field_number: '05.0'
+  start_position: 30
+  end_position: 36
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 6
+  description: ICD code. Do not use decimal point. Alpha characters must be in upper
+    case. May be blank.
+  allowed_values:
+  - characters must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1291
+  calculated_length: 7
+  canonical_name: diagnosis_code_6
+- field_number: '06.0'
+  start_position: 37
+  end_position: 43
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 7
+  description: ICD code. Do not use decimal point. Alpha characters must be in upper
+    case. May be blank.
+  allowed_values:
+  - characters must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1295
+  calculated_length: 7
+  canonical_name: diagnosis_code_7
+- field_number: '07.0'
+  start_position: 44
+  end_position: 50
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 8
+  description: ICD code. Do not use decimal point. Alpha characters must be in upper
+    case. May be blank.
+  allowed_values:
+  - characters must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1299
+  calculated_length: 7
+  canonical_name: diagnosis_code_8
+- field_number: '08.0'
+  start_position: 51
+  end_position: 57
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 9
+  description: ICD code. Do not use decimal point. Alpha characters must be in upper
+    case. May be blank.
+  allowed_values:
+  - characters must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1303
+  calculated_length: 7
+  canonical_name: diagnosis_code_9
+- field_number: '09.0'
+  start_position: 58
+  end_position: 64
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 10
+  description: ICD code. Do not use decimal point. Alpha characters must be in upper
+    case. May be blank.
+  allowed_values:
+  - characters must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1307
+  calculated_length: 7
+  canonical_name: diagnosis_code_10
+- field_number: '10.0'
+  start_position: 65
+  end_position: 71
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 11
+  description: ICD code. Do not use decimal point. Alpha characters must be in upper
+    case. May be blank.
+  allowed_values:
+  - characters must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1311
+  calculated_length: 7
+  canonical_name: diagnosis_code_11
+- field_number: '11.0'
+  start_position: 72
+  end_position: 78
+  cobol_picture: X(07)
+  requirement_code: C
+  field_name: Diagnosis Code 12
+  description: ICD code. Do not use decimal point. Alpha characters must be in upper
+    case. May be blank.
+  allowed_values:
+  - characters must be in upper case. May be blank.
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1317
+  calculated_length: 7
+  canonical_name: diagnosis_code_12
+- field_number: '12.0'
+  start_position: 79
+  end_position: 80
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-1 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1323
+  calculated_length: 2
+  canonical_name: condition_code_1_not_used_blank_fill
+- field_number: '13.0'
+  start_position: 81
+  end_position: 82
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-2 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1325
+  calculated_length: 2
+  canonical_name: condition_code_2_not_used_blank_fill
+- field_number: '14.0'
+  start_position: 83
+  end_position: 84
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-3 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1327
+  calculated_length: 2
+  canonical_name: condition_code_3_not_used_blank_fill
+- field_number: '15.0'
+  start_position: 85
+  end_position: 86
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-4 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1329
+  calculated_length: 2
+  canonical_name: condition_code_4_not_used_blank_fill
+- field_number: '16.0'
+  start_position: 87
+  end_position: 88
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-5 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1331
+  calculated_length: 2
+  canonical_name: condition_code_5_not_used_blank_fill
+- field_number: '17.0'
+  start_position: 89
+  end_position: 90
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-6 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1333
+  calculated_length: 2
+  canonical_name: condition_code_6_not_used_blank_fill
+- field_number: '18.0'
+  start_position: 91
+  end_position: 92
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-7 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1335
+  calculated_length: 2
+  canonical_name: condition_code_7_not_used_blank_fill
+- field_number: '19.0'
+  start_position: 93
+  end_position: 94
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-8 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1337
+  calculated_length: 2
+  canonical_name: condition_code_8_not_used_blank_fill
+- field_number: '20.0'
+  start_position: 95
+  end_position: 96
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-9 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1344
+  calculated_length: 2
+  canonical_name: condition_code_9_not_used_blank_fill
+- field_number: '21.0'
+  start_position: 97
+  end_position: 98
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-10 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1346
+  calculated_length: 2
+  canonical_name: condition_code_10_not_used_blank_fill
+- field_number: '22.0'
+  start_position: 99
+  end_position: 100
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-11 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1348
+  calculated_length: 2
+  canonical_name: condition_code_11_not_used_blank_fill
+- field_number: '23.0'
+  start_position: 101
+  end_position: 102
+  cobol_picture: X(02
+  requirement_code: N
+  field_name: Condition Code-12 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1350
+  calculated_length: 2
+  canonical_name: condition_code_12_not_used_blank_fill
+- field_number: '24.0'
+  start_position: 103
+  end_position: 104
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-13 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1352
+  calculated_length: 2
+  canonical_name: condition_code_13_not_used_blank_fill
+- field_number: '25.0'
+  start_position: 105
+  end_position: 106
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-14 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1354
+  calculated_length: 2
+  canonical_name: condition_code_14_not_used_blank_fill
+- field_number: '26.0'
+  start_position: 107
+  end_position: 108
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-15 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1356
+  calculated_length: 2
+  canonical_name: condition_code_15_not_used_blank_fill
+- field_number: '27.0'
+  start_position: 109
+  end_position: 110
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-16 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1358
+  calculated_length: 2
+  canonical_name: condition_code_16_not_used_blank_fill
+- field_number: '28.0'
+  start_position: 111
+  end_position: 112
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-17 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1360
+  calculated_length: 2
+  canonical_name: condition_code_17_not_used_blank_fill
+- field_number: '29.0'
+  start_position: 113
+  end_position: 114
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-18 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1362
+  calculated_length: 2
+  canonical_name: condition_code_18_not_used_blank_fill
+- field_number: '30.0'
+  start_position: 115
+  end_position: 116
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-19 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1364
+  calculated_length: 2
+  canonical_name: condition_code_19_not_used_blank_fill
+- field_number: '31.0'
+  start_position: 117
+  end_position: 118
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-20 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1366
+  calculated_length: 2
+  canonical_name: condition_code_20_not_used_blank_fill
+- field_number: '32.0'
+  start_position: 119
+  end_position: 120
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-21 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1368
+  calculated_length: 2
+  canonical_name: condition_code_21_not_used_blank_fill
+- field_number: '33.0'
+  start_position: 121
+  end_position: 122
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-22 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1370
+  calculated_length: 2
+  canonical_name: condition_code_22_not_used_blank_fill
+- field_number: '34.0'
+  start_position: 123
+  end_position: 124
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-23 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1372
+  calculated_length: 2
+  canonical_name: condition_code_23_not_used_blank_fill
+- field_number: '35.0'
+  start_position: 125
+  end_position: 126
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Condition Code-24 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1374
+  calculated_length: 2
+  canonical_name: condition_code_24_not_used_blank_fill
+- field_number: '36.0'
+  start_position: 127
+  end_position: 128
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Provider Qualifier-1 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1376
+  calculated_length: 2
+  canonical_name: provider_qualifier_1_not_used_blank_fill
+- field_number: '37.0'
+  start_position: 129
+  end_position: 130
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Report Type Code-1 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1378
+  calculated_length: 2
+  canonical_name: report_type_code_1_not_used_blank_fill
+- field_number: '38.0'
+  start_position: 131
+  end_position: 132
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Transmission Type Code-1 - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 1380
+  calculated_length: 2
+  canonical_name: transmission_type_code_1_not_used_blank
+- field_number: '39.0'
+  start_position: 133
+  end_position: 162
+  cobol_picture: X(30)
+  requirement_code: N
+  field_name: Attachment Control Number-1 - Not used
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 1383
+  calculated_length: 30
+  canonical_name: attachment_control_number_1_not_used
+- field_number: '40.0'
+  start_position: 163
+  end_position: 164
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Provider Qualifier-2 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1386
+  calculated_length: 2
+  canonical_name: provider_qualifier_2_not_used_blank_fill
+- field_number: '41.0'
+  start_position: 165
+  end_position: 166
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Report Type Code-2 - Not used. Blank fill
+  description: ''
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes: []
+  source_line: 1388
+  calculated_length: 2
+  canonical_name: report_type_code_2_not_used_blank_fill
+- field_number: '42.0'
+  start_position: 167
+  end_position: 168
+  cobol_picture: X(02)
+  requirement_code: N
+  field_name: Transmission Type Code-2 - Not used. Blank
+  description: fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - fill.
+  source_line: 1390
+  calculated_length: 2
+  canonical_name: transmission_type_code_2_not_used_blank
+- field_number: '43.0'
+  start_position: 169
+  end_position: 198
+  cobol_picture: X(30)
+  requirement_code: N
+  field_name: Attachment Control Number-2 - Not used
+  description: Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - Blank fill.
+  source_line: 1393
+  calculated_length: 30
+  canonical_name: attachment_control_number_2_not_used
+- field_number: '44.0'
+  start_position: 199
+  end_position: 320
+  cobol_picture: X(122)
+  requirement_code: N
+  field_name: Filler - National - Unused
+  description: reserved space for National use. Blank fill.
+  allowed_values: []
+  conditional_rules: []
+  formatting_notes:
+  - reserved space for National use. Blank fill.
+  source_line: 1396
+  calculated_length: 122
+  canonical_name: filler_national_unused

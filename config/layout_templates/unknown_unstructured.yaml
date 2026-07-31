@@ -1,0 +1,10 @@
+template_id: unknown_unstructured
+form_family: UNKNOWN_UNSTRUCTURED
+version: "1"
+reference_dimensions: [1700, 2200]
+anchors: []
+fields: []
+checkbox_regions: []
+table_regions: []
+preprocessing_profile: unstructured
+alignment_thresholds: {minimum_inlier_ratio: 0.30, maximum_reprojection_error: 6.0}

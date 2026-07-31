@@ -1,0 +1,188 @@
+# NSF Record Type AA0 -- File Header Record - Submitter Data.
+# Transcribed from "NSF Matrix Version 2 15 - June 2013.doc" (UnitedHealthcare,
+# v002.15). Verified byte-for-byte against the real sample output
+# (dataset_raw/Group A/... line 1) -- see docs/DATASET_FINDINGS.md.
+# One AA0 record per file, must be the first record.
+record_type: AA0
+record_length: 320
+fields:
+  - field_name: record_id
+    start_position: 1
+    length: 3
+    data_type: string
+    required: true
+    default: "AA0"
+  - field_name: submitter_id
+    start_position: 4
+    length: 16
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: reserved_1
+    start_position: 20
+    length: 9
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submission_type
+    start_position: 29
+    length: 6
+    data_type: string
+    required: true
+    default: "CPU"
+  - field_name: submission_number
+    start_position: 35
+    length: 6
+    data_type: string
+    required: true
+    source_field: null
+  - field_name: submitter_name
+    start_position: 41
+    length: 33
+    data_type: string
+    required: false
+    source_field: null
+  - field_name: submitter_address_1
+    start_position: 74
+    length: 30
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_address_2
+    start_position: 104
+    length: 30
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_city
+    start_position: 134
+    length: 20
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_state
+    start_position: 154
+    length: 2
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_zip
+    start_position: 156
+    length: 9
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_region
+    start_position: 165
+    length: 5
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_contact
+    start_position: 170
+    length: 33
+    data_type: string
+    required: false
+    default: ""
+  - field_name: submitter_telephone
+    start_position: 203
+    length: 10
+    data_type: string
+    required: false
+    default: ""
+  - field_name: creation_date
+    start_position: 213
+    length: 8
+    data_type: date
+    format: CCYYMMDD
+    required: true
+    source_field: null
+  - field_name: submission_time
+    start_position: 221
+    length: 6
+    data_type: string
+    format: HHMMSS
+    required: true
+    source_field: null
+  - field_name: receiver_id
+    start_position: 227
+    length: 16
+    data_type: string
+    required: true
+    default: "87726"
+  - field_name: receiver_type_code
+    start_position: 243
+    length: 1
+    data_type: string
+    required: true
+    default: "F"
+  - field_name: version_code_national
+    start_position: 244
+    length: 5
+    data_type: decimal_implied
+    format: "999V99"
+    required: true
+    padding_character: "0"
+    default: "00215"
+  - field_name: version_code_local
+    start_position: 249
+    length: 5
+    data_type: decimal_implied
+    format: "999V99"
+    required: true
+    padding_character: "0"
+    default: "00215"
+  - field_name: test_production_indicator
+    start_position: 254
+    length: 4
+    data_type: string
+    required: true
+    default: "PROD"
+  - field_name: password
+    start_position: 258
+    length: 8
+    data_type: string
+    required: false
+    default: ""
+  - field_name: retransmission_status
+    start_position: 266
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: original_submitter_id
+    start_position: 267
+    length: 16
+    data_type: string
+    required: false
+    default: ""
+  - field_name: vendor_application_category
+    start_position: 283
+    length: 1
+    data_type: string
+    required: false
+    default: ""
+  - field_name: vendor_software_version
+    start_position: 284
+    length: 5
+    data_type: string
+    required: false
+    default: ""
+  - field_name: vendor_software_update
+    start_position: 289
+    length: 2
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_national
+    start_position: 291
+    length: 2
+    data_type: string
+    required: false
+    default: ""
+  - field_name: filler_local
+    start_position: 293
+    length: 28
+    data_type: string
+    required: false
+    default: ""

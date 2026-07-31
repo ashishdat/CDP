@@ -1,0 +1,10 @@
+record_type: GD0
+record_name: Durable Medical Equipment
+record_length: 320
+order: 22
+preceding_rules: []
+following_rules: []
+record_rules:
+- Certification Record
+- This record is not used for commercial claims.
+fields: []

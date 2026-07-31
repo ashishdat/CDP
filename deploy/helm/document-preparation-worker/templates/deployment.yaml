@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "document-preparation-worker.fullname" . }}
+  labels:
+    {{- include "document-preparation-worker.labels" . | nindent 4 }}
+spec:
+  # KEDA overrides this after the ScaledObject is applied -- see values.yaml.
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "document-preparation-worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "document-preparation-worker.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "document-preparation-worker.serviceAccountName" . }}
+      containers:
+        - name: document-preparation-worker
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: {{ toYaml .Values.command | nindent 12 }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "document-preparation-worker.fullname" . }}-config
+            - secretRef:
+                name: {{ .Values.secretName }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

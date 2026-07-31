@@ -1,0 +1,15 @@
+schema_version: "1"
+workflow:
+  - reviewer_correction
+  - deterministic_validation
+  - independent_approval
+  - append_only_dataset
+  - quality_check
+  - training_manifest
+minimum_training_examples: 100
+minimum_document_families: 3
+minimum_reviewers: 2
+require_unique_crop_hash: true
+allow_unapproved_examples: false
+fine_tuning_enabled: false
+fine_tuning_block_reason: insufficient_diverse_verified_examples
