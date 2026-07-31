@@ -5,16 +5,23 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import yaml
+
 from evaluation.evaluate_table_shadow import evaluate
 
 
 def main() -> int:
+    baseline = yaml.safe_load(
+        Path("config/releases/extraction-v2.yaml").read_text(encoding="utf-8")
+    )["baseline_metrics"]
     metrics, _ = evaluate()
     count = metrics["approved_labeled_candidates"]
     accuracy = metrics["normalized_cell_accuracy"]
     recovered = metrics["newly_recovered_production_fields"]
     if count < 50:
         decision = "AWAIT_FIRST_50_APPROVED_LABELS"
+    elif recovered is None:
+        decision = "DEFINE_PRODUCTION_FIELD_MAPPING_BEFORE_PROMOTION"
     elif accuracy >= 0.95 and recovered > 0:
         decision = "CONTINUE_TO_150"
     elif accuracy >= 0.85:
@@ -29,7 +36,7 @@ def main() -> int:
         "normalized_accuracy": accuracy,
         "new_fields_recovered": recovered,
         "decision": decision,
-        "production_accuracy": 0.8925233644859814,
+        "production_accuracy": baseline["automated_accuracy"],
         "production_modifications": 0,
         "critical_false_accepts": metrics["critical_false_accepts"],
     }

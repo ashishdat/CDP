@@ -5,10 +5,9 @@ from __future__ import annotations
 import time
 from typing import Protocol
 
-import numpy as np
 import cv2
-from PIL import Image
-from PIL import ImageOps
+import numpy as np
+from PIL import Image, ImageOps
 
 from packages.ocr.contracts import OCRCandidate, OCRRequest
 from workers.cascade.line_segmentation import segment_text_lines

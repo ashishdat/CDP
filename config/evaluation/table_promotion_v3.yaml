@@ -1,0 +1,22 @@
+policy_version: table-promotion-v3-shadow
+status: SHADOW_ONLY_PENDING_UNTOUCHED_HOLDOUT
+minimum_blank_confidence: 0.70
+optional_blank_fields:
+  - date_to
+  - modifiers
+  - insurance_paid
+  - patient_paid
+promotable_nonblank_types:
+  - date
+  - currency
+  - code
+  - number
+requirements:
+  - CROSS_FAMILY_AGREEMENT
+  - HARD_VALIDATION_PASS
+  - NO_CONTRADICTION
+  - FIXED_UNTOUCHED_HOLDOUT
+forbidden_automatic_routes:
+  - AMBIGUOUS_OCR_REPAIR_REQUIRES_REVIEW
+  - SINGLE_CHARACTER_CONFUSION_V_TO_Y
+  - SINGLE_CHARACTER_CONFUSION_Y_TO_V

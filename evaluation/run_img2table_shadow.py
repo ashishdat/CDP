@@ -9,10 +9,9 @@ from pathlib import Path
 
 import cv2
 import yaml
-from PIL import Image
 from img2table.document import Image as TableImage
 from img2table.ocr import TesseractOCR
-
+from PIL import Image
 
 RESULTS = Path("evaluation_results")
 POLICY_VERSION = "img2table-shadow-v1"
@@ -88,7 +87,7 @@ def main() -> int:
                 min_confidence=35,
             )
             failure = None
-        except Exception as exc:  # persist provider failures
+        except Exception as exc:  # noqa: BLE001 - shadow provider failures are persisted
             tables, failure = [], f"{type(exc).__name__}: {exc}"
         serialized = []
         for table_index, table in enumerate(tables):

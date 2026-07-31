@@ -11,7 +11,10 @@ from PIL import Image
 from workers.field_candidates.address_block import reconstruct_lines
 from workers.field_candidates.name_interpretations import interpret_complete_name
 from workers.retry.alternate_preprocessing import (
-    adaptive_threshold, aggressive_contrast, remove_printed_lines, upscale,
+    adaptive_threshold,
+    aggressive_contrast,
+    remove_printed_lines,
+    upscale,
 )
 
 

@@ -31,3 +31,16 @@ and statements before CMS-1500. Available dispositions are `APPROVED`,
 Corrections and critical semantic columns require an independent second
 reviewer. Run `python -m evaluation.table_label_checkpoint` after 50 approved
 labels; it writes `evaluation_results/table_shadow_v2/checkpoint_50.json`.
+
+## Boundary policy
+
+CMS-1500 and UB-04 service lines use their versioned template grids after
+page-to-reference scaling. Generic table detection must not define semantic
+cells for these fixed forms because merged cells and unrelated lower-form
+sections can appear table-like. Supported Quest laboratory bills and GROW
+statements use anchor-gated family grids: lab rows are reconstructed from OCR
+line geometry and statement rows follow the ruled layout. Unknown attachment
+variants abstain with `ANCHOR_VARIANT_MISMATCH`; generic img2table boundaries
+cannot enter the reviewer queue. A grid-version change creates new candidate
+IDs; earlier review events remain append-only and are reported as superseded
+rather than transferred to new boundaries.

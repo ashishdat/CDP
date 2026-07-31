@@ -39,7 +39,6 @@ def build_response_json_schema(field_names: list[str]) -> dict[str, Any]:
     (structured-output schemas are the same regardless of which fields
     were requested) -- the requested-vs-returned check happens in
     `adapter.py` after parsing, where we have both sides to compare."""
-    del field_names  # reserved for a future per-request enum constraint
     return {
         "type": "object",
         "additionalProperties": False,
@@ -50,9 +49,12 @@ def build_response_json_schema(field_names: list[str]) -> dict[str, Any]:
                 "items": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["field_name", "value", "confidence", "insufficient_evidence"],
+                    "required": [
+                        "field_name", "value", "confidence",
+                        "insufficient_evidence", "citation",
+                    ],
                     "properties": {
-                        "field_name": {"type": "string"},
+                        "field_name": {"type": "string", "enum": field_names},
                         "value": {"type": ["string", "null"]},
                         "confidence": {"type": "number", "minimum": 0, "maximum": 1},
                         "insufficient_evidence": {"type": "boolean"},

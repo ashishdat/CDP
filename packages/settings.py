@@ -39,6 +39,15 @@ class Settings(BaseSettings):
     vlm_endpoint: str = "http://localhost:8001/v1"
     vlm_model_name: str = "qwen2.5-vl-3b-instruct"
 
+    # Azure OpenAI crop-only production fallback. Outputs remain review-only
+    # until an untouched holdout authorizes individual routes.
+    azure_ai_evaluation_enabled: bool = False
+    azure_openai_endpoint: str | None = None
+    azure_openai_api_key: str | None = None
+    azure_ai_evaluation_deployment: str | None = None
+    azure_openai_api_version: str = "2024-10-21"
+    azure_openai_review_only: bool = True
+
     # Handwriting OCR -- opt-in because the model is large and is downloaded
     # separately from the lightweight application image.
     handwriting_enabled: bool = False

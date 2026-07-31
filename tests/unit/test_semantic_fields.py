@@ -1,10 +1,10 @@
 import pytest
 
 from packages.semantic_fields import (
-    infer_same_as_state,
     SemanticFieldState,
     SemanticFieldValue,
     SentinelProjectionRule,
+    infer_same_as_state,
     project_output_sentinel,
 )
 

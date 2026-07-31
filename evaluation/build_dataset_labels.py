@@ -14,7 +14,6 @@ from typing import Any
 
 from evaluation.schemas import GroundTruthDataset, GroundTruthDocument, GroundTruthField
 
-
 CRITICAL_FIELDS = {
     "patient_last",
     "patient_first",

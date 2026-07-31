@@ -54,6 +54,7 @@ class CellLabel(BaseModel):
     disposition: ReviewDisposition = ReviewDisposition.APPROVED
     second_reviewer_id: str | None = None
     second_approval_at: datetime | None = None
+    review_comment: str | None = None
     source: str = "HUMAN_REVIEW"
 
     @field_validator("bbox")

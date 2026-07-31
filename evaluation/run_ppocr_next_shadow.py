@@ -17,8 +17,8 @@ from packages.domain.common import BoundingBox
 from packages.domain.enums import ClaimFormType
 from packages.ocr.contracts import OCRRequest
 from workers.cascade.ppocr_next_adapter import (
-    PPOCRNextRecognitionEngine,
     PaddleTextRecognitionBackend,
+    PPOCRNextRecognitionEngine,
 )
 
 MODELS = ("PP-OCRv6_medium_rec", "PP-OCRv5_server_rec")
@@ -43,8 +43,12 @@ def _resolve_crop_path(artifact: dict, manifest_path: Path) -> Path:
     )
     if portable.is_file():
         return portable
+    flat_portable = manifest_path.parent / recorded.name
+    if flat_portable.is_file():
+        return flat_portable
     raise FileNotFoundError(
-        f"crop not found at recorded path {recorded!s} or portable path {portable!s}"
+        f"crop not found at recorded path {recorded!s}, portable path "
+        f"{portable!s}, or flat path {flat_portable!s}"
     )
 
 

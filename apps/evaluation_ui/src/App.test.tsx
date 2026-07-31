@@ -40,7 +40,7 @@ describe("evaluation dashboard", () => {
     fireEvent.change(input, { target: { files: [file] } });
     expect(await screen.findByText("Extraction accuracy")).toBeInTheDocument();
     expect(screen.getByText("100.00")).toBeInTheDocument();
-    expect(screen.getByText("900.00")).toBeInTheDocument();
-    expect(screen.getByText("FALSE_ACCEPT")).toBeInTheDocument();
+    expect(screen.getAllByText("900.00")).toHaveLength(2);
+    expect(screen.getAllByText("FALSE_ACCEPT")).toHaveLength(2);
   });
 });

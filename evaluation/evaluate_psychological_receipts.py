@@ -10,7 +10,6 @@ from evaluation.normalizers import NormalizerRegistry
 from evaluation.schemas import GroundTruthDataset
 from workers.standard_form_extraction.structured_fields import parse_person_name
 
-
 SOURCES = {
     "D-01": Path("evaluation_results/unstructured_inventory/M047KJET.001.page-2.paddle.json"),
     "D-02": Path("evaluation_results/unstructured_inventory/M047KJET.002.page-2.paddle.json"),

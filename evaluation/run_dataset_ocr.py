@@ -46,7 +46,7 @@ def _value(lines: list[TextLine], box: tuple[float, float, float, float]) -> tup
 
 def _cms_parse(lines: list[TextLine]) -> dict[str, tuple[str, float]]:
     patient_name, name_conf = _value(lines, (45, 35, 610, 74))
-    insured_name, insured_name_conf = _value(lines, (1025, 35, 1625, 74))
+    insured_name, _insured_name_conf = _value(lines, (1025, 35, 1625, 74))
     patient_parts = [_clean(part) for part in patient_name.split(",", 1)]
     if len(patient_parts) == 1:
         patient_parts = patient_name.split(maxsplit=1)
@@ -261,7 +261,7 @@ def _unstructured_parse(lines: list[TextLine]) -> dict[str, tuple[str, float]]:
     confidence = 0.0
     if name_line:
         name = re.sub(
-            r"^.*?\b(?:CLIENT|PATIENT)\s*NAME\s*:?", "", name_line.text, flags=re.I
+            r"^.*?\b(?:CLIENT|PATIENT)\s*NAME\s*:?", "", name_line.text, flags=re.IGNORECASE
         ).strip()
         confidence = name_line.confidence
         if not name:

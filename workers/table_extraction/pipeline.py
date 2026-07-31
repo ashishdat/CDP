@@ -10,9 +10,11 @@ from uuid import NAMESPACE_URL, uuid5
 
 from PIL import Image, ImageDraw
 
-from packages.storage.hashing import sha256_file
+from packages.release_freeze import sha256_file
 from packages.table_contracts import CellCandidate
+from workers.table_extraction.attachment_grid import extract_attachment_grid
 from workers.table_extraction.normalization import normalize_cell
+from workers.table_extraction.template_grid import extract_template_grid
 
 TABLE_TYPES = {
     "CMS1500": "CMS1500_SERVICE_LINES",
@@ -26,6 +28,7 @@ TEMPLATE_VERSIONS = {
     "laboratory_invoice": "v1",
     "statement": "v1",
 }
+GRID_POLICY_VERSION = "grid-v3"
 
 
 def normalize_artifacts(source: Path, root: Path, output: Path) -> int:
@@ -36,7 +39,7 @@ def normalize_artifacts(source: Path, root: Path, output: Path) -> int:
     with output.open("w", encoding="utf-8") as handle:
         for record in records:
             page_path = Path(record["source_image"])
-            page_hash = sha256_file(str(page_path))
+            page_hash = sha256_file(page_path)
             address = root / page_hash
             address.mkdir(parents=True, exist_ok=True)
             stored_page = address / "original_page.png"
@@ -80,6 +83,95 @@ def normalize_artifacts(source: Path, root: Path, output: Path) -> int:
             aligned_path = address / "aligned_page.png"
             if not aligned_path.exists():
                 shutil.copy2(stored_page, aligned_path)
+            if record["family"] in {
+                "CMS1500", "UB04", "laboratory_invoice", "statement"
+            }:
+                with Image.open(page_path) as page:
+                    page_rgb = page.convert("RGB")
+                    if record["family"] in {"CMS1500", "UB04"}:
+                        grid = extract_template_grid(page_rgb, record["family"])
+                        grid_variant = f"{record['family']}_{grid.template_version}"
+                        geometry_provider = "TEMPLATE_DEFINED_GRID"
+                    else:
+                        result = extract_attachment_grid(page_rgb, record["family"])
+                        if result.grid is None:
+                            rejected.append({
+                                "document_id": record["document_id"],
+                                "family": record["family"],
+                                "failure_reason": result.failure_reason,
+                                "variant": result.variant,
+                            })
+                            continue
+                        grid = result.grid
+                        grid_variant = result.variant
+                        geometry_provider = "ANCHOR_GATED_FAMILY_GRID"
+                    overlay = page_rgb.copy()
+                    table_crop = page_rgb.crop(grid.bbox)
+                table_crop_path = address / "template_service_line_region.png"
+                table_crop.save(table_crop_path)
+                drawing = ImageDraw.Draw(overlay)
+                drawing.rectangle(grid.bbox, outline="blue", width=3)
+                for cell in grid.cells:
+                    drawing.rectangle(cell.bbox, outline="green", width=2)
+                overlay.save(overlay_path)
+                for cell in grid.cells:
+                    bbox = cell.bbox
+                    crop_name = hashlib.sha256(
+                        f"{page_hash}:{grid_variant}:{GRID_POLICY_VERSION}:{bbox}".encode()
+                    ).hexdigest() + ".png"
+                    crop_path = address / "cells" / crop_name
+                    crop_path.parent.mkdir(exist_ok=True)
+                    if not crop_path.exists():
+                        with Image.open(page_path) as page:
+                            page.convert("RGB").crop(bbox).save(crop_path)
+                    normalized, transformation, validation, _acceptable = normalize_cell(
+                        cell.raw_text, cell.column_name
+                    )
+                    identity = (
+                        f"{grid_variant}:{GRID_POLICY_VERSION}:{record['document_id']}:"
+                        f"{cell.row_index}:{cell.column_name}:{bbox}:{page_hash}"
+                    )
+                    candidate = CellCandidate(
+                        candidate_id=uuid5(NAMESPACE_URL, identity),
+                        document_id=record["document_id"],
+                        page_number=1,
+                        document_family=record["family"],
+                        table_type=TABLE_TYPES[record["family"]],
+                        table_bbox=grid.bbox,
+                        table_index=0,
+                        row_index=cell.row_index,
+                        column_name=cell.column_name,
+                        cell_bbox=bbox,
+                        raw_text=cell.raw_text,
+                        normalized_value=normalized,
+                        confidence=cell.confidence,
+                        provider="family_grid_tesseract",
+                        provider_version="table-shadow-v2.2",
+                        template_version=grid.template_version,
+                        preprocessing_profile="aligned_template_grid",
+                        image_sha256=page_hash,
+                        automatically_acceptable=False,
+                        transformation_name=transformation,
+                        validation_outcome=validation,
+                        transformation_reason=(
+                            "Versioned template cell; no cross-cell reconstruction"
+                        ),
+                        provenance={
+                            "source_image": str(stored_page),
+                            "aligned_page": str(aligned_path),
+                            "table_region_crop": str(table_crop_path),
+                            "grid_overlay": str(overlay_path),
+                            "cell_crop": str(crop_path),
+                            "transform_matrix": grid.transform,
+                            "geometry_provider": geometry_provider,
+                            "layout_variant": grid_variant,
+                            "raw_ocr_provider": "tesseract_psm_6",
+                            "supersedes_geometry_provider": "img2table",
+                        },
+                    )
+                    handle.write(candidate.model_dump_json() + "\n")
+                    count += 1
+                continue
             for table in record.get("tables", []):
                 table_local = table["bbox_local"]
                 region = record["source_bbox"]

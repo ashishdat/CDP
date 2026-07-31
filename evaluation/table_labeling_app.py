@@ -1,171 +1,280 @@
-"""Local-only table-cell labeling screen backed by append-only JSONL events."""
+"""Authenticated, fail-closed reviewer UI for the 30-cell crop-QA pilot."""
 
 from __future__ import annotations
 
 import html
 import json
+import os
+import re
 from datetime import UTC, datetime
+from datetime import datetime as DateTime
 from pathlib import Path
 from uuid import uuid4
 
-import yaml
-from fastapi import FastAPI, Form, HTTPException
+from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
-from packages.table_contracts import (
-    ApprovalStatus,
-    CellLabel,
-    ReviewDisposition,
+PILOT = Path("evaluation_results/table_crop_quality_pilot/pilot_manifest.jsonl")
+EVENTS = Path(
+    "evaluation_data/table_labels/crop_quality_pilot_review_events.jsonl"
 )
-from packages.table_label_store import TableLabelStore
+ALLOWED_DISPOSITIONS = {
+    "APPROVED",
+    "CORRECTED",
+    "BLANK_CONFIRMED",
+    "UNREADABLE",
+    "WRONG_CELL_BOUNDARY",
+    "WRONG_ROW_OR_COLUMN",
+    "NOT_APPLICABLE",
+}
+BOUNDARY_ERRORS = {"WRONG_CELL_BOUNDARY", "WRONG_ROW_OR_COLUMN"}
+app = FastAPI(title="Crop Quality Pilot Review", docs_url=None, redoc_url=None)
 
-CONFIG = yaml.safe_load(Path("config/table_shadow_v2.yaml").read_text())
-MANIFEST = Path(CONFIG["label_manifest_path"])
-DETAILS = Path("evaluation_results/table_shadow_v2/details.json")
-LABELS = Path(CONFIG["labels_path"])
-CRITICAL = set(CONFIG["critical_columns"])
-app = FastAPI(title="Local Table Cell Labeling", docs_url=None, redoc_url=None)
+
+def _reviewer(request: Request) -> str:
+    reviewer = request.headers.get("X-Reviewer-ID") or os.getenv(
+        "TABLE_REVIEWER_ID"
+    )
+    if not reviewer:
+        raise HTTPException(401, "authenticated reviewer context required")
+    return reviewer
 
 
-def _queue() -> list[dict]:
-    manifest = [
-        json.loads(line) for line in MANIFEST.read_text(encoding="utf-8").splitlines()
+def _manifest() -> list[dict]:
+    if not PILOT.exists():
+        return []
+    return [
+        json.loads(line)
+        for line in PILOT.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    details = {
-        item["candidate_id"]: item
-        for item in json.loads(DETAILS.read_text(encoding="utf-8"))
-    }
-    events = TableLabelStore(LABELS).read_events()
-    queue = []
-    for item in manifest:
-        # label_id is a review event, candidate_id identifies queue completion.
-        candidate = details[item["candidate_id"]]
-        candidate["manifest"] = item
-        candidate["reviewed"] = any(
-            str(event.candidate_id) == item["candidate_id"]
-            or (
-                event.document_id == item["document_id"]
-                and event.table_index == item["table_index"]
-                and event.row_index == item["row_index"]
-                and event.column_name == item["column_name"]
-            )
-            for event in events
-        )
-        queue.append(candidate)
-    return sorted(queue, key=lambda row: (row["manifest"]["priority"], row["document_id"]))
 
 
-@app.get("/", response_class=HTMLResponse)
-def queue_screen() -> str:
-    queue = _queue()
-    done = sum(item["reviewed"] for item in queue)
-    rows = "".join(
-        "<tr>"
-        f"<td>{html.escape(item['document_id'])}</td>"
-        f"<td>{html.escape(item['document_family'])}</td>"
-        f"<td>{html.escape(item['column_name'])}</td>"
-        f"<td>{html.escape(item['raw_text'])}</td>"
-        f"<td>{html.escape(item['manifest']['assigned_primary_reviewer'])}</td>"
-        f"<td>{'DONE' if item['reviewed'] else 'OPEN'}</td>"
-        f"<td><a href='/cell/{item['candidate_id']}'>review</a></td></tr>"
-        for item in queue
-    )
-    return f"""<!doctype html><meta charset=utf-8><title>Table labeling</title>
-<style>body{{font:14px Arial;margin:24px}}table{{border-collapse:collapse}}td,th{{border:1px solid #ccd;padding:7px}}th{{background:#eef}}</style>
-<h1>Table cell labeling — evaluation only</h1>
-<p>Completed {done}/{len(queue)}. First checkpoint: 50 approved dispositions.</p>
-<table><tr><th>Document</th><th>Family</th><th>Column</th><th>OCR</th><th>Assigned</th><th>Status</th><th></th></tr>{rows}</table>"""
+def _events() -> list[dict]:
+    if not EVENTS.exists():
+        return []
+    return [
+        json.loads(line)
+        for line in EVENTS.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def _append_event(event: dict) -> None:
+    EVENTS.parent.mkdir(parents=True, exist_ok=True)
+    with EVENTS.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, sort_keys=True) + "\n")
 
 
 def _candidate(candidate_id: str) -> dict:
-    for item in _queue():
+    for item in _manifest():
         if item["candidate_id"] == candidate_id:
             return item
     raise HTTPException(404, "candidate not found")
 
 
+def validate_submission(
+    item: dict,
+    disposition: str,
+    expected_value: str,
+    review_comment: str,
+    visual_verified: bool,
+) -> None:
+    if disposition not in ALLOWED_DISPOSITIONS:
+        raise ValueError("explicit review disposition required")
+    if not visual_verified:
+        raise ValueError("visual verification confirmation is required")
+    if not Path(item["crop_path"]).is_file():
+        raise ValueError("missing crop image blocks submission")
+    if item["crop_quality_status"] != "VALID_SINGLE_CELL":
+        raise ValueError("only validated single-cell crops may be reviewed")
+    if disposition in {"APPROVED", "CORRECTED"} and not expected_value.strip():
+        raise ValueError("approved or corrected values cannot be empty")
+    if not expected_value.strip() and disposition != "BLANK_CONFIRMED":
+        raise ValueError("blank values require BLANK_CONFIRMED")
+    if disposition == "BLANK_CONFIRMED" and expected_value.strip():
+        raise ValueError("BLANK_CONFIRMED requires an empty value")
+    if disposition in BOUNDARY_ERRORS and not review_comment.strip():
+        raise ValueError("boundary errors require a comment")
+    value = expected_value.strip()
+    data_type = item.get("data_type")
+    if value and data_type == "date":
+        valid = False
+        for fmt in ("%m/%d/%Y", "%m/%d/%y", "%m-%d-%Y", "%m-%d-%y"):
+            try:
+                DateTime.strptime(value, fmt)  # noqa: DTZ007
+                valid = True
+                break
+            except ValueError:
+                continue
+        if not valid:
+            raise ValueError("date fields require a valid date, for example 06/24/2026")
+    if value and data_type == "currency" and not re.fullmatch(
+        r"\$?\d+(?:\.\d{1,2})?", value.replace(",", "")
+    ):
+        raise ValueError("currency fields require a valid amount")
+    if value and data_type == "code" and not re.fullmatch(r"[A-Za-z0-9.]+", value):
+        raise ValueError("code fields contain only letters, digits, or a period")
+
+
+@app.get("/", response_class=HTMLResponse)
+def queue_screen(request: Request) -> str:
+    reviewer = _reviewer(request)
+    events = _events()
+    latest = {event["candidate_id"]: event for event in events}
+    rows = "".join(
+        "<tr>"
+        f"<td>{html.escape(item['document_id'])}</td>"
+        f"<td>{html.escape(item['document_family'])}</td>"
+        f"<td>{html.escape(item['form_locator'])}</td>"
+        f"<td>{html.escape(item['semantic_field_name'])}</td>"
+        f"<td>{item['service_line_number']}</td>"
+        f"<td>{html.escape(latest.get(item['candidate_id'], {}).get('status', 'PENDING_REVIEW'))}</td>"
+        f"<td><a href='/cell/{item['candidate_id']}'>review</a></td></tr>"
+        for item in _manifest()
+    )
+    return f"""<!doctype html><meta charset=utf-8><title>Crop QA pilot</title>
+<style>body{{font:14px Arial;margin:24px}}table{{border-collapse:collapse}}td,th{{border:1px solid #ccd;padding:7px}}th{{background:#eef}}</style>
+<h1>30-cell crop-quality pilot</h1>
+<p>Authenticated reviewer: <b>{html.escape(reviewer)}</b>. OCR accuracy is not being evaluated.</p>
+<table><tr><th>Document</th><th>Family</th><th>Locator</th><th>Semantic field</th><th>Line</th><th>Status</th><th></th></tr>{rows}</table>"""
+
+
 @app.get("/artifact/{candidate_id}/{kind}")
-def artifact(candidate_id: str, kind: str):
+def artifact(candidate_id: str, kind: str, request: Request):
+    _reviewer(request)
     item = _candidate(candidate_id)
     allowed = {
-        "page": "source_image", "overlay": "grid_overlay", "cell": "cell_crop",
+        "page": "original_page",
+        "registered": "registered_page",
+        "overlay": "registration_overlay",
+        "cell": "crop_path",
+        "row": "row_context_path",
     }
-    if kind not in allowed:
+    if kind not in allowed or not item.get(allowed[kind]):
         raise HTTPException(404, "artifact not found")
-    path = Path(item["provenance"][allowed[kind]]).resolve()
-    root = Path("evaluation_results/table_shadow_v2/artifacts").resolve()
-    if root not in path.parents or not path.is_file():
+    path = Path(item[allowed[kind]]).resolve()
+    root = Path("evaluation_results/table_crop_quality_pilot").resolve()
+    quarantine = Path("evaluation_data/table_labels/quarantine").resolve()
+    if not path.is_file() or not (
+        root in path.parents or quarantine in path.parents
+    ):
         raise HTTPException(404, "artifact not found")
     return FileResponse(path)
 
 
 @app.get("/cell/{candidate_id}", response_class=HTMLResponse)
-def review_cell(candidate_id: str) -> str:
+def review_cell(candidate_id: str, request: Request) -> str:
+    reviewer = _reviewer(request)
     item = _candidate(candidate_id)
-    dispositions = "".join(
-        f"<option>{value.value}</option>" for value in ReviewDisposition
+    if not Path(item["crop_path"]).is_file():
+        disabled = "disabled"
+        warning = "<p class=error>Crop image missing; submission disabled.</p>"
+    else:
+        disabled = ""
+        warning = ""
+    options = "<option selected disabled>PENDING_REVIEW</option>" + "".join(
+        f"<option>{html.escape(value)}</option>"
+        for value in sorted(ALLOWED_DISPOSITIONS)
     )
-    assigned = html.escape(item["manifest"]["assigned_primary_reviewer"])
-    return f"""<!doctype html><meta charset=utf-8><title>Review cell</title>
-<style>body{{font:14px Arial;margin:24px}}img{{max-width:48%;border:1px solid #888;margin:5px}}label{{display:block;margin:9px}}</style>
-<p><a href='/'>← queue</a></p><h1>{html.escape(item['document_id'])} / {html.escape(item['column_name'])}</h1>
-<img src='/artifact/{candidate_id}/page'><img src='/artifact/{candidate_id}/overlay'>
-<h2>Cell crop</h2><img src='/artifact/{candidate_id}/cell'>
-<p>OCR: <b>{html.escape(item['raw_text'])}</b> · normalized: <b>{html.escape(item['normalized_value'])}</b></p>
+    suggestion = html.escape(item.get("ocr_suggestion") or "(none)")
+    return f"""<!doctype html><meta charset=utf-8><title>Review crop</title>
+<style>body{{font:14px Arial;margin:24px}}img{{max-width:90%;border:1px solid #888;margin:7px}}label{{display:block;margin:10px}}.warn{{background:#fff3cd;padding:10px}}.error{{color:#b00}}</style>
+<p><a href='/'>← queue</a></p>
+<h1>{html.escape(item['document_id'])}: {html.escape(item['semantic_field_name'])}</h1>
+<p>Form locator <b>{html.escape(item['form_locator'])}</b>, service line {item['service_line_number']}</p>
+<h2>Complete row context</h2><img src='/artifact/{candidate_id}/row'>
+<h2>Single semantic cell</h2><img src='/artifact/{candidate_id}/cell'>
+<p class=warn><b>Unverified OCR suggestion.</b> {suggestion}</p>{warning}
 <form method=post action='/cell/{candidate_id}'>
-<label>Primary reviewer <input name=reviewer_id value='{assigned}' required></label>
-<label>Disposition <select name=disposition>{dispositions}</select></label>
-<label>Expected/corrected value <input name=expected_value value='{html.escape(item['raw_text'])}'></label>
-<label>Semantic column name <input name=column_name value='{html.escape(item['column_name'])}' required></label>
-<label>Second reviewer (critical/disagreement/promotion only) <input name=second_reviewer_id></label>
-<button>Append review event</button></form>"""
+<label>Authenticated reviewer <input value='{html.escape(reviewer)}' readonly></label>
+<label>Semantic field <input value='{html.escape(item['semantic_field_name'])}' readonly></label>
+<label>Disposition <select name=disposition required>{options}</select></label>
+<label>Expected/corrected value <input name=expected_value value=''></label>
+<label>Comment <textarea name=review_comment rows=3 cols=70></textarea></label>
+<label><input type=checkbox name=visual_verified value=true required> I visually verified the page, row context, boundary, and cell.</label>
+<button {disabled}>Submit primary review</button></form>"""
 
 
 @app.post("/cell/{candidate_id}")
 def submit_review(
     candidate_id: str,
-    reviewer_id: str = Form(...),
-    disposition: ReviewDisposition = Form(...),
+    request: Request,
+    disposition: str = Form(...),
     expected_value: str = Form(""),
-    column_name: str = Form(...),
-    second_reviewer_id: str = Form(""),
+    review_comment: str = Form(""),
+    visual_verified: bool = Form(False),
 ):
+    reviewer = _reviewer(request)
     item = _candidate(candidate_id)
-    now = datetime.now(UTC)
-    accepted = disposition in {
-        ReviewDisposition.APPROVED,
-        ReviewDisposition.CORRECTED,
-        ReviewDisposition.BLANK_CONFIRMED,
-    }
-    if disposition == ReviewDisposition.BLANK_CONFIRMED:
-        expected_value = ""
-    label = CellLabel(
-        label_id=uuid4(),
-        candidate_id=candidate_id,
-        document_id=item["document_id"],
-        page_number=item["page_number"],
-        document_family=item["document_family"],
-        table_type=item["table_type"],
-        table_index=item["table_index"],
-        row_index=item["row_index"],
-        column_name=column_name,
-        expected_value=expected_value,
-        normalized_expected_value=" ".join(expected_value.split()),
-        bbox=item["cell_bbox"],
-        image_sha256=item["image_sha256"],
-        writing_type=item["manifest"]["writing_type"],
-        reviewer_id=reviewer_id,
-        reviewed_at=now,
-        approval_status=(
-            ApprovalStatus.APPROVED if accepted else ApprovalStatus.REJECTED
-        ),
-        disposition=disposition,
-        second_reviewer_id=second_reviewer_id or None,
-        second_approval_at=now if second_reviewer_id else None,
-    )
+    if any(
+        event["candidate_id"] == candidate_id
+        and event.get("status") in {"APPROVED", "AWAITING_SECOND_APPROVAL"}
+        for event in _events()
+    ):
+        raise HTTPException(
+            400,
+            "candidate already has a primary review; use independent second approval when required",
+        )
     try:
-        TableLabelStore(LABELS, CRITICAL).append(label)
+        validate_submission(
+            item,
+            disposition,
+            expected_value,
+            review_comment,
+            visual_verified,
+        )
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+    requires_second = disposition == "CORRECTED" or item[
+        "semantic_field_name"
+    ] in {"procedure_code", "rendering_provider_npi", "revenue_code"}
+    _append_event(
+        {
+            "event_id": str(uuid4()),
+            "candidate_id": candidate_id,
+            "reviewer_id": reviewer,
+            "reviewed_at": datetime.now(UTC).isoformat(),
+            "disposition": disposition,
+            "expected_value": expected_value.strip(),
+            "review_comment": review_comment.strip() or None,
+            "visual_verified": True,
+            "status": "AWAITING_SECOND_APPROVAL" if requires_second else "APPROVED",
+            "evaluation_eligible": False,
+            "training_eligible": False,
+            "source": "CROP_QUALITY_PILOT",
+        }
+    )
+    from evaluation.evaluate_crop_quality_reviews import publish
+
+    publish()
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/cell/{candidate_id}/second-approve")
+def second_approve(candidate_id: str, request: Request):
+    reviewer = _reviewer(request)
+    pending = [
+        event
+        for event in _events()
+        if event["candidate_id"] == candidate_id
+        and event["status"] == "AWAITING_SECOND_APPROVAL"
+    ]
+    if not pending:
+        raise HTTPException(400, "no primary review awaiting approval")
+    primary = pending[-1]
+    if primary["reviewer_id"] == reviewer:
+        raise HTTPException(400, "second reviewer must be independent")
+    _append_event(
+        {
+            **primary,
+            "event_id": str(uuid4()),
+            "second_reviewer_id": reviewer,
+            "second_approval_at": datetime.now(UTC).isoformat(),
+            "status": "APPROVED",
+        }
+    )
+    from evaluation.evaluate_crop_quality_reviews import publish
+
+    publish()
     return RedirectResponse("/", status_code=303)

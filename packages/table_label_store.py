@@ -47,6 +47,16 @@ class TableLabelStore:
             label.column_name in self.critical_columns
             or label.disposition == ReviewDisposition.CORRECTED
         )
+        structural = {
+            ReviewDisposition.WRONG_CELL_BOUNDARY,
+            ReviewDisposition.WRONG_ROW_OR_COLUMN,
+            ReviewDisposition.NOT_APPLICABLE,
+        }
+        if label.disposition in structural:
+            if label.expected_value or label.normalized_expected_value:
+                raise ValueError("structural dispositions require a blank expected value")
+            if not (label.review_comment or "").strip():
+                raise ValueError("structural dispositions require a review comment")
         if (
             label.approval_status == ApprovalStatus.APPROVED
             and requires_second

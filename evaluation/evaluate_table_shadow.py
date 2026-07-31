@@ -13,6 +13,16 @@ from packages.table_contracts import CellCandidate
 from packages.table_label_store import TableLabelStore, label_key
 
 ROOT = Path("evaluation_results/table_shadow_v2")
+REQUIRED_PROVENANCE = {
+    "source_image",
+    "aligned_page",
+    "table_region_crop",
+    "grid_overlay",
+    "cell_crop",
+    "geometry_provider",
+    "layout_variant",
+    "raw_ocr_provider",
+}
 
 
 def _cer(expected: str, actual: str) -> float:
@@ -28,6 +38,9 @@ def _cer(expected: str, actual: str) -> float:
 
 
 def evaluate() -> tuple[dict, list[dict]]:
+    baseline = yaml.safe_load(
+        Path("config/releases/extraction-v2.yaml").read_text(encoding="utf-8")
+    )["baseline_metrics"]
     config = yaml.safe_load(Path("config/table_shadow_v2.yaml").read_text())
     candidates = [
         CellCandidate.model_validate_json(line)
@@ -42,6 +55,7 @@ def evaluate() -> tuple[dict, list[dict]]:
     details = []
     exact = normalized = blank_fp = critical_false = 0
     cer_sum = 0.0
+    matched_labels: set = set()
     family: Counter[tuple[str, bool]] = Counter()
     for candidate in candidates:
         key = (
@@ -52,6 +66,7 @@ def evaluate() -> tuple[dict, list[dict]]:
         classification = "UNLABELED"
         passed = None
         if label:
+            matched_labels.add(label.label_id)
             passed = candidate.normalized_value == label.normalized_expected_value
             exact += candidate.raw_text == label.expected_value
             normalized += passed
@@ -73,29 +88,54 @@ def evaluate() -> tuple[dict, list[dict]]:
             "incremental_classification": classification,
             "approval_status": label.approval_status if label else "UNLABELED",
         })
-    denominator = len(labels)
+    denominator = len(matched_labels)
     runtime = json.loads(
         Path("evaluation_results/img2table_shadow/runtime.json").read_text()
     )
+    governed_regions = {
+        (candidate.document_id, candidate.page_number) for candidate in candidates
+    }
+    attempted_regions = int(runtime["regions_attempted"])
+    provenance_complete = sum(
+        REQUIRED_PROVENANCE.issubset(candidate.provenance)
+        and all(candidate.provenance.get(key) for key in REQUIRED_PROVENANCE)
+        for candidate in candidates
+    )
     metrics = {
-        "header_identity_automated_accuracy": 0.8925233644859814,
-        "combined_production_accuracy": 0.8925233644859814,
+        "header_identity_automated_accuracy": baseline["automated_accuracy"],
+        "combined_production_accuracy": baseline["automated_accuracy"],
         "actual_production_accuracy_changed": False,
         "total_candidates": len(candidates),
+        "approved_label_events": len(labels),
         "approved_labeled_candidates": denominator,
+        "superseded_approved_labels": len(labels) - denominator,
         "unlabeled_candidates": len(candidates) - denominator,
         "eligible_evaluation_denominator": denominator,
-        "region_detection_recall": None,
-        "table_region_observed_coverage": runtime["table_region_coverage"],
+        # Keep the historical detector result distinct from the governed
+        # template/anchor grid coverage used by this v2 report.
+        "historical_img2table_region_coverage": runtime["table_region_coverage"],
+        "governed_grid_region_coverage": (
+            len(governed_regions) / attempted_regions if attempted_regions else None
+        ),
+        "governed_regions_with_candidates": len(governed_regions),
+        "regions_attempted": attempted_regions,
+        "candidate_provenance_completeness": (
+            provenance_complete / len(candidates) if candidates else None
+        ),
         "exact_cell_ocr_accuracy": exact / denominator if denominator else None,
         "normalized_cell_accuracy": normalized / denominator if denominator else None,
         "character_error_rate": cer_sum / denominator if denominator else None,
         "blank_cell_false_positive_rate": blank_fp / denominator if denominator else None,
         "critical_false_accepts": critical_false,
+        "baseline_critical_false_accepts": baseline["critical_false_accepts"],
         "incremental_correct_candidate_coverage": (
             normalized / denominator if denominator else None
         ),
-        "newly_recovered_production_fields": 0,
+        # A table cell is not a production field until an explicit,
+        # specification-backed mapping exists. Reporting zero implied that
+        # the comparison had been performed when it had not.
+        "newly_recovered_production_fields": None,
+        "production_field_mapping_status": "NOT_CONFIGURED",
         "potential_accuracy_after_reviewed_promotion": None,
         "table_accuracy_status": "PENDING_APPROVED_LABELS" if not denominator else "EVALUATED",
         "ground_truth_available_to_inference": False,

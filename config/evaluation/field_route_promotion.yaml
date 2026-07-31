@@ -1,0 +1,28 @@
+version: field-family-promotion-v1
+default_status: BLOCKED
+routes:
+  - family: CMS-1500
+    field: charges
+    evidence: OCR_AZURE_AGREEMENT
+    critical: false
+    status: BLOCKED_PENDING_HOLDOUT
+  - family: UB-04
+    field: description
+    evidence: AZURE_AND_DETERMINISTIC_VALIDATION
+    critical: false
+    status: BLOCKED_PENDING_HOLDOUT
+  - family: ATTACHMENT
+    field: fee
+    evidence: AZURE_AND_CURRENCY_VALIDATION
+    critical: false
+    status: BLOCKED_PENDING_HOLDOUT
+  - family: CMS-1500
+    field: member_name
+    evidence: AUTHORIZED_REFERENCE_REQUIRED
+    critical: true
+    status: BLOCKED
+  - family: CMS-1500
+    field: provider_npi
+    evidence: AUTHORIZED_REFERENCE_REQUIRED
+    critical: true
+    status: BLOCKED

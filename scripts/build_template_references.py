@@ -11,7 +11,6 @@ from pathlib import Path
 
 from PIL import Image, ImageSequence
 
-
 REFERENCES = {
     "cms1500_v02_12.png": Path("Group A/M047FJFL.001"),
     "ub04_v2014.png": Path("Group C/M047IJBF.001"),

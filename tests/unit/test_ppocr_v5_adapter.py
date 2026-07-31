@@ -1,10 +1,14 @@
+from typing import ClassVar
+
 from PIL import Image
 
 from workers.ppocr_v5.adapter import PPOCRv5Adapter
 
 
 class FakeResult:
-    json = {"res": {"rec_texts": ["Jane Doe", ""], "rec_scores": [0.93, 0.2]}}
+    json: ClassVar = {
+        "res": {"rec_texts": ["Jane Doe", ""], "rec_scores": [0.93, 0.2]}
+    }
 
 
 class FakePipeline:

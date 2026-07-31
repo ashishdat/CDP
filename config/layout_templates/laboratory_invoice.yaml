@@ -11,5 +11,21 @@ fields:
 checkbox_regions: []
 table_regions:
   - {x0: 0.04, y0: 0.44, x1: 0.96, y1: 0.55}
+table_grid:
+  variant: QUEST_LAB_BILL_V1
+  required_anchors: ["Laboratory Bill", "Quest Diagnostics"]
+  data_region: {x0: 0.04, y0: 0.45, x1: 0.96, y1: 0.53}
+  row_mode: OCR_LINE_CLUSTER
+  row_tolerance_ratio: 0.008
+  columns:
+    - {field_name: service_date, x0: 0.04, x1: 0.09, field_type: date}
+    - {field_name: cpt_code, x0: 0.09, x1: 0.15, field_type: code}
+    - {field_name: test_description, x0: 0.15, x1: 0.41, field_type: text}
+    - {field_name: charge, x0: 0.41, x1: 0.49, field_type: currency}
+    - {field_name: adjustment, x0: 0.49, x1: 0.61, field_type: currency}
+    - {field_name: insurance_paid, x0: 0.61, x1: 0.70, field_type: currency}
+    - {field_name: patient_paid, x0: 0.70, x1: 0.77, field_type: currency}
+    - {field_name: patient_responsibility, x0: 0.77, x1: 0.84, field_type: currency}
+    - {field_name: reason, x0: 0.84, x1: 0.96, field_type: text}
 preprocessing_profile: invoice
 alignment_thresholds: {minimum_inlier_ratio: 0.25, maximum_reprojection_error: 7.0}

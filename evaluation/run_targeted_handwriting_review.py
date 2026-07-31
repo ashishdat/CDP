@@ -10,7 +10,6 @@ from PIL import Image
 
 from workers.unstructured_extraction.trocr_adapter import TrOCRAdapter
 
-
 TARGETS = {
     "A-06": Path("evaluation_results/expanded_blocks/crops/A-06/patient_name"),
     "D-01": Path("evaluation_results/field_crops/D-01"),

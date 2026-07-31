@@ -1,0 +1,19 @@
+form_family: CMS1500
+form_version: "02-12"
+reference_dimensions: [1712, 2214]
+registration:
+  maximum_residual_error_px: 4.0
+  anchors: [[70, 1408], [1631, 1408], [70, 1795], [1631, 1795]]
+rows: {first_y: 1408, last_y: 1795, count: 6}
+internal_padding: [4, 4, 4, 4]
+fields:
+  - {semantic_field_name: date_from, form_locator: 24A_FROM, x0: 70, x1: 240, data_type: date, validation_policy: date}
+  - {semantic_field_name: date_to, form_locator: 24A_TO, x0: 240, x1: 418, data_type: date, validation_policy: date}
+  - {semantic_field_name: place_of_service, form_locator: 24B, x0: 418, x1: 480, data_type: code, validation_policy: pos}
+  - {semantic_field_name: emergency_indicator, form_locator: 24C, x0: 480, x1: 539, data_type: code, validation_policy: emergency}
+  - {semantic_field_name: procedure_code, form_locator: 24D_CPT, x0: 539, x1: 730, data_type: code, validation_policy: cpt_hcpcs}
+  - {semantic_field_name: modifiers, form_locator: 24D_MODIFIERS, x0: 730, x1: 931, data_type: code, validation_policy: modifiers}
+  - {semantic_field_name: diagnosis_pointer, form_locator: 24E, x0: 931, x1: 1030, data_type: code, validation_policy: diagnosis_pointer}
+  - {semantic_field_name: charges, form_locator: 24F, x0: 1030, x1: 1207, data_type: currency, validation_policy: currency}
+  - {semantic_field_name: service_units, form_locator: 24G, x0: 1207, x1: 1287, data_type: number, validation_policy: units}
+  - {semantic_field_name: rendering_provider_npi, form_locator: 24J, x0: 1386, x1: 1631, data_type: npi, validation_policy: npi}

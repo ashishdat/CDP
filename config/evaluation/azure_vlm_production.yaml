@@ -1,0 +1,20 @@
+policy_version: azure-vlm-production-v1
+status: PRODUCTION_REVIEW_ONLY
+input_scope: UNRESOLVED_REGIONAL_CROPS_ONLY
+full_page_calls_allowed: false
+temperature: 0
+minimum_shadow_confidence: 0.90
+candidate_authority: REVIEW_ONLY
+automatic_acceptance: false
+critical_fields_require:
+  - AUTHORIZED_REFERENCE_VERIFICATION
+  - HUMAN_REVIEW_WHEN_REFERENCE_UNAVAILABLE
+promotion_gate:
+  untouched_holdout_required: true
+  critical_false_accepts: 0
+  overwrite_previously_correct: false
+  minimum_route_samples: 30
+logging:
+  persist_secrets: false
+  persist_full_crop_bytes: false
+  persist_provider_candidates: true

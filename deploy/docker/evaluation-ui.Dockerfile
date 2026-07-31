@@ -1,7 +1,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY apps/evaluation_ui/package*.json ./
-RUN npm install
+RUN npm ci
 COPY apps/evaluation_ui/ ./
 RUN npm run build
 

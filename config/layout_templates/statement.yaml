@@ -9,5 +9,15 @@ fields:
 checkbox_regions: []
 table_regions:
   - {x0: 0.05, y0: 0.30, x1: 0.95, y1: 0.80}
+table_grid:
+  variant: GROW_STATEMENT_V1
+  required_anchors: ["Receipt & Insurance Statement"]
+  data_region: {x0: 0.155, y0: 0.48, x1: 0.82, y1: 0.735}
+  row_mode: FIXED_RULED_GRID
+  row_count: 7
+  columns:
+    - {field_name: service_date, x0: 0.155, x1: 0.374, field_type: date}
+    - {field_name: fee_for_service, x0: 0.374, x1: 0.574, field_type: currency}
+    - {field_name: cpt_code, x0: 0.574, x1: 0.82, field_type: code}
 preprocessing_profile: statement
 alignment_thresholds: {minimum_inlier_ratio: 0.25, maximum_reprojection_error: 7.0}

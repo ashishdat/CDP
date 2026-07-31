@@ -1,0 +1,8 @@
+cost_model_version: azure-gpt4o-estimate-v1
+currency: USD
+estimate_only: true
+deployment_sku: UNKNOWN
+input_usd_per_1m_tokens: 5.00
+output_usd_per_1m_tokens: 15.00
+assumption: Conservative configurable estimate; replace with the actual Azure SKU and agreement rates.
+pricing_reference: https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/

@@ -9,12 +9,12 @@ from workers.cascade.reconciliation import (
     FieldDisposition,
     claim_can_finalize,
 )
+from workers.page_detection.text_extraction import TextLine
 from workers.retry.alternate_preprocessing import remove_printed_lines
 from workers.standard_form_extraction.structured_fields import (
     parse_person_name,
     reconstruct_reading_order,
 )
-from workers.page_detection.text_extraction import TextLine
 
 
 def _box():

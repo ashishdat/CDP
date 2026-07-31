@@ -10,7 +10,7 @@ from evaluation.normalizers import NormalizerRegistry
 from evaluation.schemas import GroundTruthDataset, PredictionDataset
 
 
-def _rate(numerator: int, denominator: int) -> float:
+def _rate(numerator: float, denominator: float) -> float:
     return numerator / denominator if denominator else 0.0
 
 

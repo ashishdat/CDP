@@ -7,7 +7,6 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-
 RESULTS = Path("evaluation_results")
 CRITICAL_IDENTITY_FIELDS = {
     "patient_first", "patient_last", "insured_first", "insured_last",

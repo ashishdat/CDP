@@ -6,6 +6,16 @@ import "./styles.css";
 
 type Breakdown = "accuracy_by_field" | "accuracy_by_form_type" | "accuracy_by_extraction_method";
 
+function readFileText(file: File): Promise<string> {
+  if (typeof file.text === "function") return file.text();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("Unable to read report."));
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.readAsText(file);
+  });
+}
+
 export default function App() {
   const [report, setReport] = useState<EvaluationReport | null>(null);
   const [error, setError] = useState("");
@@ -27,7 +37,7 @@ export default function App() {
   async function loadFile(file?: File) {
     if (!file) return;
     try {
-      setReport(parseReport(JSON.parse(await file.text())));
+      setReport(parseReport(JSON.parse(await readFileText(file))));
       setError("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to read report.");

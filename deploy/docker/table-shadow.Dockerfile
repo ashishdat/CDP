@@ -13,4 +13,6 @@ RUN pip install --no-cache-dir \
     "pydantic>=2.6,<3"
 COPY evaluation ./evaluation
 COPY config ./config
+COPY packages ./packages
+COPY workers ./workers
 ENTRYPOINT ["python", "-m", "evaluation.run_img2table_shadow"]

@@ -32,6 +32,25 @@ def test_corrected_label_requires_second_approval(tmp_path):
         store.append(make_label(disposition="CORRECTED"))
 
 
+def test_structural_disposition_requires_blank_value_and_comment(tmp_path):
+    store = TableLabelStore(tmp_path / "labels.jsonl")
+    with pytest.raises(ValueError, match="blank expected"):
+        store.append(make_label(disposition="NOT_APPLICABLE"))
+    with pytest.raises(ValueError, match="review comment"):
+        store.append(make_label(
+            disposition="NOT_APPLICABLE",
+            expected_value="",
+            normalized_expected_value="",
+        ))
+    store.append(make_label(
+        disposition="NOT_APPLICABLE",
+        expected_value="",
+        normalized_expected_value="",
+        review_comment="Contains a form header, not claim data.",
+        approval_status="REJECTED",
+    ))
+
+
 def test_image_hash_mismatch_is_rejected(tmp_path):
     store = TableLabelStore(tmp_path / "labels.jsonl")
     store.append(make_label())

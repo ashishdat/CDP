@@ -6,7 +6,6 @@ import hashlib
 import json
 from pathlib import Path
 
-
 FIELDS = {
     "A-06": ("patient_first", "patient_last"),
     "D-01": ("patient_first", "patient_last"),

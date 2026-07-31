@@ -35,3 +35,31 @@ families:
     table_type: LABORATORY_RESULTS
   statement:
     table_type: STATEMENT_LINES
+grid_overrides:
+  CMS1500:
+    policy_version: cms1500-service-grid-v3
+    data_y0: 1408
+    data_y1: 1795
+    columns:
+      date_from: [70, 240]
+      date_to: [240, 418]
+      place_of_service: [418, 480]
+      emg: [480, 539]
+      cpt_hcpcs: [539, 730]
+      modifier: [730, 931]
+      diagnosis_pointer: [931, 1030]
+      charges: [1030, 1207]
+      units: [1207, 1287]
+      rendering_provider_npi: [1385, 1630]
+  UB04:
+    policy_version: ub04-service-grid-v3
+    data_y0: 568
+    data_y1: 1275
+    columns:
+      revenue_code: [30, 122]
+      description: [122, 613]
+      hcpcs_rate: [613, 910]
+      service_date: [910, 1048]
+      service_units: [1048, 1208]
+      total_charges: [1208, 1406]
+      non_covered_charges: [1406, 1603]

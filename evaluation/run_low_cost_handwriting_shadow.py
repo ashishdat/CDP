@@ -12,7 +12,6 @@ from PIL import Image
 from workers.cascade.line_segmentation import segment_text_lines
 from workers.unstructured_extraction.trocr_adapter import TrOCRAdapter
 
-
 RESULTS = Path("evaluation_results")
 MODEL = "microsoft/trocr-base-handwritten"
 MODEL_ROUTE_VERSION = "low-cost-handwriting-shadow-v1"

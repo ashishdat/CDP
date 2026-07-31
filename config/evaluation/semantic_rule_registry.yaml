@@ -1,0 +1,5 @@
+version: claim-semantic-rules-v1
+governance:
+  document_specific_rules_allowed: false
+  authority_required: APPROVED_CLAIM_SPECIFICATION_OR_BUSINESS_OWNER
+rules: []

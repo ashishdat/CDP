@@ -132,3 +132,94 @@ class OpenAIVLLMAdapter:
             if r.prior_ocr_candidates:
                 lines.append(f"  Prior OCR candidates (may be wrong): {r.prior_ocr_candidates}")
         return "\n".join(lines)
+
+
+class AzureOpenAIVisionAdapter(OpenAIVLLMAdapter):
+    """Azure OpenAI chat-completions adapter with crop-only payloads.
+
+    Credentials are supplied at runtime and are never persisted on the adapter.
+    """
+
+    def __init__(
+        self,
+        endpoint: str,
+        deployment: str,
+        api_version: str,
+        api_key: str,
+        enabled: bool,
+        http_client: httpx.Client | None = None,
+        timeout_seconds: float = 30.0,
+    ) -> None:
+        super().__init__(endpoint, deployment, enabled, http_client, timeout_seconds)
+        self._deployment = deployment
+        self._api_version = api_version
+        self._api_key = api_key
+        self.last_usage: dict[str, int] = {}
+
+    def extract_fields(
+        self, crops: dict[str, bytes], requests: list[VLMFieldRequest]
+    ) -> list[VLMFieldResult]:
+        if not self._enabled:
+            raise VLMDisabledError("Azure VLM shadow adapter is disabled")
+        if not requests:
+            return []
+        payload = {
+            "temperature": 0,
+            "messages": self._build_messages(crops, requests),
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "field_extraction",
+                    "schema": build_response_json_schema(
+                        [request.field_name for request in requests]
+                    ),
+                    "strict": True,
+                },
+            },
+        }
+        url = (
+            f"{self._endpoint}/openai/deployments/{self._deployment}/chat/completions"
+            f"?api-version={self._api_version}"
+        )
+        response = self._client.post(
+            url, json=payload, headers={"api-key": self._api_key}
+        )
+        if response.is_error:
+            try:
+                error = response.json().get("error", {})
+                detail = {
+                    "status": response.status_code,
+                    "code": error.get("code"),
+                    "message": str(error.get("message", "Azure request rejected"))[:500],
+                }
+            except (ValueError, AttributeError):
+                detail = {"status": response.status_code, "code": None,
+                          "message": "Azure request rejected"}
+            raise VLMResponseError(json.dumps(detail))
+        response_payload = response.json()
+        usage = response_payload.get("usage", {})
+        self.last_usage = {
+            "input_tokens": int(usage.get("prompt_tokens", 0)),
+            "output_tokens": int(usage.get("completion_tokens", 0)),
+            "total_tokens": int(usage.get("total_tokens", 0)),
+        }
+        parsed = json.loads(response_payload["choices"][0]["message"]["content"])
+        results = [
+            VLMFieldResult.model_validate(item) for item in parsed.get("fields", [])
+        ]
+        requested = {request.field_name for request in requests}
+        unsupported = {result.field_name for result in results} - requested
+        if unsupported:
+            raise VLMResponseError(
+                f"VLM returned unrequested field(s): {sorted(unsupported)}"
+            )
+        return results
+
+    def _build_messages(
+        self, crops: dict[str, bytes], requests: list[VLMFieldRequest]
+    ) -> list[dict]:
+        messages = super()._build_messages(crops, requests)
+        for part in messages[0]["content"]:
+            if part["type"] == "image_url":
+                part["image_url"]["detail"] = "high"
+        return messages
