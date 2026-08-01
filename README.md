@@ -356,6 +356,11 @@ docs/                  findings, architecture decisions, implementation plan
 dataset_raw/           extracted sample dataset (gitignored, see below)
 ```
 
+The ownership rules and enforced dependency direction are documented in
+[`docs/REPOSITORY_STRUCTURE.md`](docs/REPOSITORY_STRUCTURE.md).
+Deployment authorization and the remaining operational blockers are tracked in
+[`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md).
+
 ## Setup
 
 Requires Python 3.11+, Docker, and Docker Compose.
@@ -363,9 +368,15 @@ Requires Python 3.11+, Docker, and Docker Compose.
 ```bash
 make setup     # copies .env.example -> .env, pip installs the project (+ dev extras)
 make test      # unit tests, no Docker required
+make quality   # architecture checks, lint, and unit tests
 make run       # docker compose up: Postgres, Redis, MinIO, Redpanda, ingestion API, prep/page-detection/extraction workers, review API
 make test-integration   # brings the stack up, runs tests/integration, tears it down
 ```
+
+`make clean` removes only reproducible test/build caches. It preserves Docker
+volumes, datasets, evaluation results, and model caches. Use the explicitly
+destructive `make clean-runtime-data` target when local service volumes must be
+removed.
 
 `make run` exposes:
 - Ingestion API docs: http://localhost:8000/docs

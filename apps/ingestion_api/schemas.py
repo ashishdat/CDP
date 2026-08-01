@@ -10,6 +10,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from packages.domain.document import Document
+from packages.domain.extraction import ExtractedField
 
 
 class DocumentResponse(BaseModel):
@@ -34,3 +35,36 @@ class DocumentResponse(BaseModel):
             received_at=document.received_at,
             is_new_document=is_new,
         )
+
+
+class ExtractedFieldResponse(BaseModel):
+    field_name: str
+    value: str
+    normalized_value: str | None
+    confidence: float
+    page_number: int
+    bounding_box: dict[str, float]
+    extraction_method: str
+    validation_status: str
+    validation_reasons: list[str]
+
+    @classmethod
+    def from_domain(cls, field: ExtractedField) -> ExtractedFieldResponse:
+        return cls(
+            field_name=field.field_name,
+            value=field.raw_value,
+            normalized_value=field.normalized_value,
+            confidence=field.confidence,
+            page_number=field.page_number,
+            bounding_box=field.bounding_box.model_dump(),
+            extraction_method=field.extraction_method.value,
+            validation_status=field.validation_status.value,
+            validation_reasons=field.validation_reasons,
+        )
+
+
+class DocumentResultResponse(BaseModel):
+    document: DocumentResponse
+    fields: list[ExtractedFieldResponse]
+    field_count: int
+    processing_complete: bool

@@ -1,0 +1,16 @@
+policy_version: code-consensus-local-first-v3
+status: ACTIVE_CURRENT_SAMPLE_REPLAY
+inherits: crop-local-first-v2
+route:
+  family: CMS1500
+  field: diagnosis_pointer
+  criticality: NONCRITICAL
+  method: CONSTRAINED_CODE_CONSENSUS
+  requirements:
+    - PADDLE_V5_V6_NORMALIZED_AGREEMENT
+    - MINIMUM_PADDLE_CONFIDENCE_0_90
+    - TESSERACT_CONSTRAINED_PARSE_SUPPORT
+    - VALID_DIAGNOSIS_POINTER_FORMAT
+    - NO_PADDLE_CONTRADICTION
+promotion_scope: CURRENT_LABELED_SAMPLE_ONLY
+untouched_holdout_required_for_general_promotion: true

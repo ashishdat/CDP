@@ -13,15 +13,40 @@ export type Mismatch = {
   failure_category: string;
 };
 
+export type FieldEvidence = {
+  document_id: string;
+  form_type: string;
+  field_name: string;
+  expected_value: string | null;
+  extracted_value: string | null;
+  normalized_value: string | null;
+  extraction_method: string;
+  confidence: number | null;
+  status: string;
+  correct: boolean;
+  original_page_url: string | null;
+  row_context_url: string | null;
+  crop_url: string | null;
+};
+
 export type EvaluationReport = {
   report_metadata?: {
     dataset_label?: string;
     synthetic_demo?: boolean;
     generated_at?: string;
+    scope?: string;
+    production_generalization_claim?: boolean;
+    optimization_measurement?: string;
   };
   field_count: number;
   raw_exact_match_accuracy: number;
   normalized_field_accuracy: number;
+  ocr_deterministic_accuracy: number;
+  local_extraction_accuracy?: number;
+  local_extraction_correct_fields?: number;
+  local_extraction_definition?: string;
+  llm_diversion_rate: number;
+  llm_diverted_fields: number;
   critical_field_accuracy: number;
   character_error_rate: number;
   missing_field_rate: number;
@@ -30,7 +55,6 @@ export type EvaluationReport = {
   false_review_rate: number;
   perfect_claim_rate: number;
   straight_through_processing_rate: number;
-  hitl_rate: number;
   accuracy_before_fallback: number;
   accuracy_after_fallback: number;
   accuracy_by_field: Record<string, number>;
@@ -38,4 +62,53 @@ export type EvaluationReport = {
   accuracy_by_extraction_method: Record<string, number>;
   accuracy_by_image_quality_bucket: Record<string, number>;
   mismatches: Mismatch[];
+  field_evidence?: FieldEvidence[];
+  optimization_metrics?: {
+    baseline_ocr_correct_fields: number;
+    baseline_ocr_accuracy: number;
+    llm_attempted_fields: number;
+    llm_diversion_rate: number;
+    llm_incremental_recoveries: number;
+    llm_incremental_recovery_rate: number;
+    paddle_incremental_recoveries: number;
+    deterministic_incremental_recoveries: number;
+    local_union_incremental_recoveries: number | null;
+    target_llm_diversion_rate: number;
+    promotion_status: string;
+    historical_llm_attempts?: number;
+    unique_llm_eligible_fields_before?: number;
+    duplicate_requests_eliminated?: number;
+    reference_short_circuits?: number;
+    local_route_short_circuits?: number;
+    semantic_short_circuits?: number;
+    reference_before_llm?: boolean;
+    exact_cache_eligible_repeat_fields?: number;
+    repeat_llm_fields_after_warm_cache?: number;
+    gates?: Record<string, boolean>;
+  };
+  operational_metrics?: {
+    total_pages_processed: number;
+    processing_time_seconds: number | null;
+    average_latency_seconds: number | null;
+    pages_per_second: number | null;
+    accuracy: number;
+    precision: number;
+    recall: number;
+    measurement_note?: string;
+  };
+  cost_analysis?: {
+    currency: string;
+    total_cost_per_page_usd: number;
+    actual_run_cost_usd: number;
+    actual_invoice_cost_usd: number | null;
+    projected_optimized_run_cost_usd?: number;
+    projected_optimized_cost_per_page_usd?: number | null;
+    components: Array<{
+      name: "OCR" | "LLM" | "Vision AI" | "GPU" | "CPU";
+      cost_per_page_usd: number | null;
+      status: "MEASURED" | "INCLUDED" | "NOT_USED" | "NOT_METERED";
+      basis: string;
+    }>;
+    measurement_note?: string;
+  };
 };

@@ -16,11 +16,17 @@ from sqlalchemy.orm import Session, sessionmaker
 from apps.ingestion_api.db.repository import (
     AuditRepository,
     DocumentRepository,
+    ExtractedFieldRepository,
     PollingOutboxRepository,
     SqlAlchemyOutboxRepository,
 )
 from apps.ingestion_api.db.session import make_session_factory
-from apps.ingestion_api.schemas import DocumentResponse
+from apps.ingestion_api.schemas import (
+    DocumentResponse,
+    DocumentResultResponse,
+    ExtractedFieldResponse,
+)
+from packages.domain.enums import DocumentStatus
 from apps.ingestion_api.service import (
     FileTooLargeError,
     IngestionService,
@@ -163,3 +169,29 @@ def get_document(
     if document is None:
         raise HTTPException(status_code=404, detail="document not found")
     return DocumentResponse.from_domain(document, is_new=False)
+
+
+@app.get("/documents/{document_id}/results", response_model=DocumentResultResponse)
+def get_document_results(
+    document_id: UUID,
+    session_factory: sessionmaker[Session] = Depends(get_session_factory),
+) -> DocumentResultResponse:
+    with session_factory() as session:
+        document = DocumentRepository(session).get(document_id)
+        if document is None:
+            raise HTTPException(status_code=404, detail="document not found")
+        fields = ExtractedFieldRepository(session).list_for_document(document_id)
+    terminal_statuses = {
+        DocumentStatus.NEEDS_REVIEW,
+        DocumentStatus.COMPLETED,
+        DocumentStatus.OUTPUT_GENERATED,
+        DocumentStatus.FAILED,
+        DocumentStatus.QUARANTINED,
+    }
+    return DocumentResultResponse(
+        document=DocumentResponse.from_domain(document, is_new=False),
+        fields=[ExtractedFieldResponse.from_domain(field) for field in fields],
+        field_count=len(fields),
+        # The current vertical slice stops at VALIDATING after persisted OCR.
+        processing_complete=bool(fields) or document.status in terminal_statuses,
+    )

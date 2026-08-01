@@ -10,6 +10,13 @@ from pathlib import Path
 
 from PIL import Image
 
+from packages.fallback_routing import (
+    FallbackAction,
+    FallbackRequest,
+    GovernedInferenceCache,
+    route_fallback,
+    verified_reference_keys,
+)
 from workers.vlm_fallback.adapter import AzureOpenAIVisionAdapter
 from workers.vlm_fallback.schema import VLMFieldRequest
 
@@ -23,6 +30,21 @@ def main() -> int:
     parser.add_argument("--context-pass", action="store_true")
     parser.add_argument("--only", action="append", default=[])
     parser.add_argument("--specialized-pass", action="store_true")
+    parser.add_argument(
+        "--reference-decisions",
+        type=Path,
+        default=Path(
+            "evaluation_results/reference_validation_six/final_import/reference_decisions.json"
+        ),
+    )
+    parser.add_argument(
+        "--inference-cache",
+        type=Path,
+        default=Path("evaluation_results/governed_inference_cache/azure_crop_cache.json"),
+    )
+    parser.add_argument("--prompt-version", default="crop-field-extraction-v1")
+    parser.add_argument("--normalization-version", default="normalization-rules-v1")
+    parser.add_argument("--validation-policy-version", default="extraction-v2")
     args = parser.parse_args()
     artifacts = json.loads(args.artifacts.read_text(encoding="utf-8"))
     if args.only:
@@ -43,18 +65,67 @@ def main() -> int:
     endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "")
     deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT") or os.getenv("AZURE_AI_EVALUATION_DEPLOYMENT", "")
     api_key = os.getenv("AZURE_OPENAI_API_KEY", "")
-    if not endpoint or not deployment or not api_key:
-        raise RuntimeError("Azure endpoint, deployment and API key are required")
-    adapter = AzureOpenAIVisionAdapter(
-        endpoint=endpoint, deployment=deployment,
-        api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
-        api_key=api_key, enabled=True,
+    adapter = None
+    cache = GovernedInferenceCache(args.inference_cache)
+    reference_rows = (
+        json.loads(args.reference_decisions.read_text(encoding="utf-8"))
+        if args.reference_decisions.is_file()
+        else []
     )
+    reference_keys = verified_reference_keys(reference_rows)
+    reference_by_document_field = {
+        (parts[0], parts[-1]): key
+        for key in reference_keys
+        if len(parts := key.split("|")) >= 5
+    }
     results = []
+    cloud_calls = 0
+    cache_hits = 0
+    reference_short_circuits = 0
     for row in artifacts:
         crop = Path(str(row["original_regional_crop"]).replace("\\", "/"))
         field = row["field_name"]
         image_bytes = crop.read_bytes()
+        identity = reference_by_document_field.get(
+            (str(row["document_id"]), str(field)),
+            "|".join(
+                (
+                    str(row["document_id"]),
+                    str(row.get("page_number") or 1),
+                    str(row.get("document_family") or "UNKNOWN"),
+                    str(row.get("service_line_number") or ""),
+                    str(field),
+                )
+            ),
+        )
+        fallback_request = FallbackRequest(
+            identity_key=identity,
+            crop_sha256=str(row["image_sha256"]),
+            prompt_version=args.prompt_version,
+            model_version=f"{deployment}|{os.getenv('AZURE_OPENAI_API_VERSION', '2024-10-21')}",
+            normalization_version=args.normalization_version,
+            validation_policy_version=args.validation_policy_version,
+        )
+        routed = route_fallback(
+            fallback_request,
+            reference_keys=reference_keys,
+            local_evidence=None,
+            cache=cache,
+        )
+        if routed.action == FallbackAction.REFERENCE_VERIFIED:
+            reference_short_circuits += 1
+            results.append({
+                "document_id": row["document_id"], "field_name": field,
+                "crop_sha256": row["image_sha256"], "provider": "AUTHORIZED_REFERENCE",
+                "candidate_authority": "REFERENCE_VERIFIED",
+                "automatically_acceptable": True, "usage": {},
+                "evaluation_truth_loaded": False, "routing_action": routed.action,
+            })
+            continue
+        if routed.action == FallbackAction.CACHED_CLOUD_EVIDENCE:
+            cache_hits += 1
+            results.append({**dict(routed.evidence or {}), "routing_action": routed.action})
+            continue
         context_crop = None
         if args.context_pass:
             page_path = Path(str(row["original_page_reference"]).replace("\\", "/"))
@@ -88,13 +159,24 @@ def main() -> int:
                 "crop. CMS-1500 displays LAST NAME, FIRST NAME, MIDDLE INITIAL. Transcribe "
                 "visible handwriting exactly; do not return the complete name."
             )
+        if adapter is None:
+            if not endpoint or not deployment or not api_key:
+                raise RuntimeError(
+                    "Azure endpoint, deployment and API key are required for an uncached field"
+                )
+            adapter = AzureOpenAIVisionAdapter(
+                endpoint=endpoint, deployment=deployment,
+                api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-10-21"),
+                api_key=api_key, enabled=True,
+            )
         response = adapter.extract_fields({field: image_bytes}, [VLMFieldRequest(
             field_name=field,
             field_type=row["field_type"],
             expected_description=description,
             prior_ocr_candidates=[],
         )])[0]
-        results.append({
+        cloud_calls += 1
+        candidate = {
             "document_id": row["document_id"], "field_name": field,
             "field_type": row["field_type"], "writing_type": row["writing_type"],
             "value": response.value, "confidence": response.confidence,
@@ -105,18 +187,28 @@ def main() -> int:
             "evaluation_truth_loaded": False,
             "pass_type": "EXPANDED_CONTEXT" if args.context_pass else "CELL_ONLY",
             "specialized_pass": args.specialized_pass,
-            "context_bbox": context_crop,
-        })
+            "context_bbox": context_crop, "routing_action": FallbackAction.CALL_CLOUD,
+        }
+        results.append(candidate)
+        cache.put(fallback_request, candidate)
     args.output.mkdir(parents=True, exist_ok=True)
     (args.output / "candidates.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
     (args.output / "runtime.json").write_text(json.dumps({
-        "fields_attempted": len(results), "full_pages_sent": 0,
+        "fields_planned": len(artifacts), "fields_resolved": len(results),
+        "cloud_calls": cloud_calls, "cache_hits": cache_hits,
+        "reference_short_circuits": reference_short_circuits, "full_pages_sent": 0,
         "evaluation_truth_loaded": False, "candidate_authority": "REVIEW_ONLY",
         "pass_type": "EXPANDED_CONTEXT" if args.context_pass else "CELL_ONLY",
-        "input_tokens": sum(row["usage"].get("input_tokens", 0) for row in results),
-        "output_tokens": sum(row["usage"].get("output_tokens", 0) for row in results),
+        "input_tokens": sum(row.get("usage", {}).get("input_tokens", 0) for row in results
+                            if row.get("routing_action") == FallbackAction.CALL_CLOUD),
+        "output_tokens": sum(row.get("usage", {}).get("output_tokens", 0) for row in results
+                             if row.get("routing_action") == FallbackAction.CALL_CLOUD),
     }, indent=2), encoding="utf-8")
-    print(json.dumps({"fields_attempted": len(results), "full_pages_sent": 0}, indent=2))
+    print(json.dumps({
+        "fields_planned": len(artifacts), "cloud_calls": cloud_calls,
+        "cache_hits": cache_hits, "reference_short_circuits": reference_short_circuits,
+        "full_pages_sent": 0,
+    }, indent=2))
     return 0
 
 

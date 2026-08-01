@@ -13,7 +13,7 @@ from evaluation.reporting_v3_common import (
     sha256_file,
 )
 
-ROOT = Path(__file__).parents[2]
+ROOT = next(parent for parent in Path(__file__).parents if (parent / "pyproject.toml").exists())
 
 
 def _load(relative: str):

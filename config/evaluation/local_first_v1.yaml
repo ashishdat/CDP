@@ -1,0 +1,37 @@
+policy_version: local-first-v1
+status: ACTIVE_CURRENT_SAMPLE_REPLAY
+router_policy_version: router_frozen_v1
+critical_fields:
+  action: REQUIRE_REFERENCE_OR_EXISTING_GOVERNED_DECISION
+  local_model_auto_accept: false
+routes:
+  - family: CMS1500
+    field_types: [date, code]
+    fields: [date_from, place_of_service]
+    criticality: NONCRITICAL
+    requirements:
+      - VALID_REGIONAL_CROP
+      - FIELD_FORMAT_VALID
+      - LOCAL_CONSENSUS
+      - NO_CONTRADICTION
+  - family: UB04
+    field_types: [date, code]
+    fields: [service_date, hcpcs_rate_hipps_code]
+    criticality: NONCRITICAL
+    requirements:
+      - VALID_REGIONAL_CROP
+      - FIELD_FORMAT_VALID
+      - PADDLE_VERSION_CONSENSUS
+      - DETERMINISTIC_CONFUSION_REPAIR_UNIQUE
+      - NO_CONTRADICTION
+semantic_short_circuit:
+  enabled: true
+  requirement: APPROVED_SPECIFICATION_RULE
+reference_short_circuit:
+  enabled: true
+  requirement: REFERENCE_VERIFIED
+request_deduplication:
+  enabled: true
+  key: document_id|page_number|field_name|crop_sha256|prompt_version
+promotion_scope: CURRENT_LABELED_SAMPLE_ONLY
+untouched_holdout_required_for_general_promotion: true

@@ -1,0 +1,13 @@
+enabled: true
+authority: REVIEW_ONLY
+engine: got_ocr2
+independence_group: GOT_OCR_FAMILY
+model_name: stepfun-ai/GOT-OCR-2.0-hf
+model_revision: d3017ef2c2c1395888c8d635c5e0508bcb0ac78d
+device: auto
+min_confidence: 0.55
+max_new_tokens: 32
+input_manifest: evaluation_results/ocr_shadow_bakeoff/manifest.json
+output_directory: evaluation_results/got_ocr2_shadow
+ground_truth_available_during_inference: false
+production_promotion: false

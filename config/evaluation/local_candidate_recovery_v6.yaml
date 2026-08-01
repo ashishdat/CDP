@@ -1,0 +1,12 @@
+policy_version: local-candidate-recovery-v6
+scope: CURRENT_LABELED_SAMPLE_ONLY
+router_policy_version: router_frozen_v1
+routes:
+  - route: CMS1500|insured_state|duplicate_regional_tesseract
+    requirements: [SELF_RELATIONSHIP, TWO_DISTINCT_REGIONS, VALID_US_STATE, EXACT_REGION_AGREEMENT]
+  - route: CMS1500|insured_city|handwriting_cleanup
+    requirements: [REGIONAL_CROP, VISIBLE_LETTERS_ONLY, LABEL_REJECTION, AUTHORIZED_REFERENCE_FOR_ACCEPTANCE]
+  - route: CMS1500|insured_addr1|house_number_component_repair
+    requirements: [REGIONAL_CROP, SINGLE_CONSTRAINED_GLYPH_REPAIR, STREET_SUFFIX, AUTHORIZED_REFERENCE_FOR_ACCEPTANCE]
+general_production_promotion: false
+untouched_holdout_required: true

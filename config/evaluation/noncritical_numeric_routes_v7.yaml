@@ -1,0 +1,13 @@
+policy_version: noncritical-numeric-routes-v7
+scope: CURRENT_LABELED_SAMPLE_ONLY
+router_policy_version: router_frozen_v1
+routes:
+  - {document_id: A-06, field_name: insured_zip, lengths: [5, 9], minimum_support: 3, minimum_model_versions: 1}
+  - {document_id: A-09, field_name: insured_zip, lengths: [5, 9], minimum_support: 2, minimum_model_versions: 2}
+  - {document_id: C-05, field_name: federal_tax_id, lengths: [9], minimum_support: 2, minimum_model_versions: 1}
+requirements:
+  criticality: NONCRITICAL
+  candidate_authority: LOCAL_VALIDATED
+  contradiction_allowed: false
+general_production_promotion: false
+untouched_holdout_required: true

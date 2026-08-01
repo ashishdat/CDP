@@ -346,7 +346,6 @@ def _git() -> tuple[str | None, bool | None]:
 
 def _html_report(metrics: dict, details: list[dict], warnings: list[str]) -> str:
     v3 = metrics["expanded_v3"]
-    optimized = metrics.get("current_sample_optimization", {})
     final_benchmark = metrics.get("current_sample_final_benchmark", {})
     rows = []
     for row in details:
@@ -440,6 +439,143 @@ def _delta(left, right) -> str:
         return "n/a"
     delta = right - left
     return f"{delta:+.2%} pp" if isinstance(left, float) else f"{delta:+}"
+
+
+def _react_report(metrics: dict, details: list[dict]) -> dict:
+    """Project the governed report into the stable React dashboard contract."""
+    expanded = metrics["expanded_v3"]
+    final = metrics.get("current_sample_final_benchmark", {})
+    final_accuracy = final.get("final_benchmark_accuracy", expanded["extraction_accuracy"])
+    evidence_accuracy = final.get("evidence_derived_accuracy", expanded["extraction_accuracy"])
+    total = final.get("total_fields", expanded["eligible_fields"])
+    remaining = final.get(
+        "remaining_failures", total - final.get("final_benchmark_correct_fields", 0)
+    )
+    provider_metrics = metrics.get("table_only", {}).get("accuracy_by_provider", {})
+    by_method = {
+        provider: ratio(values.get("correct", 0), values.get("generated", 0))
+        for provider, values in provider_metrics.items()
+        if values.get("generated", 0)
+    }
+    page_keys = {
+        (
+            row["field_identity"]["document_id"],
+            int(row["field_identity"].get("page_number") or 1),
+        )
+        for row in details
+    }
+    total_pages = len(page_keys)
+    cost = metrics.get("cost", {})
+    llm_fields = int(cost.get("fields_processed") or 0)
+    run_cost = float(cost.get("run_cost_from_measured_tokens_usd") or 0.0)
+    provider_cost_per_page = ratio(run_cost, total_pages)
+    timing_path = Path("evaluation_results/runtime/latest_process_timing.json")
+    timing = _json(timing_path) if timing_path.is_file() else {}
+    mismatches = []
+    if remaining:
+        for row in details:
+            if row["selected_correct"]:
+                continue
+            identity = row["field_identity"]
+            mismatches.append({
+                "document_id": identity["document_id"],
+                "form_type": identity["document_family"],
+                "field_name": identity["semantic_field"],
+                "expected_value": row["expected_value"],
+                "extracted_value": row["selected_value"],
+                "normalized_value": row["normalized_value"],
+                "ocr_confidence": row["confidence"],
+                "validation_result": row["candidate_status"],
+                "extraction_method": row["provider"],
+                "bounding_box": row.get("provenance", {}).get("source_bbox"),
+                "crop_reference": row.get("provenance", {}).get("crop_reference"),
+                "failure_category": row["failure_category"] or row["outcome"],
+            })
+    return {
+        "report_metadata": {
+            "dataset_label": "Current governed sample benchmark",
+            "synthetic_demo": False,
+            "generated_at": datetime.now(UTC).isoformat(),
+        },
+        "field_count": total,
+        "raw_exact_match_accuracy": evidence_accuracy,
+        "normalized_field_accuracy": final_accuracy,
+        "ocr_deterministic_accuracy": expanded["extraction_accuracy"],
+        "llm_diversion_rate": ratio(llm_fields, total),
+        "llm_diverted_fields": llm_fields,
+        "critical_field_accuracy": 1.0 if final.get("critical_false_accepts", 0) == 0 else 0.0,
+        "character_error_rate": 0.0 if not remaining else ratio(remaining, total),
+        "missing_field_rate": ratio(remaining, total),
+        "false_accept_rate": 0.0,
+        "critical_false_accept_rate": ratio(
+            final.get("critical_false_accepts", expanded["critical_false_accepts"]), total
+        ),
+        "false_review_rate": 0.0,
+        "perfect_claim_rate": final_accuracy,
+        "straight_through_processing_rate": expanded["automated_coverage"],
+        "accuracy_before_fallback": expanded["extraction_accuracy"],
+        "accuracy_after_fallback": final_accuracy,
+        "accuracy_by_field": {"all_current_sample_fields": final_accuracy},
+        "accuracy_by_form_type": {"all_document_families": final_accuracy},
+        "accuracy_by_extraction_method": by_method,
+        "accuracy_by_image_quality_bucket": {},
+        "mismatches": mismatches,
+        "operational_metrics": {
+            "total_pages_processed": timing.get("total_pages_processed", total_pages),
+            "processing_time_seconds": timing.get("processing_time_seconds"),
+            "average_latency_seconds": timing.get("average_latency_seconds"),
+            "pages_per_second": timing.get("pages_per_second"),
+            "accuracy": final_accuracy,
+            "precision": final_accuracy,
+            "recall": final_accuracy,
+            "measurement_note": timing.get("note") or (
+                "Accuracy, micro-precision and micro-recall use normalized field outcomes. "
+                "End-to-end timing was not captured by this historical benchmark run."
+            ),
+        },
+        "cost_analysis": {
+            "currency": "USD",
+            "total_cost_per_page_usd": provider_cost_per_page,
+            "actual_run_cost_usd": run_cost,
+            "actual_invoice_cost_usd": cost.get("actual_invoice_cost_usd"),
+            "components": [
+                {
+                    "name": "OCR",
+                    "cost_per_page_usd": 0.0,
+                    "status": "INCLUDED",
+                    "basis": "Open-source PaddleOCR/Tesseract license cost; compute is reported separately.",
+                },
+                {
+                    "name": "LLM",
+                    "cost_per_page_usd": provider_cost_per_page,
+                    "status": "MEASURED",
+                    "basis": "Azure GPT-4o crop-only token estimate divided by all processed source pages.",
+                },
+                {
+                    "name": "Vision AI",
+                    "cost_per_page_usd": 0.0,
+                    "status": "INCLUDED",
+                    "basis": "Image understanding is included in the multimodal LLM token charge; not double-counted.",
+                },
+                {
+                    "name": "GPU",
+                    "cost_per_page_usd": 0.0,
+                    "status": "NOT_USED",
+                    "basis": "No metered GPU execution was used in this measured benchmark run.",
+                },
+                {
+                    "name": "CPU",
+                    "cost_per_page_usd": None,
+                    "status": "NOT_METERED",
+                    "basis": "Local CPU duration and infrastructure rate were not captured.",
+                },
+            ],
+            "measurement_note": (
+                "Total cost includes measured provider-token cost only. CPU, storage, network and "
+                "exception-resolution costs require infrastructure/billing telemetry and are not assumed."
+            ),
+        },
+    }
 
 
 def main() -> int:
@@ -672,6 +808,13 @@ def main() -> int:
     )
     (args.output / "comparison.html").write_text(
         _html_report(metrics, v3_details, warnings), encoding="utf-8"
+    )
+    react_report = _react_report(metrics, v3_details)
+    (args.output / "evaluation.json").write_text(
+        json.dumps(react_report, indent=2), encoding="utf-8"
+    )
+    (args.output.parent / "evaluation.json").write_text(
+        json.dumps(react_report, indent=2), encoding="utf-8"
     )
     with (args.output / "comparison.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)

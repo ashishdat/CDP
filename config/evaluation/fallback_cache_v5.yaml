@@ -1,0 +1,20 @@
+policy_version: fallback-cache-v5
+status: ACTIVE
+evaluation_order:
+  - AUTHORIZED_REFERENCE
+  - PROMOTED_LOCAL_ROUTE
+  - EXACT_INFERENCE_CACHE
+  - CLOUD_FALLBACK
+cache_key:
+  - field_identity
+  - crop_sha256
+  - prompt_version
+  - model_version
+  - normalization_version
+  - validation_policy_version
+authority_policy:
+  preserve_candidate_authority: true
+  cached_review_evidence_remains_review_only: true
+  critical_fields_require_reference_or_approved_route: true
+first_pass_llm_target: 0.08
+general_promotion_requires_untouched_holdout: true

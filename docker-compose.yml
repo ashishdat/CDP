@@ -187,6 +187,9 @@ services:
       - "8180:80"
     volumes:
       - ./evaluation_results:/usr/share/nginx/html/reports:ro
+    depends_on:
+      ingestion-api:
+        condition: service_healthy
 
   handwriting-ocr:
     profiles: ["ml"]

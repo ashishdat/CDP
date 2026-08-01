@@ -11,6 +11,9 @@ describe("evaluation dashboard", () => {
         field_count: 2,
         raw_exact_match_accuracy: 0.5,
         normalized_field_accuracy: 0.5,
+        ocr_deterministic_accuracy: 0.4,
+        llm_diversion_rate: 0.5,
+        llm_diverted_fields: 1,
         critical_field_accuracy: 1,
         character_error_rate: 0.1,
         missing_field_rate: 0,
@@ -19,13 +22,22 @@ describe("evaluation dashboard", () => {
         false_review_rate: 0,
         perfect_claim_rate: 0,
         straight_through_processing_rate: 0,
-        hitl_rate: 0.5,
         accuracy_before_fallback: 0.4,
         accuracy_after_fallback: 0.8,
         accuracy_by_field: { total_charge: 0.5 },
         accuracy_by_form_type: { CMS1500: 0.5 },
         accuracy_by_extraction_method: { REGIONAL_PADDLEOCR: 0.5 },
         accuracy_by_image_quality_bucket: { good: 0.5 },
+        operational_metrics: {
+          total_pages_processed: 2, processing_time_seconds: 4,
+          average_latency_seconds: 2, pages_per_second: 0.5,
+          accuracy: 0.5, precision: 0.5, recall: 0.5,
+        },
+        cost_analysis: {
+          currency: "USD", total_cost_per_page_usd: 0.01,
+          actual_run_cost_usd: 0.02, actual_invoice_cost_usd: null,
+          components: [{ name: "LLM", cost_per_page_usd: 0.01, status: "MEASURED", basis: "Test tokens" }],
+        },
         mismatches: [{
           document_id: "A-01", form_type: "CMS1500", field_name: "total_charge",
           expected_value: "100.00", extracted_value: "900.00", normalized_value: "900.00",
@@ -38,9 +50,33 @@ describe("evaluation dashboard", () => {
       { type: "application/json" },
     );
     fireEvent.change(input, { target: { files: [file] } });
-    expect(await screen.findByText("Extraction accuracy")).toBeInTheDocument();
+    expect(await screen.findByText("Governed extraction results")).toBeInTheDocument();
+    expect(screen.getByText("Current-sample validated accuracy")).toBeInTheDocument();
+    expect(screen.getByText("Performance & cost analysis")).toBeInTheDocument();
+    expect(screen.getByText("Optimized component cost per page")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Field evidence" }));
+    expect(screen.getByText("Field-level evidence")).toBeInTheDocument();
     expect(screen.getByText("100.00")).toBeInTheDocument();
     expect(screen.getAllByText("900.00")).toHaveLength(2);
     expect(screen.getAllByText("FALSE_ACCEPT")).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("tab", { name: "OCR & LLM flow" }));
+    expect(screen.getByText("How evidence becomes a validated field")).toBeInTheDocument();
+    expect(screen.getByText("Run local OCR cascade")).toBeInTheDocument();
+    expect(screen.getByText("Escalate unresolved crops")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Tuning & governance" }));
+    expect(screen.getByText("Tuning applied across the extraction stack")).toBeInTheDocument();
+    expect(screen.getByText("Alignment & coordinates")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Submission" }));
+    expect(screen.getByText("Submission readiness centre")).toBeInTheDocument();
+    expect(screen.getByText("10-minute live demonstration")).toBeInTheDocument();
+    expect(screen.getByText("Excel-ready measured metrics")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Process claims" }));
+    expect(screen.getByText("Upload and process claims")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Choose files" })).toBeInTheDocument();
   });
 });

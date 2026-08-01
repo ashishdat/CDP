@@ -1,0 +1,32 @@
+policy_version: hitl-optimization-v1
+target_hitl_rate: 0.0
+critical_false_accepts_maximum: 0
+default_disposition: BLOCKED_INSUFFICIENT_EVIDENCE
+reference_required_reasons:
+  - REFERENCE_REQUIRED
+critical_identity_fields:
+  - patient_first
+  - patient_last
+  - patient_dob
+  - patient_addr1
+  - insured_addr1
+  - insured_city
+  - insured_state
+  - insured_zip
+  - member_id
+  - provider_npi
+route_promotion:
+  require_active_route: true
+  allowed_statuses:
+    - ACTIVE
+  required_validation_results:
+    - CROSS_FAMILY_AGREEMENT
+  forbidden_validation_results:
+    - AMBIGUOUS_OCR_REPAIR_REQUIRES_REVIEW
+    - REFERENCE_CONTRADICTION
+    - INSUFFICIENT_EVIDENCE
+reference_promotion:
+  required_decision: REFERENCE_VERIFIED
+  reject_decisions:
+    - REFERENCE_CONTRADICTION
+ground_truth_allowed_during_optimization: false

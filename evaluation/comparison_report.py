@@ -77,7 +77,7 @@ def main() -> int:
                     method=_e(actual.extraction_method if actual else "—"),
                     confidence=_e(f"{actual.confidence:.1%}" if actual and actual.confidence else "—"),
                     candidates=_e(candidate_text),
-                    status_text="✓ Match" if ok else "✗ Review required",
+                    status_text="✓ Match" if ok else "✗ Not finalized",
                 )
             )
         image_name = f"{document.document_id}.png"

@@ -1,0 +1,14 @@
+enabled: true
+authority: REVIEW_ONLY
+engine: florence2
+independence_group: FLORENCE_FAMILY
+model_name: microsoft/Florence-2-base
+model_revision: 5ca5edf5bd017b9919c05d08aebef5e4c7ac3bac
+device: auto
+min_confidence: 0.55
+task: "<OCR>"
+max_new_tokens: 128
+input_manifest: evaluation_results/ocr_shadow_bakeoff/manifest.json
+output_directory: evaluation_results/florence2_shadow
+ground_truth_available_during_inference: false
+production_promotion: false

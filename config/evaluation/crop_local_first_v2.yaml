@@ -1,0 +1,26 @@
+policy_version: crop-local-first-v2
+status: ACTIVE_CURRENT_SAMPLE_REPLAY
+inherits: local-first-v1
+routes:
+  - families: [CMS1500, attachment]
+    fields: [rel_code]
+    method: PIXEL_MARK_DETECTION
+    requirements:
+      - ALIGNED_TEMPLATE
+      - BORDER_REMOVED_INTERIOR_DENSITY
+      - UNIQUE_SELECTION
+      - WINNING_MARGIN_VALID
+      - NO_MULTIPLE_MARKS
+  - families: [UB04]
+    fields: [patient_sex]
+    method: PIXEL_MARK_DETECTION
+    requirements:
+      - ALIGNED_TEMPLATE
+      - BORDER_REMOVED_INTERIOR_DENSITY
+      - UNIQUE_SELECTION
+      - WINNING_MARGIN_VALID
+      - NO_MULTIPLE_MARKS
+critical_name_address_routes: REFERENCE_OR_GOVERNED_DECISION_ONLY
+tax_identifier_route: KEEP_LLM_OR_REFERENCE_GATED
+promotion_scope: CURRENT_LABELED_SAMPLE_ONLY
+untouched_holdout_required_for_general_promotion: true

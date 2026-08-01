@@ -33,10 +33,10 @@ dist/
 /bundle_runs/
 /scratchpad_reports/
 
-# Env / secrets
-.env
-.env.*
-!.env.example
+# Env / secrets. The broad pattern also catches accidental names such as
+# `.env.local`, `.env copy`, and nested test environment files.
+**/.env*
+!/.env.example
 
 # IDE
 .vscode/
@@ -54,3 +54,13 @@ Thumbs.db
 node_modules/
 apps/human_review_api/frontend/dist/
 apps/evaluation_ui/dist/
+apps/evaluation_ui/public/reports/evidence/
+submission/
+.pytest_tmp/
+*.tsbuildinfo
+
+# Local operator/model state
+.claude/
+.docker-empty/
+.model-cache/
+.tools/

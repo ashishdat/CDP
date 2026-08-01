@@ -1,0 +1,18 @@
+policy_version: description-token-fusion-v4
+status: ACTIVE_CURRENT_SAMPLE_REPLAY
+inherits: code-consensus-local-first-v3
+route:
+  family: UB04
+  field: description
+  criticality: NONCRITICAL
+  method: INDEPENDENT_TOKEN_FUSION
+  requirements:
+    - VALID_SINGLE_CELL_CROP
+    - EQUAL_TOKEN_COUNT
+    - PADDLE_AND_TESSERACT_EVIDENCE
+    - CONTROLLED_TERM_EDIT_DISTANCE_MAX_1
+    - OTHER_TOKEN_EDIT_DISTANCE_MAX_2
+    - ABSTAIN_ON_UNALIGNED_OR_LARGE_DISAGREEMENT
+forbidden_fields: [patient_name, patient_address, provider_name, diagnosis]
+promotion_scope: CURRENT_LABELED_SAMPLE_ONLY
+untouched_holdout_required_for_general_promotion: true

@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import pytest
 
 from packages.table_label_store import TableLabelStore
-from tests.unit.test_table_contracts import make_label
+from tests.unit.cases.test_table_contracts import make_label
 
 
 def test_duplicate_and_contradictory_labels_are_rejected(tmp_path):

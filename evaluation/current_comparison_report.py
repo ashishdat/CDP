@@ -81,7 +81,7 @@ def main() -> int:
                 f"<td>{_e(decision.get('selected_page'))}</td>"
                 f"<td>{_e(decision.get('reason'))}</td>"
                 f"<td>{_e(evidence)}</td>"
-                f"<td>{'Match' if correct else 'Review required'}</td></tr>"
+                f"<td>{'Match' if correct else 'Not finalized'}</td></tr>"
             )
         image = f"assets/{document_id}.png"
         sections.append(f"""
@@ -133,7 +133,6 @@ tr.match td:last-child{{color:#18743a}} tr.mismatch td:last-child{{color:#a21d1d
 <div class="card"><span>Critical false accepts</span><strong id="falseAccept">{metrics['critical_false_accepts']}</strong></div>
 <div class="card"><span>Governed non-selection cases</span><strong id="governed">{oracle['governed_non_selection_cases']}</strong></div>
 <div class="card"><span>Reference-blocked fields</span><strong id="referenceBlocked">{channels['REFERENCE_BLOCKED_FIELDS']}</strong></div>
-<div class="card"><span>Human-review-required</span><strong id="humanReview">{channels['HUMAN_REVIEW_REQUIRED_FIELDS']}</strong></div>
 <div class="card"><span>Semantic-review fields</span><strong id="semanticReview">{channels['SEMANTIC_REVIEW_FIELDS']}</strong></div>
 <div class="card"><span>Final validated accuracy</span><strong id="finalAccuracy">Unavailable</strong></div>
 </div><div class="warning">Local PHI-bearing evaluation artifact. Do not deploy publicly.
@@ -166,7 +165,6 @@ async function refreshMetrics(){{
   wrong.textContent=m.wrong_page_field_count; falseAccept.textContent=m.critical_false_accepts;
   governed.textContent=o.governed_non_selection_cases;
   referenceBlocked.textContent=c.REFERENCE_BLOCKED_FIELDS;
-  humanReview.textContent=c.HUMAN_REVIEW_REQUIRED_FIELDS;
   semanticReview.textContent=c.SEMANTIC_REVIEW_FIELDS;
   finalAccuracy.textContent=c.FINAL_VALIDATED_ACCURACY === null ? 'Unavailable' :
     (100*c.FINAL_VALIDATED_ACCURACY).toFixed(2)+'%';

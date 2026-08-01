@@ -1,0 +1,13 @@
+policy_version: reference-enrichment-v1
+member:
+  require_name_only_rejection: true
+  name_similarity_minimum: 0.92
+  primary_rule: [member_id, dob, name]
+  fallback_rule: [dob, name, zip]
+provider:
+  require_exact_npi: true
+  require_npi_checksum: true
+source:
+  require_independent_truth: true
+  require_non_circular_lineage: true
+  forbidden_origins: [extraction-v2, azure-fallback, unreviewed-ocr, cdp-prediction]

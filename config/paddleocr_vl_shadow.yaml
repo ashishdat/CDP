@@ -1,0 +1,13 @@
+enabled: true
+authority: REVIEW_ONLY
+engine: paddleocr_vl_0_9b
+independence_group: PADDLE_VL_FAMILY
+model_name: PaddlePaddle/PaddleOCR-VL
+# Last official revision before the upstream Transformers-v5 mask change.
+model_revision: 2b77538
+device: auto
+max_new_tokens: 64
+input_manifest: evaluation_results/ocr_shadow_bakeoff/manifest.json
+output_directory: evaluation_results/paddleocr_vl_shadow
+ground_truth_available_during_inference: false
+production_promotion: false
