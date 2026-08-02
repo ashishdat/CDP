@@ -26,7 +26,7 @@ def normalize_text(raw: str) -> tuple[str, bool]:
 
 
 def normalize_date(raw: str) -> tuple[str | None, bool]:
-    cleaned = raw.strip()
+    cleaned = re.sub(r"\s+", "/", raw.strip())
     for fmt in _DATE_FORMATS:
         try:
             parsed = datetime.strptime(cleaned, fmt).date()  # noqa: DTZ007 -- paper-form dates have no timezone
@@ -41,9 +41,15 @@ def normalize_date(raw: str) -> tuple[str | None, bool]:
 
 
 def normalize_currency(raw: str) -> tuple[Decimal | None, bool]:
-    cleaned = re.sub(r"[^0-9.\-]", "", raw.strip())
+    # Table-border OCR commonly leaves a leading/trailing vertical bar. It is
+    # not part of a claim amount and is removed before sign interpretation.
+    source = raw.strip().strip("|").strip()
+    parenthesized = source.startswith("(") and source.endswith(")")
+    cleaned = re.sub(r"[^0-9.\-]", "", source)
     if not cleaned:
         return None, False
+    if parenthesized and not cleaned.startswith("-"):
+        cleaned = f"-{cleaned}"
     try:
         return Decimal(cleaned).quantize(Decimal("0.01")), True
     except InvalidOperation:

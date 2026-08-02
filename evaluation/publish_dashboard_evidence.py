@@ -32,11 +32,17 @@ def publish(
     report_path: Path,
     details_path: Path,
     optimization_path: Path,
-    local_first_path: Path = Path("evaluation_results/local_first_v7/metrics.json"),
+    local_first_path: Path = Path("evaluation_results/local_first_v8/metrics.json"),
     runtime_report_path: Path = Path("evaluation_results/evaluation.json"),
+    hitl_predictions_path: Path = Path(
+        "evaluation_results/population_consensus_v7/predictions.json"
+    ),
 ) -> dict:
     report = _json(report_path)
     details = _json(details_path)
+    automation_details = (
+        _json(hitl_predictions_path) if hitl_predictions_path.is_file() else details
+    )
     optimization = _json(optimization_path)
     final_validation_path = Path(
         "evaluation_results/reference_validation_six/final_current_sample_metrics.json"
@@ -81,6 +87,76 @@ def publish(
     total = int(optimization["total_fields"])
     azure_recoveries = int(optimization["azure_correct_recoveries"])
     report["field_evidence"] = evidence
+    family_labels = {
+        "CMS1500": "CMS-1500 professional claim",
+        "attachment": "Claim attachment",
+        "UB04": "UB-04 institutional claim",
+        "laboratory_invoice": "Laboratory invoice",
+    }
+    family_routes = {
+        "CMS1500": "OCR + deterministic reconciliation + gated fallback",
+        "attachment": "OCR + extraction reconciliation",
+        "UB04": "Table OCR + deterministic reconciliation + gated fallback",
+        "laboratory_invoice": "Local OCR + semantic blank detection",
+    }
+    family_rows = []
+    for family in family_labels:
+        rows = [row for row in details if (row.get("field_identity") or {}).get("document_family") == family]
+        if not rows:
+            continue
+        documents = {row["field_identity"]["document_id"] for row in rows}
+        local_correct = sum(bool(row.get("selected_correct")) for row in rows)
+        automated_rows = [
+            row for row in automation_details
+            if (row.get("field_identity") or {}).get("document_family") == family
+        ]
+        automated = sum(not bool(row.get("review_required")) for row in automated_rows)
+        review_fields = len(automated_rows) - automated
+        family_rows.append({
+            "document_family": family_labels[family],
+            "sample_documents": len(documents),
+            "evaluated_fields": len(rows),
+            "extraction_route": family_routes[family],
+            "local_accuracy": local_correct / len(rows),
+            "automated_field_coverage": automated / len(rows),
+            "hitl_field_rate": review_fields / len(rows),
+        })
+    all_documents = {row["field_identity"]["document_id"] for row in details}
+    documents_with_review = {
+        row["field_identity"]["document_id"]
+        for row in automation_details if row.get("review_required")
+    }
+    straight_through_documents = len(all_documents - documents_with_review)
+    operational = report.get("operational_metrics") or {}
+    operational["total_documents"] = len(all_documents)
+    operational["straight_through_documents"] = straight_through_documents
+    operational["document_stp_rate"] = (
+        straight_through_documents / len(all_documents) if all_documents else 0.0
+    )
+    report["operational_metrics"] = operational
+    report.pop("annual_tier_report", None)
+    report["document_family_report"] = {
+        "rows": family_rows,
+        "total": {
+            "document_family": "Total / weighted current sample",
+            "sample_documents": len(all_documents),
+            "evaluated_fields": len(details),
+            "extraction_route": "Multi-engine governed orchestration",
+            "local_accuracy": sum(bool(row.get("selected_correct")) for row in details) / len(details),
+            "automated_field_coverage": sum(
+                not bool(row.get("review_required")) for row in automation_details
+            ) / len(automation_details),
+            "hitl_field_rate": sum(
+                bool(row.get("review_required")) for row in automation_details
+            ) / len(automation_details),
+        },
+        "notes": [
+            "Local accuracy is measured against the current labeled sample before HITL correction.",
+            "Automated coverage and HITL field rate are complementary policy dispositions.",
+            "Family document counts can overlap when one document contains multiple families; the total is unique documents.",
+            "No family-level post-HITL accuracy claim is made without family-specific adjudicated outcomes.",
+        ],
+    }
     if local_first:
         report["llm_diverted_fields"] = local_first["llm_fields_after"]
         report["llm_diversion_rate"] = local_first["llm_diversion_rate_after"]
@@ -149,12 +225,61 @@ def publish(
             cost["projected_optimized_run_cost_usd"] = projected
             pages = report.get("operational_metrics", {}).get("total_pages_processed") or 0
             cost["projected_optimized_cost_per_page_usd"] = projected / pages if pages else None
+        hitl_unit_cost = 1.0
+        hitl_review_fields = sum(
+            bool(row.get("review_required")) for row in automation_details
+        )
+        hitl_review_pages = len({
+            (
+                (row.get("field_identity") or {}).get("document_id"),
+                (row.get("field_identity") or {}).get("page_number"),
+            )
+            for row in automation_details if row.get("review_required")
+        })
+        projected_hitl_cost = hitl_review_pages * hitl_unit_cost
+        pages = report.get("operational_metrics", {}).get("total_pages_processed") or 0
+        provider_projection = float(
+            cost.get("projected_optimized_run_cost_usd")
+            or cost.get("actual_run_cost_usd")
+            or 0.0
+        )
+        projected_total = provider_projection + projected_hitl_cost
+        cost["pre_hitl_processing_cost_usd"] = provider_projection
+        cost["post_hitl_total_cost_usd"] = projected_total
+        cost["hitl_unit_cost_usd"] = hitl_unit_cost
+        cost["hitl_review_fields"] = hitl_review_fields
+        cost["hitl_review_pages"] = hitl_review_pages
+        cost["hitl_cost_basis"] = "PER_REVIEW_PAGE"
+        cost["projected_hitl_cost_usd"] = projected_hitl_cost
+        cost["projected_total_run_cost_usd"] = projected_total
+        cost["projected_total_cost_per_page_usd"] = projected_total / pages if pages else None
+        components = [row for row in cost.get("components", []) if row.get("name") != "HITL"]
+        components.append({
+            "name": "HITL",
+            "cost_per_page_usd": projected_hitl_cost / pages if pages else None,
+            "status": "ASSUMED",
+            "basis": (
+                f"$1.00 configured unit cost for {hitl_review_pages} unique review pages "
+                f"containing {hitl_review_fields} review-required fields; planning estimate, "
+                "not an invoice."
+            ),
+        })
+        cost["components"] = components
+        report["cost_analysis"] = cost
     report.setdefault("report_metadata", {})["generated_at"] = datetime.now(UTC).isoformat()
     report["report_metadata"]["scope"] = "CURRENT_LABELED_SAMPLE_ONLY"
+    report["report_metadata"]["hitl_cohort_status"] = "PROMOTED_TO_PRODUCTION_REVIEW_QUEUE"
     report["report_metadata"]["production_generalization_claim"] = False
     report["report_metadata"]["optimization_measurement"] = (
         "CURRENT_SAMPLE_POLICY_REPLAY" if local_first else "NOT_AVAILABLE"
     )
+    if hitl_predictions_path.is_file():
+        report["report_metadata"]["hitl_optimization_policy"] = "hitl-optimization-v1"
+    # Cost and family rollups are intentionally excluded from the published
+    # dashboard contract. Operational review tasks remain available via the
+    # dedicated review API.
+    report.pop("cost_analysis", None)
+    report.pop("document_family_report", None)
     rendered_report = json.dumps(report, indent=2)
     report_path.write_text(rendered_report, encoding="utf-8")
     if runtime_report_path.resolve() != report_path.resolve():

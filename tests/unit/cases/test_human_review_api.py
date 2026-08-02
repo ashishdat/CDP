@@ -28,7 +28,7 @@ def object_store():
 
 
 @pytest.fixture
-def client(session_factory, object_store, monkeypatch):
+def client(session_factory, object_store, monkeypatch, tmp_path):
     # The repo-root .env (written for the Docker Compose validation, not
     # committed) points DATABASE_URL at the docker-internal "postgres"
     # hostname; pydantic-settings loads it regardless of dependency
@@ -37,6 +37,7 @@ def client(session_factory, object_store, monkeypatch):
     # constructing TestClient so it never attempts that connection.
     monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
     monkeypatch.setenv("OBJECT_STORE_ENDPOINT", "http://localhost:9000")
+    monkeypatch.setenv("CORRECTION_MEMORY_PATH", str(tmp_path / "corrections.jsonl"))
     app.dependency_overrides[get_session_factory] = lambda: session_factory
     app.dependency_overrides[get_object_store] = lambda: object_store
     with TestClient(app) as test_client:

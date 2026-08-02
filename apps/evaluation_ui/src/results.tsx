@@ -1,13 +1,8 @@
 import { percent } from "./report";
 import type { EvaluationReport } from "./types";
 
-const duration = (value: number | null | undefined) => value == null ? "Not metered" : `${value.toFixed(3)} seconds`;
-const money = (value: number | null | undefined) => value == null ? "Not metered" : `$${value.toFixed(6)}`;
-
 export function ResultsTable({ report }: { report: EvaluationReport }) {
   const operations = report.operational_metrics;
-  const cost = report.cost_analysis;
-  const optimizedCost = cost?.projected_optimized_cost_per_page_usd ?? cost?.total_cost_per_page_usd;
   const rows = [
     ["Quality", "Current-sample validated accuracy", percent(report.normalized_field_accuracy), "Governed normalized field outcomes"],
     ["Quality", "Local extraction accuracy", percent(report.local_extraction_accuracy ?? report.ocr_deterministic_accuracy), report.local_extraction_definition ?? "OCR, parsing and geometry before external fallback"],
@@ -15,17 +10,6 @@ export function ResultsTable({ report }: { report: EvaluationReport }) {
     ["Quality", "Normalized recall", percent(operations?.recall ?? report.normalized_field_accuracy), "Current labelled sample"],
     ["Safety", "Critical false accepts", percent(report.critical_false_accept_rate), "Target: zero"],
     ["Routing", "Optimized LLM diversion", `${report.llm_diverted_fields}/${report.field_count} · ${percent(report.llm_diversion_rate)}`, "Crop-local-first policy replay"],
-    ["Performance", "Total pages processed", String(operations?.total_pages_processed ?? "Not metered"), "Benchmark page count"],
-    ["Performance", "Processing time", duration(operations?.processing_time_seconds), "Frozen assembly boundary"],
-    ["Performance", "Average latency", duration(operations?.average_latency_seconds), "Per processed page"],
-    ["Performance", "Throughput", operations?.pages_per_second == null ? "Not metered" : `${operations.pages_per_second.toFixed(3)} pages/second`, "Frozen assembly boundary"],
-    ["Cost", "Total optimized cost per page", money(optimizedCost), "Latest local-first projection"],
-    ...((cost?.components ?? []).map((component) => [
-      "Cost",
-      `${component.name} cost per page`,
-      money(component.name === "LLM" && optimizedCost != null ? optimizedCost : component.cost_per_page_usd),
-      component.name === "LLM" && optimizedCost != null ? "Optimized unresolved-crop route" : component.status.replaceAll("_", " "),
-    ])),
   ];
   return <section className="panel results-table-panel"><div className="panel-heading"><div><p className="eyebrow">Latest benchmark only</p><h2>Submission results</h2></div><span className="submission-ready">Current policy</span></div><div className="table-scroll"><table className="results-table"><thead><tr><th>Category</th><th>Metric</th><th>Latest result</th><th>Scope / basis</th></tr></thead><tbody>{rows.map(([category, metric, value, basis]) => <tr key={`${category}-${metric}`}><td><span className={`result-category ${category.toLowerCase()}`}>{category}</span></td><td><strong>{metric}</strong></td><td className="result-value">{value}</td><td>{basis}</td></tr>)}</tbody></table></div></section>;
 }

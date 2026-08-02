@@ -6,6 +6,7 @@ transport -- no real vLLM server involved.
 """
 
 import json
+from pathlib import Path
 
 import httpx
 import pytest
@@ -20,6 +21,7 @@ from workers.vlm_fallback.adapter import (
     VLMResponseError,
 )
 from workers.vlm_fallback.schema import VLMFieldRequest
+from packages.retraining import CorrectionMemory
 from workers.vlm_fallback.service import VLMFallbackService
 
 CAPTURED_REQUESTS: list[dict] = []
@@ -125,6 +127,30 @@ def test_empty_request_list_short_circuits_without_http_call():
     results = adapter.extract_fields({}, [])
     assert results == []
     assert CAPTURED_REQUESTS == []
+
+
+def test_field_scoped_correction_memory_is_injected_as_system_context(tmp_path):
+    memory_path = tmp_path / "corrections.jsonl"
+    memory_path.write_text(json.dumps({
+        "field_name": "npi", "previous_value": "a 1396827531",
+        "corrected_value": "1396827531", "tenant_id": "default",
+    }) + "\n")
+    client = httpx.Client(transport=_mock_transport([
+        {"field_name": "npi", "value": "1396827531", "confidence": .9,
+         "insufficient_evidence": False, "citation": None}
+    ]))
+    adapter = OpenAIVLLMAdapter(
+        endpoint="http://fake", model_name="test", enabled=True, http_client=client,
+        correction_memory=CorrectionMemory(memory_path),
+    )
+    adapter.extract_fields({}, [VLMFieldRequest(
+        field_name="npi", field_type="npi", expected_description="NPI"
+    )])
+    messages = CAPTURED_REQUESTS[0]["messages"]
+    assert messages[0]["role"] == "system"
+    assert "a 1396827531" in messages[0]["content"]
+    assert "1396827531" in messages[0]["content"]
+    assert "never copy" in messages[0]["content"]
 
 
 # --- service layer -----------------------------------------------------------------

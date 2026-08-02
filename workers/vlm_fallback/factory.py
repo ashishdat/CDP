@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
+from packages.retraining import CorrectionMemory
 from packages.settings import Settings
 from workers.vlm_fallback.adapter import AzureOpenAIVisionAdapter
 
@@ -33,4 +36,8 @@ def build_azure_review_adapter(settings: Settings) -> AzureOpenAIVisionAdapter:
         api_version=settings.azure_openai_api_version,
         api_key=settings.azure_openai_api_key or "",
         enabled=True,
+        correction_memory=CorrectionMemory(
+            Path(settings.correction_memory_path), limit=settings.correction_exemplar_limit
+        ),
+        tenant_id=settings.default_tenant_id,
     )

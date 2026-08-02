@@ -7,6 +7,7 @@ emits an immutable `AuditEvent`.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Form, HTTPException
@@ -23,13 +24,15 @@ from apps.human_review_api.schemas import (
     ReviewTaskDetail,
     ReviewTaskSummary,
 )
-from apps.human_review_api.service import ReviewService, ReviewTaskNotOpenError
+from apps.human_review_api.service import InvalidCorrectionError, ReviewService, ReviewTaskNotOpenError
 from packages.observability import REGISTRY, configure_logging
 from packages.observability.metrics import human_review_total
+from packages.retraining import JsonlCorrectionSink
 from packages.security.fastapi_rbac import require_permission
 from packages.security.rbac import Permission
 from packages.settings import Settings, get_settings
 from packages.storage.object_store import ObjectRef, ObjectStore, ObjectStoreSettings
+from packages.deterministic_field_tuning import validate_field
 
 _state: dict[str, object] = {}
 
@@ -66,6 +69,19 @@ def get_object_store() -> ObjectStore:
 
 def get_settings_dep() -> Settings:
     return _state["settings"]  # type: ignore[return-value]
+
+
+def _review_service(settings: Settings) -> ReviewService:
+    def correction_validator(field_name: str, value: str) -> bool:
+        if not value.strip():
+            return False
+        result = validate_field(field_name, value)
+        return result.valid or result.evidence == "NO_DETERMINISTIC_RULE"
+
+    return ReviewService(
+        validator=correction_validator,
+        correction_sink=JsonlCorrectionSink(Path(settings.correction_memory_path)),
+    )
 
 
 @app.get("/health")
@@ -137,11 +153,13 @@ def correct_review_task(
         if task is None:
             raise HTTPException(status_code=404, detail="review task not found")
         try:
-            decision = ReviewService().submit_correction(
+            decision = _review_service(settings).submit_correction(
                 task, reviewer, body.new_value, body.reason, settings.default_tenant_id
             )
         except ReviewTaskNotOpenError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except InvalidCorrectionError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         repo.save(decision.task)
         session.commit()
     human_review_total.labels(reason="corrected").inc()
@@ -218,7 +236,7 @@ def ui_correct_review_task(
         task = repo.get(task_id)
         if task is None:
             raise HTTPException(status_code=404, detail="review task not found")
-        decision = ReviewService().submit_correction(
+        decision = _review_service(settings).submit_correction(
             task, reviewer, new_value, reason, settings.default_tenant_id
         )
         repo.save(decision.task)

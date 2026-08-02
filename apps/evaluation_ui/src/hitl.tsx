@@ -1,0 +1,45 @@
+import { useCallback, useEffect, useState } from "react";
+
+type TaskSummary = { task_id: string; claim_id: string; field_name: string; status: string; created_at: string };
+type TaskDetail = TaskSummary & { document_id: string; page_number: number; crop_signed_url: string | null; ocr_candidates: string[]; vlm_candidate: string | null; validation_errors: string[] };
+const reviewerHeaders = { "X-User-Role": "reviewer" };
+
+export function HitlInspector() {
+  const [tasks, setTasks] = useState<TaskSummary[]>([]);
+  const [selected, setSelected] = useState<TaskDetail | null>(null);
+  const [reviewer, setReviewer] = useState("reviewer@company.com");
+  const [newValue, setNewValue] = useState("");
+  const [reason, setReason] = useState("Verified against the source crop");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const refresh = useCallback(async () => {
+    const response = await fetch("/review-api/review-tasks", { headers: reviewerHeaders });
+    if (!response.ok) throw new Error(`Unable to load review tasks (${response.status})`);
+    setTasks(await response.json());
+  }, []);
+  useEffect(() => { refresh().catch((value) => setError(String(value))); }, [refresh]);
+  async function inspect(task: TaskSummary) {
+    setMessage(""); setError("");
+    const response = await fetch(`/review-api/review-tasks/${task.task_id}`, { headers: reviewerHeaders });
+    if (!response.ok) { setError(`Unable to load task (${response.status})`); return; }
+    const detail: TaskDetail = await response.json();
+    setSelected(detail); setNewValue(detail.vlm_candidate ?? detail.ocr_candidates[0] ?? "");
+  }
+  async function decide(action: "correct" | "reject") {
+    if (!selected || !reviewer.trim() || !reason.trim() || (action === "correct" && !newValue.trim())) {
+      setError("Reviewer, reason, and corrected value are required."); return;
+    }
+    const body = action === "correct" ? { new_value: newValue, reason } : { reason };
+    const response = await fetch(
+      `/review-api/review-tasks/${selected.task_id}/${action}?reviewer=${encodeURIComponent(reviewer.trim())}`,
+      { method: "POST", headers: { ...reviewerHeaders, "Content-Type": "application/json" }, body: JSON.stringify(body) },
+    );
+    if (!response.ok) { setError(await response.text()); return; }
+    setMessage(action === "correct" ? "Correction approved and saved to feedback memory." : "Task rejected and audited.");
+    setSelected(null); await refresh();
+  }
+  return <><div className="scope-banner"><span>Review requirement</span><strong>{tasks.length} live open tasks</strong><p>Fields requiring reviewer correction in the production queue.</p></div><section className="hitl-layout">
+    <aside className="panel hitl-queue"><div className="panel-heading"><div><p className="eyebrow">Open queue</p><h2>Review requirements</h2></div><span className="count">{tasks.length}</span></div>{tasks.length === 0 ? <div className="empty">No open review tasks.</div> : tasks.map((task) => <button className={selected?.task_id === task.task_id ? "hitl-task active" : "hitl-task"} key={task.task_id} onClick={() => inspect(task)}><strong>{task.field_name.replaceAll("_", " ")}</strong><small>{task.claim_id.slice(0, 8)} · {new Date(task.created_at).toLocaleString()}</small></button>)}</aside>
+    <section className="panel hitl-inspector"><div className="panel-heading"><div><p className="eyebrow">Human correction</p><h2>Field inspector</h2></div></div>{message && <p className="success-banner">{message}</p>}{error && <p className="error-banner">{error}</p>}{!selected ? <div className="empty">Select a review-required field to inspect its evidence.</div> : <><div className="hitl-evidence">{selected.crop_signed_url ? <img src={selected.crop_signed_url} alt={`Crop for ${selected.field_name}`} /> : <div className="empty">Crop unavailable</div>}<div><span>Document</span><strong>{selected.document_id}</strong><span>Page / field</span><strong>{selected.page_number} · {selected.field_name}</strong><span>Validation failures</span><strong>{selected.validation_errors.join(", ") || "Unspecified"}</strong><span>OCR candidates</span><strong>{selected.ocr_candidates.join(" | ") || "None"}</strong></div></div><div className="hitl-form"><label>Reviewer<input value={reviewer} onChange={(event) => setReviewer(event.target.value)} /></label><label>Corrected value<input value={newValue} onChange={(event) => setNewValue(event.target.value)} /></label><label>Reason<textarea value={reason} onChange={(event) => setReason(event.target.value)} /></label><div><button onClick={() => decide("reject")}>Reject field</button><button className="primary-button" onClick={() => decide("correct")}>Approve correction</button></div></div><p className="family-report-scope">Approved corrections are field-scoped prompt examples and never bypass validation.</p></>}</section>
+  </section></>;
+}

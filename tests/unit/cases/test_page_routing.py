@@ -23,11 +23,13 @@ class FakeTextExtractor:
 
     def __init__(self) -> None:
         self._lines_by_image: dict[int, list[TextLine]] = {}
+        self.extract_calls = 0
 
     def set_lines(self, image: Image.Image, lines: list[TextLine]) -> None:
         self._lines_by_image[id(image)] = lines
 
     def extract(self, image: Image.Image) -> list[TextLine]:
+        self.extract_calls += 1
         return self._lines_by_image.get(id(image), [])
 
     def extract_region(self, image, x0, y0, x1, y1) -> list[TextLine]:
@@ -87,6 +89,7 @@ def test_single_page_with_ub_anchors_routes_to_bundle_c():
     assert result.selected_page_number == 1
     assert result.template.template_id == "ub04"
     assert result.page_roles[1] == PageRole.UB_CLAIM_PAGE
+    assert extractor.extract_calls == 1
 
 
 def test_single_page_with_no_recognizable_anchors_routes_to_bundle_d():

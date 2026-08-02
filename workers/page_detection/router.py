@@ -34,7 +34,7 @@ from workers.page_detection.grid_signature import (
     signature_similarity,
 )
 from workers.page_detection.template_alignment import align_to_reference
-from workers.page_detection.text_extraction import ModelNotAvailableError, TextExtractor
+from workers.page_detection.text_extraction import ModelNotAvailableError, TextExtractor, TextLine
 
 # Escalation thresholds -- tuned against the real dataset in
 # tests/unit/test_page_routing.py; not claimed to be production-final.
@@ -102,17 +102,28 @@ class PageRoutingService:
 
     # -- single-page fast path (Bundle A / C) ----------------------------
 
-    def _anchor_score(self, image: Image.Image, template: Template) -> AnchorMatchResult | None:
+    def _extract_anchor_lines(self, image: Image.Image) -> list[TextLine] | None:
         if self._text_extractor is None:
             return None
         try:
-            lines = self._text_extractor.extract(image)
+            return self._text_extractor.extract(image)
         except ModelNotAvailableError:
+            return None
+
+    @staticmethod
+    def _anchor_score(
+        lines: list[TextLine] | None, template: Template
+    ) -> AnchorMatchResult | None:
+        if lines is None:
             return None
         return verify_anchors(lines, template.anchor_definitions)
 
     def route_single_page(self, image: Image.Image) -> PageRoutingResult:
-        cms_anchors = self._anchor_score(image, self._cms_template)
+        # OCR the page once and reuse the same evidence for both form
+        # families. Previously a non-CMS page was passed through PaddleOCR
+        # twice (CMS check, then UB check), doubling peak work and memory.
+        anchor_lines = self._extract_anchor_lines(image)
+        cms_anchors = self._anchor_score(anchor_lines, self._cms_template)
         if cms_anchors is not None and cms_anchors.all_required_matched:
             score = PageCandidateScore(
                 page_number=1,
@@ -130,7 +141,7 @@ class PageRoutingService:
                 reason_codes=["bundle_a_trusted_anchor_fast_path"],
             )
 
-        ub_anchors = self._anchor_score(image, self._ub_template)
+        ub_anchors = self._anchor_score(anchor_lines, self._ub_template)
         if ub_anchors is not None and ub_anchors.all_required_matched:
             score = PageCandidateScore(
                 page_number=1,
@@ -208,8 +219,12 @@ class PageRoutingService:
         best first -- callers need both the best score (absolute floor) and
         the runner-up (ambiguity margin), see route_single_page."""
         results: list[tuple[str, float, ClassificationMethod]] = []
+        sig = (
+            compute_grid_signature(image)
+            if self._cms_reference_signature is not None or self._ub_reference_signature is not None
+            else None
+        )
         if self._cms_reference_signature is not None:
-            sig = compute_grid_signature(image)
             results.append(
                 (
                     self._cms_template.template_id,
@@ -218,7 +233,6 @@ class PageRoutingService:
                 )
             )
         if self._ub_reference_signature is not None:
-            sig = compute_grid_signature(image)
             results.append(
                 (
                     self._ub_template.template_id,
@@ -235,7 +249,9 @@ class PageRoutingService:
         scores: dict[int, PageCandidateScore] = {}
 
         for index, image in enumerate(images, start=1):
-            anchors = self._anchor_score(image, self._cms_template)
+            anchors = self._anchor_score(
+                self._extract_anchor_lines(image), self._cms_template
+            )
             if anchors is not None and anchors.confidence > 0:
                 scores[index] = PageCandidateScore(
                     page_number=index,

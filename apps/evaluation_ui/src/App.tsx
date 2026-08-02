@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AccuracyBars, Empty, MetricCard } from "./components";
 import { EvidenceView } from "./evidence";
-import { OperationsAndCost } from "./operations";
-import { OptimizationPanel } from "./optimization";
+import { HitlInspector } from "./hitl";
 import { PipelineFlow, TuningView } from "./pipeline";
 import { ProcessingWorkspace } from "./process";
 import { SubmissionView } from "./submission";
@@ -11,8 +10,7 @@ import { ExtractionAccuracyComparison, ResultsTable } from "./results";
 import type { EvaluationReport } from "./types";
 import "./styles.css";
 
-type Breakdown = "accuracy_by_field" | "accuracy_by_form_type" | "accuracy_by_extraction_method";
-type ReportTab = "process" | "overview" | "evidence" | "flow" | "tuning" | "submission";
+type ReportTab = "process" | "overview" | "evidence" | "hitl" | "flow" | "tuning" | "submission";
 
 function readFileText(file: File): Promise<string> {
   if (typeof file.text === "function") return file.text();
@@ -37,7 +35,6 @@ export default function App() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("ALL");
-  const [breakdown, setBreakdown] = useState<Breakdown>("accuracy_by_field");
   const [activeTab, setActiveTab] = useState<ReportTab>("overview");
 
   useEffect(() => {
@@ -68,15 +65,11 @@ export default function App() {
     });
   }, [report, query, category]);
 
-  const breakdownTitles: Record<Breakdown, string> = {
-    accuracy_by_field: "Accuracy by field",
-    accuracy_by_form_type: "Accuracy by form type",
-    accuracy_by_extraction_method: "Accuracy by extraction method",
-  };
   const tabTitles: Record<ReportTab, string> = {
     process: "Process new claim documents",
     overview: "Governed extraction results",
     evidence: "Field-level evidence",
+    hitl: "Human review inspector",
     flow: "OCR & LLM cascade",
     tuning: "Tuning & governance",
     submission: "Hackathon submission",
@@ -94,7 +87,7 @@ export default function App() {
         <div className="welcome-visual" aria-hidden="true"><span>SOURCE EVIDENCE</span><i /><span>VALIDATED OUTPUT</span><b>✓</b></div>
       </section> : <>
         <nav className="report-nav" aria-label="Report sections" role="tablist">
-          {([["process", "Process claims"], ["overview", "Overview"], ["evidence", "Field evidence"], ["flow", "OCR & LLM flow"], ["tuning", "Tuning & governance"], ["submission", "Submission"]] as [ReportTab, string][]).map(([key, label]) => <button aria-selected={activeTab === key} className={activeTab === key ? "active" : ""} key={key} onClick={() => setActiveTab(key)} role="tab">{label}</button>)}
+          {([["process", "Process claims"], ["overview", "Overview"], ["evidence", "Field evidence"], ["hitl", "HITL review"], ["flow", "OCR & LLM flow"], ["tuning", "Tuning & governance"], ["submission", "Submission"]] as [ReportTab, string][]).map(([key, label]) => <button aria-selected={activeTab === key} className={activeTab === key ? "active" : ""} key={key} onClick={() => setActiveTab(key)} role="tab">{label}</button>)}
         </nav>
         <section className="hero"><div><p className="eyebrow">Claims IDP / {activeTab}</p><h1>{tabTitles[activeTab]}</h1><p>{report.field_count.toLocaleString()} governed field outcomes</p></div><div className="status-stack"><div className="status-chip"><span className={report.critical_false_accept_rate === 0 ? "status-dot good" : "status-dot danger"} />Critical safety gate</div><small>Current labelled sample</small></div></section>
         {error && <p className="error-banner">{error}</p>}
@@ -110,16 +103,14 @@ export default function App() {
             <MetricCard label="Optimized LLM diversion" value={percent(report.llm_diversion_rate)} hint={`${report.llm_diverted_fields}/${report.field_count} fields · policy replay`} />
           </section>}
           <section className="comparison-grid"><div className="panel fallback-card"><div><p className="eyebrow">Field-level fallback</p><h2>Before vs. after</h2></div><div className="fallback-values"><div><span>Before</span><strong>{percent(report.accuracy_before_fallback)}</strong></div><span className="arrow">→</span><div><span>After</span><strong>{percent(report.accuracy_after_fallback)}</strong></div></div><div className="delta">{signedDelta(report.accuracy_before_fallback, report.accuracy_after_fallback)}</div></div><div className="panel compact-metrics"><div><span>Raw exact match</span><strong>{percent(report.raw_exact_match_accuracy)}</strong></div><div><span>Character error rate</span><strong>{percent(report.character_error_rate)}</strong></div><div><span>Missing-field rate</span><strong>{percent(report.missing_field_rate)}</strong></div><div><span>False-review rate</span><strong>{percent(report.false_review_rate)}</strong></div></div></section>
-          <div className="breakdown-tabs">{(Object.keys(breakdownTitles) as Breakdown[]).map((key) => <button className={breakdown === key ? "active" : ""} key={key} onClick={() => setBreakdown(key)}>{breakdownTitles[key].replace("Accuracy by ", "")}</button>)}</div>
-          <AccuracyBars title={breakdownTitles[breakdown]} values={report[breakdown]} />
-          <OperationsAndCost report={report} />
-          <OptimizationPanel report={report} />
+          <AccuracyBars title="Accuracy by field" values={report.accuracy_by_field} />
         </>}
 
         {activeTab === "evidence" && <section className="panel comparison-table"><div className="panel-heading table-heading"><div><p className="eyebrow">Side-by-side evidence</p><h2>Expected vs. extracted</h2></div><div className="filters"><input aria-label="Search mismatches" placeholder="Search document or field…" value={query} onChange={(event) => setQuery(event.target.value)} /><select aria-label="Failure category" value={category} onChange={(event) => setCategory(event.target.value)}><option value="ALL">All failures</option>{categories.map((value) => <option key={value}>{value}</option>)}</select></div></div>
           {rows.length === 0 ? <Empty>{report.mismatches.length ? "No mismatches match these filters." : "No mismatches — every evaluated field matched."}</Empty> : <div className="table-scroll"><table><thead><tr><th>Document / field</th><th>Expected</th><th>Extracted</th><th>Normalized</th><th>Confidence</th><th>Validation</th><th>Failure</th></tr></thead><tbody>{rows.map((row, index) => <tr key={`${row.document_id}-${row.field_name}-${index}`}><td><strong>{row.field_name.replaceAll("_", " ")}</strong><small>{row.document_id} · {row.form_type}</small></td><td className="value expected">{row.expected_value ?? "—"}</td><td className="value extracted">{row.extracted_value ?? "—"}<small>{row.extraction_method}</small></td><td className="value">{row.normalized_value ?? "—"}</td><td>{row.ocr_confidence == null ? "—" : percent(row.ocr_confidence)}</td><td><span className={`badge ${row.validation_result.toLowerCase()}`}>{row.validation_result}</span></td><td><span className="badge failure">{row.failure_category}</span></td></tr>)}</tbody></table></div>}
         </section>}
         {activeTab === "evidence" && report.field_evidence && <EvidenceView rows={report.field_evidence} />}
+        {activeTab === "hitl" && <HitlInspector />}
         {activeTab === "flow" && <PipelineFlow report={report} />}
         {activeTab === "tuning" && <TuningView />}
         {activeTab === "submission" && <SubmissionView report={report} />}

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 
 type ApiDocument = { document_id: string; status: string; detected_format: string; page_count: number; source_filename: string; is_new_document: boolean };
 type ApiField = { field_name: string; value: string; normalized_value: string | null; confidence: number; page_number: number; extraction_method: string; validation_status: string; validation_reasons: string[] };
@@ -21,7 +21,6 @@ async function apiError(response: Response): Promise<string> {
 export function ProcessingWorkspace() {
   const [jobs, setJobs] = useState<UploadJob[]>([]);
   const [dragging, setDragging] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
   const active = jobs.some((job) => job.phase === "UPLOADING" || job.phase === "PROCESSING");
   const completed = useMemo(() => jobs.filter((job) => job.phase === "COMPLETE").length, [jobs]);
 
@@ -97,7 +96,7 @@ export function ProcessingWorkspace() {
       <div className="process-summary"><strong>{completed}/{jobs.length}</strong><span>completed</span></div>
     </div>
     <div className={`upload-dropzone ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); addFiles(event.dataTransfer.files); }}>
-      <div className="upload-icon">↑</div><h3>Drop claim images here</h3><p>Multiple files supported. Maximum size follows the ingestion policy.</p><button className="primary-button" onClick={() => fileInput.current?.click()}>Choose files</button><input ref={fileInput} hidden multiple type="file" accept="image/png,image/jpeg,image/tiff,application/pdf,.tif,.tiff" onChange={(event) => event.target.files && addFiles(event.target.files)} />
+      <div className="upload-icon">↑</div><h3>Drop claim images here</h3><p>Multiple files supported. Maximum size follows the ingestion policy.</p><label className="primary-button upload-file-label">Choose files<input multiple type="file" accept="image/png,image/jpeg,image/tiff,application/pdf,.tif,.tiff" onChange={(event) => { if (event.target.files) addFiles(event.target.files); event.target.value = ""; }} /></label>
     </div>
     {jobs.length > 0 && <div className="process-toolbar"><span>{jobs.length} document{jobs.length === 1 ? "" : "s"} queued</span><div><button disabled={active} onClick={clear}>Clear</button><button className="primary-button" disabled={active || jobs.every((job) => job.phase === "COMPLETE")} onClick={processAll}>{active ? "Processing…" : "Process documents"}</button></div></div>}
     <div className="upload-jobs">{jobs.map((job) => <article className="upload-job" key={job.key}>

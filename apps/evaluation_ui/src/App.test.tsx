@@ -52,8 +52,8 @@ describe("evaluation dashboard", () => {
     fireEvent.change(input, { target: { files: [file] } });
     expect(await screen.findByText("Governed extraction results")).toBeInTheDocument();
     expect(screen.getByText("Current-sample validated accuracy")).toBeInTheDocument();
-    expect(screen.getByText("Performance & cost analysis")).toBeInTheDocument();
-    expect(screen.getByText("Optimized component cost per page")).toBeInTheDocument();
+    expect(screen.queryByText("Performance & cost analysis")).not.toBeInTheDocument();
+    expect(screen.queryByText("Optimized component cost per page")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Field evidence" }));
     expect(screen.getByText("Field-level evidence")).toBeInTheDocument();

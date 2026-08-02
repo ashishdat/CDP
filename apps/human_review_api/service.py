@@ -76,6 +76,8 @@ class ReviewService:
                     new_value,
                     task.crop_object.uri if task.crop_object else None,
                     reviewer,
+                    tenant_id,
+                    reason,
                 )
             )
         return ReviewDecision(task=updated, audit_event=audit_event)

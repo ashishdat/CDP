@@ -5,7 +5,7 @@ classification detail, then outbox `page.selected` and -- when a page was
 confidently selected against a known template -- `extraction.standard.
 requested` too.
 
-Uses the real `PaddleOCRTextExtractor` (see `main()`); the routing
+Uses the lightweight `TesseractTextExtractor` (see `main()`); the routing
 *decision logic* itself is unit-tested against a fake extractor in
 tests/unit/test_page_routing.py, exactly as workers/document_preparation
 separates its pure pipeline logic from this thin consumer shell.
@@ -218,7 +218,7 @@ def main() -> None:
     from packages.settings import get_settings
     from packages.storage.object_store import ObjectStoreSettings
     from packages.templates.registry import DEFAULT_TEMPLATE_DIR, TemplateRegistry
-    from workers.page_detection.text_extraction import PaddleOCRTextExtractor
+    from workers.cascade.tesseract_adapter import TesseractTextExtractor
 
     configure_logging("page-detection-worker")
     settings = get_settings()
@@ -228,7 +228,10 @@ def main() -> None:
     router = PageRoutingService(
         cms_template=cms_template,
         ub_template=ub_template,
-        text_extractor=PaddleOCRTextExtractor(),
+        # Printed page-level anchors do not justify loading Paddle's full
+        # detector/recognizer stack. Paddle remains in the downstream
+        # regional field worker, where its accuracy benefit is material.
+        text_extractor=TesseractTextExtractor(psm=11),
         # Only populated when an operator has supplied a real reference scan
         # (see Template.reference_image_path) -- otherwise None, and routing
         # falls back to anchor-phrases only, exactly as before.

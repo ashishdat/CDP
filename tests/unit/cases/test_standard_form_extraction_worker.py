@@ -166,9 +166,13 @@ async def test_extraction_worker_persists_fields_and_publishes_completion(fake_o
     assert by_name["total_charge"].normalized_value == "1675.00"
 
     topics = {r.topic for r in unpublished}
-    assert topics == {"extraction.completed"}
+    assert topics == {"extraction.completed", "human.review.requested"}
+    review_records = [row for row in unpublished if row.topic == "human.review.requested"]
+    assert review_records
+    assert all(row.envelope.payload["validation_errors"] for row in review_records)
     # no reference image configured -- must fall back to today's behavior
-    assert unpublished[0].envelope.payload["alignment_method"] == "rescale_only"
+    completed = next(row for row in unpublished if row.topic == "extraction.completed")
+    assert completed.envelope.payload["alignment_method"] == "rescale_only"
 
 
 async def _run_worker_with_reference_image(
@@ -223,7 +227,8 @@ async def _run_worker_with_reference_image(
 
     with session_factory() as session:
         unpublished = await SqlAlchemyOutboxRepository(session).get_unpublished()
-    return unpublished[0].envelope.payload["alignment_method"]
+    completed = next(row for row in unpublished if row.topic == "extraction.completed")
+    return completed.envelope.payload["alignment_method"]
 
 
 @pytest.mark.asyncio

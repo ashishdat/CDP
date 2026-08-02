@@ -28,10 +28,18 @@ def test_publish_dashboard_adds_evidence_and_optimization(tmp_path: Path) -> Non
         "paddle_correct_recoveries": 1, "deterministic_derived_recoveries": 1,
     }), encoding="utf-8")
 
-    result = publish(report_path, details_path, optimization_path, tmp_path / "no-local-first.json")
+    result = publish(
+        report_path,
+        details_path,
+        optimization_path,
+        tmp_path / "no-local-first.json",
+        tmp_path / "runtime" / "evaluation.json",
+    )
     published = json.loads(report_path.read_text(encoding="utf-8"))
 
     assert result["published_fields"] == 1
     assert published["field_evidence"][0]["crop_url"].startswith("/reports/evidence/")
     assert published["optimization_metrics"]["llm_incremental_recovery_rate"] == 0.1
     assert published["report_metadata"]["production_generalization_claim"] is False
+    assert published["document_family_report"]["rows"][0]["document_family"] == "CMS-1500 professional claim"
+    assert published["document_family_report"]["total"]["evaluated_fields"] == 1

@@ -94,6 +94,9 @@ export type EvaluationReport = {
     accuracy: number;
     precision: number;
     recall: number;
+    total_documents?: number;
+    straight_through_documents?: number;
+    document_stp_rate?: number;
     measurement_note?: string;
   };
   cost_analysis?: {
@@ -103,12 +106,42 @@ export type EvaluationReport = {
     actual_invoice_cost_usd: number | null;
     projected_optimized_run_cost_usd?: number;
     projected_optimized_cost_per_page_usd?: number | null;
+    hitl_unit_cost_usd?: number;
+    hitl_review_fields?: number;
+    hitl_review_pages?: number;
+    hitl_cost_basis?: "PER_REVIEW_PAGE";
+    projected_hitl_cost_usd?: number;
+    projected_total_run_cost_usd?: number;
+    pre_hitl_processing_cost_usd?: number;
+    post_hitl_total_cost_usd?: number;
+    projected_total_cost_per_page_usd?: number | null;
     components: Array<{
-      name: "OCR" | "LLM" | "Vision AI" | "GPU" | "CPU";
+      name: "OCR" | "LLM" | "Vision AI" | "GPU" | "CPU" | "HITL";
       cost_per_page_usd: number | null;
-      status: "MEASURED" | "INCLUDED" | "NOT_USED" | "NOT_METERED";
+      status: "MEASURED" | "ASSUMED" | "INCLUDED" | "NOT_USED" | "NOT_METERED";
       basis: string;
     }>;
     measurement_note?: string;
+  };
+  document_family_report?: {
+    rows: Array<{
+      document_family: string;
+      sample_documents: number;
+      evaluated_fields: number;
+      extraction_route: string;
+      local_accuracy: number;
+      automated_field_coverage: number;
+      hitl_field_rate: number;
+    }>;
+    total: {
+      document_family: string;
+      sample_documents: number;
+      evaluated_fields: number;
+      extraction_route: string;
+      local_accuracy: number;
+      automated_field_coverage: number;
+      hitl_field_rate: number;
+    };
+    notes?: string[];
   };
 };

@@ -8,6 +8,10 @@ x-ocr-build: &ocr-build
   context: .
   dockerfile: deploy/docker/ocr.Dockerfile
 
+x-routing-build: &routing-build
+  context: .
+  dockerfile: deploy/docker/routing.Dockerfile
+
 x-handwriting-build: &handwriting-build
   context: .
   dockerfile: deploy/docker/handwriting-ocr.Dockerfile
@@ -138,8 +142,20 @@ services:
         condition: service_healthy
 
   page-detection-worker:
-    build: *ocr-build
+    build: *routing-build
     <<: *app-env
+    environment:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"
+      CORRECTION_MEMORY_PATH: /data/feedback/corrections.jsonl
+    volumes:
+      - ./evaluation_results/feedback:/data/feedback:ro
+    mem_limit: 1536m
+    mem_reservation: 512m
+    cpus: 2.0
+    pids_limit: 256
+    restart: unless-stopped
     command: ["python", "-m", "workers.page_detection.consumer"]
     depends_on:
       postgres:
@@ -152,6 +168,17 @@ services:
   standard-form-extraction-worker:
     build: *ocr-build
     <<: *app-env
+    environment:
+      OMP_NUM_THREADS: "2"
+      MKL_NUM_THREADS: "2"
+      OPENBLAS_NUM_THREADS: "2"
+    volumes:
+      - paddleocr_runtime_models:/home/appuser/.paddleocr
+    mem_limit: 3g
+    mem_reservation: 1g
+    cpus: 2.0
+    pids_limit: 256
+    restart: unless-stopped
     command: ["python", "-m", "workers.standard_form_extraction.consumer"]
     depends_on:
       postgres:
@@ -167,6 +194,11 @@ services:
     command: ["uvicorn", "apps.human_review_api.main:app", "--host", "0.0.0.0", "--port", "8001"]
     ports:
       - "8100:8001"  # host 8100 -- the entire 8000-8021 range is already bound by unrelated containers on this host
+    environment:
+      CORRECTION_MEMORY_PATH: /data/feedback/corrections.jsonl
+    volumes:
+      - ./evaluation_results/feedback:/data/feedback
+      - ./evaluation_results:/evaluation_results:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -178,6 +210,17 @@ services:
       timeout: 5s
       retries: 10
       start_period: 15s
+
+  human-review-task-worker:
+    build: *app-build
+    <<: *app-env
+    command: ["python", "-m", "apps.human_review_api.consumer"]
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
 
   evaluation-ui:
     build:
@@ -238,3 +281,4 @@ volumes:
   redpanda_data:
   huggingface_models:
   paddle_models:
+  paddleocr_runtime_models:

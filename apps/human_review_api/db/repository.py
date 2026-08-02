@@ -25,6 +25,14 @@ class ReviewTaskRepository:
         row = self._session.get(ReviewTaskORM, task_id)
         return orm_to_task(row) if row else None
 
+    def get_for_field(self, document_id: UUID, field_id: UUID) -> ReviewTask | None:
+        stmt = select(ReviewTaskORM).where(
+            ReviewTaskORM.document_id == document_id,
+            ReviewTaskORM.field_id == field_id,
+        )
+        row = self._session.execute(stmt).scalar_one_or_none()
+        return orm_to_task(row) if row else None
+
     def list_open(self, limit: int = 100) -> list[ReviewTask]:
         stmt = (
             select(ReviewTaskORM)

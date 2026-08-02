@@ -54,10 +54,14 @@ class PaddleOCRTextExtractor:
         lang: str = "en",
         model_name: str = "PP-OCRv4",
         model_version: str = "paddleocr-2.x",
+        cpu_threads: int = 2,
+        max_full_page_side: int = 1600,
     ) -> None:
         self._lang = lang
         self._model_name = model_name
         self._model_version = model_version
+        self._cpu_threads = cpu_threads
+        self._max_full_page_side = max_full_page_side
         self._engine = None
 
     @property
@@ -83,15 +87,43 @@ class PaddleOCRTextExtractor:
                 "(see pyproject.toml) or run inside the ML-enabled worker image"
             ) from exc
         self._engine = PaddleOCR(
-            use_angle_cls=True,
+            # Preparation already normalizes page orientation. Loading the
+            # separate angle-classifier model duplicates work and materially
+            # increases the CPU worker's cold-start memory.
+            use_angle_cls=False,
             lang=self._lang,
             show_log=False,
             ocr_version=self._model_name,
+            enable_mkldnn=False,
+            cpu_threads=self._cpu_threads,
         )
         return self._engine
 
     def extract(self, image: Image.Image) -> list[TextLine]:
-        return self._run(image)
+        # Routing needs anchor text, not full-resolution glyph geometry.
+        # Bounding the longest side prevents full-page scans from creating
+        # multi-gigabyte detector feature maps. Returned boxes are mapped
+        # back into source-page coordinates.
+        longest_side = max(image.size)
+        if longest_side <= self._max_full_page_side:
+            return self._run(image)
+        scale = self._max_full_page_side / longest_side
+        resized = image.resize(
+            (max(1, round(image.width * scale)), max(1, round(image.height * scale))),
+            Image.Resampling.LANCZOS,
+        )
+        lines = self._run(resized)
+        return [
+            TextLine(
+                line.text,
+                line.x0 / scale,
+                line.y0 / scale,
+                line.x1 / scale,
+                line.y1 / scale,
+                line.confidence,
+            )
+            for line in lines
+        ]
 
     def extract_region(
         self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
@@ -128,7 +160,7 @@ class PaddleOCRTextExtractor:
     def _run(self, image: Image.Image) -> list[TextLine]:
         import numpy as np
 
-        result = self._load().ocr(np.array(image.convert("RGB")), cls=True)
+        result = self._load().ocr(np.array(image.convert("RGB")), cls=False)
         lines: list[TextLine] = []
         for page in result or []:
             for box, (text, confidence) in page or []:

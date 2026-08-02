@@ -32,6 +32,8 @@ from typing import Protocol
 
 import httpx
 
+from packages.retraining import CorrectionMemory
+
 from workers.vlm_fallback.schema import VLMFieldRequest, VLMFieldResult, build_response_json_schema
 
 
@@ -57,11 +59,15 @@ class OpenAIVLLMAdapter:
         enabled: bool,
         http_client: httpx.Client | None = None,
         timeout_seconds: float = 30.0,
+        correction_memory: CorrectionMemory | None = None,
+        tenant_id: str = "default",
     ) -> None:
         self._endpoint = endpoint.rstrip("/")
         self._model_name = model_name
         self._enabled = enabled
         self._client = http_client or httpx.Client(timeout=timeout_seconds)
+        self._correction_memory = correction_memory
+        self._tenant_id = tenant_id
 
     def extract_fields(
         self, crops: dict[str, bytes], requests: list[VLMFieldRequest]
@@ -115,7 +121,27 @@ class OpenAIVLLMAdapter:
                     "detail": field_name,  # crop identifier, not used by the model
                 }
             )
-        return [{"role": "user", "content": content}]
+        messages: list[dict] = []
+        exemplar_lines: list[str] = []
+        if self._correction_memory is not None:
+            for request in requests:
+                for example in self._correction_memory.exemplars(request.field_name, self._tenant_id):
+                    exemplar_lines.append(
+                        f"- {request.field_name}: OCR observed {example['observed']!r}; "
+                        f"approved correction {example['corrected']!r}"
+                    )
+        if exemplar_lines:
+            messages.append({
+                "role": "system",
+                "content": (
+                    "Approved reviewer corrections for the same tenant and field route are "
+                    "examples only. Use them to recognize formatting/error patterns, never copy "
+                    "a value without visible crop evidence, and still abstain when uncertain.\n" +
+                    "\n".join(exemplar_lines)
+                ),
+            })
+        messages.append({"role": "user", "content": content})
+        return messages
 
     def _build_prompt(self, requests: list[VLMFieldRequest]) -> str:
         lines = [
@@ -149,8 +175,13 @@ class AzureOpenAIVisionAdapter(OpenAIVLLMAdapter):
         enabled: bool,
         http_client: httpx.Client | None = None,
         timeout_seconds: float = 30.0,
+        correction_memory: CorrectionMemory | None = None,
+        tenant_id: str = "default",
     ) -> None:
-        super().__init__(endpoint, deployment, enabled, http_client, timeout_seconds)
+        super().__init__(
+            endpoint, deployment, enabled, http_client, timeout_seconds,
+            correction_memory, tenant_id,
+        )
         self._deployment = deployment
         self._api_version = api_version
         self._api_key = api_key

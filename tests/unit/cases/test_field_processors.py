@@ -17,6 +17,7 @@ def test_normalize_date_accepts_common_formats():
     assert normalize_date("07-16-2025") == ("2025-07-16", True)
     assert normalize_date("07/16/2025") == ("2025-07-16", True)
     assert normalize_date("07162025") == ("2025-07-16", True)
+    assert normalize_date("01 30 26") == ("2026-01-30", True)
 
 
 def test_normalize_date_two_digit_year_pivots_at_50():
@@ -33,6 +34,8 @@ def test_normalize_date_rejects_garbage():
 def test_normalize_currency_strips_symbols_and_commas():
     assert normalize_currency("$1,675.00") == (Decimal("1675.00"), True)
     assert normalize_currency("175.00") == (Decimal("175.00"), True)
+    assert normalize_currency("($80.55)") == (Decimal("-80.55"), True)
+    assert normalize_currency("($80.55)|") == (Decimal("-80.55"), True)
 
 
 def test_normalize_currency_rejects_empty():

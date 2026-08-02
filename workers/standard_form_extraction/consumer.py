@@ -177,6 +177,34 @@ class StandardFormExtractionWorker:
             for line in service_lines:
                 fields_repo.add_all(document_id, line.fields, service_line_number=line.line_number)
 
+            review_fields = [field for field in fields if field.validation_status == ValidationStatus.NEEDS_REVIEW]
+            review_fields.extend(
+                field for line in service_lines for field in line.fields
+                if field.validation_status == ValidationStatus.NEEDS_REVIEW
+            )
+            for field in review_fields:
+                review_envelope = EventEnvelope(
+                    event_type=Topic.HUMAN_REVIEW_REQUESTED.value,
+                    correlation_id=envelope.correlation_id,
+                    document_id=document_id,
+                    claim_id=document.claim_id,
+                    pipeline_version=self._pipeline_version,
+                    payload={
+                        "field_id": str(field.field_id),
+                        "field_name": field.field_name,
+                        "page_number": field.page_number,
+                        "ocr_candidates": [
+                            candidate.raw_text for candidate in field.candidates
+                        ] or [field.raw_value],
+                        "validation_errors": field.validation_reasons,
+                    },
+                )
+                await outbox.add(OutboxRecord(
+                    topic=Topic.HUMAN_REVIEW_REQUESTED.value,
+                    envelope=review_envelope,
+                    partition_key=str(document_id),
+                ))
+
             document.status = DocumentStatus.VALIDATING
             document.updated_at = datetime.now(UTC)
             documents.update(document)
@@ -198,6 +226,7 @@ class StandardFormExtractionWorker:
                     "service_line_count": len(service_lines),
                     "alignment_method": alignment_method,
                     "alignment_accepted": alignment_accepted,
+                    "review_task_count": len(review_fields),
                 },
             )
             await outbox.add(

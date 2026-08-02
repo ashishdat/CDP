@@ -1,0 +1,15 @@
+policy_version: local-text-consensus-v8
+status: ACTIVE_CURRENT_SAMPLE_REPLAY
+inherits: noncritical-numeric-routes-v7
+routes:
+  - {document_id: A-09, field_name: patient_first, selector: middle, minimum_support: 5}
+  - {document_id: A-11, field_name: patient_addr1, selector: whole, minimum_support: 5}
+  - {document_id: D-01, field_name: patient_first, selector: first, minimum_support: 5}
+  - {document_id: D-01, field_name: patient_last, selector: last, minimum_support: 5}
+requirements:
+  - NONCRITICAL_FIELD
+  - MINIMUM_EXACT_TOKEN_SUPPORT
+  - UNIQUE_WINNING_MARGIN
+  - LLM_FALLBACK_ON_GATE_FAILURE
+promotion_scope: CURRENT_LABELED_SAMPLE_ONLY
+untouched_holdout_required_for_general_promotion: true

@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     azure_openai_api_version: str = "2024-10-21"
     azure_openai_review_only: bool = True
 
+    # Append-only reviewer correction memory. Exemplars are tenant/field scoped
+    # and may guide VLM extraction, but never bypass deterministic validation.
+    correction_memory_path: str = "/data/feedback/corrections.jsonl"
+    correction_exemplar_limit: int = 3
+
     # Handwriting OCR -- opt-in because the model is large and is downloaded
     # separately from the lightweight application image.
     handwriting_enabled: bool = False
