@@ -46,6 +46,14 @@ const tuningGroups = [
   ["No benchmark-only shortcuts", "Governed model promotion", "New models start review-only|Frozen validation and untouched holdout|Per-route promotion instead of global enablement|Cost, latency, abstention and regression gates"],
 ] as const;
 
+const hotlRoadmap = [
+  ["01", "ACTIVE", "HITL production review", "Uncertain fields fail closed into the reviewer queue. Every decision retains crop, candidate, validation and reviewer lineage.", "Open review queue|field-level correction|audit trail"],
+  ["02", "ACTIVE", "Structured correction memory", "Approved corrections are stored as tenant- and field-scoped examples and injected into matching future prompts without bypassing validation.", "append-only memory|bounded examples|deterministic gate"],
+  ["03", "NEXT", "Shadow adaptation", "Replay learned patterns without changing production outcomes. Compare extraction, abstention and contradiction rates against reviewer-approved results.", "prediction before label|no silent promotion|route metrics"],
+  ["04", "PLANNED", "Route-scoped canary", "Promote only qualified field-family routes through 5%, 25% and 50% canaries after untouched holdout evidence passes.", "≥99% selective accuracy|zero critical false accepts|automatic rollback"],
+  ["05", "TARGET", "HOTL with continuous control", "Remove routine human review only for certified routes. Drift, new form versions, contradictions or low confidence immediately restore HITL.", "route-level autonomy|drift monitoring|fail-back to HITL"],
+] as const;
+
 export function TuningView() {
   return (
     <section className="tuning-view">
@@ -54,6 +62,11 @@ export function TuningView() {
         {tuningGroups.map(([outcome, title, items], index) => <article className="tuning-card" key={title}><span className="tuning-number">{String(index + 1).padStart(2, "0")}</span><div><p className="eyebrow">{outcome}</p><h3>{title}</h3><ul>{items.split("|").map((item) => <li key={item}>{item}</li>)}</ul></div></article>)}
       </div>
       <div className="governance-strip"><div><span>Production policy</span><strong>Fail closed</strong></div><div><span>Critical fields</span><strong>Reference or review</strong></div><div><span>LLM scope</span><strong>Unresolved crops only</strong></div><div><span>Truth during inference</span><strong>Never available</strong></div></div>
+      <div className="section-intro hotl-heading"><div><p className="eyebrow">Promotion roadmap</p><h2>HITL to HOTL</h2><p>Human-out-of-the-loop is earned per field-family route. It is never enabled globally from prompt learning alone.</p></div><span className="badge">Route scoped</span></div>
+      <div className="hotl-roadmap">
+        {hotlRoadmap.map(([number, status, title, detail, gates]) => <article className={`hotl-step ${status.toLowerCase()}`} key={number}><div className="hotl-step-index">{number}</div><div><div className="hotl-step-title"><span className="cost-status">{status}</span><h3>{title}</h3></div><p>{detail}</p><div className="stage-tags">{gates.split("|").map((gate) => <b key={gate}>{gate}</b>)}</div></div></article>)}
+      </div>
+      <div className="hotl-gates"><div><span>Promotion</span><strong>Untouched holdout passes</strong></div><div><span>Safety</span><strong>0 critical false accepts</strong></div><div><span>Quality</span><strong>≥99% selective accuracy</strong></div><div><span>Rollback</span><strong>Immediate on drift</strong></div></div>
     </section>
   );
 }

@@ -69,6 +69,9 @@ describe("evaluation dashboard", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Tuning & governance" }));
     expect(screen.getByText("Tuning applied across the extraction stack")).toBeInTheDocument();
     expect(screen.getByText("Alignment & coordinates")).toBeInTheDocument();
+    expect(screen.getByText("HITL to HOTL")).toBeInTheDocument();
+    expect(screen.getByText("Structured correction memory")).toBeInTheDocument();
+    expect(screen.getByText("HOTL with continuous control")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Submission" }));
     expect(screen.getByText("Submission readiness centre")).toBeInTheDocument();

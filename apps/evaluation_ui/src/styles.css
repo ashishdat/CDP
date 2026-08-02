@@ -230,6 +230,22 @@ main:has(.evidence-panel) .comparison-table { display: none; }
 .governance-strip span, .governance-strip strong { display: block; }
 .governance-strip span { color: var(--muted); font-size: 9px; text-transform: uppercase; letter-spacing: .1em; }
 .governance-strip strong { color: var(--cyan); font-size: 12px; margin-top: 7px; }
+.hotl-heading { margin-top: 42px; }
+.hotl-roadmap { position: relative; display: grid; gap: 10px; }
+.hotl-step { display: grid; grid-template-columns: 52px 1fr; gap: 16px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: rgba(8, 19, 32, .62); }
+.hotl-step-index { display: grid; place-items: center; width: 42px; height: 42px; border: 1px solid #31506c; border-radius: 50%; color: var(--muted); font: 600 11px ui-monospace, Consolas, monospace; }
+.hotl-step.active { border-color: rgba(45, 212, 191, .32); background: rgba(45, 212, 191, .045); }
+.hotl-step.active .hotl-step-index { border-color: var(--cyan); color: var(--cyan); }
+.hotl-step.next { border-color: rgba(96, 165, 250, .35); }
+.hotl-step.next .hotl-step-index { border-color: var(--blue); color: var(--blue); }
+.hotl-step-title { display: flex; align-items: center; gap: 10px; }
+.hotl-step-title h3 { margin: 0; }
+.hotl-step p { margin: 8px 0 12px; color: var(--muted); line-height: 1.6; }
+.hotl-gates { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+.hotl-gates div { padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #0b1928; }
+.hotl-gates span, .hotl-gates strong { display: block; }
+.hotl-gates span { color: var(--muted); font-size: 9px; text-transform: uppercase; }
+.hotl-gates strong { margin-top: 6px; color: #dce9f5; font-size: 11px; }
 .operations-section { margin-top: 30px; padding: 28px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(145deg, rgba(13, 29, 47, .98), rgba(7, 19, 32, .98)); }
 .compact-intro { margin-bottom: 26px; }
 .subsection-title { color: #dfe9f5; font-size: 13px; margin: 0 0 13px; text-transform: uppercase; letter-spacing: .09em; }
@@ -372,7 +388,7 @@ main:has(.evidence-panel) .comparison-table { display: none; }
   .report-nav button { white-space: nowrap; }
   .section-intro { align-items: start; flex-direction: column; }
   .flow-legend { justify-content: start; }
-  .flow-rail, .decision-grid, .tuning-grid, .governance-strip { grid-template-columns: 1fr; }
+  .flow-rail, .decision-grid, .tuning-grid, .governance-strip, .hotl-gates { grid-template-columns: 1fr; }
   .operations-grid { grid-template-columns: repeat(2, 1fr); }
   .flow-stage { min-height: auto; }
   .stage-connector { right: 50% !important; top: auto !important; bottom: -21px !important; transform: none !important; }
