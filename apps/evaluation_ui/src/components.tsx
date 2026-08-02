@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { percent } from "./report";
+import type { EvaluationReport } from "./types";
 
 export function MetricCard({
   label,
@@ -55,6 +56,66 @@ export function AccuracyBars({
             </div>
           ))}
         </div>
+      )}
+    </section>
+  );
+}
+
+const groupLabels: Record<string, string> = {
+  CMS1500: "CMS-1500 professional claim",
+  attachment: "Claim attachment",
+  UB04: "UB-04 institutional claim",
+  laboratory_invoice: "Laboratory invoice",
+};
+
+export function GroupAccuracy({ report }: { report: EvaluationReport }) {
+  const evidence = report.field_evidence ?? [];
+  const groups = evidence.reduce<Record<string, { fields: number; correct: number; documents: Set<string> }>>(
+    (result, row) => {
+      const group = result[row.form_type] ?? { fields: 0, correct: 0, documents: new Set<string>() };
+      group.fields += 1;
+      group.correct += row.correct ? 1 : 0;
+      group.documents.add(row.document_id);
+      result[row.form_type] = group;
+      return result;
+    },
+    {},
+  );
+  const rows = Object.entries(groups).map(([key, value]) => ({
+    key,
+    localAccuracy: value.fields ? value.correct / value.fields : 0,
+    localCorrect: value.correct,
+    fields: value.fields,
+    documents: value.documents.size,
+    finalIncorrect: report.mismatches.filter((row) => row.form_type === key).length,
+  }));
+  const fallbackRows = Object.entries(report.accuracy_by_form_type ?? {})
+    .filter(([key]) => key !== "all_document_families")
+    .map(([key, accuracy]) => ({ key, localAccuracy: accuracy, localCorrect: null, fields: null, documents: null, finalIncorrect: null }));
+  const displayedRows = (rows.length ? rows : fallbackRows).sort((a, b) => a.localAccuracy - b.localAccuracy);
+
+  return (
+    <section className="panel group-accuracy">
+      <div className="panel-heading">
+        <div>
+          <p className="eyebrow">Accuracy by document group</p>
+          <h2>Group-wise accuracy</h2>
+          <p className="group-accuracy-note">Local extraction is shown before governed resolution. Final accuracy includes approved references and review closure for this labelled sample only.</p>
+        </div>
+        <span className="count">{displayedRows.length} groups</span>
+      </div>
+      {displayedRows.length === 0 ? <Empty>No group-level results in this report.</Empty> : (
+        <div className="table-scroll"><table>
+          <thead><tr><th>Document group</th><th>Documents</th><th>Evaluated fields</th><th>Local correct</th><th>Local accuracy</th><th>Final governed accuracy</th></tr></thead>
+          <tbody>{displayedRows.map((row) => <tr key={row.key}>
+            <td><strong>{groupLabels[row.key] ?? row.key.replaceAll("_", " ")}</strong><small>{row.key}</small></td>
+            <td>{row.documents ?? "Not reported"}</td>
+            <td>{row.fields ?? "Not reported"}</td>
+            <td>{row.localCorrect ?? "Not reported"}</td>
+            <td><strong className={row.localAccuracy < .98 ? "accuracy-warning" : "accuracy-good"}>{percent(row.localAccuracy)}</strong></td>
+            <td><strong className="accuracy-good">{row.fields == null || row.finalIncorrect == null ? "Not reported" : percent((row.fields - row.finalIncorrect) / row.fields)}</strong></td>
+          </tr>)}</tbody>
+        </table></div>
       )}
     </section>
   );

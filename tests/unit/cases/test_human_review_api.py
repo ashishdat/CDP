@@ -98,6 +98,12 @@ def test_list_review_tasks_returns_open_tasks_only(client, session_factory):
     assert body[0]["status"] == "OPEN"
 
 
+def test_correction_promotion_candidates_start_empty(client):
+    response = client.get("/correction-promotion-candidates", headers=REVIEWER_HEADERS)
+    assert response.status_code == 200
+    assert response.json() == []
+
+
 def test_get_review_task_includes_signed_crop_url(client, session_factory):
     task = _seed_task(session_factory)
     response = client.get(f"/review-tasks/{task.task_id}", headers=REVIEWER_HEADERS)
@@ -138,12 +144,12 @@ def test_correcting_an_already_decided_task_returns_conflict(client, session_fac
     client.post(
         f"/review-tasks/{task.task_id}/correct?reviewer=alice",
         headers=REVIEWER_HEADERS,
-        json={"new_value": "x", "reason": "y"},
+        json={"new_value": "1396827531", "reason": "verified"},
     )
     response = client.post(
         f"/review-tasks/{task.task_id}/correct?reviewer=bob",
         headers=REVIEWER_HEADERS,
-        json={"new_value": "z", "reason": "w"},
+        json={"new_value": "1396827531", "reason": "duplicate"},
     )
     assert response.status_code == 409
 

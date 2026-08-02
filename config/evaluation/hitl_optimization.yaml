@@ -21,6 +21,15 @@ route_promotion:
     - ACTIVE
   required_validation_results:
     - CROSS_FAMILY_AGREEMENT
+  minimum_confidence: 0.85
+  minimum_confidence_by_route:
+    CMS1500|charges: 0.95
+    UB04|total_charges: 0.95
+    UB04|revenue_code: 0.90
+    attachment|fee: 0.90
+  allowed_crop_quality:
+    - VALID_SINGLE_CELL
+    - LEGACY_VALIDATED
   forbidden_validation_results:
     - AMBIGUOUS_OCR_REPAIR_REQUIRES_REVIEW
     - REFERENCE_CONTRADICTION

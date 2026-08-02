@@ -98,6 +98,15 @@ class PageDetectionWorker:
             started = time.monotonic()
             result = await asyncio.to_thread(self._router.route, images)
             duration = time.monotonic() - started
+            has_standard_route = (
+                result.selected_page_number is not None
+                and result.template is not None
+                and not result.needs_review
+            )
+            effective_needs_review = result.needs_review or not has_standard_route
+            effective_reason_codes = list(result.reason_codes)
+            if not has_standard_route and "NO_AUTOMATED_EXTRACTION_ROUTE" not in effective_reason_codes:
+                effective_reason_codes.append("NO_AUTOMATED_EXTRACTION_ROUTE")
 
             page_by_number = {p.page_number: p for p in pages}
             classifications: list[PageClassification] = []
@@ -123,8 +132,8 @@ class PageDetectionWorker:
                         template_version=result.template.version
                         if (result.template and is_claim_page)
                         else None,
-                        reason_codes=score.reason_codes if score else result.reason_codes,
-                        needs_review=result.needs_review,
+                        reason_codes=score.reason_codes if score else effective_reason_codes,
+                        needs_review=effective_needs_review,
                     )
                 )
                 roles_by_page_id[page.page_id] = role.value
@@ -136,7 +145,7 @@ class PageDetectionWorker:
 
             document.bundle_type = result.bundle_type
             document.status = (
-                DocumentStatus.NEEDS_REVIEW if result.needs_review else DocumentStatus.ROUTED
+                DocumentStatus.NEEDS_REVIEW if effective_needs_review else DocumentStatus.ROUTED
             )
             document.updated_at = datetime.now(UTC)
             documents.update(document)
@@ -161,8 +170,8 @@ class PageDetectionWorker:
                     "document_id": str(document_id),
                     "bundle_type": result.bundle_type.value,
                     "selected_page_number": result.selected_page_number,
-                    "needs_review": result.needs_review,
-                    "reason_codes": result.reason_codes,
+                    "needs_review": effective_needs_review,
+                    "reason_codes": effective_reason_codes,
                 },
             )
             await outbox.add(
@@ -173,11 +182,7 @@ class PageDetectionWorker:
                 )
             )
 
-            if (
-                result.selected_page_number is not None
-                and result.template is not None
-                and not result.needs_review
-            ):
+            if has_standard_route:
                 extraction_envelope = EventEnvelope(
                     event_type=Topic.EXTRACTION_STANDARD_REQUESTED.value,
                     correlation_id=envelope.correlation_id,

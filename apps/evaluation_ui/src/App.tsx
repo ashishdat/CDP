@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AccuracyBars, Empty, MetricCard } from "./components";
+import { AccuracyBars, Empty, GroupAccuracy, MetricCard } from "./components";
 import { EvidenceView } from "./evidence";
 import { HitlInspector } from "./hitl";
 import { PipelineFlow, TuningView } from "./pipeline";
@@ -99,6 +99,7 @@ export default function App() {
         {activeTab === "overview" && <>
           <ResultsTable report={report} />
           <ExtractionAccuracyComparison report={report} />
+          <GroupAccuracy report={report} />
           {report !== null && <section className="metric-grid">
             <MetricCard label="Optimized LLM diversion" value={percent(report.llm_diversion_rate)} hint={`${report.llm_diverted_fields}/${report.field_count} fields · policy replay`} />
           </section>}

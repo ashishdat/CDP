@@ -20,6 +20,7 @@ from apps.human_review_api.db.session import make_session_factory
 from apps.human_review_api.html import render_task_detail, render_task_list
 from apps.human_review_api.schemas import (
     CorrectionRequest,
+    CorrectionPromotionCandidate,
     RejectionRequest,
     ReviewTaskDetail,
     ReviewTaskSummary,
@@ -27,7 +28,7 @@ from apps.human_review_api.schemas import (
 from apps.human_review_api.service import InvalidCorrectionError, ReviewService, ReviewTaskNotOpenError
 from packages.observability import REGISTRY, configure_logging
 from packages.observability.metrics import human_review_total
-from packages.retraining import JsonlCorrectionSink
+from packages.retraining import CorrectionMemory, JsonlCorrectionSink
 from packages.security.fastapi_rbac import require_permission
 from packages.security.rbac import Permission
 from packages.settings import Settings, get_settings
@@ -118,6 +119,17 @@ def list_review_tasks(
     with session_factory() as session:
         tasks = ReviewTaskRepository(session).list_open()
     return [ReviewTaskSummary.from_domain(t) for t in tasks]
+
+
+@app.get("/correction-promotion-candidates", response_model=list[CorrectionPromotionCandidate])
+def list_correction_promotion_candidates(
+    settings: Settings = Depends(get_settings_dep),
+    _role=Depends(require_permission(Permission.REVIEW_FIELD)),
+) -> list[CorrectionPromotionCandidate]:
+    patterns = CorrectionMemory(Path(settings.correction_memory_path)).promotion_candidates(
+        settings.default_tenant_id,
+    )
+    return [CorrectionPromotionCandidate.model_validate(pattern, from_attributes=True) for pattern in patterns]
 
 
 @app.get("/review-tasks/{task_id}", response_model=ReviewTaskDetail)

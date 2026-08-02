@@ -126,6 +126,14 @@ h2 { font-size: 20px; letter-spacing: -0.02em; margin-bottom: 0; }
 .breakdown-tabs button.active { background: #15314b; color: white; border-color: #346083; }
 .panel { padding: 24px; }
 .panel-heading { display: flex; align-items: start; justify-content: space-between; margin-bottom: 25px; }
+.group-accuracy { margin-top: 12px; padding: 0; overflow: hidden; }
+.group-accuracy .panel-heading { padding: 24px; margin: 0; }
+.group-accuracy-note { margin: 8px 0 0; color: var(--muted); font-size: 11px; }
+.group-accuracy td:last-child strong { display: inline-block; font: 600 13px ui-monospace, Consolas, monospace; }
+.promotion-patterns { margin-top: 14px; padding: 0; overflow: hidden; }
+.promotion-patterns .panel-heading { padding: 24px; margin: 0; }
+.accuracy-good { color: var(--cyan); }
+.accuracy-warning { color: #fbbf24; }
 .count { color: var(--muted); font: 11px "DM Mono", monospace; }
 .bars { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 40px; }
 .bar-row { display: grid; grid-template-columns: minmax(120px, 1fr) 2fr 65px; align-items: center; gap: 12px; font-size: 12px; }

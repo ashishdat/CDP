@@ -15,6 +15,8 @@ class HitlDisposition(StrEnum):
     BLOCKED_HOLDOUT_REQUIRED = "BLOCKED_HOLDOUT_REQUIRED"
     BLOCKED_INSUFFICIENT_EVIDENCE = "BLOCKED_INSUFFICIENT_EVIDENCE"
     BLOCKED_CONTRADICTION = "BLOCKED_CONTRADICTION"
+    BLOCKED_LOW_CONFIDENCE = "BLOCKED_LOW_CONFIDENCE"
+    BLOCKED_CROP_QUALITY = "BLOCKED_CROP_QUALITY"
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,17 @@ def identity_key(prediction: dict[str, Any]) -> str:
 def route_key(prediction: dict[str, Any]) -> str:
     identity = prediction["field_identity"]
     return f"{identity.get('document_family')}|{identity.get('semantic_field')}"
+
+
+def _minimum_confidence(prediction: dict[str, Any], policy: dict[str, Any]) -> float:
+    route_policy = policy["route_promotion"]
+    route_thresholds = route_policy.get("minimum_confidence_by_route", {})
+    field_thresholds = route_policy.get("minimum_confidence_by_field", {})
+    field = str(prediction["field_identity"].get("semantic_field") or "")
+    return float(route_thresholds.get(
+        route_key(prediction),
+        field_thresholds.get(field, route_policy.get("minimum_confidence", 0.0)),
+    ))
 
 
 def decide(
@@ -70,6 +83,22 @@ def decide(
             HitlDisposition.BLOCKED_HOLDOUT_REQUIRED,
             False,
             f"field-family route is not ACTIVE: {route}",
+        )
+    confidence = float(prediction.get("confidence") or 0.0)
+    minimum_confidence = _minimum_confidence(prediction, policy)
+    if confidence < minimum_confidence:
+        return HitlDecision(
+            HitlDisposition.BLOCKED_LOW_CONFIDENCE,
+            False,
+            f"confidence {confidence:.3f} below route threshold {minimum_confidence:.3f}",
+        )
+    allowed_crop_quality = set(policy["route_promotion"].get("allowed_crop_quality", []))
+    crop_quality = str(prediction.get("crop_quality") or "UNKNOWN")
+    if allowed_crop_quality and crop_quality not in allowed_crop_quality:
+        return HitlDecision(
+            HitlDisposition.BLOCKED_CROP_QUALITY,
+            False,
+            f"crop quality is not eligible for automation: {crop_quality}",
         )
     required = set(policy["route_promotion"]["required_validation_results"])
     forbidden = set(policy["route_promotion"]["forbidden_validation_results"])

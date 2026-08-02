@@ -221,3 +221,54 @@ async def test_ambiguous_multipage_bundle_needs_review_and_skips_extraction_requ
     assert updated.status == DocumentStatus.NEEDS_REVIEW
     topics = {r.topic for r in unpublished}
     assert topics == {"page.selected"}
+
+
+@pytest.mark.asyncio
+async def test_unstructured_document_terminates_in_review_when_no_consumer_exists(
+    fake_object_store,
+):
+    session_factory = make_session_factory("sqlite:///:memory:")
+    document = _document()
+    page_image = _blank_page((213, 213))
+    extractor = ContentKeyedFakeTextExtractor()
+    extractor.set_lines(page_image, [_line("UNRELATED CLINICAL NOTE")])
+
+    with session_factory() as session:
+        DocumentRepository(session).add(document)
+        PageRepository(session).add_all([
+            _seed_page(fake_object_store, document, 1, page_image),
+        ])
+        session.commit()
+
+    reg = _registry()
+    worker = PageDetectionWorker(
+        event_bus=InMemoryEventBus(),
+        object_store=fake_object_store,
+        session_factory=session_factory,
+        pipeline_version="0.1.0",
+        router=PageRoutingService(
+            cms_template=reg.get("cms1500", "02-12"),
+            ub_template=reg.get("ub04", "2014"),
+            text_extractor=extractor,
+        ),
+    )
+    await worker.handle_one(EventEnvelope(
+        event_type=Topic.DOCUMENT_PREPARED.value,
+        correlation_id=uuid4(),
+        document_id=document.document_id,
+        pipeline_version="0.1.0",
+        payload={"document_id": str(document.document_id), "page_count": 1},
+    ))
+
+    with session_factory() as session:
+        updated = DocumentRepository(session).get(document.document_id)
+        classifications = PageClassificationRepository(session).list_for_document(
+            document.document_id
+        )
+        unpublished = await SqlAlchemyOutboxRepository(session).get_unpublished()
+
+    assert updated.status == DocumentStatus.NEEDS_REVIEW
+    assert classifications[0].needs_review
+    assert {record.topic for record in unpublished} == {"page.selected"}
+    page_event = next(record for record in unpublished if record.topic == "page.selected")
+    assert page_event.envelope.payload["reason_codes"][-1] == "NO_AUTOMATED_EXTRACTION_ROUTE"

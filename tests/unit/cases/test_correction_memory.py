@@ -18,3 +18,27 @@ def test_memory_skips_malformed_lines(tmp_path):
     path = tmp_path / "corrections.jsonl"
     path.write_text("not-json\n" + json.dumps({"field_name": "x", "corrected_value": "Y"}) + "\n")
     assert CorrectionMemory(path).exemplars("x") == [{"observed": "", "corrected": "Y"}]
+
+
+def test_correction_patterns_require_distinct_documents_and_reviewers(tmp_path):
+    path = tmp_path / "corrections.jsonl"
+    sink = JsonlCorrectionSink(path)
+    for index in range(5):
+        sink.append(correction_example(
+            f"doc-{index}", "type_of_bill", "I17", "117", None,
+            "reviewer-a" if index % 2 == 0 else "reviewer-b",
+        ))
+    candidate = CorrectionMemory(path).promotion_candidates()[0]
+    assert candidate.promotion_eligible
+    assert candidate.agreement_ratio == 1.0
+
+
+def test_inconsistent_correction_pattern_is_not_promotion_eligible(tmp_path):
+    path = tmp_path / "corrections.jsonl"
+    sink = JsonlCorrectionSink(path)
+    for index, corrected in enumerate(["117", "117", "117", "117", "111"]):
+        sink.append(correction_example(
+            f"doc-{index}", "type_of_bill", "I17", corrected, None,
+            "reviewer-a" if index % 2 == 0 else "reviewer-b",
+        ))
+    assert not CorrectionMemory(path).promotion_candidates()[0].promotion_eligible

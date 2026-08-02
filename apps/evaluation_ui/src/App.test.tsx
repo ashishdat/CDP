@@ -28,6 +28,12 @@ describe("evaluation dashboard", () => {
         accuracy_by_form_type: { CMS1500: 0.5 },
         accuracy_by_extraction_method: { REGIONAL_PADDLEOCR: 0.5 },
         accuracy_by_image_quality_bucket: { good: 0.5 },
+        field_evidence: [{
+          document_id: "A-01", form_type: "CMS1500", field_name: "total_charge",
+          expected_value: "100.00", extracted_value: "900.00", normalized_value: "900.00",
+          extraction_method: "REGIONAL_PADDLEOCR", confidence: 0.99, status: "INVALID",
+          correct: false, original_page_url: null, row_context_url: null, crop_url: null,
+        }],
         operational_metrics: {
           total_pages_processed: 2, processing_time_seconds: 4,
           average_latency_seconds: 2, pages_per_second: 0.5,
@@ -52,13 +58,16 @@ describe("evaluation dashboard", () => {
     fireEvent.change(input, { target: { files: [file] } });
     expect(await screen.findByText("Governed extraction results")).toBeInTheDocument();
     expect(screen.getByText("Current-sample validated accuracy")).toBeInTheDocument();
+    expect(screen.getByText("Group-wise accuracy")).toBeInTheDocument();
+    expect(screen.getByText("CMS-1500 professional claim")).toBeInTheDocument();
+    expect(screen.getByText("Final governed accuracy")).toBeInTheDocument();
     expect(screen.queryByText("Performance & cost analysis")).not.toBeInTheDocument();
     expect(screen.queryByText("Optimized component cost per page")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Field evidence" }));
     expect(screen.getByText("Field-level evidence")).toBeInTheDocument();
-    expect(screen.getByText("100.00")).toBeInTheDocument();
-    expect(screen.getAllByText("900.00")).toHaveLength(2);
+    expect(screen.getAllByText("100.00")).toHaveLength(2);
+    expect(screen.getAllByText("900.00")).toHaveLength(4);
     expect(screen.getAllByText("FALSE_ACCEPT")).toHaveLength(2);
 
     fireEvent.click(screen.getByRole("tab", { name: "OCR & LLM flow" }));
@@ -80,6 +89,6 @@ describe("evaluation dashboard", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Process claims" }));
     expect(screen.getByText("Upload and process claims")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Choose files" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Choose files")).toBeInTheDocument();
   });
 });

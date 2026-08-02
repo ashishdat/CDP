@@ -72,3 +72,14 @@ class CorrectionRequest(BaseModel):
 
 class RejectionRequest(BaseModel):
     reason: str
+
+
+class CorrectionPromotionCandidate(BaseModel):
+    field_name: str
+    observed: str
+    corrected: str
+    occurrences: int
+    distinct_documents: int
+    distinct_reviewers: int
+    agreement_ratio: float
+    promotion_eligible: bool

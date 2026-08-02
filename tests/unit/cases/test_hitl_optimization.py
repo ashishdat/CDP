@@ -11,6 +11,8 @@ POLICY = {
     "route_promotion": {
         "required_validation_results": ["CROSS_FAMILY_AGREEMENT"],
         "forbidden_validation_results": ["INSUFFICIENT_EVIDENCE"],
+        "minimum_confidence": 0.85,
+        "allowed_crop_quality": ["VALID_SINGLE_CELL"],
     },
 }
 
@@ -22,6 +24,8 @@ def _prediction(field: str, *, reason: str | None = None) -> dict:
             "service_line_number": 1, "semantic_field": field,
         },
         "review_required": True,
+        "confidence": 0.96,
+        "crop_quality": "VALID_SINGLE_CELL",
         "validation_results": ["CROSS_FAMILY_AGREEMENT"],
         "provenance": {"reason": reason},
     }
@@ -59,6 +63,17 @@ def test_active_route_still_fails_closed_without_validation() -> None:
         active_routes={"CMS1500|charges"},
     )
     assert result.disposition == HitlDisposition.BLOCKED_INSUFFICIENT_EVIDENCE
+
+
+def test_active_route_still_fails_closed_for_low_confidence_or_bad_crop() -> None:
+    prediction = _prediction("charges")
+    prediction["confidence"] = 0.8
+    low = decide(prediction, POLICY, reference_decisions={}, active_routes={"CMS1500|charges"})
+    assert low.disposition == HitlDisposition.BLOCKED_LOW_CONFIDENCE
+    prediction["confidence"] = 0.99
+    prediction["crop_quality"] = "CLIPPED_CONTENT"
+    crop = decide(prediction, POLICY, reference_decisions={}, active_routes={"CMS1500|charges"})
+    assert crop.disposition == HitlDisposition.BLOCKED_CROP_QUALITY
 
 
 def test_editable_csv_and_yaml_inputs_are_supported(tmp_path) -> None:

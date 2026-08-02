@@ -23,6 +23,18 @@ class CorrectionExample:
     reason: str | None = None
 
 
+@dataclass(frozen=True)
+class CorrectionPattern:
+    field_name: str
+    observed: str
+    corrected: str
+    occurrences: int
+    distinct_documents: int
+    distinct_reviewers: int
+    agreement_ratio: float
+    promotion_eligible: bool
+
+
 class CorrectionSink(Protocol):
     def append(self, example: CorrectionExample) -> None: ...
 
@@ -84,3 +96,51 @@ class CorrectionMemory:
             if len(selected) >= self._limit:
                 break
         return list(reversed(selected))
+
+    def promotion_candidates(
+        self,
+        tenant_id: str = "default",
+        *,
+        minimum_documents: int = 5,
+        minimum_reviewers: int = 2,
+        minimum_agreement: float = 0.95,
+    ) -> list[CorrectionPattern]:
+        """Identify patterns for holdout testing; this never activates a route."""
+        if not self._path.is_file():
+            return []
+        observations: dict[tuple[str, str], list[dict]] = {}
+        for line in self._path.read_text(encoding="utf-8").splitlines():
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if row.get("tenant_id", "default") != tenant_id:
+                continue
+            field = str(row.get("field_name") or "")
+            observed = str(row.get("previous_value") or "")
+            corrected = str(row.get("corrected_value") or "")
+            if field and corrected:
+                observations.setdefault((field, observed), []).append(row)
+
+        candidates: list[CorrectionPattern] = []
+        for (field, observed), rows in observations.items():
+            corrected_counts: dict[str, int] = {}
+            for row in rows:
+                corrected = str(row.get("corrected_value") or "")
+                corrected_counts[corrected] = corrected_counts.get(corrected, 0) + 1
+            corrected, occurrences = max(corrected_counts.items(), key=lambda item: item[1])
+            documents = {str(row["document_id"]) for row in rows if row.get("document_id")}
+            reviewers = {str(row["reviewer"]) for row in rows if row.get("reviewer")}
+            agreement = occurrences / len(rows)
+            eligible = (
+                len(documents) >= minimum_documents
+                and len(reviewers) >= minimum_reviewers
+                and agreement >= minimum_agreement
+            )
+            candidates.append(CorrectionPattern(
+                field, observed, corrected, occurrences, len(documents), len(reviewers), agreement, eligible,
+            ))
+        return sorted(
+            candidates,
+            key=lambda item: (-int(item.promotion_eligible), -item.occurrences, item.field_name),
+        )
