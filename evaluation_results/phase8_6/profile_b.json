@@ -1,0 +1,18 @@
+{
+  "eligible_fields": 1000,
+  "accepted_fields": 679,
+  "safe_field_coverage": 0.679,
+  "field_hitl": 0.32099999999999995,
+  "accepted_precision": 1.0,
+  "false_accepts": 0,
+  "critical_false_accepts": 0,
+  "claim_stp": 0.0,
+  "claim_hitl": 1.0,
+  "claims_unlocked": 0,
+  "review_fields_per_page": 3.21,
+  "illustrative_hitl_cost_per_page_usd": 0.18090277777777775,
+  "illustrative_fully_loaded_cost_per_page_usd": 0.18159356812361108,
+  "ocr_invocations_during_replay": 0,
+  "cloud_cost_usd": 0.0,
+  "profile_name": "UB_SCHEMA_CORRECTION_AND_LOCAL_EVIDENCE"
+}

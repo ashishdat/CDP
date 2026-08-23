@@ -1,0 +1,135 @@
+{
+  "phase": "8.6",
+  "tracks": {
+    "ub_benchmark_schema_correction": {
+      "dataset_id": "CDP_GOLDEN_ENGINEERING_PACK_V2",
+      "observations": 50,
+      "truth_rows": 50,
+      "localization_success": 1.0,
+      "rapid_accuracy": 1.0,
+      "paddle_accuracy": 1.0,
+      "independent_agreement_coverage": 1.0,
+      "agreement_precision": 1.0,
+      "false_agreements": 0,
+      "secondary_ocr_rate": 1.0,
+      "p50_secondary_latency_ms": 242.32874999870546,
+      "cloud_cost_usd": 0.0,
+      "promotion_gate_passed": true
+    },
+    "cms_independent_local_evidence": {
+      "dataset_id": "CDP_GOLDEN_ENGINEERING_PACK_V1",
+      "engine_family": "PADDLE_FAMILY",
+      "independent_from_current_family": "RAPID_ONNX_FAMILY",
+      "cloud_cost_usd": 0.0,
+      "by_field": {
+        "member_id": {
+          "observations": 50,
+          "paddle_accuracy": 0.92,
+          "agreement_count": 46,
+          "agreement_coverage": 0.92,
+          "agreement_precision": 1.0,
+          "false_agreements": 0,
+          "p50_latency_ms": 991.4216500183102,
+          "promotion_gate_passed": true
+        },
+        "provider_npi": {
+          "observations": 50,
+          "paddle_accuracy": 0.8,
+          "agreement_count": 40,
+          "agreement_coverage": 0.8,
+          "agreement_precision": 1.0,
+          "false_agreements": 0,
+          "p50_latency_ms": 622.5572499824921,
+          "promotion_gate_passed": true
+        },
+        "total_charge": {
+          "observations": 50,
+          "paddle_accuracy": 1.0,
+          "agreement_count": 49,
+          "agreement_coverage": 0.98,
+          "agreement_precision": 1.0,
+          "false_agreements": 0,
+          "p50_latency_ms": 424.7215000068536,
+          "promotion_gate_passed": true
+        }
+      }
+    }
+  },
+  "profiles": {
+    "profile_a": {
+      "eligible_fields": 950,
+      "accepted_fields": 629,
+      "correct_accepted": 629,
+      "incorrect_accepted": 0,
+      "accepted_precision": 1.0,
+      "critical_accepted_precision": 1.0,
+      "safe_field_coverage": 0.6621052631578948,
+      "field_hitl": 0.33789473684210525,
+      "blocking_field_hitl": 0.33789473684210525,
+      "critical_field_hitl": 0.56,
+      "review_fields_per_page": 3.21,
+      "claim_hitl": 1.0,
+      "claim_stp": 0.0,
+      "perfect_extraction_claims": 63,
+      "single_blocker_claims": 50,
+      "false_accepts": 0,
+      "critical_false_accepts": 0,
+      "extraction_output_digest": "2a9b2710bb97fbd91f519724c1284bd0056d67e8653c2f2e4b367539064435b0",
+      "extraction_output_count": 857,
+      "forbidden_route_accepts": 0,
+      "evaluation_only_evidence_leaks": 0,
+      "extraction_outputs_unchanged": true,
+      "secondary_ocr_invocations_during_replay": 0,
+      "common_path_cloud_cost_usd": 0.0,
+      "profile": "C",
+      "profile_name": "PHASE8_5_FROZEN_BASELINE",
+      "evidence_policy_version": "evidence-policy-v3-balanced-safe-automation",
+      "field_policy_version": "field-acceptance-v2-explicit-production-fields",
+      "ocr_reruns": 0,
+      "safety_gate_passed": true,
+      "claims_unlocked": 0,
+      "ocr_invocations_during_replay": 0
+    },
+    "profile_b": {
+      "eligible_fields": 1000,
+      "accepted_fields": 679,
+      "safe_field_coverage": 0.679,
+      "field_hitl": 0.32099999999999995,
+      "accepted_precision": 1.0,
+      "false_accepts": 0,
+      "critical_false_accepts": 0,
+      "claim_stp": 0.0,
+      "claim_hitl": 1.0,
+      "claims_unlocked": 0,
+      "review_fields_per_page": 3.21,
+      "illustrative_hitl_cost_per_page_usd": 0.18090277777777775,
+      "illustrative_fully_loaded_cost_per_page_usd": 0.18159356812361108,
+      "ocr_invocations_during_replay": 0,
+      "cloud_cost_usd": 0.0,
+      "profile_name": "UB_SCHEMA_CORRECTION_AND_LOCAL_EVIDENCE"
+    },
+    "profile_c": {
+      "eligible_fields": 1000,
+      "accepted_fields": 776,
+      "safe_field_coverage": 0.776,
+      "field_hitl": 0.22399999999999998,
+      "accepted_precision": 1.0,
+      "false_accepts": 0,
+      "critical_false_accepts": 0,
+      "claim_stp": 0.0,
+      "claim_hitl": 1.0,
+      "claims_unlocked": 0,
+      "review_fields_per_page": 2.24,
+      "illustrative_hitl_cost_per_page_usd": 0.1472222222222222,
+      "illustrative_fully_loaded_cost_per_page_usd": 0.14791301256805553,
+      "ocr_invocations_during_replay": 0,
+      "cloud_cost_usd": 0.0,
+      "profile_name": "UB_AND_CMS_INDEPENDENT_LOCAL_EVIDENCE"
+    }
+  },
+  "dataset_archive": {
+    "path": "evaluation_results\\phase8_6\\CDP_GOLDEN_ENGINEERING_PACK_V2.zip",
+    "sha256": "8bb8dc59a3f74fb2fa3aeacd43c6d4e3c88e60c581716130bbee8a4fbd106593",
+    "bytes": 4670331
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "dataset_id": "CDP_GOLDEN_ENGINEERING_PACK_V2",
+  "observations": 50,
+  "truth_rows": 50,
+  "localization_success": 1.0,
+  "rapid_accuracy": 1.0,
+  "paddle_accuracy": 1.0,
+  "independent_agreement_coverage": 1.0,
+  "agreement_precision": 1.0,
+  "false_agreements": 0,
+  "secondary_ocr_rate": 1.0,
+  "p50_secondary_latency_ms": 242.32874999870546,
+  "cloud_cost_usd": 0.0,
+  "promotion_gate_passed": true
+}

@@ -1,0 +1,38 @@
+{
+  "dataset_id": "CDP_GOLDEN_ENGINEERING_PACK_V1",
+  "engine_family": "PADDLE_FAMILY",
+  "independent_from_current_family": "RAPID_ONNX_FAMILY",
+  "cloud_cost_usd": 0.0,
+  "by_field": {
+    "member_id": {
+      "observations": 50,
+      "paddle_accuracy": 0.92,
+      "agreement_count": 46,
+      "agreement_coverage": 0.92,
+      "agreement_precision": 1.0,
+      "false_agreements": 0,
+      "p50_latency_ms": 991.4216500183102,
+      "promotion_gate_passed": true
+    },
+    "provider_npi": {
+      "observations": 50,
+      "paddle_accuracy": 0.8,
+      "agreement_count": 40,
+      "agreement_coverage": 0.8,
+      "agreement_precision": 1.0,
+      "false_agreements": 0,
+      "p50_latency_ms": 622.5572499824921,
+      "promotion_gate_passed": true
+    },
+    "total_charge": {
+      "observations": 50,
+      "paddle_accuracy": 1.0,
+      "agreement_count": 49,
+      "agreement_coverage": 0.98,
+      "agreement_precision": 1.0,
+      "false_agreements": 0,
+      "p50_latency_ms": 424.7215000068536,
+      "promotion_gate_passed": true
+    }
+  }
+}
