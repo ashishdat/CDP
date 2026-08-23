@@ -1,0 +1,1606 @@
+{
+  "documents": 30,
+  "truth_fields": 264,
+  "field_accuracy": 0.0,
+  "critical_field_accuracy": 0.0,
+  "correct_fields": 0,
+  "perfect_documents": 0,
+  "perfect_document_rate": 0.0,
+  "wrong_route_loss": 0,
+  "verification_loss": 120,
+  "extraction_loss": 95,
+  "unsupported_loss": 60,
+  "hitl_abstention_rate": 1.0,
+  "counterfactual_latency_ms": {
+    "p50": 11551.610399998026,
+    "p95": 80035.30690001207,
+    "p99": 186935.19560000277
+  },
+  "normal_pipeline_latency": "NOT_MEASURABLE_FOR_WRONG_ROUTE_LAYOUT_OUTPUTS",
+  "field_outcomes": [
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0001",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0001",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0001",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0001",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0009",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0009",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0009",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0009",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0017",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0017",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0017",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0017",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0025",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0025",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0025",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0025",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0033",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0033",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0033",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0033",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0041",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0041",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0041",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0041",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0049",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0049",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0049",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0049",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0057",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0057",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0057",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0057",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0065",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0065",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0065",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0065",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0073",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0073",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0073",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0073",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0081",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0081",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0081",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0081",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0089",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0089",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0089",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0089",
+      "field_name": "insured_id_number",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "account_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "amount_paid",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "claim_no",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "diagnosis",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "dob",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "facility_name",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "insured_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "member_id",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "patient_address",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "patient_city",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "patient_state",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "patient_zip",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "place_of_service",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "procedure_code",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "provider_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "relationship",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "service_date",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "sex",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00001",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "account_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "amount_paid",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "claim_no",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "diagnosis",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "dob",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "facility_name",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "insured_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "member_id",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "patient_address",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "patient_city",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "patient_state",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "patient_zip",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "place_of_service",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "procedure_code",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "provider_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "relationship",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "service_date",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "sex",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00010",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "account_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "amount_paid",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "claim_no",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "diagnosis",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "dob",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "facility_name",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "insured_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "member_id",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "patient_address",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "patient_city",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "patient_state",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "patient_zip",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "place_of_service",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "procedure_code",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "provider_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "relationship",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "service_date",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "sex",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00024",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0006",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0006",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0006",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0006",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0006",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0006",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0014",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0014",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0014",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0014",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0014",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0014",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0022",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0022",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0022",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0022",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0022",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0022",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0030",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0030",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0030",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0030",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0030",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0030",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0038",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0038",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0038",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0038",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0038",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0038",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0046",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0046",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0046",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0046",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0046",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0046",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0054",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0054",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0054",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0054",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0054",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0054",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0062",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0062",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0062",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0062",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0062",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0062",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0070",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0070",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0070",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0070",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0070",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0070",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0078",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0078",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0078",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0078",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0078",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0078",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0086",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0086",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0086",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0086",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0086",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0086",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0094",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0094",
+      "field_name": "patient_dob",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0094",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0094",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0094",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "SYNTHETIC_PUBLIC_V1:SYN-0094",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "VERIFICATION"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "account_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "amount_paid",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "claim_no",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "diagnosis",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "dob",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "facility_name",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "insured_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "member_id",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "patient_address",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "patient_city",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "patient_state",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "patient_zip",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "place_of_service",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "procedure_code",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "provider_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "relationship",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "service_date",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "sex",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00186",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "account_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "amount_paid",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "claim_no",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "diagnosis",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "dob",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "facility_name",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "insured_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "member_id",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "patient_address",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "patient_city",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "patient_state",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "patient_zip",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "place_of_service",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "procedure_code",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "provider_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "relationship",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "service_date",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "sex",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00188",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "account_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "amount_paid",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "claim_no",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "diagnosis",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "dob",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "facility_name",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "federal_tax_no",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "insured_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "member_id",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "patient_address",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "patient_city",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "patient_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "patient_state",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "patient_zip",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "place_of_service",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "principal_diagnosis",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "procedure_code",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "provider_name",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "provider_npi",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "relationship",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "service_date",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "sex",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "total_charge",
+      "correct": false,
+      "primary_loss_layer": "UNSUPPORTED"
+    },
+    {
+      "document_id": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE:PHV2-00195",
+      "field_name": "type_of_bill",
+      "correct": false,
+      "primary_loss_layer": "OCR"
+    }
+  ]
+}

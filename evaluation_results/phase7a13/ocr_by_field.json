@@ -1,0 +1,370 @@
+{
+  "evidence_class": "ENGINEERING_BENCHMARK_ONLY",
+  "production_promotion_authority": false,
+  "crop_trials": 120,
+  "successful_trials": 120,
+  "cloud_api_calls": 0,
+  "cloud_cost_usd": 0.0,
+  "by_engine": {
+    "paddleocr": {
+      "trials": 40,
+      "exact_match": 0.6,
+      "mean_cer": 0.44671717171717173,
+      "p50_latency_ms": 490.97149999579415,
+      "p95_latency_ms": 1426.0129999893252
+    },
+    "rapidocr": {
+      "trials": 40,
+      "exact_match": 0.475,
+      "mean_cer": 0.5204987373737373,
+      "p50_latency_ms": 1572.5903999991715,
+      "p95_latency_ms": 2622.4074000056135
+    },
+    "tesseract": {
+      "trials": 40,
+      "exact_match": 0.375,
+      "mean_cer": 0.4767739898989899,
+      "p50_latency_ms": 278.7481999985175,
+      "p95_latency_ms": 357.93099999136757
+    }
+  },
+  "by_form": {
+    "CMS1500": {
+      "trials": 48,
+      "exact_match": 0.6666666666666666,
+      "mean_cer": 0.22736742424242426,
+      "p50_latency_ms": 364.26670000946615,
+      "p95_latency_ms": 2622.4074000056135
+    },
+    "UB04": {
+      "trials": 72,
+      "exact_match": 0.3611111111111111,
+      "mean_cer": 0.6506383277216611,
+      "p50_latency_ms": 531.9497999880696,
+      "p95_latency_ms": 2453.657200007001
+    }
+  },
+  "by_field": {
+    "federal_tax_no": {
+      "trials": 12,
+      "exact_match": 0.08333333333333333,
+      "mean_cer": 1.1203703703703705,
+      "p50_latency_ms": 320.55079999554437,
+      "p95_latency_ms": 4533.935800005565
+    },
+    "insured_id_number": {
+      "trials": 12,
+      "exact_match": 0.16666666666666666,
+      "mean_cer": 0.8583333333333334,
+      "p50_latency_ms": 505.9817000001203,
+      "p95_latency_ms": 2622.4074000056135
+    },
+    "patient_dob": {
+      "trials": 24,
+      "exact_match": 0.5,
+      "mean_cer": 0.5104166666666666,
+      "p50_latency_ms": 531.9497999880696,
+      "p95_latency_ms": 2358.086000007461
+    },
+    "patient_name": {
+      "trials": 24,
+      "exact_match": 0.5,
+      "mean_cer": 0.26104797979797983,
+      "p50_latency_ms": 439.6199000038905,
+      "p95_latency_ms": 3221.404600000824
+    },
+    "principal_diagnosis": {
+      "trials": 12,
+      "exact_match": 0.4166666666666667,
+      "mean_cer": 0.8333333333333334,
+      "p50_latency_ms": 447.5153999956092,
+      "p95_latency_ms": 1511.6360999963945
+    },
+    "provider_npi": {
+      "trials": 12,
+      "exact_match": 0.5,
+      "mean_cer": 0.125,
+      "p50_latency_ms": 562.5745999859646,
+      "p95_latency_ms": 2470.559699999285
+    },
+    "total_charge": {
+      "trials": 12,
+      "exact_match": 1.0,
+      "mean_cer": 0.0,
+      "p50_latency_ms": 363.7527999962913,
+      "p95_latency_ms": 1853.0241999978898
+    },
+    "type_of_bill": {
+      "trials": 12,
+      "exact_match": 0.6666666666666666,
+      "mean_cer": 0.3333333333333333,
+      "p50_latency_ms": 455.70919998863246,
+      "p95_latency_ms": 1500.808800003142
+    }
+  },
+  "best_engine_by_field": {
+    "federal_tax_no": {
+      "engine": "paddleocr",
+      "trials": 4,
+      "exact_match": 0.25,
+      "mean_cer": 0.5277777777777778,
+      "p50_latency_ms": 167.20969999732915,
+      "p95_latency_ms": 684.845600000699,
+      "all_engines": {
+        "paddleocr": {
+          "trials": 4,
+          "exact_match": 0.25,
+          "mean_cer": 0.5277777777777778,
+          "p50_latency_ms": 167.20969999732915,
+          "p95_latency_ms": 684.845600000699
+        },
+        "rapidocr": {
+          "trials": 4,
+          "exact_match": 0.0,
+          "mean_cer": 1.5555555555555556,
+          "p50_latency_ms": 2399.6970000007423,
+          "p95_latency_ms": 4533.935800005565
+        },
+        "tesseract": {
+          "trials": 4,
+          "exact_match": 0.0,
+          "mean_cer": 1.2777777777777777,
+          "p50_latency_ms": 287.83060000569094,
+          "p95_latency_ms": 320.55079999554437
+        }
+      }
+    },
+    "insured_id_number": {
+      "engine": "rapidocr",
+      "trials": 4,
+      "exact_match": 0.25,
+      "mean_cer": 0.8,
+      "p50_latency_ms": 1589.8823000025004,
+      "p95_latency_ms": 2622.4074000056135,
+      "all_engines": {
+        "paddleocr": {
+          "trials": 4,
+          "exact_match": 0.25,
+          "mean_cer": 0.8250000000000001,
+          "p50_latency_ms": 505.9817000001203,
+          "p95_latency_ms": 1426.0129999893252
+        },
+        "rapidocr": {
+          "trials": 4,
+          "exact_match": 0.25,
+          "mean_cer": 0.8,
+          "p50_latency_ms": 1589.8823000025004,
+          "p95_latency_ms": 2622.4074000056135
+        },
+        "tesseract": {
+          "trials": 4,
+          "exact_match": 0.0,
+          "mean_cer": 0.95,
+          "p50_latency_ms": 264.9182000022847,
+          "p95_latency_ms": 303.89149999246
+        }
+      }
+    },
+    "patient_dob": {
+      "engine": "tesseract",
+      "trials": 8,
+      "exact_match": 0.5,
+      "mean_cer": 0.171875,
+      "p50_latency_ms": 277.68749999813735,
+      "p95_latency_ms": 357.93099999136757,
+      "all_engines": {
+        "paddleocr": {
+          "trials": 8,
+          "exact_match": 0.5,
+          "mean_cer": 0.828125,
+          "p50_latency_ms": 531.9497999880696,
+          "p95_latency_ms": 1007.1657999942545
+        },
+        "rapidocr": {
+          "trials": 8,
+          "exact_match": 0.5,
+          "mean_cer": 0.53125,
+          "p50_latency_ms": 1617.67079999845,
+          "p95_latency_ms": 2467.154300000402
+        },
+        "tesseract": {
+          "trials": 8,
+          "exact_match": 0.5,
+          "mean_cer": 0.171875,
+          "p50_latency_ms": 277.68749999813735,
+          "p95_latency_ms": 357.93099999136757
+        }
+      }
+    },
+    "patient_name": {
+      "engine": "paddleocr",
+      "trials": 8,
+      "exact_match": 0.625,
+      "mean_cer": 0.1415719696969697,
+      "p50_latency_ms": 388.1193999986863,
+      "p95_latency_ms": 6577.320999989752,
+      "all_engines": {
+        "paddleocr": {
+          "trials": 8,
+          "exact_match": 0.625,
+          "mean_cer": 0.1415719696969697,
+          "p50_latency_ms": 388.1193999986863,
+          "p95_latency_ms": 6577.320999989752
+        },
+        "rapidocr": {
+          "trials": 8,
+          "exact_match": 0.5,
+          "mean_cer": 0.1434659090909091,
+          "p50_latency_ms": 1525.3506999870297,
+          "p95_latency_ms": 3221.404600000824
+        },
+        "tesseract": {
+          "trials": 8,
+          "exact_match": 0.375,
+          "mean_cer": 0.4981060606060606,
+          "p50_latency_ms": 293.289499997627,
+          "p95_latency_ms": 497.6357999985339
+        }
+      }
+    },
+    "principal_diagnosis": {
+      "engine": "paddleocr",
+      "trials": 4,
+      "exact_match": 0.75,
+      "mean_cer": 0.9,
+      "p50_latency_ms": 447.5153999956092,
+      "p95_latency_ms": 731.0475000122096,
+      "all_engines": {
+        "paddleocr": {
+          "trials": 4,
+          "exact_match": 0.75,
+          "mean_cer": 0.9,
+          "p50_latency_ms": 447.5153999956092,
+          "p95_latency_ms": 731.0475000122096
+        },
+        "rapidocr": {
+          "trials": 4,
+          "exact_match": 0.0,
+          "mean_cer": 1.0999999999999999,
+          "p50_latency_ms": 889.6236000000499,
+          "p95_latency_ms": 1511.6360999963945
+        },
+        "tesseract": {
+          "trials": 4,
+          "exact_match": 0.5,
+          "mean_cer": 0.5,
+          "p50_latency_ms": 269.0001999872038,
+          "p95_latency_ms": 314.74790000356734
+        }
+      }
+    },
+    "provider_npi": {
+      "engine": "paddleocr",
+      "trials": 4,
+      "exact_match": 0.75,
+      "mean_cer": 0.025,
+      "p50_latency_ms": 562.5745999859646,
+      "p95_latency_ms": 1027.515299996594,
+      "all_engines": {
+        "paddleocr": {
+          "trials": 4,
+          "exact_match": 0.75,
+          "mean_cer": 0.025,
+          "p50_latency_ms": 562.5745999859646,
+          "p95_latency_ms": 1027.515299996594
+        },
+        "rapidocr": {
+          "trials": 4,
+          "exact_match": 0.75,
+          "mean_cer": 0.025,
+          "p50_latency_ms": 1747.1588000043994,
+          "p95_latency_ms": 2470.559699999285
+        },
+        "tesseract": {
+          "trials": 4,
+          "exact_match": 0.0,
+          "mean_cer": 0.325,
+          "p50_latency_ms": 275.14610000071116,
+          "p95_latency_ms": 313.2932000007713
+        }
+      }
+    },
+    "total_charge": {
+      "engine": "tesseract",
+      "trials": 4,
+      "exact_match": 1.0,
+      "mean_cer": 0.0,
+      "p50_latency_ms": 264.4302999979118,
+      "p95_latency_ms": 363.7527999962913,
+      "all_engines": {
+        "paddleocr": {
+          "trials": 4,
+          "exact_match": 1.0,
+          "mean_cer": 0.0,
+          "p50_latency_ms": 326.7820000037318,
+          "p95_latency_ms": 801.4488000044366
+        },
+        "rapidocr": {
+          "trials": 4,
+          "exact_match": 1.0,
+          "mean_cer": 0.0,
+          "p50_latency_ms": 1055.7078999991063,
+          "p95_latency_ms": 1853.0241999978898
+        },
+        "tesseract": {
+          "trials": 4,
+          "exact_match": 1.0,
+          "mean_cer": 0.0,
+          "p50_latency_ms": 264.4302999979118,
+          "p95_latency_ms": 363.7527999962913
+        }
+      }
+    },
+    "type_of_bill": {
+      "engine": "paddleocr",
+      "trials": 4,
+      "exact_match": 0.75,
+      "mean_cer": 0.25,
+      "p50_latency_ms": 455.70919998863246,
+      "p95_latency_ms": 867.1371999953408,
+      "all_engines": {
+        "paddleocr": {
+          "trials": 4,
+          "exact_match": 0.75,
+          "mean_cer": 0.25,
+          "p50_latency_ms": 455.70919998863246,
+          "p95_latency_ms": 867.1371999953408
+        },
+        "rapidocr": {
+          "trials": 4,
+          "exact_match": 0.75,
+          "mean_cer": 0.375,
+          "p50_latency_ms": 1072.1654999942984,
+          "p95_latency_ms": 1500.808800003142
+        },
+        "tesseract": {
+          "trials": 4,
+          "exact_match": 0.5,
+          "mean_cer": 0.375,
+          "p50_latency_ms": 246.4023999928031,
+          "p95_latency_ms": 276.2018000066746
+        }
+      }
+    }
+  },
+  "unavailable": [],
+  "agreement": {
+    "crop_groups": 40,
+    "all_engine_agreement_rate": 0.325,
+    "false_agreement_rate": 0.025
+  },
+  "by_dataset_class": {
+    "SYNTHETIC_PUBLIC_V1": {
+      "trials": 120,
+      "exact_accuracy": 0.48333333333333334,
+      "mean_cer": 0.48132996632996633,
+      "p95_latency_ms": 2453.657200007001,
+      "accuracy_given_correct_crop": 0.48333333333333334
+    }
+  }
+}

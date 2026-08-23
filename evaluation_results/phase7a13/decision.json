@@ -1,0 +1,12 @@
+{
+  "primary_bottleneck": "MULTIPLE_BOTTLENECKS",
+  "secondary_bottlenecks": [
+    "STANDARD_NOMINATION",
+    "STANDARD_VERIFICATION",
+    "EXTRACTION",
+    "ROUTING_LATENCY"
+  ],
+  "evidence_class": "ENGINEERING_BENCHMARK_ONLY",
+  "production_promotion_authority": false,
+  "experiment_1": "REJECT"
+}

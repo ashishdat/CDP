@@ -1,0 +1,9 @@
+{
+  "reasons": {
+    "TEMPLATE_LINEAGE_MISMATCH": 64,
+    "RANSAC_INLIER_FAILURE": 54,
+    "INVALID_TRANSFORMED_CORNERS": 9,
+    "LOWE_FILTER_COLLAPSE": 5
+  },
+  "classified_rate": 1.0
+}

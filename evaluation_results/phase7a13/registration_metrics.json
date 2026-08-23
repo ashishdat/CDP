@@ -1,0 +1,24 @@
+{
+  "documents": 30,
+  "registration_configured": 0,
+  "registration_success": 0,
+  "registration_success_rate": 0.0,
+  "registration_confidence_distribution": "NOT_MEASURABLE",
+  "crop_fields_with_truth": 120,
+  "crop_correctness": 1.0,
+  "roi_too_tight": "NOT_MEASURABLE",
+  "roi_too_wide": "NOT_MEASURABLE",
+  "label_contamination": 59,
+  "wrong_field_crop": "NOT_MEASURABLE",
+  "empty_crop": 0,
+  "by_source": {
+    "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE": {
+      "fields": 0,
+      "crop_correctness": 0.0
+    },
+    "SYNTHETIC_PUBLIC_V1": {
+      "fields": 120,
+      "crop_correctness": 1.0
+    }
+  }
+}

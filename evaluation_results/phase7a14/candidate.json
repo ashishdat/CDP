@@ -1,0 +1,18 @@
+{
+  "candidate_id": "FIXED_FORM_RECOVERY_CANDIDATE_1",
+  "created": false,
+  "frozen": false,
+  "gate_status": "FAILED_PREREQUISITES",
+  "failed_gates": [
+    "benchmark_template_compatibility",
+    "CMS_crop_correctness",
+    "UB_crop_correctness",
+    "OCR_given_correct_crop",
+    "CMS_truth_route_extraction",
+    "UB_truth_route_extraction",
+    "critical_field_accuracy",
+    "verifier_recall",
+    "UB_service_lines"
+  ],
+  "observation_only_result": "NOT_RUN_CANDIDATE_NOT_FROZEN"
+}

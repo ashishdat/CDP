@@ -1,0 +1,57 @@
+{
+  "execution_order": [
+    "EXP-02A",
+    "EXP-02B",
+    "EXP-02C",
+    "EXP-02D",
+    "EXP-02E",
+    "EXP-02F",
+    "EXP-02G",
+    "EXP-02H"
+  ],
+  "experiments": [
+    {
+      "id": "EXP-02A",
+      "name": "registration implementation controls",
+      "status": "PASS",
+      "metric": 1.0
+    },
+    {
+      "id": "EXP-02B",
+      "name": "template compatibility diagnosis",
+      "status": "DIAGNOSED_TEMPLATE_LINEAGE_MISMATCH",
+      "metric": 0.0
+    },
+    {
+      "id": "EXP-02C",
+      "name": "CMS ROI recovery",
+      "status": "BLOCKED_NO_TUNING_FIELD_TRUTH"
+    },
+    {
+      "id": "EXP-02D",
+      "name": "UB fixed-field ROI recovery",
+      "status": "BLOCKED_NO_TUNING_FIELD_TRUTH"
+    },
+    {
+      "id": "EXP-02E",
+      "name": "OCR by field on correct crops",
+      "status": "BLOCKED_NO_TRUTH_CROP_LABELS"
+    },
+    {
+      "id": "EXP-02F",
+      "name": "CMS verifier recovery",
+      "status": "NOT_PROMOTED_TEMPLATE_LINEAGE_BLOCKED"
+    },
+    {
+      "id": "EXP-02G",
+      "name": "UB verifier recovery",
+      "status": "NOT_PROMOTED_TEMPLATE_LINEAGE_BLOCKED"
+    },
+    {
+      "id": "EXP-02H",
+      "name": "UB service-line reconstruction",
+      "status": "CONTRACT_IMPLEMENTED_BENCHMARK_BLOCKED_NO_TUNING_ROW_TRUTH"
+    }
+  ],
+  "observation_only_micro_experiment_runs": 0
+}

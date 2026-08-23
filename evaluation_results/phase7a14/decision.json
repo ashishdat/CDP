@@ -1,0 +1,18 @@
+{
+  "primary_bottleneck": "TEMPLATE_GENERALIZATION_BOTTLENECK",
+  "secondary_bottleneck": "TUNING_FIELD_TRUTH_UNAVAILABLE",
+  "promotion_decision": "BLOCKED_NO_CANDIDATE",
+  "production_candidate_activated": false,
+  "production_policy_changed": false,
+  "production_code_changed": true,
+  "production_code_change_scope": "FAIL_CLOSED_REGISTRATION_EVIDENCE_SCHEMA_AND_UNPROMOTED_UB04_CANDIDATE_COMPONENT",
+  "router_experiment_2_started": false,
+  "observation_only_pages_run": 0,
+  "safety": {
+    "false_accepts": 0,
+    "false_standard_authorization": 0,
+    "cms_to_ub": 0.0,
+    "ub_to_cms": 0.0
+  },
+  "next_bottleneck": "CREATE_TUNING_ELIGIBLE_FIXED_FORM_FIELD_AND_CROP_TRUTH_WITH_MATCHING_TEMPLATE_LINEAGES"
+}

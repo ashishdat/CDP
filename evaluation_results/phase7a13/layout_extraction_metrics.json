@@ -1,0 +1,1275 @@
+{
+  "evidence_class": "ENGINEERING_BENCHMARK_ONLY",
+  "production_promotion_authority": false,
+  "documents": 15,
+  "fields": 75,
+  "token_accuracy": 1.0,
+  "label_detection": 1.0,
+  "value_detection": 1.0,
+  "label_value_linking": 1.0,
+  "canonical_mapping": 1.0,
+  "field_exact_match": 1.0,
+  "structured_route_recall": 1.0,
+  "p95_latency_ms": 642.3971999902278,
+  "ocr_engine": "Tesseract 5.x PSM 11",
+  "full_page_ocr_calls": 15,
+  "cloud_api_calls": 0,
+  "cloud_cost_usd": 0.0,
+  "details": [
+    {
+      "document_id": "BDDEV-PROF-001",
+      "family": "PROFESSIONAL_CLAIM_LIKE",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M293501",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M293501",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M293501",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 381.2657999951625,
+        "layout": 24.223699991125613,
+        "total": 426.14190001040697
+      }
+    },
+    {
+      "document_id": "BDDEV-PROF-002",
+      "family": "PROFESSIONAL_CLAIM_LIKE",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M405588",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M405588"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 397.28950000426266,
+        "layout": 17.855199999758042,
+        "total": 418.3991000027163
+      }
+    },
+    {
+      "document_id": "BDDEV-PROF-003",
+      "family": "PROFESSIONAL_CLAIM_LIKE",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M867413",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M867413",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M867413",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 434.22200001077726,
+        "layout": 23.49530000356026,
+        "total": 461.70949999941513
+      }
+    },
+    {
+      "document_id": "BDDEV-INST-001",
+      "family": "INSTITUTIONAL_CLAIM_LIKE",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M370821",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M370821",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M370821",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 616.1291999887908,
+        "layout": 20.711300006951205,
+        "total": 642.3971999902278
+      }
+    },
+    {
+      "document_id": "BDDEV-INST-002",
+      "family": "INSTITUTIONAL_CLAIM_LIKE",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M201480",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M201480"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 476.87470000528265,
+        "layout": 17.822100009652786,
+        "total": 500.300799991237
+      }
+    },
+    {
+      "document_id": "BDDEV-INST-003",
+      "family": "INSTITUTIONAL_CLAIM_LIKE",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M531685",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M531685",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M531685",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 464.74580001085997,
+        "layout": 10.605400006170385,
+        "total": 479.019899998093
+      }
+    },
+    {
+      "document_id": "BDDEV-EOB-001",
+      "family": "EOB",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M262363",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M262363",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M262363",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 329.8395000019809,
+        "layout": 9.99279999814462,
+        "total": 342.753899996751
+      }
+    },
+    {
+      "document_id": "BDDEV-EOB-002",
+      "family": "EOB",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M509286",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M509286"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 318.8984000007622,
+        "layout": 12.434599993866868,
+        "total": 336.53130001039244
+      }
+    },
+    {
+      "document_id": "BDDEV-EOB-003",
+      "family": "EOB",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M322355",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M322355",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M322355",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 380.0230999913765,
+        "layout": 9.219400002621114,
+        "total": 392.6015000033658
+      }
+    },
+    {
+      "document_id": "BDDEV-ITEM-001",
+      "family": "ITEMIZED_BILL",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M255547",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M255547",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M255547",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 334.4790999981342,
+        "layout": 11.549899994861335,
+        "total": 349.1260000009788
+      }
+    },
+    {
+      "document_id": "BDDEV-ITEM-002",
+      "family": "ITEMIZED_BILL",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M507235",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M507235"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 334.4257999997353,
+        "layout": 14.349000004585832,
+        "total": 352.2820999933174
+      }
+    },
+    {
+      "document_id": "BDDEV-ITEM-003",
+      "family": "ITEMIZED_BILL",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M377869",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M377869",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M377869",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 320.9424999949988,
+        "layout": 9.55940000130795,
+        "total": 333.7604999978794
+      }
+    },
+    {
+      "document_id": "BDDEV-MEDI-001",
+      "family": "MEDICAL_INVOICE",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M513226",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M513226",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M513226",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 348.7695999938296,
+        "layout": 11.446499993326142,
+        "total": 363.3149999950547
+      }
+    },
+    {
+      "document_id": "BDDEV-MEDI-002",
+      "family": "MEDICAL_INVOICE",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M784262",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M784262"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 342.1265999932075,
+        "layout": 14.880000002449378,
+        "total": 360.3976000013063
+      }
+    },
+    {
+      "document_id": "BDDEV-MEDI-003",
+      "family": "MEDICAL_INVOICE",
+      "predicted_route": "UNKNOWN_STRUCTURED",
+      "predicted_schema": "PROFESSIONAL_CLAIM_LIKE",
+      "token_recall": 1.0,
+      "fields": [
+        {
+          "field_name": "patient_name",
+          "expected": "Jordan Avery",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "Jordan Avery",
+            "Member ID: M757133",
+            "Provider NPI: 1234567893"
+          ]
+        },
+        {
+          "field_name": "insured_id_number",
+          "expected": "M757133",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "M757133",
+            "Provider NPI: 1234567893",
+            "Date of Birth: 06/17/1981"
+          ]
+        },
+        {
+          "field_name": "provider_npi",
+          "expected": "1234567893",
+          "candidate_count": 3,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "1234567893",
+            "Date of Birth: 06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "patient_dob",
+          "expected": "06/17/1981",
+          "candidate_count": 2,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "06/17/1981",
+            "Total Charge: $125.00"
+          ]
+        },
+        {
+          "field_name": "total_charge",
+          "expected": "$125.00",
+          "candidate_count": 1,
+          "label_detected": true,
+          "value_detected": true,
+          "label_value_link_correct": true,
+          "canonical_mapping_correct": true,
+          "field_exact_match": true,
+          "predicted_values": [
+            "$125.00"
+          ]
+        }
+      ],
+      "latency_ms": {
+        "ocr": 355.66849999304395,
+        "layout": 13.374699992709793,
+        "total": 372.07340000895783
+      }
+    }
+  ]
+}

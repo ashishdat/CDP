@@ -1,0 +1,1115 @@
+{
+  "documents": 1230,
+  "overall_exact_routing_accuracy": 0.6219512195121951,
+  "processing_route_accuracy": 0.4276422764227642,
+  "top_level_taxonomy_accuracy": 0.6382113821138211,
+  "top_level_macro_f1": 0.3411396218719148,
+  "standard_precision": 1.0,
+  "standard_recall": 0.7597826086956522,
+  "cms_precision": 1.0,
+  "cms_recall": 0.7926829268292683,
+  "ub_precision": 1.0,
+  "ub_recall": 0.7333333333333333,
+  "custom_professional_recall": 0.0,
+  "custom_institutional_recall": 0.0,
+  "unknown_structured_recall": 0.7142857142857143,
+  "claim_support_accuracy": 0.0,
+  "non_claim_recall": 0.1746031746031746,
+  "unknown_unstructured_recall": 1.0,
+  "unknown_unstructured_sample_size": 5,
+  "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+  "safe_fallback_rate": 0.42391304347826086,
+  "false_standard_authorization_rate": 0.0,
+  "false_standard_authorization_count": 0,
+  "cms_to_ub_authorization_rate": 0.0,
+  "ub_to_cms_authorization_rate": 0.0,
+  "unverified_fixed_authorization_count": 0,
+  "route_extractor_firewall_violations": 0,
+  "latency_ms": {
+    "p50": 2466.186599995126,
+    "p95": 57902.358999999706,
+    "p99": 178490.96490000375,
+    "mean": 10371.242021056643
+  },
+  "by_family": {
+    "CLAIM_SUPPORT": {
+      "support": 76,
+      "exact_recall": 0.0,
+      "processing_route_accuracy": 0.8026315789473685
+    },
+    "CMS1500": {
+      "support": 410,
+      "exact_recall": 0.7926829268292683,
+      "processing_route_accuracy": 0.40487804878048783
+    },
+    "CUSTOM_INSTITUTIONAL": {
+      "support": 3,
+      "exact_recall": 0.0,
+      "processing_route_accuracy": 1.0
+    },
+    "CUSTOM_PROFESSIONAL": {
+      "support": 93,
+      "exact_recall": 0.0,
+      "processing_route_accuracy": 0.9354838709677419
+    },
+    "NON_CLAIM": {
+      "support": 63,
+      "exact_recall": 0.1746031746031746,
+      "processing_route_accuracy": 0.1746031746031746
+    },
+    "UB04": {
+      "support": 510,
+      "exact_recall": 0.7333333333333333,
+      "processing_route_accuracy": 0.2803921568627451
+    },
+    "UNKNOWN_STRUCTURED": {
+      "support": 70,
+      "exact_recall": 0.7142857142857143,
+      "processing_route_accuracy": 0.7142857142857143
+    },
+    "UNKNOWN_UNSTRUCTURED": {
+      "support": 5,
+      "exact_recall": 1.0,
+      "processing_route_accuracy": 1.0
+    }
+  },
+  "splits": {
+    "all": {
+      "documents": 1230,
+      "overall_exact_routing_accuracy": 0.6219512195121951,
+      "processing_route_accuracy": 0.4276422764227642,
+      "top_level_taxonomy_accuracy": 0.6382113821138211,
+      "top_level_macro_f1": 0.3411396218719148,
+      "standard_precision": 1.0,
+      "standard_recall": 0.7597826086956522,
+      "cms_precision": 1.0,
+      "cms_recall": 0.7926829268292683,
+      "ub_precision": 1.0,
+      "ub_recall": 0.7333333333333333,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.7142857142857143,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.1746031746031746,
+      "unknown_unstructured_recall": 1.0,
+      "unknown_unstructured_sample_size": 5,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.42391304347826086,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 2466.186599995126,
+        "p95": 57902.358999999706,
+        "p99": 178490.96490000375,
+        "mean": 10371.242021056643
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 76,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.8026315789473685
+        },
+        "CMS1500": {
+          "support": 410,
+          "exact_recall": 0.7926829268292683,
+          "processing_route_accuracy": 0.40487804878048783
+        },
+        "CUSTOM_INSTITUTIONAL": {
+          "support": 3,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 93,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.9354838709677419
+        },
+        "NON_CLAIM": {
+          "support": 63,
+          "exact_recall": 0.1746031746031746,
+          "processing_route_accuracy": 0.1746031746031746
+        },
+        "UB04": {
+          "support": 510,
+          "exact_recall": 0.7333333333333333,
+          "processing_route_accuracy": 0.2803921568627451
+        },
+        "UNKNOWN_STRUCTURED": {
+          "support": 70,
+          "exact_recall": 0.7142857142857143,
+          "processing_route_accuracy": 0.7142857142857143
+        },
+        "UNKNOWN_UNSTRUCTURED": {
+          "support": 5,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        }
+      }
+    },
+    "tuning_permitted": {
+      "documents": 430,
+      "overall_exact_routing_accuracy": 0.4604651162790698,
+      "processing_route_accuracy": 0.35348837209302325,
+      "top_level_taxonomy_accuracy": 0.5069767441860465,
+      "top_level_macro_f1": 0.38279676769763,
+      "standard_precision": 1.0,
+      "standard_recall": 0.5076923076923077,
+      "cms_precision": 1.0,
+      "cms_recall": 0.7454545454545455,
+      "ub_precision": 1.0,
+      "ub_recall": 0.3333333333333333,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.7142857142857143,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.3333333333333333,
+      "unknown_unstructured_recall": 1.0,
+      "unknown_unstructured_sample_size": 5,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.3576923076923077,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 1734.5332000113558,
+        "p95": 3324.59530000051,
+        "p99": 4255.22269999783,
+        "mean": 1932.68495651096
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 26,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.4230769230769231
+        },
+        "CMS1500": {
+          "support": 110,
+          "exact_recall": 0.7454545454545455,
+          "processing_route_accuracy": 0.2636363636363636
+        },
+        "CUSTOM_INSTITUTIONAL": {
+          "support": 3,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 33,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "NON_CLAIM": {
+          "support": 33,
+          "exact_recall": 0.3333333333333333,
+          "processing_route_accuracy": 0.3333333333333333
+        },
+        "UB04": {
+          "support": 150,
+          "exact_recall": 0.3333333333333333,
+          "processing_route_accuracy": 0.06666666666666667
+        },
+        "UNKNOWN_STRUCTURED": {
+          "support": 70,
+          "exact_recall": 0.7142857142857143,
+          "processing_route_accuracy": 0.7142857142857143
+        },
+        "UNKNOWN_UNSTRUCTURED": {
+          "support": 5,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        }
+      }
+    },
+    "observation_only": {
+      "documents": 800,
+      "overall_exact_routing_accuracy": 0.70875,
+      "processing_route_accuracy": 0.4675,
+      "top_level_taxonomy_accuracy": 0.70875,
+      "top_level_macro_f1": 0.22027972027972026,
+      "standard_precision": 1.0,
+      "standard_recall": 0.8590909090909091,
+      "cms_precision": 1.0,
+      "cms_recall": 0.81,
+      "ub_precision": 1.0,
+      "ub_recall": 0.9,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.0,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.45,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 3550.7881000085035,
+        "p95": 85787.33619999548,
+        "p99": 210268.44179999898,
+        "mean": 14906.966443249948
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 50,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CMS1500": {
+          "support": 300,
+          "exact_recall": 0.81,
+          "processing_route_accuracy": 0.45666666666666667
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 60,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.9
+        },
+        "NON_CLAIM": {
+          "support": 30,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.0
+        },
+        "UB04": {
+          "support": 360,
+          "exact_recall": 0.9,
+          "processing_route_accuracy": 0.36944444444444446
+        }
+      }
+    }
+  },
+  "manifest_sha256": "f609e7b02da32e720b71a4c0d4e579921deb27c1714054439764ff2bd3520064",
+  "evidence_class": "ENGINEERING_BENCHMARK_ONLY",
+  "by_quality": {
+    "REMEDIATION": {
+      "documents": 200,
+      "overall_exact_routing_accuracy": 0.16,
+      "processing_route_accuracy": 0.095,
+      "top_level_taxonomy_accuracy": 0.26,
+      "top_level_macro_f1": 0.18203309692671396,
+      "standard_precision": 1.0,
+      "standard_recall": 0.2,
+      "cms_precision": 1.0,
+      "cms_recall": 0.5333333333333333,
+      "ub_precision": 0.0,
+      "ub_recall": 0.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.0,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.08125,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 1561.3933999993606,
+        "p95": 3362.1683999954257,
+        "p99": 4428.239699991536,
+        "mean": 1839.3224894996092
+      },
+      "by_family": {
+        "CMS1500": {
+          "support": 60,
+          "exact_recall": 0.5333333333333333,
+          "processing_route_accuracy": 0.31666666666666665
+        },
+        "NON_CLAIM": {
+          "support": 20,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.0
+        },
+        "UB04": {
+          "support": 100,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.0
+        },
+        "UNKNOWN_STRUCTURED": {
+          "support": 20,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.0
+        }
+      }
+    },
+    "clean": {
+      "documents": 218,
+      "overall_exact_routing_accuracy": 0.6330275229357798,
+      "processing_route_accuracy": 0.8211009174311926,
+      "top_level_taxonomy_accuracy": 0.6330275229357798,
+      "top_level_macro_f1": 0.32927109386963405,
+      "standard_precision": 1.0,
+      "standard_recall": 1.0,
+      "cms_precision": 1.0,
+      "cms_recall": 1.0,
+      "ub_precision": 1.0,
+      "ub_recall": 1.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 1.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.08333333333333333,
+      "unknown_unstructured_recall": 1.0,
+      "unknown_unstructured_sample_size": 1,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.10655737704918032,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 3746.973800007254,
+        "p95": 97328.57430000149,
+        "p99": 220029.22849998868,
+        "mean": 22326.98485045854
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 39,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.6153846153846154
+        },
+        "CMS1500": {
+          "support": 59,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.9152542372881356
+        },
+        "CUSTOM_INSTITUTIONAL": {
+          "support": 3,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 27,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "NON_CLAIM": {
+          "support": 12,
+          "exact_recall": 0.08333333333333333,
+          "processing_route_accuracy": 0.08333333333333333
+        },
+        "UB04": {
+          "support": 63,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.873015873015873
+        },
+        "UNKNOWN_STRUCTURED": {
+          "support": 14,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        },
+        "UNKNOWN_UNSTRUCTURED": {
+          "support": 1,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        }
+      }
+    },
+    "clean_scan": {
+      "documents": 30,
+      "overall_exact_routing_accuracy": 1.0,
+      "processing_route_accuracy": 0.0,
+      "top_level_taxonomy_accuracy": 1.0,
+      "top_level_macro_f1": 1.0,
+      "standard_precision": 1.0,
+      "standard_recall": 1.0,
+      "cms_precision": 1.0,
+      "cms_recall": 1.0,
+      "ub_precision": 0.0,
+      "ub_recall": 0.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.0,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 1.0,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 2187.035900002229,
+        "p95": 2480.016599991359,
+        "p99": 2523.169299995061,
+        "mean": 2042.133166664765
+      },
+      "by_family": {
+        "CMS1500": {
+          "support": 30,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.0
+        }
+      }
+    },
+    "cropped_edges": {
+      "documents": 45,
+      "overall_exact_routing_accuracy": 0.7333333333333333,
+      "processing_route_accuracy": 0.0,
+      "top_level_taxonomy_accuracy": 0.7333333333333333,
+      "top_level_macro_f1": 0.423076923076923,
+      "standard_precision": 1.0,
+      "standard_recall": 0.7333333333333333,
+      "cms_precision": 0.0,
+      "cms_recall": 0.0,
+      "ub_precision": 1.0,
+      "ub_recall": 0.7333333333333333,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.0,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.7333333333333333,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 2297.8917000000365,
+        "p95": 8337.199600005988,
+        "p99": 9800.967599992873,
+        "mean": 3543.419935555236
+      },
+      "by_family": {
+        "UB04": {
+          "support": 45,
+          "exact_recall": 0.7333333333333333,
+          "processing_route_accuracy": 0.0
+        }
+      }
+    },
+    "edge_clip": {
+      "documents": 46,
+      "overall_exact_routing_accuracy": 0.8913043478260869,
+      "processing_route_accuracy": 0.6956521739130435,
+      "top_level_taxonomy_accuracy": 0.8913043478260869,
+      "top_level_macro_f1": 0.6896551724137931,
+      "standard_precision": 1.0,
+      "standard_recall": 1.0,
+      "cms_precision": 1.0,
+      "cms_recall": 1.0,
+      "ub_precision": 1.0,
+      "ub_recall": 1.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 1.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 1.0,
+      "unknown_unstructured_recall": 1.0,
+      "unknown_unstructured_sample_size": 1,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.5185185185185185,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 2193.903899998986,
+        "p95": 24233.093900009408,
+        "p99": 89373.02739999723,
+        "mean": 5985.088800000718
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 1,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CMS1500": {
+          "support": 14,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.42857142857142855
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 4,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "NON_CLAIM": {
+          "support": 2,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        },
+        "UB04": {
+          "support": 13,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.5384615384615384
+        },
+        "UNKNOWN_STRUCTURED": {
+          "support": 11,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        },
+        "UNKNOWN_UNSTRUCTURED": {
+          "support": 1,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        }
+      }
+    },
+    "fax": {
+      "documents": 127,
+      "overall_exact_routing_accuracy": 0.7165354330708661,
+      "processing_route_accuracy": 0.1968503937007874,
+      "top_level_taxonomy_accuracy": 0.7165354330708661,
+      "top_level_macro_f1": 0.41789521905713806,
+      "standard_precision": 1.0,
+      "standard_recall": 0.8210526315789474,
+      "cms_precision": 1.0,
+      "cms_recall": 1.0,
+      "ub_precision": 1.0,
+      "ub_recall": 0.7733333333333333,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 1.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.2857142857142857,
+      "unknown_unstructured_recall": 1.0,
+      "unknown_unstructured_sample_size": 1,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.7789473684210526,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 2349.7805999941193,
+        "p95": 24738.294099995983,
+        "p99": 33514.15700001235,
+        "mean": 4999.2369094482665
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 3,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CMS1500": {
+          "support": 20,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.1
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 11,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.45454545454545453
+        },
+        "NON_CLAIM": {
+          "support": 7,
+          "exact_recall": 0.2857142857142857,
+          "processing_route_accuracy": 0.2857142857142857
+        },
+        "UB04": {
+          "support": 75,
+          "exact_recall": 0.7733333333333333,
+          "processing_route_accuracy": 0.02666666666666667
+        },
+        "UNKNOWN_STRUCTURED": {
+          "support": 10,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        },
+        "UNKNOWN_UNSTRUCTURED": {
+          "support": 1,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        }
+      }
+    },
+    "handwriting": {
+      "documents": 45,
+      "overall_exact_routing_accuracy": 1.0,
+      "processing_route_accuracy": 0.0,
+      "top_level_taxonomy_accuracy": 1.0,
+      "top_level_macro_f1": 1.0,
+      "standard_precision": 1.0,
+      "standard_recall": 1.0,
+      "cms_precision": 0.0,
+      "cms_recall": 0.0,
+      "ub_precision": 1.0,
+      "ub_recall": 1.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.0,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 1.0,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 2012.34430000477,
+        "p95": 2532.6150999899255,
+        "p99": 2751.259900003788,
+        "mean": 1966.1448777779394
+      },
+      "by_family": {
+        "UB04": {
+          "support": 45,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.0
+        }
+      }
+    },
+    "jpeg": {
+      "documents": 49,
+      "overall_exact_routing_accuracy": 0.6938775510204082,
+      "processing_route_accuracy": 0.7551020408163265,
+      "top_level_taxonomy_accuracy": 0.6938775510204082,
+      "top_level_macro_f1": 0.345,
+      "standard_precision": 1.0,
+      "standard_recall": 0.9705882352941176,
+      "cms_precision": 1.0,
+      "cms_recall": 0.9545454545454546,
+      "ub_precision": 1.0,
+      "ub_recall": 1.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.3333333333333333,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.2647058823529412,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 4772.010000000591,
+        "p95": 32543.709000005038,
+        "p99": 68207.8840000031,
+        "mean": 11723.915008164002
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 4,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CMS1500": {
+          "support": 22,
+          "exact_recall": 0.9545454545454546,
+          "processing_route_accuracy": 0.6818181818181818
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 8,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "NON_CLAIM": {
+          "support": 3,
+          "exact_recall": 0.3333333333333333,
+          "processing_route_accuracy": 0.3333333333333333
+        },
+        "UB04": {
+          "support": 12,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.75
+        }
+      }
+    },
+    "low_contrast": {
+      "documents": 105,
+      "overall_exact_routing_accuracy": 0.7904761904761904,
+      "processing_route_accuracy": 0.5428571428571428,
+      "top_level_taxonomy_accuracy": 0.7904761904761904,
+      "top_level_macro_f1": 0.46512866015971605,
+      "standard_precision": 1.0,
+      "standard_recall": 0.9857142857142858,
+      "cms_precision": 1.0,
+      "cms_recall": 0.9795918367346939,
+      "ub_precision": 1.0,
+      "ub_recall": 1.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 1.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.25,
+      "unknown_unstructured_recall": 1.0,
+      "unknown_unstructured_sample_size": 1,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.5857142857142857,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 2286.332699994091,
+        "p95": 25283.210900000995,
+        "p99": 71867.55539999285,
+        "mean": 6433.783755236627
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 7,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CMS1500": {
+          "support": 49,
+          "exact_recall": 0.9795918367346939,
+          "processing_route_accuracy": 0.2857142857142857
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 8,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "NON_CLAIM": {
+          "support": 8,
+          "exact_recall": 0.25,
+          "processing_route_accuracy": 0.25
+        },
+        "UB04": {
+          "support": 21,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.6666666666666666
+        },
+        "UNKNOWN_STRUCTURED": {
+          "support": 11,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        },
+        "UNKNOWN_UNSTRUCTURED": {
+          "support": 1,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        }
+      }
+    },
+    "mixed": {
+      "documents": 34,
+      "overall_exact_routing_accuracy": 0.6176470588235294,
+      "processing_route_accuracy": 0.8823529411764706,
+      "top_level_taxonomy_accuracy": 0.6176470588235294,
+      "top_level_macro_f1": 0.2692307692307692,
+      "standard_precision": 1.0,
+      "standard_recall": 0.84,
+      "cms_precision": 1.0,
+      "cms_recall": 0.6363636363636364,
+      "ub_precision": 1.0,
+      "ub_recall": 1.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.0,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.0,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 6150.4373000061605,
+        "p95": 22006.12030000775,
+        "p99": 105376.70839999919,
+        "mean": 11677.343317646079
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 3,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CMS1500": {
+          "support": 11,
+          "exact_recall": 0.6363636363636364,
+          "processing_route_accuracy": 0.6363636363636364
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 6,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "UB04": {
+          "support": 14,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        }
+      }
+    },
+    "office_scan": {
+      "documents": 105,
+      "overall_exact_routing_accuracy": 0.7428571428571429,
+      "processing_route_accuracy": 0.9428571428571428,
+      "top_level_taxonomy_accuracy": 0.7428571428571429,
+      "top_level_macro_f1": 0.22941176470588234,
+      "standard_precision": 1.0,
+      "standard_recall": 1.0,
+      "cms_precision": 1.0,
+      "cms_recall": 1.0,
+      "ub_precision": 1.0,
+      "ub_recall": 1.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.0,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.0,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 6284.128100000089,
+        "p95": 210268.44179999898,
+        "p99": 238712.04320000834,
+        "mean": 30153.2676104768
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 7,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CMS1500": {
+          "support": 38,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 14,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "NON_CLAIM": {
+          "support": 6,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.0
+        },
+        "UB04": {
+          "support": 40,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        }
+      }
+    },
+    "poor_dpi": {
+      "documents": 30,
+      "overall_exact_routing_accuracy": 0.0,
+      "processing_route_accuracy": 0.0,
+      "top_level_taxonomy_accuracy": 0.0,
+      "top_level_macro_f1": 0.0,
+      "standard_precision": 0.0,
+      "standard_recall": 0.0,
+      "cms_precision": 0.0,
+      "cms_recall": 0.0,
+      "ub_precision": 0.0,
+      "ub_recall": 0.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.0,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.0,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 2040.2800000010757,
+        "p95": 2491.4351999905193,
+        "p99": 2493.1456000049366,
+        "mean": 2037.96429666545
+      },
+      "by_family": {
+        "CMS1500": {
+          "support": 30,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 0.0
+        }
+      }
+    },
+    "rotation": {
+      "documents": 79,
+      "overall_exact_routing_accuracy": 0.7341772151898734,
+      "processing_route_accuracy": 0.17721518987341772,
+      "top_level_taxonomy_accuracy": 0.7341772151898734,
+      "top_level_macro_f1": 0.46923076923076923,
+      "standard_precision": 1.0,
+      "standard_recall": 0.8507462686567164,
+      "cms_precision": 1.0,
+      "cms_recall": 0.7857142857142857,
+      "ub_precision": 1.0,
+      "ub_recall": 0.8679245283018868,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 0.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 1.0,
+      "unknown_unstructured_recall": 0.0,
+      "unknown_unstructured_sample_size": 0,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.8208955223880597,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 2268.8859999907436,
+        "p95": 16175.980599989998,
+        "p99": 26008.155899995472,
+        "mean": 3685.283603796719
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 5,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CMS1500": {
+          "support": 14,
+          "exact_recall": 0.7857142857142857,
+          "processing_route_accuracy": 0.14285714285714285
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 6,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "NON_CLAIM": {
+          "support": 1,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        },
+        "UB04": {
+          "support": 53,
+          "exact_recall": 0.8679245283018868,
+          "processing_route_accuracy": 0.0
+        }
+      }
+    },
+    "skew": {
+      "documents": 117,
+      "overall_exact_routing_accuracy": 0.6923076923076923,
+      "processing_route_accuracy": 0.2905982905982906,
+      "top_level_taxonomy_accuracy": 0.6923076923076923,
+      "top_level_macro_f1": 0.4324430641821946,
+      "standard_precision": 1.0,
+      "standard_recall": 0.8043478260869565,
+      "cms_precision": 1.0,
+      "cms_recall": 0.7142857142857143,
+      "ub_precision": 1.0,
+      "ub_recall": 1.0,
+      "custom_professional_recall": 0.0,
+      "custom_institutional_recall": 0.0,
+      "unknown_structured_recall": 1.0,
+      "claim_support_accuracy": 0.0,
+      "non_claim_recall": 0.5,
+      "unknown_unstructured_recall": 1.0,
+      "unknown_unstructured_sample_size": 1,
+      "unknown_unstructured_status": "LOW_SAMPLE_SUPPORT",
+      "safe_fallback_rate": 0.6847826086956522,
+      "false_standard_authorization_rate": 0.0,
+      "false_standard_authorization_count": 0,
+      "cms_to_ub_authorization_rate": 0.0,
+      "ub_to_cms_authorization_rate": 0.0,
+      "unverified_fixed_authorization_count": 0,
+      "route_extractor_firewall_violations": 0,
+      "latency_ms": {
+        "p50": 3109.4397000124445,
+        "p95": 32019.051499999478,
+        "p99": 121210.81730000151,
+        "mean": 9714.963004274123
+      },
+      "by_family": {
+        "CLAIM_SUPPORT": {
+          "support": 7,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "CMS1500": {
+          "support": 63,
+          "exact_recall": 0.7142857142857143,
+          "processing_route_accuracy": 0.14285714285714285
+        },
+        "CUSTOM_PROFESSIONAL": {
+          "support": 9,
+          "exact_recall": 0.0,
+          "processing_route_accuracy": 1.0
+        },
+        "NON_CLAIM": {
+          "support": 4,
+          "exact_recall": 0.5,
+          "processing_route_accuracy": 0.5
+        },
+        "UB04": {
+          "support": 29,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 0.06896551724137931
+        },
+        "UNKNOWN_STRUCTURED": {
+          "support": 4,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        },
+        "UNKNOWN_UNSTRUCTURED": {
+          "support": 1,
+          "exact_recall": 1.0,
+          "processing_route_accuracy": 1.0
+        }
+      }
+    }
+  },
+  "decision": "MULTIPLE_BOTTLENECKS"
+}

@@ -1,0 +1,15 @@
+{
+  "evidence_class": "ENGINEERING_BENCHMARK_ONLY",
+  "production_promotion_authority": false,
+  "git_sha": "bcf53d29d390f9f8c474a91f786359842b8b7272",
+  "manifest_sha256": "f609e7b02da32e720b71a4c0d4e579921deb27c1714054439764ff2bd3520064",
+  "governed_runtime_file_hashes": {
+    "config/document_routing.yaml": "7d235ceeda759fcd299bc9d2e915aefb8527fd4b08b734a7417bb9db85bc8d7a",
+    "packages/document_routing/router.py": "1628c42d0e730601dccef527959dae001666df08e7d9bab4d76c183bed1e0916",
+    "packages/document_routing/decision_service.py": "ee67e5603671c8cfcea882d2102dc742de2b3e597e7529efa3a3d027a93a8d5c",
+    "packages/standard_form_verification/cms1500.py": "2df6b50270d64299bc4555f0b178d35bf8f582cd22b3dabdbb6e1a27c99e4c85",
+    "packages/standard_form_verification/ub04.py": "d959ab0d22496e2f6943621b00052aeb608d82171b2f1b0bfd8bb5e0f78446df",
+    "packages/processing_routes/resolver.py": "df7db968bce5d8b309490dc67d5020de8f550e1eb3e047b6a76d57bb369781d8"
+  },
+  "experiment_01_production_changed": false
+}

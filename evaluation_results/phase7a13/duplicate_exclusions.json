@@ -1,0 +1,1058 @@
+{
+  "benchmark_id": "ENGINEERING_BENCHMARK_V1",
+  "candidate_pages": 1440,
+  "unique_pages": 1230,
+  "duplicate_count": 210,
+  "exclusions": [
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0001",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0001",
+      "sha256": "f72a6d29dccc2d2d23e9f75dbd6015ad7651acacb17f505c8bba55f8ee2c8ce4"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0003",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0003",
+      "sha256": "adbf5a3601cd71e371b2216185453f8e6057524392d300d6911feea4ec79be90"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0005",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0005",
+      "sha256": "7493f0d1e22516090701dc402b6fbc9b8412482fc8a704289d5e25b706331810"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0007",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0007",
+      "sha256": "5417ca8f026e5646a8ae886dd00cfd2200568e11e09528467a2182e2059af7b5"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0009",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0009",
+      "sha256": "bb8aa8e8ceafbd5d8c27a3e0ac6e7ac4346916819f5efbf97888f0f33a38c715"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0011",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0011",
+      "sha256": "a858eb9f3c0674b623fb25c564d60d3a9e9929f00a151887106dbf15f06773eb"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0013",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0013",
+      "sha256": "0ed72e1537d7159fa9234a2cc5fa4522968ef1390e7f2304d73e2af96ff6f99a"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0015",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0015",
+      "sha256": "c44b98b4f23f17c4ae5827a6a25c02e5e4ad856187c22176949ef3fc7676441e"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0017",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0017",
+      "sha256": "f62749986989a644ec779971fd8d2debdf0115086b0ec7862281270927648da4"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0019",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0019",
+      "sha256": "40fde72337601aedd55b4baba2c9f0777708dc79d64d4720c28f00fdad02c6a3"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0021",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0021",
+      "sha256": "1b239c6054b5440b45254b606882bbc43d45e158c78154df6e4bf201357fec00"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0023",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0023",
+      "sha256": "56614fbb8328447b0a2b7b031856f35e1902c777acab29d7e09ba751a1e4f4b9"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0025",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0025",
+      "sha256": "a7a8c3ad39715437048fa4bd0615af0cb493d6b652f7ce3fdfac8fd229dc8d72"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0027",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0027",
+      "sha256": "adf02bd0c0ec6b611ca3674c826b677e48f2422699505287a20f97b24d989b33"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0029",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0029",
+      "sha256": "747dab2037a20c7b035da1ccb6b0dd4953626bfa7eb60d3278734052ea5c39c3"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0031",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0031",
+      "sha256": "aec2b903b36707f17fa26610838cd4a48a57ce8c010490f222866c6e6d2a43b9"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0033",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0033",
+      "sha256": "81566970bf2d8b3879bc869735fe361318f2133d936cd55ac8177e8b34147578"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0035",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0035",
+      "sha256": "db5b7cbd34f7bdce404e0c40f3d8aa284e35fbb594b39e2b3785277758a77a1a"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0037",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0037",
+      "sha256": "04c52a48ce3a8ba6c0912e2420149421e7f05870aae61126805cb10db386ac20"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0039",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0039",
+      "sha256": "efb320cda80d4e950611ef94417de231ea6e029b36a3bbd94e9c733574a3f293"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0041",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0041",
+      "sha256": "2ea760e0a3665938c084907c30991641473c4e7340c02a0e29a3037b7b85cc3c"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0043",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0043",
+      "sha256": "499b6bfc2a59db5940657990373e8f4a9c6a68a91110f1d1b941a88c8bfb471e"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0045",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0045",
+      "sha256": "50ad9efe6ea513eaf834b827aaf2649fdec62d1630a2ee261d9d640b4b9fa651"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0047",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0047",
+      "sha256": "c55bf7158bbe858e7df1fa984d3c4ea747f67279322e393fe7b622f1706c5699"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0049",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0049",
+      "sha256": "2fc15882017232b1920a63c2f93864010495405fa6b60dc10a77f6a99606cb23"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0051",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0051",
+      "sha256": "be1f1b61d3b1c7a7f5a83ce83f26a664757a5266a21279d3cafc715464f26039"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0053",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0053",
+      "sha256": "86e1fde1f668e4e8993bcc6b054dd67b77e64ad7afeaf5307566909dd744a2f7"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0055",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0055",
+      "sha256": "5b077ca93026797aef512d8476328d9d25058ff2c8cc9613faa7f60d518b31a8"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0057",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0057",
+      "sha256": "ffcf48848262925b3a4d6b92e200b2887b68e50434e42c71b71c2e01520e15bb"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0059",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0059",
+      "sha256": "9b5e495c3ca4783b2cb704c3686dcc72ef7aef9b4486a294da86917738e8b27c"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0061",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0061",
+      "sha256": "5e605409e76fccafcfd0c1a51123123448e0d7acc402d53e43667e241bef33f7"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0063",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0063",
+      "sha256": "d440e5d042361e6868da5324e03a0bcd4875bf3d7ef07c2b1d54faef107f418e"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0065",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0065",
+      "sha256": "3c536b5568aceb606b7f2a69f8f997ff27e68946d0a75109481a04e6e5f2f762"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0067",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0067",
+      "sha256": "d2eac2c7463f69efe6c34b566fa98ea94b778afdef36616ca42aa9dd04c74723"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0069",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0069",
+      "sha256": "8ed0840a258a855c6cac01579a4e92cc8dd4397101db012f6dae9af3ca321770"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0071",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0071",
+      "sha256": "2562644d89fb0c89d84eb3cd92e51a1591a488bac6d7d8d886f3766dbfd63b15"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0073",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0073",
+      "sha256": "18eaa24f8390473ea315ce01cc195f0f7cbd7b1085ee13bad7f06b668bfc13b9"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0075",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0075",
+      "sha256": "a5aee80ad4790a9e4e60b4a429519e8ad6d01fb9172db6d3a5e00c51b86e3290"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0077",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0077",
+      "sha256": "08a564a986ec9132561a60f540e1dcd085274f22a77c2196a73704afab8bd632"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0079",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0079",
+      "sha256": "8f654767bd440104831467572c28c137b33f57dc0b5235dfed127e76254be71f"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0081",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0081",
+      "sha256": "81f3cae7d2917b2af08b5c71ac0d1d64d3ce01979cc45530137eb657c660d596"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0083",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0083",
+      "sha256": "01c01a1e47b35de8c3341723542491ab9484d28887f9840a8522588663b8f390"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0085",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0085",
+      "sha256": "ac412a3fd750f8b831afeee44d49fd245de9ea08d7b408e0a311726c4bb6e6dc"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0087",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0087",
+      "sha256": "a9f401c4e5e047857199fdd0bb2ea748a860d40cba97692348b02cfc05498aff"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0089",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0089",
+      "sha256": "c24ac8acd7e13fb05ad9eef0f0e5a9059b6e7374b849793e9579672aae72b8b3"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0091",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0091",
+      "sha256": "6da02588320cee30eed145d3804d8dc5219050d284ee6211899f88f1c14aa4a6"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0093",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0093",
+      "sha256": "4b6b0b3568c36e69443f6e64570823f3493e46365411889354efbfbc00a65c5a"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0095",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0095",
+      "sha256": "9a7109ca45d450171b6ab7557876b8fefbd859fa4194bc60b575a6e5ce660376"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0097",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0097",
+      "sha256": "4ef837ef8787475fe4ce2daa1fed57f77cd4ff52b0c58741289c9dcd8aebdc01"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0099",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0099",
+      "sha256": "502d05c6ba5cede0c7c42afbedabd5bb4942754834d3d30d1e43f7764c44128a"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0101",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0101",
+      "sha256": "cead90c2e6f000296c3210da919e93392e04036c4fe89e767d9caa65f231caff"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0103",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0103",
+      "sha256": "f005ce64594579f37bb108ce88aa16feae52fd1da07f07783a13552a2d31cc78"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0105",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0105",
+      "sha256": "02d4a21fddd085c7ea2075bf8a19f950bb47d4bec96ed4d7b8f4fb07c81f3ee8"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0107",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0107",
+      "sha256": "6647d79a6ce1a5504c0191d406d9892655f05510d1fa65f68436614a5e23cf55"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0109",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0109",
+      "sha256": "b04ddd00e216210281da1a0c256cd035cc2f7bdd34beca91d3d6a977446f190c"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0111",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0111",
+      "sha256": "ad7ff317c8fd44d6c01f355bea8f2a352f61bb65bc00d2e1d33ac1a4aa954a4d"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0113",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0113",
+      "sha256": "215e5bc388340cafb6c64f40be211abc8089df3fd48c782f5e9a9293f0a6f5ca"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0115",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0115",
+      "sha256": "69e0f9dbc2661bf35977007d9c997b83eb74fb3117395e17d6b48d1aa6b06469"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0117",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0117",
+      "sha256": "2fbd61bf837a938cebf3baa40df5d46b39ecbf9114059e8d1e29d1e25f7d2970"
+    },
+    {
+      "excluded": "SYNTHETIC_PUBLIC_V3:SYN-0119",
+      "duplicate_of": "SYNTHETIC_PUBLIC_V2:SYN-0119",
+      "sha256": "da2a5b395883566be9e303e481e0b0f2a86250634896b7a54926e726c75b2d2e"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0016",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0009",
+      "sha256": "e9b337f24243c7ca0d22a4434e2231263ef1203da9517cb6eec774d523d1276d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0030",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0009",
+      "sha256": "e9b337f24243c7ca0d22a4434e2231263ef1203da9517cb6eec774d523d1276d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0041",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0020",
+      "sha256": "f6a0b060bd4d167fbe6c98e7ae7cfe4dabf27d8c0c5bcc3e6542b9ef4498d19b"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0048",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0034",
+      "sha256": "c52667c8d1d7876ddde637b6db4c1d66806d0221dfdbf419dbe8eecd25fb394b"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0056",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0028",
+      "sha256": "6393f7d2d4e4c13fc84c35009b037b83f7caae153de435a0ba2f56bae58b4718"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0069",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0034",
+      "sha256": "c52667c8d1d7876ddde637b6db4c1d66806d0221dfdbf419dbe8eecd25fb394b"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0077",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0028",
+      "sha256": "6393f7d2d4e4c13fc84c35009b037b83f7caae153de435a0ba2f56bae58b4718"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0085",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0015",
+      "sha256": "12a2fe0684a941ca387dacdcc11c691580c73a4ac6191a091b3c02ee0e6d3a83"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0092",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0001",
+      "sha256": "1f2ef5cc92e8ebdeebbbf91762a46edd7966f77e0e6412f9f1defc0ad2463038"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0097",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0034",
+      "sha256": "c52667c8d1d7876ddde637b6db4c1d66806d0221dfdbf419dbe8eecd25fb394b"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0099",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0001",
+      "sha256": "1f2ef5cc92e8ebdeebbbf91762a46edd7966f77e0e6412f9f1defc0ad2463038"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0106",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0015",
+      "sha256": "12a2fe0684a941ca387dacdcc11c691580c73a4ac6191a091b3c02ee0e6d3a83"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0108",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0101",
+      "sha256": "de772675ae279a2a832a9002ca56bf25e503cc2e84c0c3df8df2d483282178de"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0115",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0101",
+      "sha256": "de772675ae279a2a832a9002ca56bf25e503cc2e84c0c3df8df2d483282178de"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0118",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0020",
+      "sha256": "f6a0b060bd4d167fbe6c98e7ae7cfe4dabf27d8c0c5bcc3e6542b9ef4498d19b"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0132",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0020",
+      "sha256": "f6a0b060bd4d167fbe6c98e7ae7cfe4dabf27d8c0c5bcc3e6542b9ef4498d19b"
+    },
+    {
+      "excluded": "ROUTING_DEV_V2:RDEV2-0134",
+      "duplicate_of": "ROUTING_DEV_V2:RDEV2-0015",
+      "sha256": "12a2fe0684a941ca387dacdcc11c691580c73a4ac6191a091b3c02ee0e6d3a83"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0014",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0004",
+      "sha256": "0fa423c0a2ac52592c839eed0d46e287466d6e2d7d704edb3cc04b2c3c20f723"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0016",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0006",
+      "sha256": "b240f44f1ab360e6397f163cf1142f229670514749667615f0c92d3f5dfad1fc"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0017",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0018",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0003",
+      "sha256": "4e06dfcbaa786febd3a2393f4841c4a09193c125fbb4c11351dd919bc8bad73f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0019",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0004",
+      "sha256": "0fa423c0a2ac52592c839eed0d46e287466d6e2d7d704edb3cc04b2c3c20f723"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0020",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0010",
+      "sha256": "e7ba2ebf98a015699dfbc533596e43d136c348ae2f6076e593385b1e27c4e6a5"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0025",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0010",
+      "sha256": "e7ba2ebf98a015699dfbc533596e43d136c348ae2f6076e593385b1e27c4e6a5"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0028",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0023",
+      "sha256": "57ff889d01b3d0b99c0d8cd1c3e5bee417f17c6eb32db952db14d016a69bc07f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0031",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0006",
+      "sha256": "b240f44f1ab360e6397f163cf1142f229670514749667615f0c92d3f5dfad1fc"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0032",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0033",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0003",
+      "sha256": "4e06dfcbaa786febd3a2393f4841c4a09193c125fbb4c11351dd919bc8bad73f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0037",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0022",
+      "sha256": "8846f9bb2435faf3b577fa213e3d723c854a872f73d82558e45c740e12edfc0f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0041",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0006",
+      "sha256": "b240f44f1ab360e6397f163cf1142f229670514749667615f0c92d3f5dfad1fc"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0042",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0027",
+      "sha256": "24ee0f6b64ef07808cd11d5f0ef1b582a7eb94e3ca5eac5f225378cc57885093"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0043",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0023",
+      "sha256": "57ff889d01b3d0b99c0d8cd1c3e5bee417f17c6eb32db952db14d016a69bc07f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0047",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0022",
+      "sha256": "8846f9bb2435faf3b577fa213e3d723c854a872f73d82558e45c740e12edfc0f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0050",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0005",
+      "sha256": "f293707f197a26e80608eb16b7662507e6fb45ef81fa02013f96996f3fe535fa"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0051",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0006",
+      "sha256": "b240f44f1ab360e6397f163cf1142f229670514749667615f0c92d3f5dfad1fc"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0052",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0022",
+      "sha256": "8846f9bb2435faf3b577fa213e3d723c854a872f73d82558e45c740e12edfc0f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0053",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0023",
+      "sha256": "57ff889d01b3d0b99c0d8cd1c3e5bee417f17c6eb32db952db14d016a69bc07f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0055",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0040",
+      "sha256": "b991861c5d65183688b46beb6caa5c762103a215bcac175e9e5599693822a634"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0057",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0012",
+      "sha256": "0311a1795f2a9ad05ad2b3c345be6fe778eda83778d4011c7f57936dd050c1e1"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0058",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0023",
+      "sha256": "57ff889d01b3d0b99c0d8cd1c3e5bee417f17c6eb32db952db14d016a69bc07f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0060",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0005",
+      "sha256": "f293707f197a26e80608eb16b7662507e6fb45ef81fa02013f96996f3fe535fa"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0061",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0026",
+      "sha256": "f35495565f9c3a783105d2ca8cec828de48db5fdde137ceb552ecd439ea99916"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0062",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0064",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0004",
+      "sha256": "0fa423c0a2ac52592c839eed0d46e287466d6e2d7d704edb3cc04b2c3c20f723"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0065",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0040",
+      "sha256": "b991861c5d65183688b46beb6caa5c762103a215bcac175e9e5599693822a634"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0067",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0022",
+      "sha256": "8846f9bb2435faf3b577fa213e3d723c854a872f73d82558e45c740e12edfc0f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0068",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0038",
+      "sha256": "f0a90989260f77c93a6fdbf50926debc11057c6447e54c6ba8bf096d145e9b4d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0070",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0010",
+      "sha256": "e7ba2ebf98a015699dfbc533596e43d136c348ae2f6076e593385b1e27c4e6a5"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0072",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0027",
+      "sha256": "24ee0f6b64ef07808cd11d5f0ef1b582a7eb94e3ca5eac5f225378cc57885093"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0073",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0038",
+      "sha256": "f0a90989260f77c93a6fdbf50926debc11057c6447e54c6ba8bf096d145e9b4d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0074",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0034",
+      "sha256": "69dd8ba25d29ada18480e3365637f94bc56f5c886a45c5aa8eb2f11561cf2041"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0076",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0056",
+      "sha256": "3d8016240bb28261e3eedf7561ee1756c0f856930b0521d2d91393cd8549c127"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0077",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0079",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0044",
+      "sha256": "b08396d84dc9d0442a9c41659862a07aa18fd71a6f4c99be0ee4b27a54d264e7"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0081",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0006",
+      "sha256": "b240f44f1ab360e6397f163cf1142f229670514749667615f0c92d3f5dfad1fc"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0082",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0083",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0048",
+      "sha256": "5041ada439a0ebbb06e2bcbd949279bd3633c5cb8be86be5671fd73ad5eadb3c"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0085",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0010",
+      "sha256": "e7ba2ebf98a015699dfbc533596e43d136c348ae2f6076e593385b1e27c4e6a5"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0086",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0026",
+      "sha256": "f35495565f9c3a783105d2ca8cec828de48db5fdde137ceb552ecd439ea99916"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0088",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0023",
+      "sha256": "57ff889d01b3d0b99c0d8cd1c3e5bee417f17c6eb32db952db14d016a69bc07f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0089",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0049",
+      "sha256": "94f05f5df682a1a692c9b0b5e98d237c169c51b61d4dacc03f5bf2b60143d75f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0091",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0026",
+      "sha256": "f35495565f9c3a783105d2ca8cec828de48db5fdde137ceb552ecd439ea99916"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0092",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0095",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0035",
+      "sha256": "fd1f02c4ba1a2cf0a65059c7250ec86e93d273774bbccb328b11063046fd60e3"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0096",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0046",
+      "sha256": "066bb578ea1109cbd99422a57ac57bd93ed2fe399a7851e2afbd5d8d9b313c93"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0097",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0099",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0009",
+      "sha256": "7a590b68f5a949331b41bc6cf8d183a57ccc0a3a713b8ea2cfd571a45334aecd"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0100",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0010",
+      "sha256": "e7ba2ebf98a015699dfbc533596e43d136c348ae2f6076e593385b1e27c4e6a5"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0101",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0056",
+      "sha256": "3d8016240bb28261e3eedf7561ee1756c0f856930b0521d2d91393cd8549c127"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0103",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0023",
+      "sha256": "57ff889d01b3d0b99c0d8cd1c3e5bee417f17c6eb32db952db14d016a69bc07f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0106",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0026",
+      "sha256": "f35495565f9c3a783105d2ca8cec828de48db5fdde137ceb552ecd439ea99916"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0107",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0022",
+      "sha256": "8846f9bb2435faf3b577fa213e3d723c854a872f73d82558e45c740e12edfc0f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0108",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0003",
+      "sha256": "4e06dfcbaa786febd3a2393f4841c4a09193c125fbb4c11351dd919bc8bad73f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0109",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0044",
+      "sha256": "b08396d84dc9d0442a9c41659862a07aa18fd71a6f4c99be0ee4b27a54d264e7"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0110",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0035",
+      "sha256": "fd1f02c4ba1a2cf0a65059c7250ec86e93d273774bbccb328b11063046fd60e3"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0114",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0054",
+      "sha256": "574a0a19a0e2153627ce8cba6e904eea9b5aa8b66c4f2b6c655524125f58cc22"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0116",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0056",
+      "sha256": "3d8016240bb28261e3eedf7561ee1756c0f856930b0521d2d91393cd8549c127"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0117",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0012",
+      "sha256": "0311a1795f2a9ad05ad2b3c345be6fe778eda83778d4011c7f57936dd050c1e1"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0118",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0038",
+      "sha256": "f0a90989260f77c93a6fdbf50926debc11057c6447e54c6ba8bf096d145e9b4d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0119",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0034",
+      "sha256": "69dd8ba25d29ada18480e3365637f94bc56f5c886a45c5aa8eb2f11561cf2041"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0120",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0045",
+      "sha256": "3603d2aac68bd0d252968850091b2bb2568ebaf2adad3b932bfaf81468ae6c97"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0122",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0022",
+      "sha256": "8846f9bb2435faf3b577fa213e3d723c854a872f73d82558e45c740e12edfc0f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0124",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0004",
+      "sha256": "0fa423c0a2ac52592c839eed0d46e287466d6e2d7d704edb3cc04b2c3c20f723"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0126",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0111",
+      "sha256": "f2cd773826ca95307796083fde5157de861c97819f614fd257c41ebd19a5b22b"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0128",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0023",
+      "sha256": "57ff889d01b3d0b99c0d8cd1c3e5bee417f17c6eb32db952db14d016a69bc07f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0129",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0054",
+      "sha256": "574a0a19a0e2153627ce8cba6e904eea9b5aa8b66c4f2b6c655524125f58cc22"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0130",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0005",
+      "sha256": "f293707f197a26e80608eb16b7662507e6fb45ef81fa02013f96996f3fe535fa"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0131",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0026",
+      "sha256": "f35495565f9c3a783105d2ca8cec828de48db5fdde137ceb552ecd439ea99916"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0132",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0012",
+      "sha256": "0311a1795f2a9ad05ad2b3c345be6fe778eda83778d4011c7f57936dd050c1e1"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0133",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0038",
+      "sha256": "f0a90989260f77c93a6fdbf50926debc11057c6447e54c6ba8bf096d145e9b4d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0134",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0044",
+      "sha256": "b08396d84dc9d0442a9c41659862a07aa18fd71a6f4c99be0ee4b27a54d264e7"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0136",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0026",
+      "sha256": "f35495565f9c3a783105d2ca8cec828de48db5fdde137ceb552ecd439ea99916"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0137",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0138",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0063",
+      "sha256": "accc36e058c93f0cd09384c48aff479cfa13dcdda5ddffc2fd151222d632538d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0139",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0004",
+      "sha256": "0fa423c0a2ac52592c839eed0d46e287466d6e2d7d704edb3cc04b2c3c20f723"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0143",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0038",
+      "sha256": "f0a90989260f77c93a6fdbf50926debc11057c6447e54c6ba8bf096d145e9b4d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0145",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0040",
+      "sha256": "b991861c5d65183688b46beb6caa5c762103a215bcac175e9e5599693822a634"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0146",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0056",
+      "sha256": "3d8016240bb28261e3eedf7561ee1756c0f856930b0521d2d91393cd8549c127"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0147",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0027",
+      "sha256": "24ee0f6b64ef07808cd11d5f0ef1b582a7eb94e3ca5eac5f225378cc57885093"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0148",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0023",
+      "sha256": "57ff889d01b3d0b99c0d8cd1c3e5bee417f17c6eb32db952db14d016a69bc07f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0150",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0135",
+      "sha256": "c2d573aadc9770346d739173e0a3067f86348a17d6c0508399577314a9abb9c3"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0151",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0046",
+      "sha256": "066bb578ea1109cbd99422a57ac57bd93ed2fe399a7851e2afbd5d8d9b313c93"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0152",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0102",
+      "sha256": "92d0b6d2582db8f742ea1300f97d2fa1acc98d0f054cbd412516107de4b26e37"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0154",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0004",
+      "sha256": "0fa423c0a2ac52592c839eed0d46e287466d6e2d7d704edb3cc04b2c3c20f723"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0155",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0010",
+      "sha256": "e7ba2ebf98a015699dfbc533596e43d136c348ae2f6076e593385b1e27c4e6a5"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0156",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0036",
+      "sha256": "eedff2bc8909c7a350bb2244e537c79fe1568608a0cbe5963a5ce589130d3c34"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0157",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0102",
+      "sha256": "92d0b6d2582db8f742ea1300f97d2fa1acc98d0f054cbd412516107de4b26e37"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0158",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0038",
+      "sha256": "f0a90989260f77c93a6fdbf50926debc11057c6447e54c6ba8bf096d145e9b4d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0159",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0009",
+      "sha256": "7a590b68f5a949331b41bc6cf8d183a57ccc0a3a713b8ea2cfd571a45334aecd"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0161",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0026",
+      "sha256": "f35495565f9c3a783105d2ca8cec828de48db5fdde137ceb552ecd439ea99916"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0162",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0027",
+      "sha256": "24ee0f6b64ef07808cd11d5f0ef1b582a7eb94e3ca5eac5f225378cc57885093"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0163",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0113",
+      "sha256": "a554bff599b7c67174724110b15db7a51942df2a94e856263d51a7edbfd417fe"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0164",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0004",
+      "sha256": "0fa423c0a2ac52592c839eed0d46e287466d6e2d7d704edb3cc04b2c3c20f723"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0165",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0135",
+      "sha256": "c2d573aadc9770346d739173e0a3067f86348a17d6c0508399577314a9abb9c3"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0166",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0056",
+      "sha256": "3d8016240bb28261e3eedf7561ee1756c0f856930b0521d2d91393cd8549c127"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0167",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0007",
+      "sha256": "184b1afcfae7672e1a9e37b60d6c6fb99bc196a1ac12bb7baadcb184429bd345"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0169",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0044",
+      "sha256": "b08396d84dc9d0442a9c41659862a07aa18fd71a6f4c99be0ee4b27a54d264e7"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0170",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0035",
+      "sha256": "fd1f02c4ba1a2cf0a65059c7250ec86e93d273774bbccb328b11063046fd60e3"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0171",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0111",
+      "sha256": "f2cd773826ca95307796083fde5157de861c97819f614fd257c41ebd19a5b22b"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0172",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0022",
+      "sha256": "8846f9bb2435faf3b577fa213e3d723c854a872f73d82558e45c740e12edfc0f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0174",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0009",
+      "sha256": "7a590b68f5a949331b41bc6cf8d183a57ccc0a3a713b8ea2cfd571a45334aecd"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0177",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0012",
+      "sha256": "0311a1795f2a9ad05ad2b3c345be6fe778eda83778d4011c7f57936dd050c1e1"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0178",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0023",
+      "sha256": "57ff889d01b3d0b99c0d8cd1c3e5bee417f17c6eb32db952db14d016a69bc07f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0179",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0004",
+      "sha256": "0fa423c0a2ac52592c839eed0d46e287466d6e2d7d704edb3cc04b2c3c20f723"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0182",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0184",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0044",
+      "sha256": "b08396d84dc9d0442a9c41659862a07aa18fd71a6f4c99be0ee4b27a54d264e7"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0185",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0035",
+      "sha256": "fd1f02c4ba1a2cf0a65059c7250ec86e93d273774bbccb328b11063046fd60e3"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0186",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0006",
+      "sha256": "b240f44f1ab360e6397f163cf1142f229670514749667615f0c92d3f5dfad1fc"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0187",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0007",
+      "sha256": "184b1afcfae7672e1a9e37b60d6c6fb99bc196a1ac12bb7baadcb184429bd345"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0188",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0038",
+      "sha256": "f0a90989260f77c93a6fdbf50926debc11057c6447e54c6ba8bf096d145e9b4d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0189",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0054",
+      "sha256": "574a0a19a0e2153627ce8cba6e904eea9b5aa8b66c4f2b6c655524125f58cc22"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0190",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0040",
+      "sha256": "b991861c5d65183688b46beb6caa5c762103a215bcac175e9e5599693822a634"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0191",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0056",
+      "sha256": "3d8016240bb28261e3eedf7561ee1756c0f856930b0521d2d91393cd8549c127"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0192",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0027",
+      "sha256": "24ee0f6b64ef07808cd11d5f0ef1b582a7eb94e3ca5eac5f225378cc57885093"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0193",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0038",
+      "sha256": "f0a90989260f77c93a6fdbf50926debc11057c6447e54c6ba8bf096d145e9b4d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0194",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0049",
+      "sha256": "94f05f5df682a1a692c9b0b5e98d237c169c51b61d4dacc03f5bf2b60143d75f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0196",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0046",
+      "sha256": "066bb578ea1109cbd99422a57ac57bd93ed2fe399a7851e2afbd5d8d9b313c93"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0197",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0002",
+      "sha256": "1fcdc4b4144ded5f4a83ad0e25b5e1c5b8fa6fa3e38ee652b6d9d8ec5aeaa0ed"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0198",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0048",
+      "sha256": "5041ada439a0ebbb06e2bcbd949279bd3633c5cb8be86be5671fd73ad5eadb3c"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0200",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0005",
+      "sha256": "f293707f197a26e80608eb16b7662507e6fb45ef81fa02013f96996f3fe535fa"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0202",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0022",
+      "sha256": "8846f9bb2435faf3b577fa213e3d723c854a872f73d82558e45c740e12edfc0f"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0203",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0038",
+      "sha256": "f0a90989260f77c93a6fdbf50926debc11057c6447e54c6ba8bf096d145e9b4d"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0204",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0009",
+      "sha256": "7a590b68f5a949331b41bc6cf8d183a57ccc0a3a713b8ea2cfd571a45334aecd"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0205",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0040",
+      "sha256": "b991861c5d65183688b46beb6caa5c762103a215bcac175e9e5599693822a634"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0206",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0046",
+      "sha256": "066bb578ea1109cbd99422a57ac57bd93ed2fe399a7851e2afbd5d8d9b313c93"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0207",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0102",
+      "sha256": "92d0b6d2582db8f742ea1300f97d2fa1acc98d0f054cbd412516107de4b26e37"
+    },
+    {
+      "excluded": "ROUTING_DEV_V3:RDEV3-0209",
+      "duplicate_of": "ROUTING_DEV_V3:RDEV3-0004",
+      "sha256": "0fa423c0a2ac52592c839eed0d46e287466d6e2d7d704edb3cc04b2c3c20f723"
+    },
+    {
+      "excluded": "BUNDLE_D_DEV_V1:BDDEV-ATTA-003",
+      "duplicate_of": "BUNDLE_D_DEV_V1:BDDEV-ATTA-001",
+      "sha256": "7c6a1882a01774551599155a233689e2c53fb6b4b594ea619a9a59f9c53738d8"
+    },
+    {
+      "excluded": "BUNDLE_D_DEV_V1:BDDEV-CORR-003",
+      "duplicate_of": "BUNDLE_D_DEV_V1:BDDEV-CORR-001",
+      "sha256": "6ebef6b32abe4d7e1f2ab7d0080dfa23e2f16c119b107a180d152caa5037898c"
+    },
+    {
+      "excluded": "BUNDLE_D_DEV_V1:BDDEV-NON_-003",
+      "duplicate_of": "BUNDLE_D_DEV_V1:BDDEV-NON_-001",
+      "sha256": "419c847cd65cc58b4df3565102b6e622b199058387154a40f09c5a795b202833"
+    }
+  ]
+}

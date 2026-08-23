@@ -1,0 +1,394 @@
+[
+  {
+    "family": "CLAIM_SUPPORT",
+    "source_dataset": "BUNDLE_D_DEV_V1",
+    "count": 19,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 0.21052631578947367,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1917.2982999880332,
+      "p95": 2608.692299996619,
+      "p99": 2608.692299996619
+    }
+  },
+  {
+    "family": "CLAIM_SUPPORT",
+    "source_dataset": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE",
+    "count": 50,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 2750.9840999991866,
+      "p95": 3681.538400007412,
+      "p99": 3969.1772000078345
+    }
+  },
+  {
+    "family": "CLAIM_SUPPORT",
+    "source_dataset": "ROUTING_DEV_V2",
+    "count": 7,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1506.9748000096297,
+      "p95": 2013.3187000028556,
+      "p99": 2013.3187000028556
+    }
+  },
+  {
+    "family": "CMS1500",
+    "source_dataset": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE",
+    "count": 180,
+    "routing_accuracy": 0.85,
+    "processing_route_accuracy": 0.7611111111111111,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 16,
+    "latency_ms": {
+      "p50": 25283.210900000995,
+      "p95": 194007.8469,
+      "p99": 246427.41530000058
+    }
+  },
+  {
+    "family": "CMS1500",
+    "source_dataset": "ROUTING_DEV_V2",
+    "count": 40,
+    "routing_accuracy": 1.0,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 40,
+    "latency_ms": {
+      "p50": 2603.098499996122,
+      "p95": 3490.2760999975726,
+      "p99": 3673.696400001063
+    }
+  },
+  {
+    "family": "CMS1500",
+    "source_dataset": "ROUTING_DEV_V3",
+    "count": 10,
+    "routing_accuracy": 1.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1158.7437000125647,
+      "p95": 1621.5153999946779,
+      "p99": 1621.5153999946779
+    }
+  },
+  {
+    "family": "CMS1500",
+    "source_dataset": "ROUTING_DEV_V4_REMEDIATION_01",
+    "count": 60,
+    "routing_accuracy": 0.5333333333333333,
+    "processing_route_accuracy": 0.31666666666666665,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 13,
+    "latency_ms": {
+      "p50": 1438.7363999994704,
+      "p95": 2029.5629000029294,
+      "p99": 2402.2379999951227
+    }
+  },
+  {
+    "family": "CMS1500",
+    "source_dataset": "SYNTHETIC_PUBLIC_V1",
+    "count": 60,
+    "routing_accuracy": 0.75,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 45,
+    "latency_ms": {
+      "p50": 2115.2722999977414,
+      "p95": 2444.588099999237,
+      "p99": 2474.747699990985
+    }
+  },
+  {
+    "family": "CMS1500",
+    "source_dataset": "SYNTHETIC_PUBLIC_V2",
+    "count": 60,
+    "routing_accuracy": 0.75,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 45,
+    "latency_ms": {
+      "p50": 2039.4231999962358,
+      "p95": 2523.169299995061,
+      "p99": 2666.3201000046683
+    }
+  },
+  {
+    "family": "CUSTOM_INSTITUTIONAL",
+    "source_dataset": "BUNDLE_D_DEV_V1",
+    "count": 3,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1424.593100004131,
+      "p95": 1706.4014000061434,
+      "p99": 1706.4014000061434
+    }
+  },
+  {
+    "family": "CUSTOM_PROFESSIONAL",
+    "source_dataset": "BUNDLE_D_DEV_V1",
+    "count": 3,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1401.521200008574,
+      "p95": 1472.6518999959808,
+      "p99": 1472.6518999959808
+    }
+  },
+  {
+    "family": "CUSTOM_PROFESSIONAL",
+    "source_dataset": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE",
+    "count": 60,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 0.9,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 3319.2475000105333,
+      "p95": 3987.422799997148,
+      "p99": 4917.093100011698
+    }
+  },
+  {
+    "family": "CUSTOM_PROFESSIONAL",
+    "source_dataset": "ROUTING_DEV_V2",
+    "count": 30,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1877.3690999951214,
+      "p95": 2201.473699999042,
+      "p99": 2267.3902999958955
+    }
+  },
+  {
+    "family": "NON_CLAIM",
+    "source_dataset": "BUNDLE_D_DEV_V1",
+    "count": 2,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1235.9395999956178,
+      "p95": 1334.6619999938412,
+      "p99": 1334.6619999938412
+    }
+  },
+  {
+    "family": "NON_CLAIM",
+    "source_dataset": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE",
+    "count": 30,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 2992.97619999561,
+      "p95": 4012.5941000005696,
+      "p99": 4354.02339999564
+    }
+  },
+  {
+    "family": "NON_CLAIM",
+    "source_dataset": "ROUTING_DEV_V2",
+    "count": 6,
+    "routing_accuracy": 1.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1381.0190000076545,
+      "p95": 1832.4029999930644,
+      "p99": 1832.4029999930644
+    }
+  },
+  {
+    "family": "NON_CLAIM",
+    "source_dataset": "ROUTING_DEV_V3",
+    "count": 5,
+    "routing_accuracy": 1.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1032.1814000053564,
+      "p95": 1460.027799999807,
+      "p99": 1460.027799999807
+    }
+  },
+  {
+    "family": "NON_CLAIM",
+    "source_dataset": "ROUTING_DEV_V4_REMEDIATION_01",
+    "count": 20,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 3281.67549999489,
+      "p95": 4432.050500006881,
+      "p99": 4499.709499999881
+    }
+  },
+  {
+    "family": "UB04",
+    "source_dataset": "PRODUCTION_HOLDOUT_V2_REPRESENTATIVE",
+    "count": 180,
+    "routing_accuracy": 0.8666666666666667,
+    "processing_route_accuracy": 0.7388888888888889,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 23,
+    "latency_ms": {
+      "p50": 5828.022900008364,
+      "p95": 8122.438200007309,
+      "p99": 9202.184199995827
+    }
+  },
+  {
+    "family": "UB04",
+    "source_dataset": "ROUTING_DEV_V2",
+    "count": 40,
+    "routing_accuracy": 1.0,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 40,
+    "latency_ms": {
+      "p50": 2366.712799994275,
+      "p95": 3526.0069999931147,
+      "p99": 3741.2922000075923
+    }
+  },
+  {
+    "family": "UB04",
+    "source_dataset": "ROUTING_DEV_V3",
+    "count": 10,
+    "routing_accuracy": 1.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1456.0605000006035,
+      "p95": 1890.2095000084955,
+      "p99": 1890.2095000084955
+    }
+  },
+  {
+    "family": "UB04",
+    "source_dataset": "ROUTING_DEV_V4_REMEDIATION_01",
+    "count": 100,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1367.3698000056902,
+      "p95": 1984.2492999887327,
+      "p99": 2343.5276999953203
+    }
+  },
+  {
+    "family": "UB04",
+    "source_dataset": "SYNTHETIC_PUBLIC_V1",
+    "count": 60,
+    "routing_accuracy": 1.0,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 60,
+    "latency_ms": {
+      "p50": 2060.0746999989497,
+      "p95": 2331.012600014219,
+      "p99": 2632.866700005252
+    }
+  },
+  {
+    "family": "UB04",
+    "source_dataset": "SYNTHETIC_PUBLIC_V2",
+    "count": 60,
+    "routing_accuracy": 0.9,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 54,
+    "latency_ms": {
+      "p50": 2015.793800004758,
+      "p95": 7397.197099999175,
+      "p99": 7741.809099999955
+    }
+  },
+  {
+    "family": "UB04",
+    "source_dataset": "SYNTHETIC_PUBLIC_V3",
+    "count": 60,
+    "routing_accuracy": 0.9,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 54,
+    "latency_ms": {
+      "p50": 2181.093899998814,
+      "p95": 8039.775799989002,
+      "p99": 9800.967599992873
+    }
+  },
+  {
+    "family": "UNKNOWN_STRUCTURED",
+    "source_dataset": "ROUTING_DEV_V3",
+    "count": 50,
+    "routing_accuracy": 1.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1603.08640000585,
+      "p95": 2509.650599997258,
+      "p99": 2595.1918000064325
+    }
+  },
+  {
+    "family": "UNKNOWN_STRUCTURED",
+    "source_dataset": "ROUTING_DEV_V4_REMEDIATION_01",
+    "count": 20,
+    "routing_accuracy": 0.0,
+    "processing_route_accuracy": 0.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 3024.6191000042018,
+      "p95": 3362.1683999954257,
+      "p99": 3684.94429999555
+    }
+  },
+  {
+    "family": "UNKNOWN_UNSTRUCTURED",
+    "source_dataset": "ROUTING_DEV_V3",
+    "count": 5,
+    "routing_accuracy": 1.0,
+    "processing_route_accuracy": 1.0,
+    "false_standard_authorizations": 0,
+    "safe_fallbacks": 0,
+    "latency_ms": {
+      "p50": 1768.717099999776,
+      "p95": 1921.7752999975346,
+      "p99": 1921.7752999975346
+    }
+  }
+]

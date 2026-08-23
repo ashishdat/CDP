@@ -1,0 +1,9 @@
+{
+  "status": "NOT_MEASURABLE",
+  "reason": "NO_FIELD_TRUTH_OR_TRUTH_CROP_BOXES_ON_TUNING_PERMITTED_STANDARD_PAGES",
+  "observation_only_pages_inspected": 0,
+  "development_leakage": false,
+  "CMS1500_accuracy_given_correct_crop": "NOT_MEASURABLE",
+  "UB04_accuracy_given_correct_crop": "NOT_MEASURABLE",
+  "engine_trials": []
+}
