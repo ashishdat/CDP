@@ -1,0 +1,20 @@
+{
+  "family": "CMS1500",
+  "field": "total_charge",
+  "claims_blocked": 50,
+  "correct_but_reviewed": 49,
+  "wrong_and_rejected": 1,
+  "true_ambiguity": 0,
+  "unsupported": 0,
+  "evidence_availability": {
+    "E1": 50,
+    "E3": 50,
+    "E4": 49
+  },
+  "missing_evidence": {
+    "E2": 50,
+    "E4": 1
+  },
+  "claims_unlocked": 0,
+  "ocr_reruns": 0
+}

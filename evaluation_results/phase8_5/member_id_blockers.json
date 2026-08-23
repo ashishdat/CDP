@@ -1,0 +1,19 @@
+{
+  "family": "CMS1500",
+  "field": "member_id",
+  "claims_blocked": 50,
+  "correct_but_reviewed": 50,
+  "wrong_and_rejected": 0,
+  "true_ambiguity": 0,
+  "unsupported": 0,
+  "evidence_availability": {
+    "E1": 50,
+    "E3": 50,
+    "E4": 50
+  },
+  "missing_evidence": {
+    "E2": 50
+  },
+  "claims_unlocked": 0,
+  "ocr_reruns": 0
+}

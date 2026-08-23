@@ -1,0 +1,10 @@
+{
+  "evidence_model": "ClaimFinancialReconciliationEvidence",
+  "configured_absolute_tolerance_usd": "0.01",
+  "configured_relative_tolerance": "0.0001",
+  "cms_total_charge_blockers": 50,
+  "cms_service_line_charge_sets_available": 0,
+  "cms_e6_generated": 0,
+  "extracted_values_modified": 0,
+  "reason": "CMS golden records contain no service-line charges; reconciliation cannot be fabricated."
+}

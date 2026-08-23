@@ -1,0 +1,20 @@
+{
+  "family": "CMS1500",
+  "field": "provider_npi",
+  "claims_blocked": 50,
+  "correct_but_reviewed": 40,
+  "wrong_and_rejected": 10,
+  "true_ambiguity": 0,
+  "unsupported": 0,
+  "evidence_availability": {
+    "E1": 50,
+    "E3": 50,
+    "E4": 2
+  },
+  "missing_evidence": {
+    "E2": 50,
+    "E4": 48
+  },
+  "claims_unlocked": 0,
+  "ocr_reruns": 0
+}

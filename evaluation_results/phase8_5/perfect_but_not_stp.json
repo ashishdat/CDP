@@ -1,0 +1,10 @@
+{
+  "perfect_claims_currently_blocked": 63,
+  "perfect_claims_unlocked": 0,
+  "perfect_claims_remaining_blocked": 63,
+  "metric": "PERFECT_BUT_NOT_STP",
+  "reasons": {
+    "CORRECT_MISSING_EVIDENCE": 104,
+    "MISSING_EXTRACTION": 36
+  }
+}

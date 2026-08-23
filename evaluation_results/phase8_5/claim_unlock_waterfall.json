@@ -1,0 +1,96 @@
+{
+  "current_claim_stp": 0.0,
+  "steps": [
+    {
+      "step": 1,
+      "resolved_blocker": {
+        "family": "UB04",
+        "field": "federal_tax_no"
+      },
+      "cumulative_claims_unlocked": 50,
+      "counterfactual_claim_stp": 0.5,
+      "analysis_only": true
+    },
+    {
+      "step": 2,
+      "resolved_blocker": {
+        "family": "CMS1500",
+        "field": "total_charge"
+      },
+      "cumulative_claims_unlocked": 50,
+      "counterfactual_claim_stp": 0.5,
+      "analysis_only": true
+    },
+    {
+      "step": 3,
+      "resolved_blocker": {
+        "family": "CMS1500",
+        "field": "member_id"
+      },
+      "cumulative_claims_unlocked": 50,
+      "counterfactual_claim_stp": 0.5,
+      "analysis_only": true
+    },
+    {
+      "step": 4,
+      "resolved_blocker": {
+        "family": "CMS1500",
+        "field": "provider_npi"
+      },
+      "cumulative_claims_unlocked": 55,
+      "counterfactual_claim_stp": 0.55,
+      "analysis_only": true
+    },
+    {
+      "step": 5,
+      "resolved_blocker": {
+        "family": "CMS1500",
+        "field": "patient_name"
+      },
+      "cumulative_claims_unlocked": 87,
+      "counterfactual_claim_stp": 0.87,
+      "analysis_only": true
+    },
+    {
+      "step": 6,
+      "resolved_blocker": {
+        "family": "CMS1500",
+        "field": "diagnosis"
+      },
+      "cumulative_claims_unlocked": 93,
+      "counterfactual_claim_stp": 0.93,
+      "analysis_only": true
+    },
+    {
+      "step": 7,
+      "resolved_blocker": {
+        "family": "CMS1500",
+        "field": "provider_name"
+      },
+      "cumulative_claims_unlocked": 98,
+      "counterfactual_claim_stp": 0.98,
+      "analysis_only": true
+    },
+    {
+      "step": 8,
+      "resolved_blocker": {
+        "family": "CMS1500",
+        "field": "patient_dob"
+      },
+      "cumulative_claims_unlocked": 99,
+      "counterfactual_claim_stp": 0.99,
+      "analysis_only": true
+    },
+    {
+      "step": 9,
+      "resolved_blocker": {
+        "family": "CMS1500",
+        "field": "insured_name"
+      },
+      "cumulative_claims_unlocked": 100,
+      "counterfactual_claim_stp": 1.0,
+      "analysis_only": true
+    }
+  ],
+  "production_decisions_changed": false
+}

@@ -1,0 +1,10 @@
+{
+  "state": "DISABLED",
+  "authorized_reference_sources": 0,
+  "claims_blocked_only_by_missing_e5": 0,
+  "claims_where_e5_is_optional": 100,
+  "claims_where_e5_would_still_be_insufficient": 100,
+  "blocker_instances_where_e5_is_optional": 208,
+  "blocker_instances_resolvable_by_e5_alone": 158,
+  "fabricated_reference_records": 0
+}

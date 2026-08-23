@@ -1,0 +1,238 @@
+{
+  "rows": [
+    {
+      "family": "UB04",
+      "field": "federal_tax_no",
+      "criticality": "C2",
+      "claims_blocked": 50,
+      "single_blocker_claims": 50,
+      "two_blocker_claims": 0,
+      "multi_blocker_claims": 0,
+      "correct_but_reviewed": 0,
+      "wrong_and_rejected": 0,
+      "unextracted": 50,
+      "unsupported": 0,
+      "missing_evidence": {},
+      "available_evidence": {},
+      "classification_counts": {
+        "MISSING_EXTRACTION": 50
+      },
+      "claim_unlock_value": 50.0,
+      "implementation_effort": "HIGH"
+    },
+    {
+      "family": "CMS1500",
+      "field": "member_id",
+      "criticality": "C3",
+      "claims_blocked": 50,
+      "single_blocker_claims": 0,
+      "two_blocker_claims": 0,
+      "multi_blocker_claims": 50,
+      "correct_but_reviewed": 50,
+      "wrong_and_rejected": 0,
+      "unextracted": 0,
+      "unsupported": 0,
+      "missing_evidence": {
+        "E2": 50
+      },
+      "available_evidence": {
+        "E1": 50,
+        "E3": 50,
+        "E4": 50
+      },
+      "classification_counts": {
+        "CORRECT_MISSING_EVIDENCE": 50
+      },
+      "claim_unlock_value": 12.283333333333333,
+      "implementation_effort": "MEDIUM"
+    },
+    {
+      "family": "CMS1500",
+      "field": "total_charge",
+      "criticality": "C3",
+      "claims_blocked": 50,
+      "single_blocker_claims": 0,
+      "two_blocker_claims": 0,
+      "multi_blocker_claims": 50,
+      "correct_but_reviewed": 49,
+      "wrong_and_rejected": 1,
+      "unextracted": 0,
+      "unsupported": 0,
+      "missing_evidence": {
+        "E2": 50,
+        "E4": 1
+      },
+      "available_evidence": {
+        "E1": 50,
+        "E3": 50,
+        "E4": 49
+      },
+      "classification_counts": {
+        "CORRECT_MISSING_EVIDENCE": 49,
+        "WRONG_EXTRACTION_SAFE_REJECT": 1
+      },
+      "claim_unlock_value": 12.283333333333333,
+      "implementation_effort": "MEDIUM"
+    },
+    {
+      "family": "CMS1500",
+      "field": "provider_npi",
+      "criticality": "C1",
+      "claims_blocked": 50,
+      "single_blocker_claims": 0,
+      "two_blocker_claims": 0,
+      "multi_blocker_claims": 50,
+      "correct_but_reviewed": 40,
+      "wrong_and_rejected": 10,
+      "unextracted": 0,
+      "unsupported": 0,
+      "missing_evidence": {
+        "E2": 50,
+        "E4": 48
+      },
+      "available_evidence": {
+        "E1": 50,
+        "E3": 50,
+        "E4": 2
+      },
+      "classification_counts": {
+        "CORRECT_MISSING_EVIDENCE": 40,
+        "WRONG_EXTRACTION_SAFE_REJECT": 10
+      },
+      "claim_unlock_value": 12.283333333333333,
+      "implementation_effort": "MEDIUM"
+    },
+    {
+      "family": "CMS1500",
+      "field": "patient_name",
+      "criticality": "C2",
+      "claims_blocked": 44,
+      "single_blocker_claims": 0,
+      "two_blocker_claims": 0,
+      "multi_blocker_claims": 44,
+      "correct_but_reviewed": 42,
+      "wrong_and_rejected": 0,
+      "unextracted": 0,
+      "unsupported": 0,
+      "missing_evidence": {
+        "E2": 43
+      },
+      "available_evidence": {
+        "E1": 44,
+        "E3": 44,
+        "E4": 44,
+        "E6": 1
+      },
+      "classification_counts": {
+        "CORRECT_MISSING_EVIDENCE": 42,
+        "TRUE_AMBIGUITY": 2
+      },
+      "claim_unlock_value": 10.366666666666667,
+      "implementation_effort": "MEDIUM"
+    },
+    {
+      "family": "CMS1500",
+      "field": "diagnosis",
+      "criticality": "C1",
+      "claims_blocked": 7,
+      "single_blocker_claims": 0,
+      "two_blocker_claims": 0,
+      "multi_blocker_claims": 7,
+      "correct_but_reviewed": 0,
+      "wrong_and_rejected": 7,
+      "unextracted": 0,
+      "unsupported": 0,
+      "missing_evidence": {
+        "E4": 7
+      },
+      "available_evidence": {
+        "E1": 7,
+        "E3": 7
+      },
+      "classification_counts": {
+        "WRONG_EXTRACTION_SAFE_REJECT": 7
+      },
+      "claim_unlock_value": 1.3666666666666667,
+      "implementation_effort": "MEDIUM"
+    },
+    {
+      "family": "CMS1500",
+      "field": "provider_name",
+      "criticality": "C1",
+      "claims_blocked": 5,
+      "single_blocker_claims": 0,
+      "two_blocker_claims": 0,
+      "multi_blocker_claims": 5,
+      "correct_but_reviewed": 0,
+      "wrong_and_rejected": 1,
+      "unextracted": 0,
+      "unsupported": 0,
+      "missing_evidence": {
+        "E4": 4
+      },
+      "available_evidence": {
+        "E1": 5,
+        "E3": 5,
+        "E4": 1
+      },
+      "classification_counts": {
+        "TRUE_AMBIGUITY": 4,
+        "WRONG_EXTRACTION_SAFE_REJECT": 1
+      },
+      "claim_unlock_value": 1.0166666666666666,
+      "implementation_effort": "MEDIUM"
+    },
+    {
+      "family": "CMS1500",
+      "field": "patient_dob",
+      "criticality": "C2",
+      "claims_blocked": 1,
+      "single_blocker_claims": 0,
+      "two_blocker_claims": 0,
+      "multi_blocker_claims": 1,
+      "correct_but_reviewed": 0,
+      "wrong_and_rejected": 1,
+      "unextracted": 0,
+      "unsupported": 0,
+      "missing_evidence": {
+        "E2": 1,
+        "E4": 1
+      },
+      "available_evidence": {
+        "E1": 1,
+        "E3": 1
+      },
+      "classification_counts": {
+        "WRONG_EXTRACTION_SAFE_REJECT": 1
+      },
+      "claim_unlock_value": 0.2,
+      "implementation_effort": "MEDIUM"
+    },
+    {
+      "family": "CMS1500",
+      "field": "insured_name",
+      "criticality": "C1",
+      "claims_blocked": 1,
+      "single_blocker_claims": 0,
+      "two_blocker_claims": 0,
+      "multi_blocker_claims": 1,
+      "correct_but_reviewed": 0,
+      "wrong_and_rejected": 0,
+      "unextracted": 0,
+      "unsupported": 0,
+      "missing_evidence": {},
+      "available_evidence": {
+        "E1": 1,
+        "E3": 1,
+        "E4": 1,
+        "E6": 1
+      },
+      "classification_counts": {
+        "TRUE_AMBIGUITY": 1
+      },
+      "claim_unlock_value": 0.2,
+      "implementation_effort": "MEDIUM"
+    }
+  ],
+  "classification_coverage": 1.0
+}

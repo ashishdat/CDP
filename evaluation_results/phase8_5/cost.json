@@ -1,0 +1,40 @@
+{
+  "assumptions": {
+    "version": "phase8.3-production-economics-v1",
+    "currency": "USD",
+    "scenario_label": "Engineering illustration; replace with deployed infrastructure and labor rates",
+    "worker_node_hourly_cost_usd": 0.2,
+    "cpu_cost_per_core_hour_usd": 0.05,
+    "memory_cost_per_gb_hour_usd": 0.006,
+    "shared_infra_cost_per_page_usd": 0.0001,
+    "reviewer_hourly_cost_usd": 25.0,
+    "average_review_seconds_per_field": 5.0,
+    "claim_open_close_overhead_seconds": 30.0,
+    "pages_per_document": 3.0,
+    "cloud_ai_cost_per_page_usd": 0.0,
+    "normal_capacity_headroom": 0.3,
+    "scenario_field_hitl_rates": [
+      0.05,
+      0.02,
+      0.01
+    ],
+    "scenario_review_seconds": [
+      3,
+      5,
+      10,
+      20
+    ]
+  },
+  "review_fields_per_page": 3.21,
+  "review_cost_per_field_usd": 0.034722222222222224,
+  "field_review_cost_per_page_usd": 0.11145833333333334,
+  "claim_review_overhead_cost_per_page_usd": 0.06944444444444445,
+  "hitl_cost_per_page_usd": 0.1809027777777778,
+  "machine_cost_per_page_usd": 0.0005907903458333426,
+  "shared_infrastructure_cost_per_page_usd": 0.0001,
+  "cloud_cost_per_page_usd": 0.0,
+  "fully_loaded_cost_per_page_usd": 0.18159356812361113,
+  "cost_per_stp_claim_usd": null,
+  "review_cost_avoided_usd": 0.0,
+  "claims_unlocked": 0
+}

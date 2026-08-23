@@ -1,0 +1,16 @@
+{
+  "decision": "NO_PROMOTION",
+  "production_state": "SAFE_HITL",
+  "safety_gate_passed": true,
+  "first_claim_stp_target_met": false,
+  "critical_false_accepts": 0,
+  "total_false_accepts": 0,
+  "accepted_precision": 1.0,
+  "claim_stp": 0.0,
+  "claim_hitl": 1.0,
+  "reason_codes": [
+    "UB_TAX_FIELD_NOT_OBSERVABLE_IN_GOLDEN_PACK",
+    "NO_NEW_INDEPENDENT_EVIDENCE_AVAILABLE",
+    "DO_NOT_FABRICATE_EVIDENCE"
+  ]
+}

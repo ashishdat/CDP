@@ -1,0 +1,20 @@
+{
+  "field": "federal_tax_no",
+  "datatype": "TAX_IDENTIFIER",
+  "field_observations": 50,
+  "golden_truth_rows": 0,
+  "observable_labels": 0,
+  "nine_digit_value_like_tokens": 0,
+  "localization_success": 0,
+  "raw_accuracy": null,
+  "secondary_ocr_invocations": 0,
+  "secondary_ocr_rate": 0.0,
+  "accepted_precision": null,
+  "false_accepts": 0,
+  "critical_false_accepts": 0,
+  "safe_coverage": null,
+  "claims_unlocked": 0,
+  "counterfactual_claims_unlocked_if_legitimately_resolved": 50,
+  "reason": "GOLDEN_PACK_OMITS_REQUIRED_FIELD_LABEL_VALUE_AND_TRUTH",
+  "fabricated_values": 0
+}
