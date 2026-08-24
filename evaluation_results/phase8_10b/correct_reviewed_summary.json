@@ -1,0 +1,191 @@
+{
+  "runtime_profile_id": "cdp-runtime-decision@phase8.10b-v1",
+  "total_correct_but_reviewed": 412,
+  "category_counts": {
+    "MISSING_E6": 274,
+    "MISSING_E2": 138,
+    "MISSING_E3": 5
+  },
+  "claims": 60,
+  "claim_stp": 0.0,
+  "field_hitl": 0.9583333333333334,
+  "accepted_precision": 0.96,
+  "critical_false_accepts": 1,
+  "false_accept_records": [
+    {
+      "document_id": "SB-CMS-010",
+      "form": "CMS1500",
+      "field": "diagnosis",
+      "truth": "Z30.0",
+      "selected_value": "Z30.0 .50",
+      "criticality": "C1",
+      "reason_codes": [
+        "HARD_VALIDATION_PASSED",
+        "CODE_SYNTAX_VALID",
+        "FORMAT_VALID"
+      ]
+    }
+  ],
+  "claim_unlock_opportunities": [
+    {
+      "form": "CMS1500",
+      "field": "provider_npi",
+      "correct_reviewed_count": 30,
+      "claims_blocked": 30,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E2",
+      "lowest_cost_legitimate_evidence": "independent local representation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "UB04",
+      "field": "federal_tax_no",
+      "correct_reviewed_count": 30,
+      "claims_blocked": 30,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "UB04",
+      "field": "provider_npi",
+      "correct_reviewed_count": 30,
+      "claims_blocked": 30,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E2",
+      "lowest_cost_legitimate_evidence": "independent local representation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "CMS1500",
+      "field": "cpt_hcpcs",
+      "correct_reviewed_count": 28,
+      "claims_blocked": 28,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E2",
+      "lowest_cost_legitimate_evidence": "independent local representation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "CMS1500",
+      "field": "total_charge",
+      "correct_reviewed_count": 27,
+      "claims_blocked": 27,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "CMS1500",
+      "field": "patient_name",
+      "correct_reviewed_count": 26,
+      "claims_blocked": 26,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "UB04",
+      "field": "member_id",
+      "correct_reviewed_count": 26,
+      "claims_blocked": 26,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E2",
+      "lowest_cost_legitimate_evidence": "independent local representation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "CMS1500",
+      "field": "insured_name",
+      "correct_reviewed_count": 25,
+      "claims_blocked": 25,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "CMS1500",
+      "field": "member_id",
+      "correct_reviewed_count": 24,
+      "claims_blocked": 24,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "CMS1500",
+      "field": "relationship",
+      "correct_reviewed_count": 24,
+      "claims_blocked": 24,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "UB04",
+      "field": "patient_name",
+      "correct_reviewed_count": 24,
+      "claims_blocked": 24,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "UB04",
+      "field": "provider_name",
+      "correct_reviewed_count": 24,
+      "claims_blocked": 24,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "UB04",
+      "field": "total_charge",
+      "correct_reviewed_count": 24,
+      "claims_blocked": 24,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E2",
+      "lowest_cost_legitimate_evidence": "independent local representation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "UB04",
+      "field": "type_of_bill",
+      "correct_reviewed_count": 24,
+      "claims_blocked": 24,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "CMS1500",
+      "field": "provider_name",
+      "correct_reviewed_count": 23,
+      "claims_blocked": 23,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    },
+    {
+      "form": "UB04",
+      "field": "principal_diagnosis",
+      "correct_reviewed_count": 23,
+      "claims_blocked": 23,
+      "single_blocker_claims": 0,
+      "dominant_missing_evidence": "MISSING_E6",
+      "lowest_cost_legitimate_evidence": "cross-field claim reconciliation",
+      "claims_potentially_unlocked": 0
+    }
+  ]
+}
