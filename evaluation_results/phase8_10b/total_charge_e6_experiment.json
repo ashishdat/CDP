@@ -1,0 +1,47 @@
+{
+  "experiment": "total_charge_claim_total_e6_name_alignment",
+  "runtime_profile_id": "cdp-runtime-decision@phase8.10b-v1",
+  "one_code_change": "CLAIM_TOTAL_RECONCILED -> CLAIM_TOTAL_CONFIRMED",
+  "reconciled_claims": 26,
+  "baseline": {
+    "fields": 600,
+    "accepted_fields": 25,
+    "accepted_precision": 0.96,
+    "critical_false_accepts": 1,
+    "field_hitl": 0.9583333333333334,
+    "correct_but_reviewed": 412,
+    "total_charge": {
+      "fields": 60,
+      "correct_candidates": 51,
+      "accepted": 0,
+      "accepted_correct": 0,
+      "false_accepts": 0,
+      "correct_but_reviewed": 51
+    }
+  },
+  "treatment": {
+    "fields": 600,
+    "accepted_fields": 49,
+    "accepted_precision": 0.9795918367346939,
+    "critical_false_accepts": 1,
+    "field_hitl": 0.9183333333333333,
+    "correct_but_reviewed": 388,
+    "total_charge": {
+      "fields": 60,
+      "correct_candidates": 51,
+      "accepted": 24,
+      "accepted_correct": 24,
+      "false_accepts": 0,
+      "correct_but_reviewed": 27
+    }
+  },
+  "correct_but_reviewed_reduction": 24,
+  "non_total_charge_decision_changes": [],
+  "baseline_claim_stp": 0.0,
+  "treatment_claim_stp": 0.0,
+  "policy_changed": false,
+  "ocr_changed": false,
+  "localization_changed": false,
+  "ub_reconstruction_changed": false,
+  "decision": "PROMOTE"
+}
