@@ -56,6 +56,7 @@ class PPOCRv5Provider:
                 pipeline = PaddleOCR(
                     lang=self.language,
                     ocr_version="PP-OCRv5",
+                    enable_mkldnn=False,
                     use_doc_orientation_classify=False,
                     use_doc_unwarping=False,
                     use_textline_orientation=True,
