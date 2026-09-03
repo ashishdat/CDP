@@ -18,6 +18,11 @@ from packages.domain.enums import ClaimFormType
 from packages.ocr.contracts import OCRCandidate, OCRRequest, OCRResult, OCRToken
 from packages.ocr.preprocessing import PreprocessingRegistry
 from packages.ocr.provenance import EvidenceProvenance
+from packages.ocr.token_reconstruction import (
+    NAME_FIELDS,
+    SpatialToken,
+    reconstruct_field_tokens,
+)
 
 
 class FullPageOCRPolicyError(ValueError):
@@ -130,12 +135,20 @@ class RapidOCRProvider:
             )
             for text, score, box in parsed if box is not None
         )
+        selected_value = joined or None
+        if request.field_name in NAME_FIELDS and tokens:
+            reconstruction = reconstruct_field_tokens(
+                request.field_name,
+                tuple(SpatialToken(token.text, token.confidence, token.bounding_box) for token in tokens),
+                region=request.bounding_box,
+            )
+            selected_value = reconstruction.value
         candidates = (
             ()
             if not parsed
             else (
                 OCRCandidate(
-                    value=joined or None,
+                    value=selected_value,
                     raw_value=joined,
                     engine=self.provider_name,
                     model_name="RapidOCR-ONNX",
