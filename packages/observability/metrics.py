@@ -631,3 +631,16 @@ cdp_p95_document_latency = Gauge(
     ["document_family"],
     registry=REGISTRY,
 )
+
+# Phase 8.21 selective PP-OCRv5 challenger telemetry. Dimensions are bounded
+# operational labels; candidate text and claim identifiers are prohibited.
+ppocr_challenge_rate = Gauge("ppocr_challenge_rate", "Eligible fields challenged by PP-OCRv5", registry=REGISTRY)
+ppocr_win_rate = Gauge("ppocr_win_rate", "PP-OCRv5 adjudicated wins per challenge", registry=REGISTRY)
+ppocr_agreement_rate = Gauge("ppocr_agreement_rate", "Primary/challenger agreement rate", registry=REGISTRY)
+ppocr_disagreement_rate = Gauge("ppocr_disagreement_rate", "Primary/challenger disagreement rate", registry=REGISTRY)
+challenger_blockers_removed = Counter("challenger_blockers_removed", "Canonical blockers removed by challenger evidence", registry=REGISTRY)
+challenger_claims_unlocked = Counter("challenger_claims_unlocked", "Claims unlocked by challenger evidence", registry=REGISTRY)
+accuracy_by_source_quality_band = Gauge("accuracy_by_source_quality_band", "Accepted accuracy by source quality band", ["source", "quality_band"], registry=REGISTRY)
+hitl_by_source_quality_band = Gauge("hitl_by_source_quality_band", "HITL rate by source quality band", ["source", "quality_band"], registry=REGISTRY)
+latency_by_engine = Histogram("latency_by_engine", "OCR execution latency in seconds", ["engine"], registry=REGISTRY)
+ocr_calls_per_claim = Histogram("ocr_calls_per_claim", "OCR calls issued per claim", registry=REGISTRY)

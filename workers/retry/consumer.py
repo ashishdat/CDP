@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -19,7 +20,7 @@ from apps.ingestion_api.db.repository import (
     SqlAlchemyOutboxRepository,
 )
 from packages.deterministic_evidence import DeterministicEvidenceService
-from packages.domain.enums import ExtractionMethod, FieldCriticality
+from packages.domain.enums import ClaimFormType, ExtractionMethod, FieldCriticality
 from packages.domain.extraction import FieldEvidence
 from packages.events.bus import EventBus
 from packages.events.envelope import EventEnvelope
@@ -39,6 +40,15 @@ from packages.evidence_router import ReferenceSourceState
 from packages.human_review_authority import CanonicalHITLAuthority
 from packages.model_router.inputs import RouterInput
 from packages.model_router.router import ModelRouter
+from packages.ocr.adjudication import adjudicate_candidates
+from packages.ocr.contracts import OCRRequest
+from packages.ocr.execution import OCRExecutionService
+from packages.ocr.ppocr_v5_provider import PPOCRv5Provider
+from packages.ocr.source_b_routing import (
+    ChallengerBudget,
+    SourceBChallengeContext,
+    route_to_ppocr_v5,
+)
 from packages.runtime_profile import DecisionServiceFactory
 from packages.storage.object_store import ObjectStore, ObjectStoreSettings
 from workers.page_detection.text_extraction import PaddleOCRTextExtractor, RapidOCRTextExtractor
@@ -89,6 +99,9 @@ class RetryWorker:
         self._deterministic_service = deterministic_service or DeterministicEvidenceService()
         self._criticality = decision_bundle.criticality
         self._engine_cache: dict[str, object] = {}
+        self._ocr_execution = OCRExecutionService()
+        self._ppocr_provider = PPOCRv5Provider()
+        self._challenger_budgets: dict[str, ChallengerBudget] = {}
 
     def _engine(self, name: str, factory):
         """Lazily initialize each OCR/layout engine once per worker process."""
@@ -191,7 +204,29 @@ class RetryWorker:
                 next_stage = ExtractionMethod.HUMAN_REVIEW
             else:
                 next_stage = decision.selected_route
+            budget_key = str(envelope.claim_id or document_id)
+            budget = self._challenger_budgets.setdefault(
+                budget_key,
+                ChallengerBudget(int(envelope.payload.get("blocking_field_count") or 0)),
+            )
+            challenge_context = SourceBChallengeContext(
+                source=str(envelope.payload.get("source_dataset") or "").upper(),
+                document_family=document_family,
+                current_claim_blocker=bool(envelope.payload.get("blocks_stp")),
+                crop_safety_status=str(envelope.payload.get("crop_safety_status") or "UNSAFE"),
+                primary_resolved=False,
+                failure_reason=str((envelope.payload.get("reason_codes") or [""])[0]),
+            )
+            if os.getenv("PPOCR_V5_CHALLENGER_ENABLED", "true").casefold() in {
+                "1", "true", "yes", "on",
+            }:
+                routed, _ = route_to_ppocr_v5(challenge_context, budget)
+                if routed:
+                    next_stage = ExtractionMethod.PPOCR_V5_CHALLENGER
             new_text = ""
+            challenger_force_hitl = False
+            challenger_candidate = None
+            challenger_adjudication = None
 
             if next_stage in (
                 ExtractionMethod.ALTERNATE_PREPROCESS_OCR,
@@ -200,6 +235,7 @@ class RetryWorker:
                 ExtractionMethod.LAYOUTLMV3,
                 ExtractionMethod.TABLE_TRANSFORMER,
                 ExtractionMethod.VLM_FALLBACK,
+                ExtractionMethod.PPOCR_V5_CHALLENGER,
             ):
                 import io
 
@@ -227,7 +263,47 @@ class RetryWorker:
                 new_source = next_stage
 
                 try:
-                    if next_stage in {
+                    if next_stage == ExtractionMethod.PPOCR_V5_CHALLENGER:
+                        crop = page_image.crop(region)
+                        request = OCRRequest(
+                            document_id=str(document_id),
+                            page_number=field.page_number,
+                            field_name=field.field_name,
+                            field_type=_field_type(field.field_name),
+                            form_type=ClaimFormType(document_family),
+                            image=crop,
+                            bounding_box=field.bounding_box,
+                            criticality=(
+                                FieldCriticality.CRITICAL
+                                if field.is_critical else FieldCriticality.NON_CRITICAL
+                            ),
+                            scope="FIELD_CROP",
+                            preprocessing_profile="SOURCE_CROP",
+                        )
+                        result = await self._ocr_execution.execute(self._ppocr_provider, request)
+                        challenger_candidate = result.candidates[0] if result.candidates else None
+                        existing = ocr_candidates_from_field(field)
+                        primary_candidate = next(
+                            (item for item in existing if "rapidocr" in item.engine.casefold()),
+                            existing[0] if existing else None,
+                        )
+                        challenger_adjudication = adjudicate_candidates(
+                            field_name=field.field_name,
+                            primary=primary_candidate,
+                            challenger=challenger_candidate,
+                            crop_safety_status=challenge_context.crop_safety_status,
+                            deterministic=self._deterministic_service,
+                        )
+                        if challenger_candidate is not None:
+                            new_text = challenger_candidate.raw_value
+                            new_confidence = challenger_candidate.raw_confidence
+                        if challenger_adjudication.action == "USE_CHALLENGER":
+                            pass
+                        elif challenger_adjudication.action == "KEEP_PRIMARY":
+                            new_text = field.normalized_value or field.raw_value
+                        else:
+                            challenger_force_hitl = True
+                    elif next_stage in {
                         ExtractionMethod.REGIONAL_RAPIDOCR,
                         ExtractionMethod.REGIONAL_PADDLEOCR,
                     }:
@@ -312,6 +388,33 @@ class RetryWorker:
                     raw_text=new_text,
                     confidence=new_confidence,
                     bounding_box=field.bounding_box,
+                    model_name=(
+                        challenger_candidate.model_name if challenger_candidate else None
+                    ),
+                    model_version=(
+                        challenger_candidate.model_version if challenger_candidate else None
+                    ),
+                    provenance=challenger_candidate.provenance if challenger_candidate else None,
+                    tokens=tuple(
+                        {
+                            "text": token.text, "confidence": token.confidence,
+                            "bounding_box": token.bounding_box.model_dump(mode="json"),
+                        } for token in challenger_candidate.tokens
+                    ) if challenger_candidate else (),
+                    adjudication_metadata=(
+                        {
+                            "quality_bucket": envelope.payload.get("source_quality_band"),
+                            "failure_reason": challenge_context.failure_reason,
+                            "primary_candidate": primary_candidate.raw_value
+                            if primary_candidate else None,
+                            "challenger_candidate": challenger_candidate.raw_value
+                            if challenger_candidate else None,
+                            "agreement_status": challenger_adjudication.agreement_status,
+                            "adjudication_reason": challenger_adjudication.reason,
+                            "challenger_removed_claim_blocker": False,
+                        }
+                        if challenger_adjudication else None
+                    ),
                 )
                 field.candidates.append(retry_evidence)
                 field_orm.candidates = [
@@ -385,7 +488,7 @@ class RetryWorker:
                     ),
                 )
             )
-            accepted = decision.disposition in {
+            accepted = not challenger_force_hitl and decision.disposition in {
                 FieldDisposition.AUTO_ACCEPTED,
                 FieldDisposition.REFERENCE_CONFIRMED,
             }
