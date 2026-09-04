@@ -22,20 +22,36 @@ BOX = BoundingBox(x0=10, y0=20, x1=110, y1=60, image_width=1000, image_height=10
 
 def request(scope="FIELD_CROP"):
     return OCRRequest(
-        document_id="doc", page_number=1, field_name="billing_provider_npi",
-        field_type="code", form_type=ClaimFormType.CMS1500,
-        image=Image.new("RGB", (100, 40), "white"), bounding_box=BOX, scope=scope,
+        document_id="doc",
+        page_number=1,
+        field_name="billing_provider_npi",
+        field_type="code",
+        form_type=ClaimFormType.CMS1500,
+        image=Image.new("RGB", (100, 40), "white"),
+        bounding_box=BOX,
+        scope=scope,
     )
 
 
-def candidate(value, engine, invocation):
+def candidate(value, engine, invocation, *, crop="same-crop", region="same-region"):
     return OCRCandidate(
-        value=value, raw_value=value or "", engine=engine, model_name=engine,
-        model_version="1", preprocessing_variant="SOURCE_CROP", raw_confidence=.99,
-        calibrated_confidence=None, bounding_box=BOX, latency_ms=1,
+        value=value,
+        raw_value=value or "",
+        engine=engine,
+        model_name=engine,
+        model_version="1",
+        preprocessing_variant="SOURCE_CROP",
+        raw_confidence=0.99,
+        calibrated_confidence=None,
+        bounding_box=BOX,
+        latency_ms=1,
         provenance=EvidenceProvenance(
-            crop_sha256="same-crop", invocation_id=invocation, engine_name=engine,
-            source_candidate_id=invocation, bbox=BOX,
+            crop_sha256=crop,
+            localization_region_id=region,
+            invocation_id=invocation,
+            engine_name=engine,
+            source_candidate_id=invocation,
+            bbox=BOX,
         ),
     )
 
@@ -49,19 +65,23 @@ def test_small_blocker_bundle_gets_one_challenge():
 
 def test_provider_preserves_tokens_and_execution_provenance():
     def backend(_image):
-        return [{
-            "res": {
-                "rec_texts": ["1234567893"],
-                "rec_scores": [.93],
-                "rec_polys": [[[0, 0], [99, 0], [99, 39], [0, 39]]],
+        return [
+            {
+                "res": {
+                    "rec_texts": ["1234567893"],
+                    "rec_scores": [0.93],
+                    "rec_polys": [[[0, 0], [99, 0], [99, 39], [0, 39]]],
+                }
             }
-        }]
+        ]
 
     result = asyncio.run(
-        OCRExecutionService(benchmark_mode=True).execute(PPOCRv5Provider(backend=backend), request())
+        OCRExecutionService(benchmark_mode=True).execute(
+            PPOCRv5Provider(backend=backend), request()
+        )
     )
     assert result.candidates[0].tokens[0].text == "1234567893"
-    assert result.candidates[0].tokens[0].confidence == .93
+    assert result.candidates[0].tokens[0].confidence == 0.93
     assert result.candidates[0].provenance is not None
 
 
@@ -82,15 +102,29 @@ def test_provider_rejects_non_field_crop_before_backend_call():
     assert not called
 
 
-def test_valid_independent_challenger_can_replace_invalid_primary():
+def test_same_crop_engine_diversity_cannot_replace_primary_as_independent_evidence():
     result = adjudicate_candidates(
         field_name="billing_provider_npi",
         primary=candidate("123", "rapidocr", "primary"),
         challenger=candidate("1234567893", "ppocr-v5", "challenger"),
         crop_safety_status="CROP_SAFE",
     )
+    assert result.action == "HITL"
+    assert result.reason == "CHALLENGER_ACCEPTANCE_GATES_FAILED"
+    assert not result.evidence_independent
+
+
+def test_distinct_source_observation_can_replace_invalid_primary():
+    result = adjudicate_candidates(
+        field_name="billing_provider_npi",
+        primary=candidate("123", "rapidocr", "primary", crop="crop-a", region="region-a"),
+        challenger=candidate(
+            "1234567893", "ppocr-v5", "challenger", crop="crop-b", region="region-b"
+        ),
+        crop_safety_status="CROP_SAFE",
+    )
     assert result.action == "USE_CHALLENGER"
-    assert result.reason == "VALID_INDEPENDENT_CHALLENGER_REPLACES_INVALID_PRIMARY"
+    assert result.evidence_independent
 
 
 def test_materially_disagreeing_valid_candidates_fail_closed_to_hitl():
