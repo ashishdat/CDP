@@ -173,3 +173,14 @@ def test_disagreement_requires_independent_adjudicator(tmp_path, monkeypatch):
     )
     assert result.status_code == 303
     assert json.loads(azure.ADJUDICATIONS.read_text())["authority"] == "HUMAN_ADJUDICATED"
+
+
+def test_fast_track_routes_precede_real_review_catch_all():
+    from evaluation.annotation_app.app import app as integrated_app
+
+    included = [
+        route.original_router
+        for route in integrated_app.routes
+        if hasattr(route, "original_router")
+    ]
+    assert included.index(azure.router) < included.index(real.router)

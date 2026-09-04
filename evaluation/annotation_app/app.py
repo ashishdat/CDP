@@ -35,8 +35,8 @@ UB_LINES = RESULTS / "ub_service_line_truth.jsonl"
 QUALITY = RESULTS / "annotation_quality.json"
 
 app = FastAPI(title="CDP Tuning Truth V1", docs_url=None, redoc_url=None)
-app.include_router(real_data_review_router)
 app.include_router(azure_shadow_review_router)
+app.include_router(real_data_review_router)
 
 
 def _reviewer(request: Request) -> str:
