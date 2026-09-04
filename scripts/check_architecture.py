@@ -42,6 +42,7 @@ ALLOWED_GOVERNED_RESULT_PREFIXES = {
     "evaluation_results/phase8_23/",
     "evaluation_results/phase8_24/",
     "evaluation_results/phase8_25/",
+    "evaluation_results/phase8_26/",
 }
 
 
