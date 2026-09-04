@@ -51,6 +51,7 @@ ALLOWED_GOVERNED_RESULT_PREFIXES = {
     "evaluation_results/phase9e/",
     "evaluation_results/closure1000/",
     "evaluation_results/closure/",
+    "evaluation_results/real_eval/",
 }
 
 
