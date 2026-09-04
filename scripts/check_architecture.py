@@ -45,6 +45,7 @@ ALLOWED_GOVERNED_RESULT_PREFIXES = {
     "evaluation_results/phase8_26/",
     "evaluation_results/phase8_27/",
     "evaluation_results/phase9a/",
+    "evaluation_results/phase9b/",
 }
 
 
@@ -87,7 +88,10 @@ def tracked_artifact_errors() -> list[str]:
         parts = set(Path(tracked).parts)
         if parts & FORBIDDEN_TRACKED_PARTS:
             errors.append(f"tracked runtime/private artifact: {tracked}")
-        if any(part.startswith(".env") for part in Path(tracked).parts) and tracked != ".env.example":
+        if (
+            any(part.startswith(".env") for part in Path(tracked).parts)
+            and tracked != ".env.example"
+        ):
             errors.append(f"tracked environment file: {tracked}")
     return errors
 
