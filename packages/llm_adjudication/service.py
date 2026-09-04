@@ -37,9 +37,18 @@ class AzureShadowAdjudicationService:
         if config.mode != "SHADOW_ONLY":
             raise ValueError("runtime integration is shadow-only until promotion gates pass")
         pricing = AzureLLMPricingConfig(
-            _optional_float(env.get("AZURE_OPENAI_INPUT_COST_PER_MILLION_TOKENS")),
-            _optional_float(env.get("AZURE_OPENAI_OUTPUT_COST_PER_MILLION_TOKENS")),
-            _optional_float(env.get("AZURE_OPENAI_CACHED_INPUT_COST_PER_MILLION_TOKENS")),
+            _optional_float(
+                env.get("AZURE_OPENAI_INPUT_COST_PER_MILLION")
+                or env.get("AZURE_OPENAI_INPUT_COST_PER_MILLION_TOKENS")
+            ),
+            _optional_float(
+                env.get("AZURE_OPENAI_OUTPUT_COST_PER_MILLION")
+                or env.get("AZURE_OPENAI_OUTPUT_COST_PER_MILLION_TOKENS")
+            ),
+            _optional_float(
+                env.get("AZURE_OPENAI_CACHED_INPUT_COST_PER_MILLION")
+                or env.get("AZURE_OPENAI_CACHED_INPUT_COST_PER_MILLION_TOKENS")
+            ),
         )
         governor = LLMCostGovernor(config, pricing)
         return cls(

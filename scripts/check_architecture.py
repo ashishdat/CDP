@@ -53,6 +53,7 @@ ALLOWED_GOVERNED_RESULT_PREFIXES = {
     "evaluation_results/closure/",
     "evaluation_results/real_eval/",
     "evaluation_results/azure_llm_shadow/",
+    "evaluation_results/azure_live_shadow/",
 }
 
 

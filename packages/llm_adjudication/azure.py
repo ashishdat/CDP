@@ -184,6 +184,7 @@ class AdjudicationResult:
     cost_status: str = "PRICING_NOT_CONFIGURED"
     retries: int = 0
     data_categories_sent: tuple[str, ...] = ()
+    request_id: str | None = None
 
 
 class AzureLLMDataMinimizer:
@@ -447,6 +448,8 @@ class AzureOpenAIAdjudicationProvider:
                 cost_status=self.pricing.cost_status,
                 retries=retries,
                 data_categories_sent=categories,
+                request_id=response.headers.get("x-request-id")
+                or response.headers.get("apim-request-id"),
             )
             self.cache[key] = result
             return result
