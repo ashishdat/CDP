@@ -17,7 +17,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from PIL import Image
 
 from evaluation.annotation_app import real_data_review
+from packages.domain.enums import ClaimFormType
 from packages.image_quality import assess_image_quality
+from packages.templates.registry import TemplateRegistry
 
 ROOT = Path(__file__).resolve().parents[2]
 QUEUE = ROOT / "evaluation_results/azure_live_shadow/review_cohort_candidates.json"
@@ -57,6 +59,33 @@ CRITICAL = {
     "principal_diagnosis",
 }
 router = APIRouter(prefix="/real-review/fast-track", tags=["azure-shadow-review"])
+TEMPLATES = TemplateRegistry.load_from_directory()
+FIELD_REGION_ALIASES = {
+    "CMS1500": {
+        "member_id": "insured_id_number",
+        "subscriber_id": "insured_id_number",
+        "patient_name": "patient_name",
+        "insured_name": "insured_name",
+        "provider_name": "billing_provider_info",
+        "NPI": "billing_provider_info",
+        "patient_DOB": "patient_dob",
+        "service_date": "date_from",
+        "total_charge": "total_charge",
+        "principal_diagnosis": "diagnosis_codes",
+    },
+    "UB04": {
+        "member_id": "insured_unique_id",
+        "subscriber_id": "insured_unique_id",
+        "patient_name": "patient_name",
+        "insured_name": "insured_name",
+        "provider_name": "provider_name_address",
+        "NPI": "provider_npi",
+        "patient_DOB": "patient_dob",
+        "service_date": "service_date",
+        "total_charge": "total_charges",
+        "principal_diagnosis": "principal_diagnosis",
+    },
+}
 
 
 def _rows(path: Path) -> list[dict[str, Any]]:
@@ -107,6 +136,50 @@ def _annotation_latest() -> dict[tuple[str, str, str], dict]:
     return latest
 
 
+def _adjudication_latest() -> dict[tuple[str, str], dict]:
+    latest = {}
+    for row in _rows(ADJUDICATIONS):
+        latest[(row["source_page_id"], row["field_name"])] = row
+    return latest
+
+
+def _normalized_annotation(row: dict) -> tuple[str, str]:
+    return row["state"], " ".join(str(row.get("value") or "").upper().split())
+
+
+def _annotation_progress() -> dict[str, Any]:
+    annotations = _annotation_latest()
+    adjudications = _adjudication_latest()
+    pairs = {(page, field) for page, field, _ in annotations if field in CRITICAL}
+    agreements = []
+    pending = 0
+    dual = 0
+    for page, field in pairs:
+        a = annotations.get((page, field, "ANNOTATOR_A"))
+        b = annotations.get((page, field, "ANNOTATOR_B"))
+        if not a or not b or a["annotator_id"] == b["annotator_id"]:
+            continue
+        dual += 1
+        if _normalized_annotation(a) == _normalized_annotation(b):
+            agreements.append(
+                {
+                    "state": "DUAL_REVIEW_AGREED",
+                    "source_page_id": page,
+                    "field_name": field,
+                    "annotation_ids": [a["annotation_id"], b["annotation_id"]],
+                }
+            )
+        elif (page, field) not in adjudications:
+            pending += 1
+    return {
+        "total": len(annotations),
+        "critical": sum(row.get("critical", False) for row in annotations.values()),
+        "dual_reviewed_critical": dual,
+        "pending_adjudications": pending,
+        "agreements": agreements,
+    }
+
+
 def _progress(items: list[dict]) -> dict:
     latest = _page_latest()
     reviewed = [r for r in latest.values() if r["action"] != "SKIP"]
@@ -143,6 +216,103 @@ def _quality(record: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _recommended_quality(evidence: dict[str, Any]) -> str:
+    unreadable = {"UNREADABLE", "NO_CONTENT", "EMPTY_PAGE", "NO_TEXT", "TEXT_NOT_DETECTED"}
+    if unreadable.intersection(evidence.get("reason_codes", [])):
+        return "UNREADABLE"
+    score = evidence.get("quality_score", 0)
+    if (
+        score >= 0.90
+        and evidence.get("contrast", 0) >= 0.50
+        and evidence.get("dynamic_range", 0) >= 180
+        and abs(evidence.get("skew", 999)) <= 2
+        and evidence.get("noise", 999) <= 0.10
+    ):
+        return "HIGH"
+    if score >= 0.70:
+        return "MEDIUM"
+    if score > 0:
+        return "LOW"
+    return "UNKNOWN"
+
+
+def _options(values, selected: str) -> str:
+    return "".join(
+        f'<option value="{html.escape(value)}"'
+        f"{' selected' if value == selected else ''}>{html.escape(value)}</option>"
+        for value in values
+    )
+
+
+def _frame(record: dict[str, Any]) -> Image.Image:
+    try:
+        with Image.open(real_data_review._source(record)) as image:
+            image.seek(record["page_number"] - 1)
+            return image.convert("L")
+    except (OSError, EOFError) as exc:
+        raise HTTPException(409, "TIFF frame unreadable") from exc
+
+
+def _png_bytes(image: Image.Image) -> bytes:
+    data = io.BytesIO()
+    image.convert("L").save(data, "PNG", optimize=False, compress_level=9)
+    return data.getvalue()
+
+
+def _reviewed_form(record: dict[str, Any]) -> str:
+    review = _page_latest().get(record["page_id"])
+    reviewed = review.get("reviewed_class") if review else None
+    if reviewed in {"CMS1500", "UB04"}:
+        return reviewed
+    return record["queue_candidate"]["candidate_class"]
+
+
+def _field_crop(record: dict[str, Any], field_name: str) -> dict[str, Any]:
+    if field_name not in FIELDS:
+        raise HTTPException(404, "unsupported field crop")
+    form = _reviewed_form(record)
+    alias = FIELD_REGION_ALIASES.get(form, {}).get(field_name)
+    if not alias:
+        raise HTTPException(409, "FIELD CROP UNAVAILABLE")
+    enum = ClaimFormType.CMS1500 if form == "CMS1500" else ClaimFormType.UB04
+    try:
+        template = TEMPLATES.latest_for_form_type(enum)
+    except KeyError as exc:
+        raise HTTPException(409, "FIELD CROP UNAVAILABLE") from exc
+    region = template.field_region(alias)
+    if region:
+        reference_box = (region.x0, region.y0, region.x1, region.y1)
+    else:
+        table = template.service_line_region
+        column = (
+            next((item for item in table.columns if item.field_name == alias), None)
+            if table
+            else None
+        )
+        if not table or not column:
+            raise HTTPException(409, "FIELD CROP UNAVAILABLE")
+        reference_box = (column.x0, table.table_y0, column.x1, table.table_y1)
+    frame = _frame(record)
+    ref = template.reference_dimensions
+    box = (
+        max(0, round(reference_box[0] * frame.width / ref.width_px)),
+        max(0, round(reference_box[1] * frame.height / ref.height_px)),
+        min(frame.width, round(reference_box[2] * frame.width / ref.width_px)),
+        min(frame.height, round(reference_box[3] * frame.height / ref.height_px)),
+    )
+    if box[2] <= box[0] or box[3] <= box[1] or box == (0, 0, frame.width, frame.height):
+        raise HTTPException(409, "FIELD CROP UNAVAILABLE")
+    crop_bytes = _png_bytes(frame.crop(box))
+    return {
+        "bytes": crop_bytes,
+        "crop_box": list(box),
+        "source_region_sha256": hashlib.sha256(crop_bytes).hexdigest(),
+        "source_page_sha256": hashlib.sha256(_png_bytes(frame)).hexdigest(),
+        "localization_method": "TEMPLATE_SCALE",
+        "localization_version": f"{template.template_id}@{template.version}",
+    }
+
+
 def _next_unreviewed(items: list[dict], current: int) -> int:
     done = set(_page_latest())
     for offset in range(1, len(items) + 1):
@@ -157,7 +327,18 @@ def dashboard(request: Request):
     reviewer = html.escape(_reviewer(request))
     items = _queue()
     p = _progress(items)
-    return f"<meta charset=utf-8><h1>Azure shadow trusted review</h1><p>Reviewer {reviewer}</p><p>{p['reviewed']} / {p['total']} reviewed; {p['confirmed_claim_form_pages']} confirmed claim forms; {p['unknown']} unknown; {p['remaining']} remaining.</p><p><a href='/real-review/fast-track/0'>Start / resume queue</a></p>"
+    a = _annotation_progress()
+    classes = p["classes"]
+    return f"""<meta charset=utf-8><h1>Azure shadow trusted review</h1>
+<p>Reviewer {reviewer}</p>
+<p>Reviewed {p["reviewed"]} / {p["total"]}; CMS1500 {classes["CMS1500"]};
+UB04 {classes["UB04"]}; Supporting {classes["SUPPORTING_DOCUMENT"]};
+Attachment {classes["ATTACHMENT"]}; Non-claim {classes["NON_CLAIM"]};
+Unknown {classes["UNKNOWN"]}; Remaining {p["remaining"]}.</p>
+<p>Field annotations {a["total"]}; critical annotations {a["critical"]};
+dual-reviewed critical fields {a["dual_reviewed_critical"]};
+pending adjudications {a["pending_adjudications"]}.</p>
+<p><a href="/real-review/fast-track/0">Start / resume queue</a></p>"""
 
 
 @router.get("/{index}/image")
@@ -174,22 +355,45 @@ def image(index: int, request: Request):
     return Response(data.getvalue(), media_type="image/png")
 
 
+@router.get("/{index}/field-crop/{field_name}")
+def field_crop(index: int, field_name: str, request: Request):
+    _reviewer(request)
+    _, record = _item(index)
+    crop = _field_crop(record, field_name)
+    return Response(crop["bytes"], media_type="image/png")
+
+
 @router.get("/{index}", response_class=HTMLResponse)
 def page(index: int, request: Request):
     html.escape(_reviewer(request))
     items, r = _item(index)
     p = _progress(items)
+    annotations = _annotation_progress()
     candidate = r["queue_candidate"]
     nxt = min(len(items) - 1, index + 1)
     prev = max(0, index - 1)
     unreviewed = _next_unreviewed(items, index)
     boundary = r.get("boundary") or {}
-    quality = html.escape(json.dumps(_quality(r), sort_keys=True))
-    class_opts = "".join(f"<option>{v}</option>" for v in sorted(PAGE_CLASSES))
-    quality_opts = "".join(f"<option>{v}</option>" for v in sorted(QUALITY))
-    boundary_opts = "".join(f"<option>{v}</option>" for v in sorted(BOUNDARY_ACTIONS))
-    field_opts = "".join(f"<option>{v}</option>" for v in FIELDS)
-    return f"""<meta charset=utf-8><style>body{{font:15px Arial;margin:20px}}label{{display:block;margin:8px}}img{{max-width:95vw;max-height:62vh}}button,select,input{{padding:6px}}</style><h1>Fast-track {index + 1}/{len(items)}</h1><p>{p["reviewed"]} reviewed &middot; {p["confirmed_claim_form_pages"]} claim forms &middot; {p["remaining"]} remaining</p><p><a id=prev href=/real-review/fast-track/{prev}>Previous</a> | <a id=next href=/real-review/fast-track/{nxt}>Next</a> | <a href=/real-review/fast-track/{unreviewed}>Next unreviewed</a></p><p>Package: {html.escape(r["package_id"])}<br>Asset: {html.escape(r["asset_id"])}<br>Page: {html.escape(r["page_id"])}; frame {r["page_number"]}<br>Proposed class: <b>{html.escape(candidate["candidate_class"])}</b>; confidence {candidate["classification_confidence"]}<br>Proposed quality: {html.escape(candidate["source_quality_band"])}<br>Measured quality: {quality}<br>Boundary: {html.escape(str(boundary.get("boundary_state", "UNKNOWN")))}</p><img src=/real-review/fast-track/{index}/image><form method=post action=/real-review/fast-track/{index}/page-review><label>Action <select name=action><option>CONFIRM</option><option>CORRECT</option><option>UNKNOWN</option><option>SKIP</option></select></label><label>Reviewed class <select name=reviewed_class>{class_opts}</select></label><label>Quality <select name=reviewed_quality_band>{quality_opts}</select></label><label>Boundary <select name=boundary_action>{boundary_opts}</select></label><label>Correction reason <input name=correction_reason></label><button>Save and next</button></form><hr><h2>Blind field annotation</h2><p>CDP and Azure predictions are hidden.</p><form method=post action=/real-review/fast-track/{index}/annotation><label>Field <select name=field_name>{field_opts}</select></label><label>Role <select name=annotator_role><option>ANNOTATOR_A</option><option>ANNOTATOR_B</option></select></label><label>State <select name=state><option>VALUE</option><option>NOT_PRESENT</option><option>UNREADABLE</option><option>NOT_APPLICABLE</option></select></label><label>Value <input name=value autocomplete=off></label><label>Region SHA-256 <input name=source_region_sha256 pattern="[0-9a-f]{{64}}"></label><button>Save blind annotation</button></form><script>document.addEventListener('keydown',e=>{{if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(e.key==='n')location=document.querySelector('#next').href;if(e.key==='p')location=document.querySelector('#prev').href;if(e.key==='u'){{document.querySelector('[name=action]').value='UNKNOWN'}};if(e.key==='c'){{document.querySelector('[name=action]').value='CONFIRM'}}}})</script>"""
+    measured_quality = _quality(r)
+    quality_json = html.escape(json.dumps(measured_quality, sort_keys=True))
+    candidate_class = candidate.get("candidate_class", "UNKNOWN")
+    selected_class = candidate_class if candidate_class in PAGE_CLASSES else "UNKNOWN"
+    proposed_quality = candidate.get("source_quality_band", "UNKNOWN")
+    selected_quality = (
+        proposed_quality
+        if proposed_quality in QUALITY and proposed_quality != "UNKNOWN"
+        else _recommended_quality(measured_quality)
+    )
+    prior_review = _page_latest().get(r["page_id"], {})
+    selected_boundary = prior_review.get("boundary_action", "UNKNOWN")
+    if selected_boundary not in BOUNDARY_ACTIONS:
+        selected_boundary = "UNKNOWN"
+    class_opts = _options(sorted(PAGE_CLASSES), selected_class)
+    quality_opts = _options(sorted(QUALITY), selected_quality)
+    boundary_opts = _options(sorted(BOUNDARY_ACTIONS), selected_boundary)
+    field_opts = _options(FIELDS, FIELDS[0])
+    classes = p["classes"]
+    return f"""<meta charset=utf-8><style>body{{font:15px Arial;margin:20px}}label{{display:block;margin:8px}}img{{max-width:95vw;max-height:62vh}}#field-crop{{display:block;max-width:80vw;max-height:25vh;border:1px solid #555}}button,select,input,textarea{{padding:6px}}</style><h1>Fast-track {index + 1}/{len(items)}</h1><p>Reviewed {p["reviewed"]} / {p["total"]}; CMS1500 {classes["CMS1500"]}; UB04 {classes["UB04"]}; Supporting {classes["SUPPORTING_DOCUMENT"]}; Attachment {classes["ATTACHMENT"]}; Non-claim {classes["NON_CLAIM"]}; Unknown {classes["UNKNOWN"]}; Remaining {p["remaining"]}.</p><p>Field annotations {annotations["total"]}; critical annotations {annotations["critical"]}; dual-reviewed critical fields {annotations["dual_reviewed_critical"]}; pending adjudications {annotations["pending_adjudications"]}.</p><p><a id=prev href=/real-review/fast-track/{prev}>Previous</a> | <a id=next href=/real-review/fast-track/{nxt}>Next</a> | <a href=/real-review/fast-track/{unreviewed}>Next unreviewed</a></p><p>Package: {html.escape(r["package_id"])}<br>Asset: {html.escape(r["asset_id"])}<br>Page: {html.escape(r["page_id"])}; frame {r["page_number"]}<br>Proposed class: <b>{html.escape(candidate_class)}</b>; confidence {candidate["classification_confidence"]}<br>Proposed quality: {html.escape(proposed_quality)}<br>Measured quality: {quality_json}<br>Suggested boundary: {html.escape(str(boundary.get("boundary_state", "UNKNOWN")))}</p><img src=/real-review/fast-track/{index}/image><form id=page-review-form method=post action=/real-review/fast-track/{index}/page-review><label>Action <select name=action><option>CONFIRM</option><option>CORRECT</option><option>UNKNOWN</option><option>SKIP</option></select></label><label>Reviewed class <select name=reviewed_class>{class_opts}</select></label><label>Quality <select name=reviewed_quality_band>{quality_opts}</select></label><label>Boundary <select name=boundary_action>{boundary_opts}</select></label><label>Correction reason <input name=correction_reason></label><button type=submit>Save and next unreviewed</button></form><hr><h2>Blind field annotation</h2><p>CDP and Azure predictions are hidden.</p><form id=field-annotation-form method=post action=/real-review/fast-track/{index}/annotation><label>Field <select id=field-name name=field_name>{field_opts}</select></label><p>Field crop &mdash; <span id=field-label>{FIELDS[0]}</span></p><img id=field-crop alt="FIELD CROP UNAVAILABLE" src=/real-review/fast-track/{index}/field-crop/{FIELDS[0]}><label>Role <select name=annotator_role><option>ANNOTATOR_A</option><option>ANNOTATOR_B</option></select></label><label>State <select name=state><option>VALUE</option><option>NOT_PRESENT</option><option>UNREADABLE</option><option>NOT_APPLICABLE</option></select></label><label>Value <input name=value autocomplete=off></label><label>Notes <textarea name=notes></textarea></label><button type=submit>Save blind annotation</button></form><script>const field=document.querySelector('#field-name'),crop=document.querySelector('#field-crop'),label=document.querySelector('#field-label');field.addEventListener('change',()=>{{label.textContent=field.value;crop.src='/real-review/fast-track/{index}/field-crop/'+encodeURIComponent(field.value)}});document.addEventListener('keydown',e=>{{if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(e.target.tagName))return;if(e.key.toLowerCase()==='n')location=document.querySelector('#next').href;if(e.key.toLowerCase()==='p')location=document.querySelector('#prev').href;if(e.key.toLowerCase()==='u')document.querySelector('[name=action]').value='UNKNOWN';if(e.key.toLowerCase()==='c')document.querySelector('[name=action]').value='CONFIRM';if(e.key.toLowerCase()==='s')document.querySelector('#page-review-form').requestSubmit()}})</script>"""
 
 
 @router.post("/{index}/page-review")
@@ -243,10 +447,11 @@ def annotation(
     annotator_role: str = Form(...),
     state: str = Form(...),
     value: str = Form(""),
-    source_region_sha256: str = Form(...),
+    notes: str = Form(""),
 ):
     reviewer = _reviewer(request)
     _, r = _item(index)
+    crop = _field_crop(r, field_name)
     if (
         field_name not in FIELDS
         or annotator_role not in {"ANNOTATOR_A", "ANNOTATOR_B"}
@@ -255,8 +460,6 @@ def annotation(
         raise HTTPException(400, "unsupported annotation")
     if (state == "VALUE") != bool(value.strip()):
         raise HTTPException(400, "VALUE requires value; non-VALUE forbids it")
-    if len(source_region_sha256) != 64:
-        raise HTTPException(400, "region hash required")
     latest = _annotation_latest()
     other_role = "ANNOTATOR_B" if annotator_role == "ANNOTATOR_A" else "ANNOTATOR_A"
     other = latest.get((r["page_id"], field_name, other_role))
@@ -281,7 +484,12 @@ def annotation(
             "value_sha256": hashlib.sha256(value.strip().upper().encode()).hexdigest()
             if value.strip()
             else None,
-            "source_region_sha256": source_region_sha256,
+            "source_region_sha256": crop["source_region_sha256"],
+            "crop_box": crop["crop_box"],
+            "localization_method": crop["localization_method"],
+            "localization_version": crop["localization_version"],
+            "source_page_sha256": crop["source_page_sha256"],
+            "notes": notes.strip() or None,
             "authority": "HUMAN_SINGLE_REVIEW",
             "prediction_visible": False,
         },
