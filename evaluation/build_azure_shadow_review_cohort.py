@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "evaluation_results/real_eval/page_classification_candidates.json"
 OUTPUT = ROOT / "evaluation_results/azure_live_shadow/review_cohort_candidates.json"
+REVIEW_QUEUE = ROOT / "evaluation_results/azure_live_shadow/review_queue.json"
 
 
 def _round_robin(rows: list[dict], limit: int) -> list[dict]:
@@ -75,7 +76,10 @@ def build(source: Path = SOURCE, output: Path = OUTPUT, target: int = 200) -> di
         ],
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", "utf-8")
+    serialized = json.dumps(artifact, indent=2, sort_keys=True) + "\n"
+    output.write_text(serialized, "utf-8")
+    if output.resolve() == OUTPUT.resolve():
+        REVIEW_QUEUE.write_text(serialized, "utf-8")
     return artifact
 
 

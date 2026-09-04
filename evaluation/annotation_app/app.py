@@ -11,6 +11,7 @@ from typing import Any
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 
+from evaluation.annotation_app.azure_shadow_review import router as azure_shadow_review_router
 from evaluation.annotation_app.real_data_review import router as real_data_review_router
 from evaluation.tuning_truth.contracts import (
     FieldCropTruth,
@@ -35,6 +36,7 @@ QUALITY = RESULTS / "annotation_quality.json"
 
 app = FastAPI(title="CDP Tuning Truth V1", docs_url=None, redoc_url=None)
 app.include_router(real_data_review_router)
+app.include_router(azure_shadow_review_router)
 
 
 def _reviewer(request: Request) -> str:
@@ -162,7 +164,7 @@ def task_screen(index: int, request: Request) -> str:
 <style>body{{font:14px Arial;margin:20px}}#wrap{{position:relative;display:inline-block;max-width:95vw}}
 #page{{max-width:95vw;max-height:68vh}}#box{{position:absolute;border:3px solid #e22;pointer-events:none}}
 label{{display:block;margin:9px}}input,select,textarea{{padding:5px}}</style>
-<p><a href='/task/{previous}'>â† Previous</a> | <a href='/'>Queue</a> | <a href='/task/{following}'>Next â†’</a></p>
+<p><a href='/task/{previous}'>&larr; Previous</a> | <a href='/'>Queue</a> | <a href='/task/{following}'>Next &rarr;</a></p>
 <h2>{html.escape(task["form_family"])}: {html.escape(title)}</h2>
 <p>{html.escape(task["document_id"])} | {html.escape(task["source_dataset"])} | {html.escape(task["quality_bucket"])} | reviewer {reviewer}</p>
 <div id=wrap><img id=page src='/image/{index}'><div id=box hidden></div></div>

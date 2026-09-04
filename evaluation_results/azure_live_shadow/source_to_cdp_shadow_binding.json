@@ -1,7 +1,5 @@
 {
+  "benchmark_pages": 0,
   "binding_rate": 0.0,
-  "bound_records": 0,
-  "records": [],
-  "trusted_records": 0,
-  "unbound_source_page_ids": []
+  "exact_cdp_bindings": 0
 }
