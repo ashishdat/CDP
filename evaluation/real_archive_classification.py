@@ -119,8 +119,8 @@ def discover_pages(source: Path, archive_sha256: str) -> Iterable[tuple[PageRef,
 class RapidOCRPageObserver:
     """Production OCR adapter; recognized values are never returned as artifacts."""
 
-    def __init__(self) -> None:
-        self.provider = RapidOCRProvider()
+    def __init__(self, provider: RapidOCRProvider | None = None) -> None:
+        self.provider = provider or RapidOCRProvider()
         self.execution = OCRExecutionService(benchmark_mode=True)
 
     async def __call__(self, image: Image.Image, page: PageRef) -> Observation:
@@ -169,6 +169,7 @@ def _candidate_class(route: MultiSignalRoute) -> str:
     return {
         MultiSignalRoute.CMS1500: "CMS1500",
         MultiSignalRoute.UB04: "UB04",
+        MultiSignalRoute.OTHER_CLAIM_FORM: "OTHER_CLAIM_FORM",
         MultiSignalRoute.NON_CLAIM: "NON_CLAIM",
         MultiSignalRoute.UNKNOWN_STRUCTURED: "SUPPORTING_DOCUMENT",
         MultiSignalRoute.UNKNOWN_UNSTRUCTURED: "UNKNOWN",
@@ -247,6 +248,13 @@ def _safe_record(
         "reason_codes": evidence.reason_codes,
         "scores": evidence.scores,
         "router_version": evidence.router_version,
+        "form_identity": {
+            "identity_state": evidence.identity_state,
+            "field_topology_score": evidence.field_topology_score,
+            "missing_required_anchors": evidence.missing_required_anchors,
+            "conflicting_anchors": evidence.conflicting_anchors,
+            "localization_allowed": evidence.localization_allowed,
+        },
         "ocr": {
             "engine": observation.engine,
             "engine_version": observation.engine_version,

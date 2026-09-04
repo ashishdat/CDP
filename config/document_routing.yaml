@@ -1,5 +1,13 @@
 version: "2.0"
-router_version: "3.0"
+router_version: "strict-form-identity-v1"
+form_identity:
+  policy_version: "strict-form-identity-v1"
+  CMS1500:
+    minimum_high_value_anchors: 3
+    minimum_topology_score: 1.0
+  UB04:
+    minimum_high_value_anchors: 3
+    minimum_topology_score: 1.0
 anchor_policy_version: "weighted-anchors-v3.0"
 zone_policy_version: "normalized-zones-v3.0"
 fuzzy_match_policy_version: "length-aware-routing-labels-v3.0"
@@ -40,6 +48,11 @@ anchors:
     - service date
     - units
     - total charges
+  noncanonical_claim:
+    - reimbursement request
+    - proprietary claim form
+    - legacy claim form
+    - payer specific form
   healthcare:
     - patient
     - member

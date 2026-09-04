@@ -50,11 +50,13 @@ class RapidOCRProvider:
         backend: Callable[[np.ndarray], Any] | None = None,
         execution_providers: tuple[str, ...] = ("CPUExecutionProvider",),
         preprocessing: PreprocessingRegistry | None = None,
+        session_threads: int | None = None,
     ) -> None:
         self._backend = backend
         self.execution_providers = execution_providers
         self.provider_version = _version("rapidocr-onnxruntime")
         self.preprocessing = preprocessing or PreprocessingRegistry.load()
+        self.session_threads = session_threads
 
     def _load_backend(self) -> Callable[[np.ndarray], Any]:
         if self._backend is None:
@@ -66,7 +68,15 @@ class RapidOCRProvider:
                 ) from exc
             # RapidOCR releases differ in provider keyword support. The model
             # still defaults to CPU; configured providers are retained in evidence.
-            self._backend = RapidOCR()
+            kwargs = (
+                {
+                    "intra_op_num_threads": self.session_threads,
+                    "inter_op_num_threads": self.session_threads,
+                }
+                if self.session_threads is not None
+                else {}
+            )
+            self._backend = RapidOCR(**kwargs)
         return self._backend
 
     @staticmethod
@@ -95,8 +105,12 @@ class RapidOCRProvider:
                 xs = [float(point[0]) for point in points]
                 ys = [float(point[1]) for point in points]
                 box = BoundingBox(
-                    x0=min(xs), y0=min(ys), x1=max(xs), y1=max(ys),
-                    image_width=max(1, int(max(xs))), image_height=max(1, int(max(ys))),
+                    x0=min(xs),
+                    y0=min(ys),
+                    x1=max(xs),
+                    y1=max(ys),
+                    image_width=max(1, int(max(xs))),
+                    image_height=max(1, int(max(ys))),
                 )
             parsed.append((str(row[1]), float(row[2]), box))
         return parsed
@@ -133,13 +147,17 @@ class RapidOCRProvider:
                     image_height=request.bounding_box.image_height,
                 ),
             )
-            for text, score, box in parsed if box is not None
+            for text, score, box in parsed
+            if box is not None
         )
         selected_value = joined or None
         if request.field_name in NAME_FIELDS and tokens:
             reconstruction = reconstruct_field_tokens(
                 request.field_name,
-                tuple(SpatialToken(token.text, token.confidence, token.bounding_box) for token in tokens),
+                tuple(
+                    SpatialToken(token.text, token.confidence, token.bounding_box)
+                    for token in tokens
+                ),
                 region=request.bounding_box,
             )
             selected_value = reconstruction.value
@@ -176,11 +194,13 @@ class RapidOCRProvider:
                         localization_method=request.scope,
                         localization_region_id=(
                             request.localization_evidence.candidate_region_hash
-                            if request.localization_evidence else None
+                            if request.localization_evidence
+                            else None
                         ),
                         localization_version=(
                             request.localization_evidence.locator_version
-                            if request.localization_evidence else "request-bbox-v1"
+                            if request.localization_evidence
+                            else "request-bbox-v1"
                         ),
                         preprocessing_profile=prepared.profile,
                         preprocessing_sha256=preprocessing_hash,
