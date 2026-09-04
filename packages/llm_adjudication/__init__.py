@@ -12,6 +12,7 @@ from packages.llm_adjudication.azure import (
     LLMRouter,
     build_azure_adjudication_provider,
 )
+from packages.llm_adjudication.service import AzureShadowAdjudicationService
 
 __all__ = [
     "AdjudicationCandidate",
@@ -20,6 +21,7 @@ __all__ = [
     "AzureLLMDataMinimizer",
     "AzureLLMPricingConfig",
     "AzureOpenAIAdjudicationProvider",
+    "AzureShadowAdjudicationService",
     "LLMAdjudicationConfig",
     "LLMCostGovernor",
     "LLMRouter",

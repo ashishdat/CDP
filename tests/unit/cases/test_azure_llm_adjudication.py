@@ -192,3 +192,19 @@ def test_timeout_cache_pricing_governor_shadow_and_promotion():
         promotion_gate(metrics, AzureLLMPricingConfig(1, 1)) == (True, "PASS")
         and promotion_gate(metrics, missing)[1] == "PRICING_NOT_CONFIGURED"
     )
+
+
+def test_shadow_runtime_factory_is_disabled_by_default_and_rejects_authority():
+    from packages.llm_adjudication.service import AzureShadowAdjudicationService
+
+    assert AzureShadowAdjudicationService.from_env({}) is None
+    with pytest.raises(ValueError, match="shadow-only"):
+        AzureShadowAdjudicationService.from_env(
+            {
+                "LLM_ENABLED": "true",
+                "LLM_MODE": "AUTHORITY",
+                "AZURE_OPENAI_ENDPOINT": "https://x.openai.azure.com",
+                "AZURE_AI_EVALUATION_DEPLOYMENT": "gpt-4o",
+                "AZURE_OPENAI_API_KEY": "test",
+            }
+        )

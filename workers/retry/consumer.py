@@ -38,6 +38,7 @@ from packages.evidence_decision import (
 from packages.evidence_decision.adapters import ocr_candidates_from_field
 from packages.evidence_router import ReferenceSourceState
 from packages.human_review_authority import CanonicalHITLAuthority
+from packages.llm_adjudication import AzureShadowAdjudicationService
 from packages.model_router.inputs import RouterInput
 from packages.model_router.router import ModelRouter
 from packages.ocr.adjudication import adjudicate_candidates
@@ -102,6 +103,7 @@ class RetryWorker:
         self._ocr_execution = OCRExecutionService()
         self._ppocr_provider = PPOCRv5Provider()
         self._challenger_budgets: dict[str, ChallengerBudget] = {}
+        self._llm_shadow = AzureShadowAdjudicationService.from_env()
 
     def _engine(self, name: str, factory):
         """Lazily initialize each OCR/layout engine once per worker process."""
@@ -218,7 +220,10 @@ class RetryWorker:
                 failure_reason=str((envelope.payload.get("reason_codes") or [""])[0]),
             )
             if os.getenv("PPOCR_V5_CHALLENGER_ENABLED", "true").casefold() in {
-                "1", "true", "yes", "on",
+                "1",
+                "true",
+                "yes",
+                "on",
             }:
                 routed, _ = route_to_ppocr_v5(challenge_context, budget)
                 if routed:
@@ -275,7 +280,8 @@ class RetryWorker:
                             bounding_box=field.bounding_box,
                             criticality=(
                                 FieldCriticality.CRITICAL
-                                if field.is_critical else FieldCriticality.NON_CRITICAL
+                                if field.is_critical
+                                else FieldCriticality.NON_CRITICAL
                             ),
                             scope="FIELD_CROP",
                             preprocessing_profile="SOURCE_CROP",
@@ -388,32 +394,37 @@ class RetryWorker:
                     raw_text=new_text,
                     confidence=new_confidence,
                     bounding_box=field.bounding_box,
-                    model_name=(
-                        challenger_candidate.model_name if challenger_candidate else None
-                    ),
+                    model_name=(challenger_candidate.model_name if challenger_candidate else None),
                     model_version=(
                         challenger_candidate.model_version if challenger_candidate else None
                     ),
                     provenance=challenger_candidate.provenance if challenger_candidate else None,
                     tokens=tuple(
                         {
-                            "text": token.text, "confidence": token.confidence,
+                            "text": token.text,
+                            "confidence": token.confidence,
                             "bounding_box": token.bounding_box.model_dump(mode="json"),
-                        } for token in challenger_candidate.tokens
-                    ) if challenger_candidate else (),
+                        }
+                        for token in challenger_candidate.tokens
+                    )
+                    if challenger_candidate
+                    else (),
                     adjudication_metadata=(
                         {
                             "quality_bucket": envelope.payload.get("source_quality_band"),
                             "failure_reason": challenge_context.failure_reason,
                             "primary_candidate": primary_candidate.raw_value
-                            if primary_candidate else None,
+                            if primary_candidate
+                            else None,
                             "challenger_candidate": challenger_candidate.raw_value
-                            if challenger_candidate else None,
+                            if challenger_candidate
+                            else None,
                             "agreement_status": challenger_adjudication.agreement_status,
                             "adjudication_reason": challenger_adjudication.reason,
                             "challenger_removed_claim_blocker": False,
                         }
-                        if challenger_adjudication else None
+                        if challenger_adjudication
+                        else None
                     ),
                 )
                 field.candidates.append(retry_evidence)
@@ -488,6 +499,42 @@ class RetryWorker:
                     ),
                 )
             )
+            if self._llm_shadow is not None and decision.disposition in {
+                FieldDisposition.ESCALATE,
+                FieldDisposition.HUMAN_REVIEW_REQUIRED,
+                FieldDisposition.INSUFFICIENT_EVIDENCE,
+            }:
+                try:
+                    self._llm_shadow.observe(
+                        field_name=field.field_name,
+                        field_type=_field_type(field.field_name),
+                        candidates=[candidate.raw_text for candidate in field.candidates],
+                        claim_blocking=bool(
+                            envelope.payload.get("blocks_stp", decision.blocks_stp)
+                        ),
+                        crop_safe=str(envelope.payload.get("crop_safety_status") or "UNSAFE")
+                        == "CROP_SAFE",
+                        localization_confidence=float(
+                            preserved.get("registration_confidence") or 0.0
+                        ),
+                        critical=field.is_critical,
+                        authoritative_conflict=bool(
+                            reference_payload and reference_payload.get("contradiction")
+                        ),
+                        page_key=f"{document_id}:{field.page_number}",
+                        claim_key=str(envelope.claim_id or document_id),
+                        claim_distance=max(
+                            1, int(envelope.payload.get("blocking_field_count") or 1)
+                        ),
+                        evidence={
+                            "semantic_section": envelope.payload.get("semantic_section"),
+                            "conflict": bool(
+                                reference_payload and reference_payload.get("contradiction")
+                            ),
+                        },
+                    )
+                except Exception:
+                    logger.exception("Azure LLM shadow adjudication failed closed")
             accepted = not challenger_force_hitl and decision.disposition in {
                 FieldDisposition.AUTO_ACCEPTED,
                 FieldDisposition.REFERENCE_CONFIRMED,
@@ -593,7 +640,7 @@ class RetryWorker:
                 logger.exception("failed to retry field")
 
 
-async def _run(worker: "RetryWorker", relay) -> None:
+async def _run(worker: RetryWorker, relay) -> None:
     relay_task = asyncio.create_task(relay.run_forever())
     try:
         await worker.run_forever()
