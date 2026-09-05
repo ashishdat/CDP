@@ -1,12 +1,26 @@
 version: "2.0"
-router_version: "strict-form-identity-v1"
+router_version: "strict-form-identity-v2"
 form_identity:
-  policy_version: "strict-form-identity-v1"
+  policy_version: "strict-form-identity-v2"
+  context_vetoes:
+    - not a
+    - instructions for
+    - completing
+    - attach to
+    - submit with
+    - sample
+    - example
+    - reference
+    - converted from
   CMS1500:
+    identity_zone: [0.0, 0.0, 1.0, 0.22]
     minimum_high_value_anchors: 3
+    minimum_independent_regions: 3
     minimum_topology_score: 1.0
   UB04:
+    identity_zone: [0.0, 0.0, 1.0, 0.22]
     minimum_high_value_anchors: 3
+    minimum_independent_regions: 3
     minimum_topology_score: 1.0
 anchor_policy_version: "weighted-anchors-v3.0"
 zone_policy_version: "normalized-zones-v3.0"

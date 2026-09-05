@@ -12,6 +12,11 @@ class HierarchicalRoutingEvidence(DomainModel):
 
 
 def from_routing_evidence(evidence: RoutingEvidence) -> HierarchicalRoutingEvidence:
+    conflict_families = (
+        (evidence.route.value,)
+        if evidence.route in {MultiSignalRoute.CMS1500, MultiSignalRoute.UB04}
+        else tuple(evidence.conflicting_anchors)
+    )
     return HierarchicalRoutingEvidence(
         legacy_route=evidence.route,
         structured=evidence.route
@@ -24,4 +29,11 @@ def from_routing_evidence(evidence: RoutingEvidence) -> HierarchicalRoutingEvide
         claim_related=evidence.route not in {MultiSignalRoute.NON_CLAIM},
         confidence=evidence.confidence,
         supporting_codes=tuple(evidence.reason_codes),
+        contradicting_codes=tuple(
+            dict.fromkeys(
+                code
+                for family in conflict_families
+                for code in evidence.conflicting_anchors.get(family, ())
+            )
+        ),
     )

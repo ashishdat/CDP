@@ -7,6 +7,7 @@ from packages.document_taxonomy.taxonomy import DocumentClass
 from packages.processing_routes.resolver import ProcessingRouteResolver
 from packages.standard_form_verification.evidence import (
     StandardFormEvidence,
+    evidence_from_router_features,
 )
 from packages.standard_form_verification.service import StandardFormVerificationService
 
@@ -17,7 +18,7 @@ from .router import RoutingEvidence
 
 
 class DocumentRoutingDecisionService:
-    version = "document-routing-decision-v1"
+    version = "document-routing-decision-v2"
 
     def __init__(self, classifier=None, verification_service=None, route_resolver=None):
         self.classifier = classifier or DeterministicHierarchicalBaseline()
@@ -35,6 +36,10 @@ class DocumentRoutingDecisionService:
         classification = self.classifier.classify(
             document_id, page_id, from_routing_evidence(routing_evidence)
         )
+        if classification.standard_candidate and standard_evidence is None:
+            standard_evidence = evidence_from_router_features(
+                classification.document_subtype, None, routing_evidence
+            )
         return self.decide_classification(
             classification, standard_evidence, evaluation_only=evaluation_only
         )

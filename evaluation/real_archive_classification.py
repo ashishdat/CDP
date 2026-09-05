@@ -194,10 +194,14 @@ def _confidence_band(route: MultiSignalRoute, evidence: Any) -> str:
 
 
 def _safe_record(
-    page: PageRef, image: Image.Image, observation: Observation, router: MultiSignalRouter
+    page: PageRef,
+    image: Image.Image,
+    observation: Observation,
+    router: MultiSignalRouter,
+    routing_evidence: Any | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
-    evidence = router.route(image, list(observation.lines))
+    evidence = routing_evidence or router.route(image, list(observation.lines))
     routing_ms = (time.perf_counter() - started) * 1000
     matched = {
         family: sorted(anchors) for family, anchors in evidence.matched_anchors.items() if anchors
@@ -254,6 +258,11 @@ def _safe_record(
             "missing_required_anchors": evidence.missing_required_anchors,
             "conflicting_anchors": evidence.conflicting_anchors,
             "localization_allowed": evidence.localization_allowed,
+            "identity_policy_version": evidence.identity_policy_version,
+            "family_eligibility": evidence.family_eligibility,
+            "identity_anchor_evidence": [
+                item.model_dump(mode="json") for item in evidence.identity_anchor_evidence
+            ],
         },
         "ocr": {
             "engine": observation.engine,

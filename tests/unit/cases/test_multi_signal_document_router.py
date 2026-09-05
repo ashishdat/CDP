@@ -27,14 +27,17 @@ def _lines(*values):
 def test_ub_fingerprint_requires_multiple_independent_signals():
     decision = MultiSignalRouter.load().route(
         _image(),
-        _lines(
-            "UB-04",
-            "TYPE OF BILL",
-            "PATIENT CONTROL",
-            "STATEMENT COVERS",
-            "PRINCIPAL DIAGNOSIS",
-            "REVENUE CODE HCPCS SERVICE DATE UNITS TOTAL CHARGES",
-        ),
+        [
+            TextLine("UB-04", 20, 30, 400, 58, 0.95),
+            TextLine("TYPE OF BILL", 760, 80, 960, 108, 0.95),
+            TextLine("PATIENT CONTROL", 600, 100, 790, 128, 0.95),
+            TextLine("STATEMENT COVERS", 650, 250, 900, 278, 0.95),
+            TextLine("REVENUE CODE", 40, 420, 220, 448, 0.95),
+            TextLine("HCPCS", 300, 430, 390, 458, 0.95),
+            TextLine("UNITS", 650, 440, 720, 468, 0.95),
+            TextLine("TOTAL CHARGES", 760, 450, 950, 478, 0.95),
+            TextLine("PRINCIPAL DIAGNOSIS", 50, 900, 300, 928, 0.95),
+        ],
     )
     assert decision.route is MultiSignalRoute.UB04
     evidence = build_ub04_fingerprint(decision, width=1000, height=1300)
@@ -79,7 +82,7 @@ def test_close_standard_scores_fail_closed_to_unknown():
     assert decision.route not in {MultiSignalRoute.CMS1500, MultiSignalRoute.UB04}
 
 
-def test_explicit_ub_identity_and_specific_anchor_use_identity_backed_gate():
+def test_explicit_ub_identity_and_one_anchor_stays_fail_closed():
     decision = MultiSignalRouter.load().route(
         _image(),
         _lines(
@@ -88,9 +91,9 @@ def test_explicit_ub_identity_and_specific_anchor_use_identity_backed_gate():
             "CLAIM",
         ),
     )
-    assert decision.route is MultiSignalRoute.UB04
-    assert decision.eligibility["UB04"]
-    assert "UB04_IDENTITY_CONFIRMED" in decision.reason_codes
+    assert decision.route is not MultiSignalRoute.UB04
+    assert not decision.eligibility["UB04"]
+    assert not decision.localization_allowed
 
 
 def test_identity_without_family_specific_anchor_stays_fail_closed():
@@ -101,12 +104,17 @@ def test_identity_without_family_specific_anchor_stays_fail_closed():
 def test_ocr_safe_normalization_is_bounded_to_multi_token_labels():
     decision = MultiSignalRouter.load().route(
         _image(),
-        _lines(
-            "UB-04",
-            "TYPE  OF   BIIL",
-            "PATLENT CONTROL",
-            "PRINCIPAL DIAGNOS1S",
-        ),
+        [
+            TextLine("UB-04", 20, 30, 400, 58, 0.95),
+            TextLine("TYPE OF BIIL", 760, 80, 960, 108, 0.95),
+            TextLine("PATLENT CONTROL", 600, 100, 790, 128, 0.95),
+            TextLine("STATEMENT COVERS", 650, 250, 900, 278, 0.95),
+            TextLine("REVENUE CODE", 40, 420, 220, 448, 0.95),
+            TextLine("HCPCS", 300, 430, 390, 458, 0.95),
+            TextLine("UNITS", 650, 440, 720, 468, 0.95),
+            TextLine("TOTAL CHARGES", 760, 450, 950, 478, 0.95),
+            TextLine("PRINCIPAL DIAGNOS1S", 50, 900, 300, 928, 0.95),
+        ],
     )
     assert decision.route is MultiSignalRoute.UB04
     assert decision.normalized_anchor_count >= 2
@@ -154,14 +162,14 @@ def test_noncanonical_grid_claims_never_reach_ub_localization(values):
 def test_clean_cms_identity_reaches_canonical_route():
     decision = MultiSignalRouter.load().route(
         _image(),
-        _lines(
-            "CMS-1500",
-            "HEALTH INSURANCE CLAIM FORM",
-            "PATIENTS NAME",
-            "INSURED ID NUMBER",
-            "DIAGNOSIS OR NATURE OF ILLNESS",
-            "FEDERAL TAX ID",
-        ),
+        [
+            TextLine("CMS-1500", 20, 30, 500, 58, 0.95),
+            TextLine("HEALTH INSURANCE CLAIM FORM", 20, 100, 500, 128, 0.95),
+            TextLine("PATIENTS NAME", 40, 260, 300, 288, 0.95),
+            TextLine("INSURED ID NUMBER", 600, 220, 920, 248, 0.95),
+            TextLine("DIAGNOSIS OR NATURE OF ILLNESS", 40, 700, 520, 728, 0.95),
+            TextLine("FEDERAL TAX ID", 600, 1050, 920, 1078, 0.95),
+        ],
     )
     assert decision.route is MultiSignalRoute.CMS1500
     assert decision.identity_state["CMS1500"] == "CONFIRMED"

@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 import yaml
 from PIL import Image
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from packages.domain.common import DomainModel
 
@@ -26,15 +26,17 @@ class TextGeometry(Protocol):
     y0: float
     x1: float
     y1: float
+    confidence: float
 
 
-@dataclass(frozen=True)
+@dataclass
 class _JoinedGeometry:
     text: str
     x0: float
     y0: float
     x1: float
     y1: float
+    confidence: float
 
 
 def _ordered_phrase_candidates(lines: list[TextGeometry], anchor: str) -> list[TextGeometry]:
@@ -45,8 +47,11 @@ def _ordered_phrase_candidates(lines: list[TextGeometry], anchor: str) -> list[T
     for size in range(2, min(width + 2, 6)):
         for index in range(len(ordered) - size + 1):
             window = ordered[index : index + size]
-            # Prevent phrases from jumping across distant form zones.
-            if max(item.y1 for item in window) - min(item.y0 for item in window) > 120:
+            # Identity/anchor phrases may join only adjacent observations on one
+            # visual row. This prevents reconstruction across columns or zones.
+            centers = [(item.y0 + item.y1) / 2 for item in window]
+            gaps = [window[offset + 1].x0 - window[offset].x1 for offset in range(size - 1)]
+            if max(centers) - min(centers) > 32 or any(gap > 160 for gap in gaps):
                 continue
             candidates.append(
                 _JoinedGeometry(
@@ -55,6 +60,7 @@ def _ordered_phrase_candidates(lines: list[TextGeometry], anchor: str) -> list[T
                     min(item.y0 for item in window),
                     max(item.x1 for item in window),
                     max(item.y1 for item in window),
+                    min(float(getattr(item, "confidence", 0.0)) for item in window),
                 )
             )
     return candidates
@@ -67,6 +73,20 @@ class MultiSignalRoute(StrEnum):
     UNKNOWN_STRUCTURED = "UNKNOWN_STRUCTURED"
     UNKNOWN_UNSTRUCTURED = "UNKNOWN_UNSTRUCTURED"
     NON_CLAIM = "NON_CLAIM"
+
+
+class IdentityAnchorEvidence(DomainModel):
+    family: str
+    canonical_anchor: str
+    match_type: str
+    ocr_confidence: float = Field(ge=0, le=1)
+    bounding_box: tuple[float, float, float, float]
+    expected_identity_zone: tuple[float, float, float, float]
+    zone_score: float = Field(ge=0, le=1)
+    context_classification: str
+    negation_reference_veto: bool
+    policy_version: str
+    reason_codes: tuple[str, ...] = ()
 
 
 class RoutingEvidence(DomainModel):
@@ -99,7 +119,28 @@ class RoutingEvidence(DomainModel):
     field_topology_score: dict[str, float] = Field(default_factory=dict)
     conflicting_anchors: dict[str, list[str]] = Field(default_factory=dict)
     missing_required_anchors: dict[str, list[str]] = Field(default_factory=dict)
+    identity_anchor_evidence: list[IdentityAnchorEvidence] = Field(default_factory=list)
+    identity_policy_version: str = "strict-form-identity-v2"
     localization_allowed: bool = False
+
+    @model_validator(mode="after")
+    def localization_requires_canonical_authorization(self):
+        if not self.localization_allowed:
+            return self
+        if self.route not in {MultiSignalRoute.CMS1500, MultiSignalRoute.UB04}:
+            raise ValueError("localization requires a canonical route")
+        family = self.route.value
+        opposing = "UB04" if family == "CMS1500" else "CMS1500"
+        gates = self.family_eligibility.get(family, {}).get("authorization_gates", {})
+        if (
+            self.identity_state.get(family) != "CONFIRMED"
+            or self.identity_state.get(opposing) == "CONFIRMED"
+            or self.conflicting_anchors.get(family)
+            or not gates
+            or not all(gates.values())
+        ):
+            raise ValueError("localization requires every identity authorization gate")
+        return self
 
     @property
     def winning_score(self) -> float:
@@ -218,40 +259,158 @@ class MultiSignalRouter:
     def load(cls, path: str | Path = DEFAULT_CONFIG) -> MultiSignalRouter:
         return cls(yaml.safe_load(Path(path).read_text("utf-8")))
 
-    def route(self, image: Image.Image, lines: list[TextGeometry]) -> RoutingEvidence:
-        text = " ".join(line.text for line in lines)
-        anchors = self.config["anchors"]
-        matched = {
-            name: [anchor for anchor in values if _anchor_found(anchor, text)]
-            for name, values in anchors.items()
+    @staticmethod
+    def _nearby_context(candidate: TextGeometry, lines: list[TextGeometry]) -> str:
+        center = (candidate.y0 + candidate.y1) / 2
+        nearby = [
+            line
+            for line in lines
+            if abs(((line.y0 + line.y1) / 2) - center) <= 36
+            and line.x1 >= candidate.x0 - 500
+            and line.x0 <= candidate.x1 + 500
+        ]
+        return " ".join(line.text for line in sorted(nearby, key=lambda line: line.x0))
+
+    @staticmethod
+    def _region_id(family: str, anchor: str) -> str:
+        regions = {
+            "CMS1500": {
+                "health insurance claim form": "identity_header",
+                "patients name": "patient_identity",
+                "insured id number": "insured_identity",
+                "diagnosis or nature of illness": "diagnosis",
+                "federal tax id": "provider_billing",
+            },
+            "UB04": {
+                "type of bill": "institutional_header",
+                "patient control": "patient_control",
+                "statement covers": "statement_period",
+                "principal diagnosis": "diagnosis",
+                "revenue code": "revenue_service",
+                "hcpcs": "revenue_service",
+                "service date": "revenue_service",
+                "units": "revenue_service",
+                "total charges": "revenue_service",
+                "medical record": "patient_control",
+            },
         }
-        geometry_evidence = []
-        match_counts = Counter()
-        family_counts = {}
-        geometry_scores = {}
-        weighted = {}
+        return regions.get(family, {}).get(anchor, anchor.replace(" ", "_"))
+
+    def _identity_observations(
+        self, image: Image.Image, lines: list[TextGeometry]
+    ) -> tuple[dict[str, list[str]], list[IdentityAnchorEvidence], dict[str, list[str]]]:
+        policy = self.config["form_identity"]
+        vetoes = tuple(_normalize(item) for item in policy.get("context_vetoes", ()))
+        matched: dict[str, list[str]] = {"CMS1500_IDENTITY": [], "UB04_IDENTITY": []}
+        observations: list[IdentityAnchorEvidence] = []
+        invalid: dict[str, list[str]] = {"CMS1500": [], "UB04": []}
+        anchors = self.config["anchors"]
+        for family, key in (("CMS1500", "CMS1500_IDENTITY"), ("UB04", "UB04_IDENTITY")):
+            zone = policy[family]["identity_zone"]
+            for anchor in anchors[key]:
+                matches: list[tuple[TextGeometry, str, float, str, tuple[str, ...]]] = []
+                for candidate in _ordered_phrase_candidates(lines, anchor):
+                    match_type, phrase_score = _phrase_match(anchor, candidate.text)
+                    if match_type is None:
+                        continue
+                    context = _normalize(self._nearby_context(candidate, lines))
+                    found_vetoes = tuple(veto for veto in vetoes if veto in context)
+                    matches.append((candidate, match_type, phrase_score, context, found_vetoes))
+                if not matches:
+                    continue
+                valid_found = False
+                for candidate, match_type, phrase_score, _context, found_vetoes in matches:
+                    zone_score = _bbox_score(candidate, zone, image.width, image.height)
+                    reasons: list[str] = []
+                    context_classification = "CANONICAL_IDENTITY"
+                    veto = bool(found_vetoes)
+                    if veto:
+                        context_classification = "NEGATED_OR_REFERENTIAL"
+                        reasons.extend(f"IDENTITY_CONTEXT_VETO:{item}" for item in found_vetoes)
+                    if zone_score < 1.0:
+                        context_classification = "OUTSIDE_IDENTITY_ZONE"
+                        reasons.append("IDENTITY_OUTSIDE_EXPECTED_ZONE")
+                    if match_type == "FUZZY":
+                        context_classification = "UNBOUNDED_OCR_VARIANT"
+                        reasons.append("FUZZY_IDENTITY_NOT_AUTHORIZING")
+                    authorizing = (
+                        not veto and zone_score == 1.0 and match_type in {"EXACT", "NORMALIZED"}
+                    )
+                    if authorizing:
+                        valid_found = True
+                        reasons.append("IDENTITY_ANCHOR_VALID")
+                    observations.append(
+                        IdentityAnchorEvidence(
+                            family=family,
+                            canonical_anchor=anchor,
+                            match_type=match_type,
+                            ocr_confidence=float(getattr(candidate, "confidence", 0.0)),
+                            bounding_box=(candidate.x0, candidate.y0, candidate.x1, candidate.y1),
+                            expected_identity_zone=tuple(zone),
+                            zone_score=zone_score,
+                            context_classification=context_classification,
+                            negation_reference_veto=veto,
+                            policy_version=policy["policy_version"],
+                            reason_codes=tuple(reasons),
+                        )
+                    )
+                if valid_found:
+                    matched[key].append(anchor)
+                else:
+                    invalid[family].append(f"INVALID_IDENTITY_CONTEXT:{anchor}")
+        return matched, observations, invalid
+
+    def route(self, image: Image.Image, lines: list[TextGeometry]) -> RoutingEvidence:
+        anchors = self.config["anchors"]
+        identity_matched, identity_evidence, identity_invalid = self._identity_observations(
+            image, lines
+        )
+        matched: dict[str, list[str]] = {
+            name: [
+                anchor
+                for anchor in values
+                if any(
+                    _phrase_match(anchor, candidate.text)[0] is not None
+                    for candidate in _ordered_phrase_candidates(lines, anchor)
+                )
+            ]
+            for name, values in anchors.items()
+            if name not in {"CMS1500_IDENTITY", "UB04_IDENTITY", "CMS1500", "UB04"}
+        }
+        matched.update(identity_matched)
+
+        geometry_evidence: list[dict] = []
+        match_counts: Counter[str] = Counter()
+        family_counts: dict[str, Counter] = {}
+        geometry_scores: dict[str, float] = {}
+        weighted: dict[str, float] = {}
+        independent_regions: dict[str, set[str]] = {}
         weight_value = {"high": 3.0, "medium": 2.0, "low": 0.5}
         for family in ("CMS1500", "UB04"):
-            family_geometry = []
+            family_geometry: list[float] = []
             numerator = denominator = 0.0
-            family_count = Counter()
+            family_count: Counter[str] = Counter()
+            family_matched: list[str] = []
+            regions: set[str] = set()
             classes = self.config.get("anchor_weights", {}).get(family, {})
             for anchor_class, values in classes.items():
                 for anchor in values:
                     weight = weight_value[anchor_class]
                     denominator += weight
                     candidates = []
-                    for line in _ordered_phrase_candidates(lines, anchor):
-                        match_type, phrase_score = _phrase_match(anchor, line.text)
+                    for candidate in _ordered_phrase_candidates(lines, anchor):
+                        match_type, phrase_score = _phrase_match(anchor, candidate.text)
                         if match_type:
                             zone = self.config.get("anchor_zones", {}).get(family, {}).get(anchor)
                             zone_score = (
-                                _bbox_score(line, zone, image.width, image.height) if zone else 0.5
+                                _bbox_score(candidate, zone, image.width, image.height)
+                                if zone
+                                else 0.0
                             )
                             candidates.append(
                                 (
-                                    phrase_score * max(zone_score, 0.35),
-                                    line,
+                                    phrase_score * zone_score,
+                                    candidate,
                                     match_type,
                                     phrase_score,
                                     zone_score,
@@ -259,11 +418,16 @@ class MultiSignalRouter:
                             )
                     if not candidates:
                         continue
-                    _, line, match_type, phrase_score, zone_score = max(
+                    _, candidate, match_type, phrase_score, zone_score = max(
                         candidates, key=lambda item: item[0]
                     )
+                    if zone_score <= 0:
+                        continue
+                    region_id = self._region_id(family, anchor)
                     numerator += weight * phrase_score
                     family_geometry.append(zone_score)
+                    family_matched.append(anchor)
+                    regions.add(region_id)
                     match_counts[match_type] += 1
                     match_counts[anchor_class] += 1
                     family_count[match_type] += 1
@@ -272,25 +436,36 @@ class MultiSignalRouter:
                         {
                             "family": family,
                             "anchor": anchor,
-                            "matched_text": line.text,
+                            "region_id": region_id,
                             "expected_zone": self.config.get("anchor_zones", {})
                             .get(family, {})
                             .get(anchor),
-                            "observed_bbox": [line.x0, line.y0, line.x1, line.y1],
-                            "zone_match": zone_score > 0,
+                            "observed_bbox": [
+                                candidate.x0,
+                                candidate.y0,
+                                candidate.x1,
+                                candidate.y1,
+                            ],
+                            "ocr_confidence": float(getattr(candidate, "confidence", 0.0)),
+                            "zone_match": True,
                             "geometry_score": zone_score,
                             "match_type": match_type,
                             "phrase_score": phrase_score,
                             "anchor_class": anchor_class.upper() + "_DISCRIMINATION",
                         }
                     )
+            matched[family] = family_matched
             weighted[family] = numerator / max(denominator, 1)
             family_counts[family] = family_count
+            independent_regions[family] = regions
             geometry_scores[family] = statistics.fmean(family_geometry) if family_geometry else 0.0
+
         h, v, grid = _line_scores(image)
         structure = _structure_scores(image, h, v, grid)
-        cms_identity = float(bool(matched["CMS1500_IDENTITY"]))
-        ub_identity = float(bool(matched["UB04_IDENTITY"]))
+        identity_present = {
+            "CMS1500": bool(matched["CMS1500_IDENTITY"]),
+            "UB04": bool(matched["UB04_IDENTITY"]),
+        }
         healthcare = len(matched["healthcare"]) / len(anchors["healthcare"])
         negative = len(matched["negative"]) / max(len(anchors["negative"]), 1)
         combinations = []
@@ -319,7 +494,6 @@ class MultiSignalRouter:
             )
             for family in ("CMS1500", "UB04")
         }
-        identity = {"CMS1500": cms_identity, "UB04": ub_identity}
         required = {
             family: sorted(
                 {
@@ -334,10 +508,7 @@ class MultiSignalRouter:
             family: sorted(set(required[family]) - set(matched[family])) for family in required
         }
         noncanonical = matched.get("noncanonical_claim", [])
-        conflicts = {
-            "CMS1500": list(noncanonical) + (["UB04_IDENTITY_CONFLICT"] if ub_identity else []),
-            "UB04": list(noncanonical) + (["CMS1500_IDENTITY_CONFLICT"] if cms_identity else []),
-        }
+
         raw_standard = {}
         for family in ("CMS1500", "UB04"):
             raw_standard[family] = min(
@@ -345,19 +516,21 @@ class MultiSignalRouter:
                 0.34 * weighted[family]
                 + 0.16 * geometry_scores[family]
                 + 0.25 * structure[family]
-                + 0.15 * identity[family]
+                + 0.15 * float(identity_present[family])
                 + 0.10 * combination_bonus[family],
             )
         scores = {
             "CMS1500": min(
                 1.0,
                 raw_standard["CMS1500"]
-                + self.config.get("identity_discrimination_bonus", 0) * cms_identity,
+                + self.config.get("identity_discrimination_bonus", 0)
+                * float(identity_present["CMS1500"]),
             ),
             "UB04": min(
                 1.0,
                 raw_standard["UB04"]
-                + self.config.get("identity_discrimination_bonus", 0) * ub_identity,
+                + self.config.get("identity_discrimination_bonus", 0)
+                * float(identity_present["UB04"]),
             ),
             "OTHER_CLAIM_FORM": min(
                 1.0, 0.50 * healthcare + 0.32 * grid + 0.18 * min(1, len(lines) / 18)
@@ -370,59 +543,115 @@ class MultiSignalRouter:
                 1.0, 0.70 * negative + 0.20 * (1 - healthcare) + 0.10 * (len(lines) < 5)
             ),
         }
-        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
-        best, second = ranked[0], ranked[1]
         standard = sorted(
             ((name, scores[name]) for name in ("CMS1500", "UB04")),
             key=lambda item: item[1],
             reverse=True,
         )
         standard_margin = standard[0][1] - standard[1][1]
-        standard_identity = {
-            "CMS1500": cms_identity,
-            "UB04": ub_identity,
-        }[standard[0][0]]
-        standard_specific_anchor_count = len(matched[standard[0][0]])
-        family = standard[0][0]
-        identity_backed = (
-            standard_identity > 0
-            and identity[standard[1][0]] == 0
-            and standard_specific_anchor_count > 0
-            and weighted[family] > 0
-            and structure[family] >= 0.20
-            and not conflicts[family]
-        )
-        topology_backed = (
-            family_counts[family]["high"]
-            >= self.config["form_identity"][family]["minimum_high_value_anchors"]
-            and topology[family] >= self.config["form_identity"][family]["minimum_topology_score"]
-            and weighted[family] >= self.config["minimum_weighted_anchor_coverage"]
-            and geometry_scores[family] >= self.config["minimum_geometry_score"]
-            and structure[family] >= self.config["minimum_structure_score"]
-            and standard[0][1] >= self.config["minimum_structure_backed_score"]
-            and not conflicts[family]
-        )
-        eligible = {"CMS1500": False, "UB04": False}
-        eligible[family] = identity_backed or topology_backed
-        identity_state = {
-            name: ("CONFIRMED" if eligible[name] else "REJECTED" if conflicts[name] else "UNKNOWN")
-            for name in ("CMS1500", "UB04")
+
+        raw_identity_state = {
+            family: (
+                "REJECTED"
+                if identity_invalid[family]
+                else "CONFIRMED"
+                if identity_present[family]
+                else "UNKNOWN"
+            )
+            for family in ("CMS1500", "UB04")
         }
+        conflicts: dict[str, list[str]] = {}
+        family_eligibility: dict[str, dict] = {}
+        eligible = {"CMS1500": False, "UB04": False}
+        authorization_path: dict[str, str | None] = {"CMS1500": None, "UB04": None}
+        for family in ("CMS1500", "UB04"):
+            opposing = "UB04" if family == "CMS1500" else "CMS1500"
+            conflicts[family] = list(noncanonical) + list(identity_invalid[family])
+            if raw_identity_state[opposing] == "CONFIRMED":
+                conflicts[family].append(f"{opposing}_IDENTITY_CONFLICT")
+            policy = self.config["form_identity"][family]
+            common = {
+                "minimum_high_value_anchors": family_counts[family]["high"]
+                >= policy["minimum_high_value_anchors"],
+                "minimum_independent_regions": len(independent_regions[family])
+                >= policy["minimum_independent_regions"],
+                "minimum_weighted_anchor_coverage": weighted[family]
+                >= self.config["minimum_weighted_anchor_coverage"],
+                "minimum_geometry_score": geometry_scores[family]
+                >= self.config["minimum_geometry_score"],
+                "minimum_structure_score": structure[family]
+                >= self.config["minimum_structure_score"],
+                "minimum_family_margin": (scores[family] - scores[opposing])
+                >= self.config["minimum_standard_margin"],
+                "no_conflicting_or_noncanonical_evidence": not conflicts[family],
+                "opposing_family_not_confirmed": raw_identity_state[opposing] != "CONFIRMED",
+            }
+            explicit_gates = {
+                **common,
+                "canonical_identity_in_expected_zone": raw_identity_state[family] == "CONFIRMED",
+                "minimum_absolute_standard_score": scores[family]
+                >= self.config["minimum_identity_backed_standard_score"],
+            }
+            topology_gates = {
+                **common,
+                "identity_header_absent_without_rejection": raw_identity_state[family] == "UNKNOWN",
+                "complete_configured_topology": topology[family]
+                >= policy["minimum_topology_score"],
+                "required_grid_structure": grid >= self.config["minimum_structure_score"],
+                "minimum_absolute_standard_score": scores[family]
+                >= max(
+                    self.config["minimum_standard_score"],
+                    self.config["minimum_structure_backed_score"],
+                ),
+            }
+            explicit_gates = {key: bool(value) for key, value in explicit_gates.items()}
+            topology_gates = {key: bool(value) for key, value in topology_gates.items()}
+            if all(explicit_gates.values()):
+                eligible[family] = True
+                authorization_path[family] = "EXPLICIT_IDENTITY"
+                selected = explicit_gates
+            elif all(topology_gates.values()):
+                eligible[family] = True
+                authorization_path[family] = "COMPLETE_TOPOLOGY"
+                selected = topology_gates
+            else:
+                selected = explicit_gates if identity_present[family] else topology_gates
+            family_eligibility[family] = {
+                "eligible": eligible[family],
+                "authorization_path": authorization_path[family],
+                "authorization_gates": selected,
+                "explicit_identity_gates": explicit_gates,
+                "topology_gates": topology_gates,
+                "high_value_anchor_count": family_counts[family]["high"],
+                "independent_regions": sorted(independent_regions[family]),
+            }
+
+        identity_state = {
+            family: (
+                "CONFIRMED" if eligible[family] else "REJECTED" if conflicts[family] else "UNKNOWN"
+            )
+            for family in ("CMS1500", "UB04")
+        }
+        ranked = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+        best, second = ranked[0], ranked[1]
+        family = standard[0][0]
         reasons = ["MULTI_SIGNAL_ROUTER", f"BEST:{best[0]}"]
-        if eligible[standard[0][0]] and standard_margin >= self.config["minimum_standard_margin"]:
-            route = MultiSignalRoute(standard[0][0])
+        if eligible[family]:
+            route = MultiSignalRoute(family)
             reasons.extend(
                 [
-                    f"{standard[0][0].replace('1500', '')}_IDENTITY_CONFIRMED"
-                    if identity_backed
-                    else f"{standard[0][0].replace('1500', '')}_TOPOLOGY_CONFIRMED",
-                    f"{standard[0][0].replace('1500', '')}_WEIGHTED_ANCHORS",
+                    (
+                        f"{family}_IDENTITY_CONFIRMED"
+                        if authorization_path[family] == "EXPLICIT_IDENTITY"
+                        else f"{family}_TOPOLOGY_CONFIRMED"
+                    ),
+                    f"{family}_AUTHORIZATION_PATH:{authorization_path[family]}",
+                    f"{family}_WEIGHTED_ANCHORS",
                     f"STANDARD_MARGIN:{standard_margin:.3f}",
+                    f"{family}_GEOMETRY_CONFIRMED",
                 ]
             )
-            if geometry_scores[standard[0][0]] >= self.config["minimum_geometry_score"]:
-                reasons.append(f"{standard[0][0].replace('1500', '')}_GEOMETRY_CONFIRMED")
-            if standard[0][0] == "UB04" and structure["service_table_score"] >= 0.35:
+            if family == "UB04" and structure["service_table_score"] >= 0.35:
                 reasons.append("UB04_SERVICE_TABLE_CONFIRMED")
         elif (
             scores["NON_CLAIM"] >= self.config["non_claim_score"]
@@ -431,16 +660,16 @@ class MultiSignalRouter:
         ):
             route = MultiSignalRoute.NON_CLAIM
             reasons.append("MULTIPLE_NEGATIVE_ANCHORS_LOW_HEALTHCARE_DENSITY")
-        elif (noncanonical or healthcare >= 0.20 or standard_specific_anchor_count >= 2) and (
+        elif (noncanonical or healthcare >= 0.20 or len(matched[family]) >= 2) and (
             grid >= 0.20 or len(lines) >= 3
         ):
             route = MultiSignalRoute.OTHER_CLAIM_FORM
             reasons.extend(
                 [
                     "CLAIM_FORM_NONCANONICAL",
-                    f"{family}_REJECT_MISSING_CANONICAL_ANCHORS"
-                    if not eligible[family]
-                    else f"{family}_REJECT_CONFLICTING_EVIDENCE",
+                    f"{family}_REJECT_CONFLICTING_EVIDENCE"
+                    if conflicts[family]
+                    else f"{family}_REJECT_MISSING_CANONICAL_ANCHORS",
                 ]
             )
         elif scores["UNKNOWN_STRUCTURED"] >= self.config["minimum_structured_score"]:
@@ -449,6 +678,15 @@ class MultiSignalRouter:
         else:
             route = MultiSignalRoute.UNKNOWN_UNSTRUCTURED
             reasons.append("UNKNOWN_UNSTRUCTURED_CONFIRMED")
+
+        localization_allowed = (
+            route in {MultiSignalRoute.CMS1500, MultiSignalRoute.UB04}
+            and eligible[route.value]
+            and identity_state[route.value] == "CONFIRMED"
+            and not conflicts[route.value]
+            and raw_identity_state["UB04" if route == MultiSignalRoute.CMS1500 else "CMS1500"]
+            != "CONFIRMED"
+        )
         return RoutingEvidence(
             route=route,
             confidence=best[1],
@@ -462,7 +700,7 @@ class MultiSignalRouter:
             healthcare_label_density=healthcare,
             matched_anchors=matched,
             reason_codes=reasons,
-            router_version=self.config.get("router_version", "3.0"),
+            router_version=self.config.get("router_version", "strict-form-identity-v2"),
             exact_anchor_count=match_counts["EXACT"],
             normalized_anchor_count=match_counts["NORMALIZED"],
             fuzzy_anchor_count=match_counts["FUZZY"],
@@ -474,10 +712,12 @@ class MultiSignalRouter:
             anchor_geometry_evidence=geometry_evidence,
             anchor_combinations=combinations,
             eligibility=eligible,
+            family_eligibility=family_eligibility,
             identity_state=identity_state,
             field_topology_score=topology,
             conflicting_anchors=conflicts,
             missing_required_anchors=missing,
-            localization_allowed=route in {MultiSignalRoute.CMS1500, MultiSignalRoute.UB04}
-            and identity_state[route.value] == "CONFIRMED",
+            identity_anchor_evidence=identity_evidence,
+            identity_policy_version=self.config["form_identity"]["policy_version"],
+            localization_allowed=localization_allowed,
         )

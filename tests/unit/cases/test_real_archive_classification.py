@@ -63,7 +63,7 @@ async def test_full_archive_candidate_run_is_phi_safe_and_candidate_only(tmp_pat
     result = await run(source, output, "a" * 64, observer)
 
     assert result["classification"]["processed_pages"] == 2
-    assert result["classification"]["counts"] == {"UB04": 2}
+    assert result["classification"]["counts"] == {"OTHER_CLAIM_FORM": 2}
     assert result["boundaries"]["confirmed_document_count"] == 0
     serialized = (output / "page_classification_candidates.json").read_text("utf-8")
     assert "PATIENT CONTROL" not in serialized

@@ -14,8 +14,9 @@ import math
 import os
 import statistics
 import time
-from collections import Counter
-from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from collections import Counter, deque
+from collections.abc import Sequence
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import UTC, datetime
 from importlib import metadata
@@ -32,20 +33,37 @@ from evaluation.real_archive_classification import (
     _safe_record,
     discover_pages,
 )
-from packages.document_routing import MultiSignalRoute, MultiSignalRouter
+from packages.document_routing import (
+    DocumentRoutingDecisionService,
+    MultiSignalRoute,
+    MultiSignalRouter,
+)
+from packages.document_taxonomy.taxonomy import DocumentClass
 from packages.ocr import RapidOCRProvider
+from packages.processing_routes.contracts import ProcessingRoute
+from packages.processing_routes.resolver import ProcessingRouteResolver
+from packages.standard_form_verification.cms1500 import CMS1500Verifier
+from packages.standard_form_verification.evidence import evidence_from_router_features
+from packages.standard_form_verification.ub04 import UB04Verifier
 from workers.page_detection.text_extraction import TextLine
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = ROOT / "evaluation_data/source_b_1000_claims"
-DEFAULT_OUTPUT = ROOT / "evaluation_data/strict_identity_replay_v2"
+DEFAULT_OUTPUT = ROOT / "evaluation_data/strict_identity_replay_v3"
+DEFAULT_LEGACY_OCR_CACHE = ROOT / "evaluation_data/strict_identity_replay_v2/ocr_cache"
 DEFAULT_REPORT = ROOT / "evaluation_results/strict_identity_replay"
-CACHE_KEY_VERSION = "strict-identity-ocr-cache-v1"
+CACHE_KEY_VERSION = "strict-identity-ocr-cache-v2"
+LEGACY_CACHE_KEY_VERSION = "strict-identity-ocr-cache-v1"
 OCR_CONFIG_VERSION = "rapidocr-full-page-routing-v1"
 PREPROCESSING_VERSION = "AUTO"
-RUNNER_VERSION = "strict-identity-cached-replay-v1"
+RUNNER_VERSION = "strict-identity-cached-replay-v2"
+DECISION_SCHEMA_VERSION = "strict-identity-decision-v2"
+MAX_OCR_RETRIES = 2
+OCR_TIMEOUT_SECONDS = 120.0
+WORKER_MAX_TASKS = 50
 SUMMARY_INTERVAL = 25
 _WORKER_OBSERVER: RapidOCRPageObserver | None = None
+_WORKER_ROUTER: MultiSignalRouter | None = None
 
 
 def _digest(value: bytes | str) -> str:
@@ -60,6 +78,53 @@ def rapidocr_version() -> str:
         return "unknown"
 
 
+def _file_digest(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+OCR_CONFIG_SHA256 = _digest(OCR_CONFIG_VERSION)
+PREPROCESSING_CONFIG_SHA256 = _digest(PREPROCESSING_VERSION)
+POLICY_FILES = (
+    "config/document_routing.yaml",
+    "packages/document_routing/router.py",
+    "packages/document_routing/decision_service.py",
+    "packages/document_routing/hierarchical.py",
+    "packages/standard_form_verification/contracts.py",
+    "packages/standard_form_verification/evidence.py",
+    "packages/standard_form_verification/cms1500.py",
+    "packages/standard_form_verification/ub04.py",
+    "packages/processing_routes/resolver.py",
+)
+
+
+def decision_policy_manifest() -> dict[str, Any]:
+    router = MultiSignalRouter.load()
+    file_hashes = {name: _file_digest(ROOT / name) for name in POLICY_FILES}
+    policy = {
+        "decision_schema_version": DECISION_SCHEMA_VERSION,
+        "source_tree_sha256": _digest(
+            json.dumps(file_hashes, sort_keys=True, separators=(",", ":"))
+        ),
+        "policy_file_sha256": file_hashes,
+        "router_code_sha256": file_hashes["packages/document_routing/router.py"],
+        "router_config_sha256": file_hashes["config/document_routing.yaml"],
+        "router_version": router.config["router_version"],
+        "identity_policy_version": router.config["form_identity"]["policy_version"],
+        "cms1500_verifier_policy_version": CMS1500Verifier.policy_version,
+        "ub04_verifier_policy_version": UB04Verifier.policy_version,
+        "processing_route_policy_version": ProcessingRouteResolver.policy_version,
+        "decision_service_version": DocumentRoutingDecisionService.version,
+    }
+    policy["decision_policy_sha256"] = _digest(
+        json.dumps(policy, sort_keys=True, separators=(",", ":"))
+    )
+    return policy
+
+
 def ocr_cache_key(page: PageRef, engine_version: str) -> str:
     payload = {
         "cache_key_version": CACHE_KEY_VERSION,
@@ -68,8 +133,33 @@ def ocr_cache_key(page: PageRef, engine_version: str) -> str:
         "rendered_page_sha256": page.page_sha256,
         "ocr_engine": "rapidocr",
         "ocr_engine_version": engine_version,
+        "preprocessing_config_sha256": PREPROCESSING_CONFIG_SHA256,
+        "ocr_config_sha256": OCR_CONFIG_SHA256,
+    }
+    return _digest(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+
+
+def legacy_ocr_cache_key(page: PageRef, engine_version: str) -> str:
+    payload = {
+        "cache_key_version": LEGACY_CACHE_KEY_VERSION,
+        "source_asset_sha256": page.asset_sha256,
+        "frame_index": page.page_number - 1,
+        "rendered_page_sha256": page.page_sha256,
+        "ocr_engine": "rapidocr",
+        "ocr_engine_version": engine_version,
         "preprocessing_version": PREPROCESSING_VERSION,
         "ocr_config_version": OCR_CONFIG_VERSION,
+    }
+    return _digest(json.dumps(payload, sort_keys=True, separators=(",", ":")))
+
+
+def decision_checkpoint_key(page: PageRef, policy: dict[str, Any]) -> str:
+    payload = {
+        "source_asset_sha256": page.asset_sha256,
+        "frame_index": page.page_number - 1,
+        "rendered_page_sha256": page.page_sha256,
+        "decision_policy_sha256": policy["decision_policy_sha256"],
+        "decision_schema_version": policy["decision_schema_version"],
     }
     return _digest(json.dumps(payload, sort_keys=True, separators=(",", ":")))
 
@@ -93,17 +183,14 @@ def _expected_provenance(page: PageRef, engine_version: str) -> dict[str, Any]:
         "ocr_engine": "rapidocr",
         "ocr_engine_version": engine_version,
         "preprocessing_version": PREPROCESSING_VERSION,
+        "preprocessing_config_sha256": PREPROCESSING_CONFIG_SHA256,
         "ocr_config_version": OCR_CONFIG_VERSION,
+        "ocr_config_sha256": OCR_CONFIG_SHA256,
         "cache_key": ocr_cache_key(page, engine_version),
     }
 
 
-def valid_cache_record(record: dict[str, Any], page: PageRef, engine_version: str) -> bool:
-    expected = _expected_provenance(page, engine_version)
-    if any(record.get(key) != value for key, value in expected.items()):
-        return False
-    if record.get("status") not in {"OCR_EXECUTED", "CACHE_HIT"}:
-        return False
+def _tokens_are_valid(record: dict[str, Any]) -> bool:
     tokens = record.get("tokens")
     return isinstance(tokens, list) and all(
         isinstance(token, dict)
@@ -112,6 +199,33 @@ def valid_cache_record(record: dict[str, Any], page: PageRef, engine_version: st
         and len(token["bbox"]) == 4
         and isinstance(token.get("confidence"), (int, float))
         for token in tokens
+    )
+
+
+def valid_cache_record(record: dict[str, Any], page: PageRef, engine_version: str) -> bool:
+    expected = _expected_provenance(page, engine_version)
+    return (
+        all(record.get(key) == value for key, value in expected.items())
+        and record.get("status") in {"OCR_EXECUTED", "CACHE_HIT"}
+        and _tokens_are_valid(record)
+    )
+
+
+def valid_legacy_cache_record(record: dict[str, Any], page: PageRef, engine_version: str) -> bool:
+    expected = {
+        "source_asset_sha256": page.asset_sha256,
+        "frame_index": page.page_number - 1,
+        "rendered_page_sha256": page.page_sha256,
+        "ocr_engine": "rapidocr",
+        "ocr_engine_version": engine_version,
+        "preprocessing_version": PREPROCESSING_VERSION,
+        "ocr_config_version": OCR_CONFIG_VERSION,
+        "cache_key": legacy_ocr_cache_key(page, engine_version),
+    }
+    return (
+        all(record.get(key) == value for key, value in expected.items())
+        and record.get("status") in {"OCR_EXECUTED", "CACHE_HIT"}
+        and _tokens_are_valid(record)
     )
 
 
@@ -149,17 +263,42 @@ def cache_record(page: PageRef, observation: Observation, engine_version: str) -
     }
 
 
-def valid_page_checkpoint(record: dict[str, Any], page: PageRef, engine_version: str) -> bool:
+def valid_page_checkpoint(
+    record: dict[str, Any],
+    page: PageRef,
+    engine_version: str,
+    policy: dict[str, Any] | None = None,
+) -> bool:
     provenance = record.get("ocr_provenance", {})
-    expected = _expected_provenance(page, engine_version)
+    common_ocr = {
+        "source_asset_sha256": page.asset_sha256,
+        "frame_index": page.page_number - 1,
+        "rendered_page_sha256": page.page_sha256,
+        "ocr_engine": "rapidocr",
+        "ocr_engine_version": engine_version,
+    }
+    if any(provenance.get(key) != value for key, value in common_ocr.items()):
+        return False
+    decision = record.get("decision_provenance", {})
+    if policy is not None:
+        if decision.get("decision_checkpoint_key") != decision_checkpoint_key(page, policy):
+            return False
+        if decision.get("decision_policy_sha256") != policy["decision_policy_sha256"]:
+            return False
+        if any(decision.get(key) != value for key, value in policy.items()):
+            return False
+    chain = record.get("production_chain")
     return (
-        all(provenance.get(key) == value for key, value in expected.items())
-        and record.get("source_page_id") == page.page_id
+        record.get("source_page_id") == page.page_id
         and record.get("source_page_sha256") == page.page_sha256
         and isinstance(record.get("candidate_class"), str)
         and isinstance(record.get("form_identity"), dict)
-        and "localization_allowed" in record["form_identity"]
         and isinstance(record.get("routing_result"), dict)
+        and isinstance(chain, dict)
+        and isinstance(chain.get("processing_route"), str)
+        and isinstance(chain.get("fixed_extractor_authorized"), bool)
+        and isinstance(chain.get("localization_authorized"), bool)
+        and chain.get("actual_localization_invoked") is False
     )
 
 
@@ -172,6 +311,7 @@ def safe_worker_count(requested: int, *, free_memory_mb: int, logical_cpus: int)
 
 def available_memory_mb() -> int:
     return int(psutil.virtual_memory().available // (1024 * 1024))
+
 
 def _worker_init() -> None:
     global _WORKER_OBSERVER
@@ -222,37 +362,138 @@ def _page_result(
     router: MultiSignalRouter,
     engine_version: str,
     execution_status: str,
+    policy: dict[str, Any],
 ) -> dict[str, Any]:
-    result = _safe_record(page, image, observation, router)
-    result["ocr_provenance"] = _expected_provenance(page, engine_version)
-    result["ocr_provenance"]["status"] = execution_status
+    routing = router.route(image, list(observation.lines))
+    result = _safe_record(page, image, observation, router, routing)
+    result["schema_version"] = DECISION_SCHEMA_VERSION
+    result["ocr_provenance"] = {
+        "source_asset_sha256": page.asset_sha256,
+        "frame_index": page.page_number - 1,
+        "rendered_page_sha256": page.page_sha256,
+        "ocr_engine": "rapidocr",
+        "ocr_engine_version": engine_version,
+        "preprocessing_config_sha256": PREPROCESSING_CONFIG_SHA256,
+        "ocr_config_sha256": OCR_CONFIG_SHA256,
+        "status": execution_status,
+    }
+    standard_evidence = None
+    if routing.route in {MultiSignalRoute.CMS1500, MultiSignalRoute.UB04}:
+        standard_evidence = evidence_from_router_features(
+            DocumentClass(routing.route.value), None, routing
+        )
+    chain = DocumentRoutingDecisionService().decide(
+        page.package_id,
+        page.page_id,
+        routing,
+        standard_evidence,
+        evaluation_only=True,
+    )
+    verification = chain.standard_verification
+    fixed_routes = {
+        ProcessingRoute.CMS_STANDARD_EXTRACTOR,
+        ProcessingRoute.UB_STANDARD_EXTRACTOR,
+    }
+    fixed_authorized = chain.processing_route in fixed_routes
+    localization_authorized = fixed_authorized and routing.localization_allowed
+    result["form_identity"]["localization_allowed"] = localization_authorized
     result["routing_result"] = {
-        "route": result["candidate_class"],
-        "identity_state": result["form_identity"]["identity_state"],
-        "localization_allowed": result["form_identity"]["localization_allowed"],
+        "router_nomination": routing.route.value,
+        "identity_state": routing.identity_state,
+        "router_localization_eligible": routing.localization_allowed,
+    }
+    result["production_chain"] = {
+        "classification_standard_candidate": chain.classification.standard_candidate,
+        "classification_document_subtype": chain.classification.document_subtype.value,
+        "verification_status": verification.status.value if verification else None,
+        "verified_identity_family": (
+            verification.form_identity.family.value
+            if verification and verification.form_identity.family
+            else None
+        ),
+        "fixed_extractor_authorized": fixed_authorized,
+        "processing_route": chain.processing_route.value,
+        "localization_authorized": localization_authorized,
+        "actual_localization_invoked": False,
+        "decision_reason_codes": list(chain.route_reason_codes),
+    }
+    result["decision_provenance"] = {
+        **policy,
+        "decision_checkpoint_key": decision_checkpoint_key(page, policy),
     }
     return result
 
 
-def _failure_result(page: PageRef, engine_version: str, error: BaseException) -> dict[str, Any]:
+def _cached_decision(
+    page: PageRef,
+    observation: Observation,
+    engine_version: str,
+    policy: dict[str, Any],
+) -> dict[str, Any]:
+    global _WORKER_ROUTER
+    if _WORKER_ROUTER is None:
+        _WORKER_ROUTER = MultiSignalRouter.load()
+    return _page_result(
+        page,
+        _load_page(page),
+        observation,
+        _WORKER_ROUTER,
+        engine_version,
+        "CACHE_HIT",
+        policy,
+    )
+
+
+def _failure_result(
+    page: PageRef,
+    engine_version: str,
+    error: BaseException,
+    policy: dict[str, Any] | None = None,
+    attempts: int = 1,
+) -> dict[str, Any]:
+    policy = policy or decision_policy_manifest()
     return {
-        "schema_version": "1.0",
+        "schema_version": DECISION_SCHEMA_VERSION,
         "source_page_id": page.page_id,
         "source_page_sha256": page.page_sha256,
-        "candidate_class": "UNKNOWN",
-        "form_identity": {"identity_state": {}, "localization_allowed": False},
-        "routing_result": {"route": "UNKNOWN", "localization_allowed": False},
-        "ocr_provenance": {**_expected_provenance(page, engine_version), "status": "OCR_FAILED"},
-        "failure": {"error_type": type(error).__name__, "message_persisted": False},
+        "ocr_provenance": {
+            "source_asset_sha256": page.asset_sha256,
+            "frame_index": page.page_number - 1,
+            "rendered_page_sha256": page.page_sha256,
+            "ocr_engine": "rapidocr",
+            "ocr_engine_version": engine_version,
+            "preprocessing_config_sha256": PREPROCESSING_CONFIG_SHA256,
+            "ocr_config_sha256": OCR_CONFIG_SHA256,
+            "status": "OCR_FAILED",
+        },
+        "decision_provenance": {
+            **policy,
+            "decision_checkpoint_key": decision_checkpoint_key(page, policy),
+        },
+        "failure": {
+            "error_type": type(error).__name__,
+            "message_persisted": False,
+            "attempts": attempts,
+        },
         "reason_codes": ["OBSERVATION_FAILED"],
     }
 
 
 def _summary(
-    pages: list[PageRef], records: list[dict[str, Any]], started: float, workers: int
+    pages: Sequence[PageRef | None],
+    records: list[dict[str, Any]],
+    started: float,
+    workers: int,
+    *,
+    failed_records: list[dict[str, Any]] | None = None,
+    run_stats: dict[str, int] | None = None,
+    prior_elapsed_seconds: float = 0.0,
 ) -> dict[str, Any]:
-    elapsed = max(time.perf_counter() - started, 1e-9)
-    completed = len(records)
+    failed_records = failed_records or []
+    run_stats = run_stats or {}
+    elapsed = prior_elapsed_seconds + max(time.perf_counter() - started, 0.0)
+    successful = len(records)
+    failed = len(failed_records)
     counts = Counter(record["candidate_class"] for record in records)
     identity_classes = (
         "CMS1500",
@@ -266,9 +507,7 @@ def _summary(
         {name: count for name, count in sorted(counts.items()) if name not in identity_distribution}
     )
     statuses = Counter(record["ocr_provenance"]["status"] for record in records)
-    latencies = [
-        float(record.get("ocr", {}).get("latency_ms", 0.0)) for record in records if "ocr" in record
-    ]
+    latencies = [float(record.get("ocr", {}).get("latency_ms", 0.0)) for record in records]
     sorted_latency = sorted(latencies)
 
     def percentile(q: float) -> float | None:
@@ -276,52 +515,105 @@ def _summary(
             return None
         return sorted_latency[min(len(sorted_latency) - 1, math.ceil(q * len(sorted_latency)) - 1)]
 
-    rate = completed / elapsed * 60
-    remaining = len(pages) - completed
-    cache_hits = statuses["CACHE_HIT"]
-    cms_localization_calls = sum(
-        r["candidate_class"] == "CMS1500" and bool(r["form_identity"]["localization_allowed"])
-        for r in records
+    rate = successful / elapsed * 60 if elapsed > 0 else 0.0
+    remaining = max(0, len(pages) - successful)
+    fixed = [
+        record for record in records if record["production_chain"]["fixed_extractor_authorized"]
+    ]
+    router_nominations = Counter(
+        record["routing_result"]["router_nomination"] for record in records
     )
-    ub_localization_calls = sum(
-        r["candidate_class"] == "UB04" and bool(r["form_identity"]["localization_allowed"])
-        for r in records
+    verified_identities = Counter(
+        record["production_chain"]["verified_identity_family"]
+        for record in records
+        if record["production_chain"]["verified_identity_family"]
+        and record["production_chain"]["verification_status"] == "VERIFIED"
     )
-    conflicting_identity_evidence = sum(
-        any(bool(values) for values in r["form_identity"].get("conflicting_anchors", {}).values())
-        for r in records
+    fixed_authorizations = Counter(
+        record["production_chain"]["processing_route"] for record in fixed
     )
-    family_mismatch_blocks = sum(
-        "STANDARD_IDENTITY_CLASSIFICATION_MISMATCH" in r.get("reason_codes", [])
-        for r in records
-    )
+    policy_hashes = {record["decision_provenance"]["decision_policy_sha256"] for record in records}
+    page_ids = {record["source_page_id"] for record in records}
+    failed_page_ids = {record["source_page_id"] for record in failed_records}
     return {
-        "schema_version": "1.0",
+        "schema_version": DECISION_SCHEMA_VERSION,
         "runner_version": RUNNER_VERSION,
         "total_pages_discovered": len(pages),
-        "pages_completed": completed,
+        "successful_pages": successful,
+        "accounted_pages": len(page_ids | failed_page_ids),
+        "failed_pages": failed,
+        "unique_page_ids": len(page_ids | failed_page_ids),
+        "pages_completed": successful,
         "pages_remaining": remaining,
-        "cache_hits": cache_hits,
-        "cache_hit_rate": cache_hits / completed if completed else 0.0,
+        "checkpoint_hits": run_stats.get("checkpoint_hits", 0),
+        "ocr_cache_hits": statuses["CACHE_HIT"],
+        "cache_hits": statuses["CACHE_HIT"],
+        "cache_hit_rate": statuses["CACHE_HIT"] / successful if successful else 0.0,
         "fresh_ocr_executions": statuses["OCR_EXECUTED"],
-        "ocr_failures": statuses["OCR_FAILED"],
-        "retries": 0,
+        "ocr_failures": failed,
+        "retry_attempts": run_stats.get("retry_attempts", 0),
+        "retries": run_stats.get("retry_attempts", 0),
+        "worker_restarts": run_stats.get("worker_restarts", 0),
+        "stale_decisions_rejected": run_stats.get("stale_decisions_rejected", 0),
+        "stale_ocr_records_rejected": run_stats.get("stale_ocr_records_rejected", 0),
         "identity_distribution": identity_distribution,
-        "canonical_localization_calls": cms_localization_calls + ub_localization_calls,
-        "cms1500_localization_calls": cms_localization_calls,
-        "ub04_localization_calls": ub_localization_calls,
-        "other_claim_form_localization_calls": sum(
-            r["candidate_class"] == "OTHER_CLAIM_FORM"
-            and bool(r["form_identity"]["localization_allowed"])
-            for r in records
+        "router_nominations": dict(sorted(router_nominations.items())),
+        "verified_canonical_identities": dict(sorted(verified_identities.items())),
+        "fixed_extractor_authorizations": dict(sorted(fixed_authorizations.items())),
+        "localization_authorizations": sum(
+            record["production_chain"]["localization_authorized"] for record in records
         ),
-        "unknown_localization_calls": sum(
-            r["candidate_class"] in {"UNKNOWN", "SUPPORTING_DOCUMENT"}
-            and bool(r["form_identity"]["localization_allowed"])
-            for r in records
+        "actual_localization_invocations": sum(
+            record["production_chain"]["actual_localization_invoked"] for record in records
         ),
-        "family_mismatch_blocks": family_mismatch_blocks,
-        "conflicting_identity_evidence": conflicting_identity_evidence,
+        "cms1500_localization_authorizations": sum(
+            record["production_chain"]["processing_route"] == "CMS_STANDARD_EXTRACTOR"
+            and record["production_chain"]["localization_authorized"]
+            for record in records
+        ),
+        "ub04_localization_authorizations": sum(
+            record["production_chain"]["processing_route"] == "UB_STANDARD_EXTRACTOR"
+            and record["production_chain"]["localization_authorized"]
+            for record in records
+        ),
+        "other_claim_form_localization_authorizations": sum(
+            record["candidate_class"] == "OTHER_CLAIM_FORM"
+            and record["production_chain"]["localization_authorized"]
+            for record in records
+        ),
+        "unknown_localization_authorizations": sum(
+            record["candidate_class"] in {"UNKNOWN", "SUPPORTING_DOCUMENT"}
+            and record["production_chain"]["localization_authorized"]
+            for record in records
+        ),
+        "family_mismatch_blocks": sum(
+            "STANDARD_IDENTITY_CLASSIFICATION_MISMATCH"
+            in record["production_chain"]["decision_reason_codes"]
+            for record in records
+        ),
+        "structured_fallbacks": sum(
+            record["production_chain"]["processing_route"] == "LAYOUT_STRUCTURED_EXTRACTOR"
+            for record in records
+        ),
+        "unknown_or_abstained_pages": sum(
+            record["production_chain"]["processing_route"] == "SAFE_UNKNOWN"
+            or record["candidate_class"] in {"UNKNOWN", "SUPPORTING_DOCUMENT"}
+            for record in records
+        ),
+        "review_required_pages": sum(
+            record.get("confidence_band") in {"REVIEW_REQUIRED", "UNKNOWN"}
+            or record["production_chain"]["processing_route"] == "SAFE_UNKNOWN"
+            for record in records
+        ),
+        "conflicting_identity_evidence": sum(
+            any(
+                bool(values)
+                for values in record["form_identity"].get("conflicting_anchors", {}).values()
+            )
+            for record in records
+        ),
+        "decision_policy_hashes": sorted(policy_hashes),
+        "all_decision_policy_hashes_identical": len(policy_hashes) <= 1,
         "worker_count": workers,
         "wall_clock_seconds": elapsed,
         "effective_pages_per_minute": rate,
@@ -332,6 +624,11 @@ def _summary(
         "p99_ocr_runtime_ms": percentile(0.99),
         "peak_memory_mb": None,
         "peak_memory_status": "NOT_CAPTURED",
+        "trusted_label_metrics": "NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
+        "critical_false_authorizations": "NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
+        "projected_hitl_rate": "NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
+        "cost_per_page": "NOT_MEASURED",
+        "production_promotion": "NOT_AUTHORIZED",
     }
 
 
@@ -351,18 +648,77 @@ def _canaries(router: MultiSignalRouter) -> list[dict[str, Any]]:
             TextLine(value, 10, offset * 30, 500, offset * 30 + 20, 0.95)
             for offset, value in enumerate(values)
         ]
-        decision = router.route(image, lines)
+        routing = router.route(image, lines)
+        decision = DocumentRoutingDecisionService().decide("canary", str(index), routing)
         results.append(
             {
                 "canary": index,
-                "route": decision.route.value,
-                "ub04_rejected": decision.route is not MultiSignalRoute.UB04,
-                "ub04_localization_calls": int(
-                    decision.route is MultiSignalRoute.UB04 and decision.localization_allowed
+                "router_route": routing.route.value,
+                "processing_route": decision.processing_route.value,
+                "ub04_rejected": decision.processing_route != ProcessingRoute.UB_STANDARD_EXTRACTOR,
+                "ub04_localization_authorizations": int(
+                    decision.processing_route == ProcessingRoute.UB_STANDARD_EXTRACTOR
+                    and routing.localization_allowed
                 ),
             }
         )
     return results
+
+
+def _terminate_executor(pool: ProcessPoolExecutor) -> None:
+    terminate = getattr(pool, "terminate_workers", None)
+    if callable(terminate):
+        terminate()
+        return
+    for process in getattr(pool, "_processes", {}).values():
+        if process.is_alive():
+            process.terminate()
+    pool.shutdown(wait=False, cancel_futures=True)
+
+
+def _publish_report(report_dir: Path, summary: dict[str, Any]) -> None:
+    report_dir.mkdir(parents=True, exist_ok=True)
+    atomic_write_json(report_dir / "final_report.json", summary)
+    markdown = [
+        "# Strict identity replay final report",
+        "",
+        f"- Successful pages: {summary['successful_pages']}",
+        f"- Failed pages: {summary['failed_pages']}",
+        f"- Input manifest SHA-256: {summary['manifest']['input_manifest_sha256']}",
+        f"- Decision policy SHA-256: {summary['manifest']['decision_policy']['decision_policy_sha256']}",
+        f"- Decision checkpoint hits: {summary['checkpoint_hits']}",
+        f"- OCR cache hits: {summary['ocr_cache_hits']}",
+        f"- Fresh OCR pages: {summary['fresh_ocr_executions']}",
+        f"- Retry attempts: {summary['retry_attempts']}",
+        f"- Worker restarts: {summary['worker_restarts']}",
+        f"- Fixed-extractor authorizations: {json.dumps(summary['fixed_extractor_authorizations'], sort_keys=True)}",
+        f"- Localization authorizations: {summary['localization_authorizations']}",
+        f"- Actual localization invocations: {summary['actual_localization_invocations']}",
+        f"- Critical routing violations: {summary['critical_routing_violations']}",
+        f"- P95 OCR runtime (ms): {summary['p95_ocr_runtime_ms']}",
+        "- Trusted-label accuracy: NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
+        "- Critical false authorizations: NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
+        "- Projected HITL rate: NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
+        "- Cost per page: NOT_MEASURED",
+        "- Production promotion: NOT_AUTHORIZED",
+        "",
+        "OCR-bearing cache records remain local under evaluation_data and are not committed.",
+    ]
+    (report_dir / "final_report.md").write_text("\n".join(markdown) + "\n", "utf-8")
+
+
+def _strict_completion(summary: dict[str, Any]) -> bool:
+    return (
+        summary["successful_pages"] == summary["total_pages_discovered"]
+        and summary["accounted_pages"] == summary["total_pages_discovered"]
+        and summary["unique_page_ids"] == summary["total_pages_discovered"]
+        and summary["failed_pages"] == 0
+        and summary["ocr_failures"] == 0
+        and summary["all_decision_policy_hashes_identical"]
+        and len(summary["decision_policy_hashes"]) == 1
+        and summary["decision_policy_hashes"][0]
+        == summary["manifest"]["decision_policy"]["decision_policy_sha256"]
+    )
 
 
 def run_replay(
@@ -373,189 +729,293 @@ def run_replay(
     *,
     workers: int,
     limit: int | None = None,
+    legacy_cache_dir: Path | None = DEFAULT_LEGACY_OCR_CACHE,
+    retries: int = MAX_OCR_RETRIES,
+    timeout_seconds: float = OCR_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
     router = MultiSignalRouter.load()
+    policy = decision_policy_manifest()
     canaries = _canaries(router)
-    if not all(item["ub04_rejected"] and item["ub04_localization_calls"] == 0 for item in canaries):
+    if not all(
+        item["ub04_rejected"] and item["ub04_localization_authorizations"] == 0 for item in canaries
+    ):
         raise RuntimeError("FALSE_UB04_CANARY_FAILED")
+
     engine_version = rapidocr_version()
     pages = [page for page, _ in discover_pages(source, archive_sha256)]
     if limit is not None:
         pages = pages[:limit]
     output.mkdir(parents=True, exist_ok=True)
-    page_dir, failure_dir, cache_dir = output / "pages", output / "failures", output / "ocr_cache"
+    page_dir = output / "pages"
+    failure_dir = output / "failures"
+    cache_dir = output / "ocr_cache"
     for directory in (page_dir, failure_dir, cache_dir):
         directory.mkdir(parents=True, exist_ok=True)
+
+    input_hash = _digest(
+        "\n".join(f"{p.asset_sha256}:{p.page_number - 1}:{p.page_sha256}" for p in pages)
+    )
     manifest = {
-        "schema_version": "1.0",
+        "schema_version": "2.0",
         "runner_version": RUNNER_VERSION,
         "archive_sha256": archive_sha256,
         "assets": len({page.asset_id for page in pages}),
         "rendered_pages": len(pages),
         "package_count": len({page.package_id for page in pages}),
-        "input_manifest_sha256": _digest(
-            "\n".join(f"{p.asset_sha256}:{p.page_number - 1}:{p.page_sha256}" for p in pages)
-        ),
+        "input_manifest_sha256": input_hash,
         "cache_key_version": CACHE_KEY_VERSION,
+        "legacy_cache_key_version": LEGACY_CACHE_KEY_VERSION,
         "ocr_engine": "rapidocr",
         "ocr_engine_version": engine_version,
-        "preprocessing_version": PREPROCESSING_VERSION,
-        "ocr_config_version": OCR_CONFIG_VERSION,
+        "preprocessing_config_sha256": PREPROCESSING_CONFIG_SHA256,
+        "ocr_config_sha256": OCR_CONFIG_SHA256,
+        "decision_policy": policy,
     }
     atomic_write_json(output / "manifest.json", manifest)
+
+    previous_state = {}
+    state_path = output / "run_state.json"
+    if state_path.exists():
+        try:
+            previous_state = json.loads(state_path.read_text("utf-8"))
+        except (OSError, json.JSONDecodeError):
+            previous_state = {}
+    prior_elapsed = float(previous_state.get("cumulative_elapsed_seconds", 0.0))
+    started = time.perf_counter()
+    stats = {
+        "checkpoint_hits": 0,
+        "retry_attempts": 0,
+        "worker_restarts": 0,
+        "stale_decisions_rejected": 0,
+        "stale_ocr_records_rejected": 0,
+    }
     records: list[dict[str, Any]] = []
+    failed_records: list[dict[str, Any]] = []
     pending: list[PageRef] = []
-    stale_rejected = 0
+
     for page in pages:
         checkpoint_path = page_dir / f"{page.page_id}.json"
         if checkpoint_path.exists():
             try:
                 record = json.loads(checkpoint_path.read_text("utf-8"))
-                if valid_page_checkpoint(record, page, engine_version):
+                if valid_page_checkpoint(record, page, engine_version, policy):
                     records.append(record)
+                    stats["checkpoint_hits"] += 1
                     continue
-                stale_rejected += 1
             except (OSError, json.JSONDecodeError):
-                stale_rejected += 1
+                pass
+            stats["stale_decisions_rejected"] += 1
         pending.append(page)
-    started = time.perf_counter()
 
     def complete(page: PageRef, observation: Observation, status: str) -> None:
         image = _load_page(page)
-        record = _page_result(page, image, observation, router, engine_version, status)
+        record = _page_result(page, image, observation, router, engine_version, status, policy)
         atomic_write_json(page_dir / f"{page.page_id}.json", record)
+        (failure_dir / f"{page.page_id}.json").unlink(missing_ok=True)
         records.append(record)
-        if len(records) % SUMMARY_INTERVAL == 0:
-            partial = _summary(pages, records, started, workers)
-            partial["stale_records_rejected"] = stale_rejected
+
+    fresh: deque[PageRef] = deque()
+    cached_work: list[tuple[PageRef, Observation]] = []
+    cache_locations = [cache_dir]
+    if legacy_cache_dir is not None:
+        cache_locations.append(legacy_cache_dir)
+    for page in pending:
+        found = False
+        for directory in cache_locations:
+            key = (
+                ocr_cache_key(page, engine_version)
+                if directory == cache_dir
+                else legacy_ocr_cache_key(page, engine_version)
+            )
+            cache_path = directory / f"{key}.json"
+            if not cache_path.exists():
+                continue
+            try:
+                cached = json.loads(cache_path.read_text("utf-8"))
+                validator = (
+                    valid_cache_record if directory == cache_dir else valid_legacy_cache_record
+                )
+                if validator(cached, page, engine_version):
+                    cached_work.append((page, observation_from_cache(cached)))
+                    found = True
+                    break
+            except (OSError, json.JSONDecodeError, ValueError):
+                pass
+            stats["stale_ocr_records_rejected"] += 1
+        if not found:
+            fresh.append(page)
+
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        max_tasks_per_child=WORKER_MAX_TASKS,
+    ) as decision_pool:
+        futures = {
+            decision_pool.submit(_cached_decision, page, observation, engine_version, policy): page
+            for page, observation in cached_work
+        }
+        for future in as_completed(futures):
+            page = futures[future]
+            try:
+                record = future.result()
+                atomic_write_json(page_dir / f"{page.page_id}.json", record)
+                (failure_dir / f"{page.page_id}.json").unlink(missing_ok=True)
+                records.append(record)
+            except BaseException as error:  # noqa: BLE001 - isolate decision failures
+                failure = _failure_result(page, engine_version, error, policy)
+                atomic_write_json(failure_dir / f"{page.page_id}.json", failure)
+                failed_records.append(failure)
+
+    while fresh:
+        page = fresh.popleft()
+        last_error: BaseException | None = None
+        attempts = 0
+        for attempt in range(retries + 1):
+            attempts = attempt + 1
+            pool = ProcessPoolExecutor(
+                max_workers=1,
+                initializer=_worker_init,
+                max_tasks_per_child=WORKER_MAX_TASKS,
+            )
+            future = pool.submit(_fresh_ocr, page)
+            try:
+                value = future.result(timeout=timeout_seconds)
+                pool.shutdown(wait=True)
+                observation = _observation(value)
+                cached_record = cache_record(page, observation, engine_version)
+                atomic_write_json(cache_dir / f"{cached_record['cache_key']}.json", cached_record)
+                complete(page, observation, "OCR_EXECUTED")
+                last_error = None
+                break
+            except BaseException as error:  # noqa: BLE001 - isolate page failures
+                last_error = error
+                stats["worker_restarts"] += 1
+                _terminate_executor(pool)
+                if attempt < retries:
+                    stats["retry_attempts"] += 1
+        if last_error is not None:
+            failure = _failure_result(page, engine_version, last_error, policy, attempts)
+            atomic_write_json(failure_dir / f"{page.page_id}.json", failure)
+            failed_records.append(failure)
+        if (len(records) + len(failed_records)) % SUMMARY_INTERVAL == 0:
+            partial = _summary(
+                pages,
+                records,
+                started,
+                workers,
+                failed_records=failed_records,
+                run_stats=stats,
+                prior_elapsed_seconds=prior_elapsed,
+            )
+            partial.update({"manifest": manifest, "canaries": canaries, "complete": False})
             atomic_write_json(output / "summary_partial.json", partial)
 
-    fresh: list[PageRef] = []
-    for page in pending:
-        path = cache_dir / f"{ocr_cache_key(page, engine_version)}.json"
-        if path.exists():
-            try:
-                cached = json.loads(path.read_text("utf-8"))
-                if valid_cache_record(cached, page, engine_version):
-                    complete(page, observation_from_cache(cached), "CACHE_HIT")
-                    continue
-                stale_rejected += 1
-            except (OSError, json.JSONDecodeError):
-                stale_rejected += 1
-        fresh.append(page)
+    records.sort(key=lambda item: item["source_page_id"])
+    failed_records = []
+    for path in sorted(failure_dir.glob("*.json")):
+        try:
+            failure = json.loads(path.read_text("utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if failure.get("source_page_id") in {page.page_id for page in pages}:
+            failed_records.append(failure)
 
-    with ProcessPoolExecutor(max_workers=workers, initializer=_worker_init) as pool:
-        iterator = iter(fresh)
-        active = {}
-        for _ in range(min(len(fresh), workers * 2)):
-            page = next(iterator, None)
-            if page is not None:
-                active[pool.submit(_fresh_ocr, page)] = page
-        while active:
-            done, _ = wait(active, return_when=FIRST_COMPLETED)
-            for future in done:
-                page = active.pop(future)
-                try:
-                    observation = _observation(future.result())
-                    record = cache_record(page, observation, engine_version)
-                    atomic_write_json(cache_dir / f"{record['cache_key']}.json", record)
-                    complete(page, observation, "OCR_EXECUTED")
-                except BaseException as error:  # noqa: BLE001 - isolate page failures
-                    failed = _failure_result(page, engine_version, error)
-                    atomic_write_json(failure_dir / f"{page.page_id}.json", failed)
-                    records.append(failed)
-                next_page = next(iterator, None)
-                if next_page is not None:
-                    active[pool.submit(_fresh_ocr, next_page)] = next_page
-    records.sort(key=lambda record: record["source_page_id"])
-    summary = _summary(pages, records, started, workers)
+    summary = _summary(
+        pages,
+        records,
+        started,
+        workers,
+        failed_records=failed_records,
+        run_stats=stats,
+        prior_elapsed_seconds=prior_elapsed,
+    )
     summary.update(
         {
-            "complete": len(records) == len(pages),
-            "all_input_pages_accounted_for": len({r["source_page_id"] for r in records})
-            == len(pages),
-            "stale_records_rejected": stale_rejected,
-            "cache_invalidations": stale_rejected,
+            "manifest": manifest,
             "canaries": canaries,
             "critical_routing_violations": (
-                summary["other_claim_form_localization_calls"]
-                + summary["unknown_localization_calls"]
+                summary["other_claim_form_localization_authorizations"]
+                + summary["unknown_localization_authorizations"]
                 + sum(not item["ub04_rejected"] for item in canaries)
             ),
             "real_data_classification_accuracy": "NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
-            "manifest": manifest,
         }
     )
+    summary["complete"] = _strict_completion(summary)
+    summary["all_input_pages_accounted_for"] = summary["accounted_pages"] == len(pages) and summary[
+        "unique_page_ids"
+    ] == len(pages)
     atomic_write_json(output / "summary_partial.json", summary)
+    atomic_write_json(
+        state_path,
+        {
+            "runner_version": RUNNER_VERSION,
+            "input_manifest_sha256": input_hash,
+            "decision_policy_sha256": policy["decision_policy_sha256"],
+            "cumulative_elapsed_seconds": summary["wall_clock_seconds"],
+            "successful_pages": summary["successful_pages"],
+            "failed_pages": summary["failed_pages"],
+        },
+    )
     if summary["complete"]:
-        report_dir.mkdir(parents=True, exist_ok=True)
-        atomic_write_json(report_dir / "final_report.json", summary)
-        markdown = [
-            "# Strict identity replay final report",
-            "",
-            f"- Assets: {manifest['assets']}",
-            f"- Rendered pages: {manifest['rendered_pages']}",
-            f"- Cache hits: {summary['cache_hits']}",
-            f"- Cache hit rate: {summary['cache_hit_rate']:.6f}",
-            f"- Fresh OCR pages: {summary['fresh_ocr_executions']}",
-            f"- OCR failures: {summary['ocr_failures']}",
-            f"- Retries: {summary['retries']}",
-            f"- Workers: {workers}",
-            f"- Effective pages/minute: {summary['effective_pages_per_minute']:.3f}",
-            f"- Mean OCR runtime (ms): {summary['mean_ocr_runtime_ms']}",
-            f"- P50 OCR runtime (ms): {summary['p50_ocr_runtime_ms']}",
-            f"- P95 OCR runtime (ms): {summary['p95_ocr_runtime_ms']}",
-            f"- P99 OCR runtime (ms): {summary['p99_ocr_runtime_ms']}",
-            "- Peak memory: NOT_CAPTURED",
-            f"- Identity distribution: `{json.dumps(summary['identity_distribution'], sort_keys=True)}`",
-            f"- CMS1500 localization calls: {summary['cms1500_localization_calls']}",
-            f"- UB04 localization calls: {summary['ub04_localization_calls']}",
-            f"- OTHER_CLAIM_FORM localization calls: {summary['other_claim_form_localization_calls']}",
-            f"- UNKNOWN localization calls: {summary['unknown_localization_calls']}",
-            f"- Family mismatch blocks: {summary['family_mismatch_blocks']}",
-            f"- Conflicting identity evidence: {summary['conflicting_identity_evidence']}",
-            f"- Critical routing violations: {summary['critical_routing_violations']}",
-            f"- Stale cache records rejected: {summary['stale_records_rejected']}",
-            f"- False-UB04 canaries: `{json.dumps(summary['canaries'], sort_keys=True)}`",
-            "- Real-data classification accuracy: NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
-            "",
-            "OCR-bearing cache records remain local under evaluation_data and are not committed.",
-        ]
-        (report_dir / "final_report.md").write_text("\n".join(markdown) + "\n", "utf-8")
+        _publish_report(report_dir, summary)
     return summary
 
 
 def finalize_existing_replay(output: Path, report_dir: Path) -> dict[str, Any]:
-    """Publish the complete PHI-safe report without rerunning OCR."""
+    """Recompute every completion gate and publish without rerunning OCR."""
+    manifest = json.loads((output / "manifest.json").read_text("utf-8"))
     original = json.loads((output / "summary_partial.json").read_text("utf-8"))
-    records = []
-    for directory in (output / "pages", output / "failures"):
-        records.extend(
-            json.loads(path.read_text("utf-8"))
-            for path in sorted(directory.glob("*.json"))
-        )
-    total = int(original["total_pages_discovered"])
-    page_ids = {record["source_page_id"] for record in records}
-    if len(records) != total or len(page_ids) != total:
-        raise RuntimeError("INCOMPLETE_REPLAY_CANNOT_BE_FINALIZED")
-
-    started = time.perf_counter() - float(original["wall_clock_seconds"])
-    summary = _summary([None] * total, records, started, int(original["worker_count"]))
-    for key in (
-        "complete",
-        "all_input_pages_accounted_for",
-        "stale_records_rejected",
-        "canaries",
-        "real_data_classification_accuracy",
-        "manifest",
-    ):
-        summary[key] = original[key]
-    summary["cache_invalidations"] = summary["stale_records_rejected"]
-    summary["critical_routing_violations"] = (
-        summary["other_claim_form_localization_calls"]
-        + summary["unknown_localization_calls"]
-        + sum(not item["ub04_rejected"] for item in summary["canaries"])
+    total = int(manifest["rendered_pages"])
+    records = [
+        json.loads(path.read_text("utf-8")) for path in sorted((output / "pages").glob("*.json"))
+    ]
+    failures = [
+        json.loads(path.read_text("utf-8")) for path in sorted((output / "failures").glob("*.json"))
+    ]
+    policy = manifest["decision_policy"]
+    policy_hash = policy["decision_policy_sha256"]
+    valid_records = [
+        record
+        for record in records
+        if record.get("decision_provenance", {}).get("decision_policy_sha256") == policy_hash
+        and record.get("schema_version") == DECISION_SCHEMA_VERSION
+        and isinstance(record.get("production_chain"), dict)
+    ]
+    run_stats = {
+        "checkpoint_hits": int(original.get("checkpoint_hits", 0)),
+        "retry_attempts": int(original.get("retry_attempts", 0)),
+        "worker_restarts": int(original.get("worker_restarts", 0)),
+        "stale_decisions_rejected": int(original.get("stale_decisions_rejected", 0)),
+        "stale_ocr_records_rejected": int(original.get("stale_ocr_records_rejected", 0)),
+    }
+    started = time.perf_counter()
+    summary = _summary(
+        [None] * total,
+        valid_records,
+        started,
+        int(original["worker_count"]),
+        failed_records=failures,
+        run_stats=run_stats,
+        prior_elapsed_seconds=float(original.get("wall_clock_seconds", 0.0)),
     )
+    summary.update(
+        {
+            "manifest": manifest,
+            "canaries": original.get("canaries", []),
+            "critical_routing_violations": (
+                summary["other_claim_form_localization_authorizations"]
+                + summary["unknown_localization_authorizations"]
+                + sum(not item.get("ub04_rejected", False) for item in original.get("canaries", []))
+            ),
+            "real_data_classification_accuracy": "NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
+        }
+    )
+    summary["complete"] = _strict_completion(summary)
+    summary["all_input_pages_accounted_for"] = (
+        summary["accounted_pages"] == total and summary["unique_page_ids"] == total
+    )
+    if not summary["complete"]:
+        raise RuntimeError("INCOMPLETE_OR_FAILED_REPLAY_CANNOT_BE_FINALIZED")
     memory_path = output / "memory_peak.json"
     if memory_path.exists():
         memory = json.loads(memory_path.read_text("utf-8"))
@@ -563,47 +1023,10 @@ def finalize_existing_replay(output: Path, report_dir: Path) -> dict[str, Any]:
             float(memory["peak_worker_tree_memory_bytes"]) / (1024 * 1024), 3
         )
         summary["peak_memory_status"] = "OBSERVED_DURING_PARTIAL_REPLAY_WINDOW"
-        summary["memory_sampling_started_at"] = memory["sampling_started_at"]
-        summary["memory_sample_interval_seconds"] = memory["sample_interval_seconds"]
     atomic_write_json(output / "summary_partial.json", summary)
-    report_dir.mkdir(parents=True, exist_ok=True)
-    atomic_write_json(report_dir / "final_report.json", summary)
-    markdown = [
-        "# Strict identity replay final report",
-        "",
-        f"- Assets: {summary['manifest']['assets']}",
-        f"- Rendered pages: {summary['manifest']['rendered_pages']}",
-        f"- Package count: {summary['manifest']['package_count']}",
-        f"- Input manifest SHA-256: {summary['manifest']['input_manifest_sha256']}",
-        f"- Cache hits: {summary['cache_hits']}",
-        f"- Cache hit rate: {summary['cache_hit_rate']:.6f}",
-        f"- Fresh OCR pages: {summary['fresh_ocr_executions']}",
-        f"- OCR failures: {summary['ocr_failures']}",
-        f"- Retries: {summary['retries']}",
-        f"- Workers: {summary['worker_count']}",
-        f"- Wall-clock seconds: {summary['wall_clock_seconds']}",
-        f"- Effective pages/minute: {summary['effective_pages_per_minute']:.3f}",
-        f"- Mean OCR runtime (ms): {summary['mean_ocr_runtime_ms']}",
-        f"- P50 OCR runtime (ms): {summary['p50_ocr_runtime_ms']}",
-        f"- P95 OCR runtime (ms): {summary['p95_ocr_runtime_ms']}",
-        f"- P99 OCR runtime (ms): {summary['p99_ocr_runtime_ms']}",
-        f"- Peak memory: {summary['peak_memory_mb']} MB ({summary['peak_memory_status']})",
-        f"- Identity distribution: `{json.dumps(summary['identity_distribution'], sort_keys=True)}`",
-        f"- CMS1500 localization calls: {summary['cms1500_localization_calls']}",
-        f"- UB04 localization calls: {summary['ub04_localization_calls']}",
-        f"- OTHER_CLAIM_FORM localization calls: {summary['other_claim_form_localization_calls']}",
-        f"- UNKNOWN localization calls: {summary['unknown_localization_calls']}",
-        f"- Family mismatch blocks: {summary['family_mismatch_blocks']}",
-        f"- Conflicting identity evidence: {summary['conflicting_identity_evidence']}",
-        f"- Critical routing violations: {summary['critical_routing_violations']}",
-        f"- Stale cache records rejected: {summary['stale_records_rejected']}",
-        f"- False-UB04 canaries: `{json.dumps(summary['canaries'], sort_keys=True)}`",
-        "- Real-data classification accuracy: NOT_EVALUABLE_WITHOUT_TRUSTED_LABELS",
-        "",
-        "OCR-bearing cache records remain local under evaluation_data and are not committed.",
-    ]
-    (report_dir / "final_report.md").write_text("\n".join(markdown) + "\n", "utf-8")
+    _publish_report(report_dir, summary)
     return summary
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -615,6 +1038,9 @@ def main() -> None:
         "--workers", type=int, default=int(os.getenv("STRICT_IDENTITY_REPLAY_WORKERS", "4"))
     )
     parser.add_argument("--limit", type=int)
+    parser.add_argument("--legacy-cache-dir", type=Path, default=DEFAULT_LEGACY_OCR_CACHE)
+    parser.add_argument("--retries", type=int, default=MAX_OCR_RETRIES)
+    parser.add_argument("--timeout-seconds", type=float, default=OCR_TIMEOUT_SECONDS)
     args = parser.parse_args()
     workers = safe_worker_count(
         args.workers,
@@ -630,6 +1056,9 @@ def main() -> None:
                 args.archive_sha256,
                 workers=workers,
                 limit=args.limit,
+                legacy_cache_dir=args.legacy_cache_dir,
+                retries=args.retries,
+                timeout_seconds=args.timeout_seconds,
             ),
             sort_keys=True,
         )
