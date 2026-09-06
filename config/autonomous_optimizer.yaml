@@ -1,0 +1,24 @@
+version: autonomous-cdp-optimizer-v1
+mode: EVALUATION_ONLY
+tiers:
+  A: {maximum_pages: 100, predecessor: null}
+  B: {maximum_pages: 500, predecessor: A}
+  C: {maximum_pages: null, predecessor: B}
+safety:
+  maximum_critical_false_accepts: 0
+  minimum_accepted_precision_delta: 0.0
+  minimum_source_accuracy_delta: 0.0
+  maximum_hitl_rate_delta: 0.0
+  maximum_latency_ratio: 1.10
+  maximum_cost_ratio: 1.10
+promotion:
+  runtime_activation: false
+  independent_release_approval_required: true
+forbidden_mutations:
+  - acceptance_threshold
+  - ground_truth
+  - criticality
+  - identity_policy
+  - evidence_policy
+  - llm_acceptance
+  - frozen_input
