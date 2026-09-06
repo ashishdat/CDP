@@ -1,0 +1,16 @@
+{
+  "accepted_precision": {
+    "status": "NOT_EVALUABLE",
+    "value": null
+  },
+  "critical_accepted_precision": {
+    "status": "NOT_EVALUABLE",
+    "value": null
+  },
+  "critical_false_accepts": {
+    "status": "NOT_EVALUABLE",
+    "value": null
+  },
+  "reason": "Accepted precision requires trusted release truth.",
+  "status": "NOT_EVALUABLE"
+}
