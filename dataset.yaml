@@ -1,0 +1,5 @@
+dataset_id: DEVELOPMENT_DATASET_V1
+root: 'C:\Users\ashish.singh\Downloads\key docs\Hackathon - 1000 Claims.zip'
+pages: 2173
+documents: 1000
+description: 'Hackathon claims development corpus; not ENGINEERING_BENCHMARK_V1.'
