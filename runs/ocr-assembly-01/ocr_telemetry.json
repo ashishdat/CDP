@@ -1,0 +1,507 @@
+{
+  "status": "COMPLETED",
+  "fields_completed": 25,
+  "provider_attempts": [
+    {
+      "field": "patient_last",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 4.6123
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 26.787
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 200.375
+        }
+      ]
+    },
+    {
+      "field": "patient_first",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 4.0209
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 0.9544
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 194.7838
+        }
+      ]
+    },
+    {
+      "field": "patient_addr1",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 4.7451
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.0207
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 221.2957
+        }
+      ]
+    },
+    {
+      "field": "patient_city",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 4.6303
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.5014
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 150.7813
+        }
+      ]
+    },
+    {
+      "field": "patient_state",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.5597
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 0.9868
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 144.4632
+        }
+      ]
+    },
+    {
+      "field": "patient_zip",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 3.4831
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.1977
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 216.0334
+        }
+      ]
+    },
+    {
+      "field": "rel_code",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 5.9183
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 2.5023
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 206.7659
+        }
+      ]
+    },
+    {
+      "field": "insured_addr1",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 3.8835
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 0.9046
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 273.7971
+        }
+      ]
+    },
+    {
+      "field": "insured_city",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 3.25
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.4903
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 151.7483
+        }
+      ]
+    },
+    {
+      "field": "insured_state",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.3956
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.0047
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 116.8676
+        }
+      ]
+    },
+    {
+      "field": "insured_zip",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 2.5786
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.5589
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 149.0871
+        }
+      ]
+    },
+    {
+      "field": "insured_id_number",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 3.9348
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 0.7753
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 131.2313
+        }
+      ]
+    },
+    {
+      "field": "patient_name",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 5.0545
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 2.1102
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 162.613
+        }
+      ]
+    },
+    {
+      "field": "patient_dob",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 3.264
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.0064
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 160.3556
+        }
+      ]
+    },
+    {
+      "field": "patient_sex",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.3214
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 0.7005
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 218.1662
+        }
+      ]
+    },
+    {
+      "field": "insured_name",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 10.9547
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 3.5034
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 166.1246
+        }
+      ]
+    },
+    {
+      "field": "patient_address",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 24.3689
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 3.9674
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 260.6019
+        }
+      ]
+    },
+    {
+      "field": "insured_address",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 21.7932
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 4.742
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 225.1762
+        }
+      ]
+    },
+    {
+      "field": "insured_policy_group",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 6.0804
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.3091
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 182.5301
+        }
+      ]
+    },
+    {
+      "field": "diagnosis_codes",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.4387
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 5.6993
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 272.1258
+        }
+      ]
+    },
+    {
+      "field": "federal_tax_id",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 2.3007
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 0.6294
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 147.5642
+        }
+      ]
+    },
+    {
+      "field": "patient_account_no",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 2.1908
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 0.5902
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 148.9133
+        }
+      ]
+    },
+    {
+      "field": "total_charge",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 2.2147
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 0.9436
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 136.7888
+        }
+      ]
+    },
+    {
+      "field": "amount_paid",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 1.7782
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 0.7829
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 124.4371
+        }
+      ]
+    },
+    {
+      "field": "billing_provider_info",
+      "attempts": [
+        {
+          "engine": "rapidocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 19.1167
+        },
+        {
+          "engine": "paddleocr",
+          "reason": "UNAVAILABLE",
+          "latency_ms": 4.5122
+        },
+        {
+          "engine": "tesseract",
+          "reason": "OBSERVED",
+          "latency_ms": 184.5457
+        }
+      ]
+    }
+  ],
+  "stop_after": "ocr"
+}
