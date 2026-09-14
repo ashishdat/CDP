@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 
 from packages.domain.registration import RegistrationEvidence
+from workers.page_detection import registration_telemetry as telemetry
 from workers.page_detection.template_compatibility import (
     TemplateCompatibilityEvidence,
     TemplateCompatibilityStatus,
@@ -74,6 +75,7 @@ def _failure(method: str, reason: str, elapsed_ms: float = 0.0, **values) -> Ali
         processing_time_ms=elapsed_ms,
         **values,
     )
+    telemetry.failed(reason, evidence=evidence.model_dump(mode="json"))
     return AlignmentResult(
         False,
         0.0,
@@ -92,6 +94,7 @@ def _cheap_alignment(
     candidate: np.ndarray, reference: np.ndarray, policy: RegistrationPolicy
 ) -> AlignmentResult:
     started = perf_counter()
+    telemetry.stage("Feature Matching", algorithm="edge_phase_correlation")
     ch, cw = candidate.shape
     rh, rw = reference.shape
     aspect_delta = abs((cw / ch) - (rw / rh)) / (rw / rh)
@@ -110,6 +113,8 @@ def _cheap_alignment(
         )
     (dx, dy), response = cv2.phaseCorrelate(cand_edges, ref_edges)
     confidence = float(np.clip(response, 0.0, 1.0))
+    telemetry.stage("Acceptance", algorithm="edge_phase_correlation", threshold=policy.cheap_min_confidence)
+    telemetry.measurements(confidence=confidence)
     if confidence < policy.cheap_min_confidence:
         return _failure(
             "edge_phase_correlation",
@@ -117,6 +122,7 @@ def _cheap_alignment(
             (perf_counter() - started) * 1000,
             alignment_confidence=confidence,
         )
+    telemetry.stage("Transform", algorithm="edge_phase_correlation")
     matrix = np.array([[rw / cw, 0.0, dx], [0.0, rh / ch, dy], [0.0, 0.0, 1.0]])
     warped = cv2.warpPerspective(candidate, matrix, (rw, rh), borderValue=255)
     evidence = RegistrationEvidence(
@@ -148,9 +154,11 @@ def _sift_alignment(
     candidate: np.ndarray, reference: np.ndarray, policy: RegistrationPolicy
 ) -> AlignmentResult:
     started = perf_counter()
+    telemetry.stage("Feature Matching", algorithm="sift_flann_ransac_homography")
     sift = cv2.SIFT_create(nfeatures=policy.sift_features)
     kp_source, desc_source = sift.detectAndCompute(candidate, None)
     kp_template, desc_template = sift.detectAndCompute(reference, None)
+    telemetry.measurements(feature_count=len(kp_source))
     common = {
         "keypoints_source": len(kp_source),
         "keypoints_template": len(kp_template),
@@ -179,6 +187,7 @@ def _sift_alignment(
         )
     src = np.float32([kp_source[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     dst = np.float32([kp_template[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    telemetry.stage("Homography", matched_features=len(good))
     matrix, mask = cv2.findHomography(src, dst, cv2.RANSAC, policy.ransac_reprojection_threshold)
     if matrix is None or mask is None:
         return _failure(
@@ -190,6 +199,7 @@ def _sift_alignment(
     inliers = mask.ravel().astype(bool)
     inlier_count = int(inliers.sum())
     inlier_ratio = inlier_count / len(good)
+    telemetry.stage("Transform", homography_inliers=inlier_count, transform_matrix=matrix.tolist())
     projected = cv2.perspectiveTransform(src, matrix)
     errors = np.linalg.norm(projected[inliers] - dst[inliers], axis=2).ravel()
     reprojection_error = float(errors.mean()) if errors.size else None
@@ -234,6 +244,9 @@ def _sift_alignment(
             1.0,
         )
     )
+    telemetry.measurements(transform_residual=reprojection_error, homography_score=confidence)
+    telemetry.stage("Acceptance", policy=policy.__dict__)
+    telemetry.measurements(confidence=confidence, homography_score=confidence, transform_residual=reprojection_error)
     reasons: list[str] = []
     if inlier_count < policy.min_inliers:
         reasons.append("insufficient_inliers")
@@ -288,6 +301,7 @@ def _sift_alignment(
     )
 
 
+@telemetry.traced_registration
 def align_to_reference(
     candidate: Image.Image,
     reference: Image.Image,
@@ -315,6 +329,7 @@ def align_to_reference(
         enforce_compatibility_precheck
         and compatibility.status == TemplateCompatibilityStatus.INCOMPATIBLE
     ):
+        telemetry.stage("Acceptance", algorithm="template_compatibility_precheck")
         rejected = _failure(
             "template_compatibility_precheck",
             "template_lineage_mismatch",

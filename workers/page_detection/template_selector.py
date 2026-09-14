@@ -6,6 +6,7 @@ from math import isfinite
 from packages.domain.enums import ClaimFormType
 from workers.page_detection.anchor_matching import verify_anchors
 from workers.page_detection.grid_signature import compute_grid_signature, signature_similarity
+from workers.page_detection.registration_telemetry import registration_context
 from workers.page_detection.router import (
     ALIGNMENT_CONFIDENT_THRESHOLD,
     ANCHOR_CONFIDENT_THRESHOLD,
@@ -113,8 +114,9 @@ class TemplateSelector:
                 reference = references[(template.template_id, template.version)]
                 if reference is None:
                     continue
-                result = align_to_reference(image, reference, family=template.form_type.value,
-                                            enforce_compatibility_precheck=True)
+                with registration_context(template_id=template.template_id, page_number=candidate["page_number"]):
+                    result = align_to_reference(image, reference, family=template.form_type.value,
+                                                enforce_compatibility_precheck=True)
                 try:
                     score = result.alignment_score
                     candidate["scores"]["registration"] = score if isfinite(score) else None

@@ -26,6 +26,7 @@ def register_classified_document(images, routing, registry, selection=None):
     Registration acceptance does not authorize extraction or establish form identity.
     No page-corner correspondences or substitute template are manufactured.
     """
+    from workers.page_detection.registration_telemetry import registration_context
     from workers.page_detection.template_alignment import align_to_reference
 
     if selection is not None:
@@ -61,10 +62,11 @@ def register_classified_document(images, routing, registry, selection=None):
             resized = reference.resize(size)
             reference.close()
             reference = resized
-        aligned = align_to_reference(
-            images[page_number - 1], reference, family=template.form_type.value,
-            enforce_compatibility_precheck=True,
-        )
+        with registration_context(template_id=template.template_id, page_number=page_number):
+            aligned = align_to_reference(
+                images[page_number - 1], reference, family=template.form_type.value,
+                enforce_compatibility_precheck=True,
+            )
         evidence = aligned.evidence
         accepted = (aligned.success and aligned.accepted and aligned.warped is not None
                     and evidence is not None and evidence.accepted
@@ -106,6 +108,10 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
     }
     images = []
     stage = "load"
+    from workers.page_detection.registration_telemetry import collect_traces, save_traces
+
+    collection = collect_traces()
+    traces = collection.__enter__()
     total_started = started = perf_counter()
     try:
         dataset = DatasetManager.load(dataset_path)
@@ -200,6 +206,12 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
         for image in images:
             image.close()
         state["latency_ms"]["total"] = (perf_counter() - total_started) * 1000
+        collection.__exit__(None, None, None)
+        state["registration_trace"] = {"type": "RegistrationTrace", "traces": [trace.snapshot() for trace in traces]}
+        try:
+            save_traces(traces, output)
+        except OSError:
+            LOGGER.exception("Registration trace could not be written")
         (output / "document.json").write_text(
             json.dumps(state, indent=2, default=str, allow_nan=False) + "\n", encoding="utf-8",
         )

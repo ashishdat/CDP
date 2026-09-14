@@ -9,84 +9,55 @@ from zipfile import ZipFile
 
 from PIL import Image
 
-FAILURES = {
-    "insufficient_edge_structure": "Feature Matching",
-    "insufficient_keypoints": "Feature Matching",
-    "insufficient_good_matches": "Feature Matching",
-    "homography_not_found": "Homography",
-    "insufficient_inliers": "Homography",
-    "low_inlier_ratio": "Homography",
-    "high_reprojection_error": "Transform",
-    "unsafe_scale_change": "Transform",
-    "unsafe_rotation": "Transform",
-    "unsafe_perspective_distortion": "Transform",
-    "invalid_transformed_corners": "Transform",
-    "aspect_ratio_mismatch": "Transform",
-    "low_coverage": "Acceptance",
-    "cheap_confidence_below_threshold": "Acceptance",
-    "template_lineage_mismatch": "Acceptance",
-}
-ORDER = ("Anchor Detection", "Feature Matching", "Homography", "Transform", "Acceptance")
-
 
 def build_report(document):
+    """Consume emitted events only; absent traces never become reconstructed attempts."""
     attempts = []
-    candidates = (document.get("template_selection") or {}).get("candidate_templates", [])
-    records = []
-    for candidate in candidates:
-        diagnostic = candidate.get("diagnostics", {})
-        if diagnostic.get("cheap_registration_evidence") is not None:
-            records.append((candidate, diagnostic["cheap_registration_evidence"], "selection_cheap"))
-        if "registration" in candidate.get("scores", {}):
-            records.append((candidate, diagnostic.get("registration_evidence"), "selection_final"))
-    registration = document.get("registration") or {}
-    if registration.get("evidence"):
-        records.append((registration, registration["evidence"], "selected_template_registration"))
-    for index, (candidate, raw, origin) in enumerate(records, 1):
-        evidence = raw or {}
-        diagnostic = candidate.get("diagnostics", {})
-        reasons = (evidence.get("rejection_reason") or "").split(",")
-        known = {FAILURES[reason] for reason in reasons if reason in FAILURES}
-        first = next((stage for stage in ORDER if stage in known), None)
-        policy = diagnostic.get("registration_policy") or candidate.get("registration_policy")
-        score = evidence.get("alignment_confidence", candidate.get("scores", {}).get("registration"))
-        threshold = (diagnostic.get("thresholds") or {}).get("registration")
-        algorithm = evidence.get("algorithm")
-        if algorithm == "edge_phase_correlation":
-            threshold = policy.get("cheap_min_confidence") if policy else None
+    traces = (document.get("registration_trace") or {}).get("traces", [])
+    for index, trace in enumerate(traces, 1):
+        events = trace["events"]
+        finished = next((event for event in reversed(events)
+                         if event["stage"] == "Registration Finished"), {})
+        evidence = finished.get("data", {}).get("evidence") or {}
+        failure = next((event for event in events if event["status"] == "FAILED"
+                        and event["stage"] != "Registration Finished"), None)
+        def value(key, events=events):
+            return next((event[key] for event in reversed(events)
+                         if event.get(key) is not None), None)
+        def data(key, events=events):
+            return next((event["data"][key] for event in reversed(events)
+                         if event.get("data", {}).get(key) is not None), None)
+        acceptance_start = next((event for event in reversed(events)
+                                 if event["stage"] == "Acceptance" and event["status"] == "STARTED"), {})
+        threshold = acceptance_start.get("data", {}).get("threshold")
+        confidence = evidence.get("alignment_confidence")
         attempts.append({
-            "attempt": index, "origin": origin, "template_id": candidate.get("template_id"),
-            "page_number": candidate.get("page_number"), "algorithm": algorithm,
-            "anchor_detection": {"anchor_count": diagnostic.get("anchor_count"),
-                                 "anchor_matches": diagnostic.get("matched_anchor_phrases"),
-                                 "expected_anchors": diagnostic.get("expected_anchors"),
-                                 "coordinates": None},
-            "feature_matching": {"feature_count": evidence.get("keypoints_source"),
+            "attempt": index, "origin": "RegistrationTrace", "trace_id": trace["trace_id"],
+            "template_id": data("template_id"), "page_number": data("page_number"),
+            "algorithm": evidence.get("algorithm"),
+            "anchor_detection": {"anchor_count": value("anchor_count"), "anchor_matches": data("anchor_matches"),
+                                 "expected_anchors": data("expected_anchors"), "coordinates": None},
+            "feature_matching": {"feature_count": value("feature_count"),
                                  "template_feature_count": evidence.get("keypoints_template"),
-                                 "matched_features": evidence.get("good_matches"),
-                                 "coordinates": None},
-            "homography": {"inliers": evidence.get("inlier_count"),
-                           "score": evidence.get("homography_quality"), "inlier_coordinates": None},
-            "transform": {"matrix": evidence.get("transform_matrix"),
-                          "residual": evidence.get("reprojection_error"),
+                                 "matched_features": data("matched_features"), "coordinates": None},
+            "homography": {"inliers": data("homography_inliers"), "score": value("homography_score"),
+                           "inlier_coordinates": None},
+            "transform": {"matrix": evidence.get("transform_matrix"), "residual": value("transform_residual"),
                           "alignment_error": evidence.get("reprojection_error"),
-                          "error_definition": "Recorded mean inlier reprojection error in pixels; no independent alignment residual computed"},
-            "acceptance": {"accepted": evidence.get("accepted"), "score": score,
+                          "error_definition": "Recorded mean inlier reprojection error in pixels"},
+            "acceptance": {"accepted": evidence.get("accepted"), "score": confidence,
                            "threshold": threshold,
-                           "delta_to_threshold": score - threshold if score is not None and threshold is not None else None,
-                           "policy": policy, "reason": evidence.get("rejection_reason"),
-                           "note": "Scalar threshold is only one gate; recorded policy contains other acceptance gates"},
-            "first_failing_stage": first,
-            "first_failing_stage_status": "RECORDED" if first else (
-                "NOT_APPLICABLE" if evidence.get("accepted") else "UNAVAILABLE"),
-            "raw_evidence": raw,
+                           "delta_to_threshold": confidence - threshold if confidence is not None and threshold is not None else None,
+                           "policy": data("policy"), "reason": finished.get("reason")},
+            "first_failing_stage": failure["stage"] if failure else None,
+            "first_failing_stage_status": "RECORDED" if failure else (
+                "NOT_APPLICABLE" if finished.get("status") == "SUCCESS" else "UNAVAILABLE"),
+            "raw_evidence": evidence or None, "missing_events": trace.get("missing_events", []),
         })
     return {"report_type": "RegistrationReport", "document_id": document.get("document_id"),
             "attempt_count": len(attempts), "attempts": attempts,
-            "notes": ["Only recorded attempts are reported; earlier unrecorded subattempts cannot be reconstructed.",
-                      "Null means unavailable. A historical scalar score cannot establish the first failing stage.",
-                      "Feature and inlier coordinates are not exposed by the existing registration result.",
-                      "No registration retry, OCR, geometry stage or threshold change performed."]}
+            "notes": ["Source: RegistrationTrace events only. No history is reconstructed.",
+                      "Missing trace or stage events remain unavailable."]}
 
 
 def write_report(document, directory):
