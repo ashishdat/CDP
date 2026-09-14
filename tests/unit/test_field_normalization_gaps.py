@@ -8,6 +8,7 @@ def test_normalize_date_accepts_iso_and_us_forms():
     assert normalize_date("1965-12-09") == ("1965-12-09", True)
     assert normalize_date("12/09/1965") == ("1965-12-09", True)
     assert normalize_date("1 2 /0 9 /1 9 6 5") == ("1965-12-09", True)
+    assert normalize_date("0.4/03/20.02") == ("2002-04-03", True)
 
 
 def test_decide_local_candidate_dates_agree_across_formats():

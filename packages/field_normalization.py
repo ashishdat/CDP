@@ -26,13 +26,15 @@ def normalize_text(raw: str) -> tuple[str, bool]:
 def normalize_date(raw: str) -> tuple[str | None, bool]:
     # Collapse per-glyph OCR spaces between digits before delimiter normalization.
     cleaned = re.sub(r"(?<=\d)\s+(?=\d)", "", raw.strip())
+    # OCR often inserts dots inside digit groups ("0.4/03/20.02" -> "04/03/2002").
+    cleaned = re.sub(r"(?<=\d)\.(?=\d)", "", cleaned)
     # Preserve ISO dashes; only rewrite whitespace/slash delimiters for US forms.
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", cleaned):
         try:
             return datetime.strptime(cleaned, "%Y-%m-%d").date().isoformat(), True  # noqa: DTZ007
         except ValueError:
             return None, False
-    cleaned = re.sub(r"\s*/\s*", "/", cleaned)
+    cleaned = re.sub(r"[.\s]*/[.\s]*", "/", cleaned)
     cleaned = re.sub(r"\s+", "/", cleaned)
     for fmt in _DATE_FORMATS:
         try:

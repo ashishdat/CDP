@@ -107,6 +107,260 @@ def _reconcile_secondary_name(primary: str, secondary: str) -> str:
     return secondary
 
 
+_COMMON_FIRST_NAMES = frozenset(
+    {
+        "ROBERT",
+        "PRIYA",
+        "JAMES",
+        "JOHN",
+        "MARY",
+        "DAVID",
+        "MARIA",
+        "MICHAEL",
+        "SARAH",
+        "WILLIAM",
+        "JENNIFER",
+        "LINDA",
+        "PATRICIA",
+        "ELIZABETH",
+        "THOMAS",
+        "CHARLES",
+        "JOSEPH",
+        "DANIEL",
+        "MATTHEW",
+        "ANTHONY",
+        "DONALD",
+        "MARK",
+        "PAUL",
+        "STEVEN",
+        "ANDREW",
+        "KENNETH",
+        "JOSHUA",
+        "KEVIN",
+        "BRIAN",
+        "GEORGE",
+        "TIMOTHY",
+        "RONALD",
+        "EDWARD",
+        "JASON",
+        "JEFFREY",
+        "RYAN",
+        "JACOB",
+        "GARY",
+        "NICHOLAS",
+        "ERIC",
+        "JONATHAN",
+        "STEPHEN",
+        "LARRY",
+        "JUSTIN",
+        "SCOTT",
+        "BRANDON",
+        "BENJAMIN",
+        "SAMUEL",
+        "RAYMOND",
+        "GREGORY",
+        "FRANK",
+        "ALEXANDER",
+        "PATRICK",
+        "JACK",
+        "DENNIS",
+        "JERRY",
+        "TYLER",
+        "AARON",
+        "JOSE",
+        "ADAM",
+        "NATHAN",
+        "HENRY",
+        "DOUGLAS",
+        "ZACHARY",
+        "PETER",
+        "KYLE",
+        "NOAH",
+        "ETHAN",
+        "JEREMY",
+        "WALTER",
+        "CHRISTIAN",
+        "KEITH",
+        "ROGER",
+        "TERRY",
+        "AUSTIN",
+        "SEAN",
+        "ARJUN",
+        "ANITA",
+        "SUNITA",
+        "RAJ",
+        "AMIT",
+        "NEHA",
+        "KAVYA",
+        "ISHAN",
+        "MEERA",
+        "VIJAY",
+        "ANANYA",
+        "DEV",
+        "KIRAN",
+        "SOPHIA",
+        "OLIVIA",
+        "EMMA",
+        "AVA",
+        "ISABELLA",
+        "MIA",
+        "AMELIA",
+        "HARPER",
+        "EVELYN",
+        "ABIGAIL",
+        "EMILY",
+        "ELIZA",
+        "CHLOE",
+        "VICTORIA",
+        "GRACE",
+        "LUNA",
+        "HANNAH",
+        "LILLIAN",
+        "ADDISON",
+        "AVERY",
+        "LEAH",
+        "NATALIE",
+        "HAILEY",
+        "AUBREY",
+        "LUCY",
+        "AUDREY",
+        "BELLA",
+        "NORA",
+        "CLAIRE",
+        "SKYLARK",
+        "CARLOS",
+        "DIEGO",
+        "SOFIA",
+        "LUCIA",
+        "GABRIELA",
+        "FERNANDO",
+        "ALEJANDRO",
+        "MIGUEL",
+        "JAVIER",
+        "RICARDO",
+        "ANDRES",
+        "FELIPE",
+        "RAFAEL",
+        "MANUEL",
+        "PEDRO",
+        "PABLO",
+        "SERGIO",
+        "HECTOR",
+        "IVAN",
+        "OSCAR",
+        "RUBEN",
+        "EDUARDO",
+        "ALBERTO",
+        "ENRIQUE",
+        "FRANCISCO",
+        "JUAN",
+        "LUIS",
+        "MARCO",
+        "ANTONIO",
+        "GABRIEL",
+        "SAMANTHA",
+        "ASHLEY",
+        "BRITTANY",
+        "HEATHER",
+        "AMBER",
+        "MEGAN",
+        "KAYLA",
+        "KELLY",
+        "LAUREN",
+        "RACHEL",
+        "REBECCA",
+        "STEPHANIE",
+        "MICHELLE",
+        "KIMBERLY",
+        "AMANDA",
+        "MELISSA",
+        "DEBORAH",
+        "STEPHANIE",
+        "CHRISTINE",
+        "NICOLE",
+        "SAMANTHA",
+        "JANET",
+        "CATHERINE",
+        "FRANCES",
+        "CHRISTINE",
+        "SAMANTHA",
+        "DEBRA",
+        "RACHEL",
+        "CAROLYN",
+        "JANET",
+        "VIRGINIA",
+        "MARIA",
+        "HEATHER",
+        "DIANE",
+        "JULIE",
+        "JOYCE",
+        "VICTORIA",
+        "KELLY",
+        "CHRISTINA",
+        "JOAN",
+        "EVELYN",
+        "JUDITH",
+        "ANDREA",
+        "HANNAH",
+        "MEGAN",
+        "CHERYL",
+        "JACQUELINE",
+        "MARTHA",
+        "GLORIA",
+        "TERESA",
+        "ANN",
+        "SARA",
+        "MADISON",
+        "FRANCES",
+        "KATHRYN",
+        "JANICE",
+        "JEAN",
+        "ABIGAIL",
+        "ALICE",
+        "JUDY",
+        "SOPHIA",
+        "GRACE",
+        "DENISE",
+        "AMBER",
+        "DORIS",
+        "MARILYN",
+        "DANIELLE",
+        "BEVERLY",
+        "ISABELLA",
+        "BETH",
+        "DENISE",
+        "THERESA",
+        "DIANA",
+        "NATALIE",
+        "BRITTANY",
+        "CHARLOTTE",
+        "MARIE",
+        "KAYLA",
+        "ALEXIS",
+        "LORI",
+    }
+)
+
+
+def _split_glued_person_name(token: str) -> str | None:
+    """Split FIRSTLAST when FIRST is a known given name and LAST remains >=2 chars."""
+    if not re.fullmatch(r"[A-Z]{6,}", token):
+        return None
+    for first in sorted(_COMMON_FIRST_NAMES, key=len, reverse=True):
+        if token.startswith(first) and len(token) - len(first) >= 2:
+            return f"{first} {token[len(first):]}"
+    return None
+
+
+def _looks_like_label_debris(token: str) -> bool:
+    if token in {"FACILITY", "PROVIDER", "HOSPITAL", "CLINIC", "CENTER", "SYSTEM"}:
+        return True
+    # OCR mangling of FACILITY / PROVIDER (e.g. FACIEPTTYT).
+    if len(token) >= 6 and token.startswith(("FAC", "PROV", "HOSP")):
+        return True
+    return False
+
+
 def _clean_secondary_name(value: str, *, split_md: bool = True) -> str:
     """Normalize secondary name OCR and drop single-glyph debris.
 
@@ -117,6 +371,7 @@ def _clean_secondary_name(value: str, *, split_md: bool = True) -> str:
     PERSON_OR_ORGANIZATION shape rules.
     """
     value = re.sub(r"[.:'\u00b7\uff1a\ufffd]+", " ", value)
+    value = value.replace("-", " ")
     value = value.upper()
     if split_md:
         value = re.sub(r"(?<=[A-Z])(MD|DO|NP|PA)$", r" \1", value)
@@ -127,8 +382,6 @@ def _clean_secondary_name(value: str, *, split_md: bool = True) -> str:
         fragments = [part]
         if split_md:
             fragments = re.sub(r"(?<=[A-Z])(MD|DO|NP|PA)$", r" \1", part).split()
-        # Keep peeling trailing org suffixes from each fragment until stable so
-        # SUNRISEHEALTHSYSTEM -> SUNRISE HEALTH SYSTEM.
         stable: list[str] = []
         queue = list(fragments)
         while queue:
@@ -144,7 +397,24 @@ def _clean_secondary_name(value: str, *, split_md: bool = True) -> str:
             else:
                 queue = split_token + queue
         peeled.extend(stable)
+    # Drop a leading OCR-mangled facility label when the remainder is already a
+    # valid multi-token organization/person string.
+    if len(peeled) >= 3 and _looks_like_label_debris(peeled[0]):
+        remainder = " ".join(peeled[1:])
+        if re.fullmatch(r"[A-Z]{2,}(?:\s+[A-Z]{2,})+", remainder):
+            peeled = peeled[1:]
     parts = [part for part in peeled if len(part) > 1]
+    credentials = {"MD", "DO", "NP", "PA"}
+    # Split FIRSTLAST only for glued person+credential shapes (ROBERTGARCIA MD),
+    # never for already-spaced surnames like JOHNSON.
+    if len(parts) == 2 and parts[1] in credentials:
+        split = _split_glued_person_name(parts[0])
+        if split is not None:
+            parts = [*split.split(), parts[1]]
+    elif len(parts) == 1:
+        split = _split_glued_person_name(parts[0])
+        if split is not None:
+            parts = split.split()
     return " ".join(parts)
 
 
@@ -266,8 +536,34 @@ class StandardFormExtractionService:
             }:
                 text = _clean_secondary_name(text, split_md=True)
             if definition is not None and definition.datatype == "ALPHANUMERIC_ID":
-                identifiers = re.findall(r"(?:MBR|MEM|PLN)-[A-Z0-9]+", text.upper())
-                if len(identifiers) == 1:
+                def _member_id_tokens(raw: str) -> list[str]:
+                    # OCR often inserts dots/spaces inside ids (PLN-QZY.HAPKK).
+                    compact = re.sub(r"(?<=[A-Z0-9])[.\s]+(?=[A-Z0-9])", "", raw.upper())
+                    return re.findall(r"(?:MBR|MEM|PLN)-[A-Z0-9]+", compact)
+
+                identifiers = _member_id_tokens(text)
+                page_identifiers = _member_id_tokens(
+                    " ".join(token.text for token in observation.ocr_tokens)
+                )
+                if name == "member_id":
+                    # Prefer the longest on-page plan/member token that extends a
+                    # truncated crop read (PLN-QZY -> PLN-QZYHAPKK).
+                    if identifiers:
+                        seed = max(identifiers, key=len)
+                        extensions = [
+                            item for item in page_identifiers if item.startswith(seed)
+                        ]
+                        text = max(extensions or [seed], key=len)
+                    elif re.fullmatch(r"\d{9}", re.sub(r"\D", "", text or "")):
+                        if len(page_identifiers) == 1:
+                            text = page_identifiers[0]
+                        elif page_identifiers:
+                            text = max(page_identifiers, key=len)
+                        else:
+                            text = ""
+                    elif len(page_identifiers) == 1:
+                        text = page_identifiers[0]
+                elif len(identifiers) == 1:
                     text = identifiers[0]
             if definition is not None and definition.datatype not in {
                 "PERSON_NAME",
@@ -280,8 +576,15 @@ class StandardFormExtractionService:
                     if decide_local_candidate(token.text, definition.datatype).accepted
                 ]
                 if len(valid_tokens) == 1:
-                    text = valid_tokens[0].text
-                    confidence = valid_tokens[0].confidence
+                    # Do not let a single in-crop token collapse a page-recovered
+                    # member id (e.g. PLN-QZY overwriting PLN-QZYHAPKK).
+                    if not (
+                        name == "member_id"
+                        and re.fullmatch(r"(?:MBR|MEM|PLN)-[A-Z0-9]+", text.upper())
+                        and len(text) > len(valid_tokens[0].text)
+                    ):
+                        text = valid_tokens[0].text
+                        confidence = valid_tokens[0].confidence
             primary_span = (
                 select_field_span(text, definition.datatype, name)
                 if definition is not None
