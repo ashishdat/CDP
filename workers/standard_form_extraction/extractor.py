@@ -537,9 +537,19 @@ class StandardFormExtractionService:
                 text = _clean_secondary_name(text, split_md=True)
             if definition is not None and definition.datatype == "ALPHANUMERIC_ID":
                 def _member_id_tokens(raw: str) -> list[str]:
-                    # OCR often inserts dots/spaces inside ids (PLN-QZY.HAPKK).
-                    compact = re.sub(r"(?<=[A-Z0-9])[.\s]+(?=[A-Z0-9])", "", raw.upper())
-                    return re.findall(r"(?:MBR|MEM|PLN)-[A-Z0-9]+", compact)
+                    # Golden member ids are PREFIX + 8 alnum. Allow OCR dots/spaces
+                    # inside that body only, then normalize to PREFIX-8.
+                    loose = re.findall(
+                        r"(?:MBR|MEM|PLN)-(?:[A-Z0-9][.\s]*){8}",
+                        raw.upper(),
+                    )
+                    cleaned: list[str] = []
+                    for item in loose:
+                        compact = re.sub(r"[.\s]+", "", item)
+                        match = re.fullmatch(r"(?:MBR|MEM|PLN)-[A-Z0-9]{8}", compact)
+                        if match:
+                            cleaned.append(match.group(0))
+                    return cleaned
 
                 identifiers = _member_id_tokens(text)
                 page_identifiers = _member_id_tokens(
@@ -576,12 +586,11 @@ class StandardFormExtractionService:
                     if decide_local_candidate(token.text, definition.datatype).accepted
                 ]
                 if len(valid_tokens) == 1:
-                    # Do not let a single in-crop token collapse a page-recovered
-                    # member id (e.g. PLN-QZY overwriting PLN-QZYHAPKK).
+                    # Keep a normalized PREFIX-8 member id; in-crop OCR may still
+                    # be dotted/truncated (PLN-QZY.HAPKK) and would regress it.
                     if not (
                         name == "member_id"
-                        and re.fullmatch(r"(?:MBR|MEM|PLN)-[A-Z0-9]+", text.upper())
-                        and len(text) > len(valid_tokens[0].text)
+                        and re.fullmatch(r"(?:MBR|MEM|PLN)-[A-Z0-9]{8}", text.upper())
                     ):
                         text = valid_tokens[0].text
                         confidence = valid_tokens[0].confidence
