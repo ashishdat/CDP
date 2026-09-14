@@ -90,6 +90,35 @@ class RapidOCRTextExtractor:
             self._preprocessing = PreprocessingRegistry.load(config)
         return self._preprocessing
 
+    @staticmethod
+    def _merge_glyph_lines(lines: list[TextLine]) -> list[TextLine]:
+        """Collapse per-glyph RapidOCR boxes into one span for specialized crops.
+
+        Upscaled digit/date/currency/alphanumeric crops often emit one box per
+        character. Downstream Exact matching and date/NPI normalizers expect a
+        contiguous string, not space-separated glyphs.
+        """
+        if len(lines) < 2:
+            return lines
+        short = sum(1 for line in lines if len(line.text.strip()) <= 2)
+        if short < max(2, int(len(lines) * 0.6)):
+            return lines
+        ordered = sorted(lines, key=lambda line: line.x0)
+        text = "".join(line.text.strip() for line in ordered)
+        if not text:
+            return lines
+        confidence = sum(line.confidence for line in ordered) / len(ordered)
+        return [
+            TextLine(
+                text,
+                min(line.x0 for line in ordered),
+                min(line.y0 for line in ordered),
+                max(line.x1 for line in ordered),
+                max(line.y1 for line in ordered),
+                confidence,
+            )
+        ]
+
     @property
     def initialization_count(self) -> int:
         return self._initialization_count
@@ -120,7 +149,13 @@ class RapidOCRTextExtractor:
         if not field and profile_override is None:
             return crop, "REGIONAL_DEFAULT", False
         registry = self._registry()
-        applied = registry.apply(crop, field or "unknown", field_type, requested=profile_override)
+        resolved = registry.resolve(field or "unknown", field_type, requested=profile_override)
+        # Unmatched fields keep the legacy regional path (blind ≤3× upscale only).
+        # Applying GENERAL_TEXT / NAME_STROKE to names regresses Exact (Phase 8.10B +
+        # Golden V2 crop probes): safe_border+grayscale destroys already-readable glyphs.
+        if profile_override is None and resolved == registry.config.get("default_profile"):
+            return crop, "REGIONAL_DEFAULT", False
+        applied = registry.apply(crop, field or "unknown", field_type, requested=resolved)
         profile_steps = registry.config["profiles"][applied.profile]
         return applied.image.convert("RGB"), applied.profile, "upscale_2x" in profile_steps
 
@@ -186,6 +221,8 @@ class RapidOCRTextExtractor:
         started = time.perf_counter()
         lines = self._recognize(working, scale=float(scale), x0=x0, y0=y0)
         engine_ms = (time.perf_counter() - started) * 1000
+        if profile != "REGIONAL_DEFAULT":
+            lines = self._merge_glyph_lines(lines)
         joined = " ".join(line.text for line in lines).strip()
         recovery_profile = None
 
@@ -210,6 +247,7 @@ class RapidOCRTextExtractor:
                     )
                 )
                 alt_lines = self._recognize(alt_working, scale=float(alt_scale), x0=x0, y0=y0)
+                alt_lines = self._merge_glyph_lines(alt_lines)
                 self.last_profile["ocr_recovery_ms"] = (time.perf_counter() - started) * 1000
                 if any(line.text.strip() for line in alt_lines):
                     lines = alt_lines

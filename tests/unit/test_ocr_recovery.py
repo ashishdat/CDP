@@ -23,3 +23,9 @@ def test_decide_ocr_recovery_uses_mild_alternate_profile():
 def test_decide_ocr_recovery_skips_when_primary_has_text():
     decision = decide_ocr_recovery(primary_profile="DIGIT_PRESERVING_V2", primary_text="123")
     assert decision.attempt_alternate is False
+
+
+def test_decide_ocr_recovery_skips_regional_default_empty():
+    decision = decide_ocr_recovery(primary_profile="REGIONAL_DEFAULT", primary_text="")
+    assert decision.attempt_alternate is False
+    assert decision.alternate_profile is None

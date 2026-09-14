@@ -15,7 +15,10 @@ def normalize_text(raw: str) -> tuple[str, bool]:
 
 
 def normalize_date(raw: str) -> tuple[str | None, bool]:
-    cleaned = re.sub(r"\s+", "/", raw.strip())
+    # Collapse per-glyph OCR spaces between digits before delimiter normalization.
+    cleaned = re.sub(r"(?<=\d)\s+(?=\d)", "", raw.strip())
+    cleaned = re.sub(r"\s*/\s*", "/", cleaned)
+    cleaned = re.sub(r"\s+", "/", cleaned)
     for fmt in _DATE_FORMATS:
         try:
             parsed = datetime.strptime(cleaned, fmt).date()  # noqa: DTZ007
@@ -28,11 +31,16 @@ def normalize_date(raw: str) -> tuple[str | None, bool]:
 def normalize_currency(raw: str) -> tuple[Decimal | None, bool]:
     source = raw.strip().strip("|").strip()
     parenthesized = source.startswith("(") and source.endswith(")")
+    # OCR commonly confuses 0 with O inside amounts.
+    source = source.upper().replace("O", "0")
     cleaned = re.sub(r"[^0-9.\-]", "", source)
     if not cleaned:
         return None, False
     if parenthesized and not cleaned.startswith("-"):
         cleaned = f"-{cleaned}"
+    # Upscaled currency crops often drop the decimal point ("85650" for 856.50).
+    if "." not in cleaned and re.fullmatch(r"-?\d{3,}", cleaned):
+        cleaned = f"{cleaned[:-2]}.{cleaned[-2:]}"
     try:
         return Decimal(cleaned).quantize(Decimal("0.01")), True
     except InvalidOperation:

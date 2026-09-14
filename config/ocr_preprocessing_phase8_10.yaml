@@ -8,10 +8,11 @@ profiles:
   CURRENCY_DECIMAL_V2: [safe_border, grayscale, upscale_2x, mild_contrast]
   ALPHANUMERIC_STROKE_V2: [safe_border, grayscale, upscale_2x, mild_contrast, character_sharpen]
 field_rules:
-  # Applied by regional RapidOCR via PreprocessingRegistry (Phase 8.10 authorized unit).
-  # Profiles that include upscale_2x must not also receive the adapter's blind 3x upscale.
+  # Specialized profiles only where crop probes beat REGIONAL_DEFAULT.
+  # Names / free text / member IDs / service dates intentionally unmatched → REGIONAL_DEFAULT.
+  # DATE_DELIMITER_V2 is DOB-only: service_date crops regressed under that profile.
+  # NAME_STROKE_V2 remains defined for explicit override / recovery experiments only.
   - {profile: DIGIT_PRESERVING_V2, contains: [provider_npi, npi, federal_tax_no, tax_id]}
-  - {profile: DATE_DELIMITER_V2, contains: [patient_dob, service_date, from_date, through_date]}
+  - {profile: DATE_DELIMITER_V2, contains: [patient_dob, dob]}
   - {profile: CURRENCY_DECIMAL_V2, contains: [total_charge, charge_amount, currency]}
-  - {profile: NAME_STROKE_V2, contains: [patient_name, insured_name, provider_name]}
-  - {profile: ALPHANUMERIC_STROKE_V2, contains: [member_id, subscriber_id, patient_id, cpt, hcpcs, icd, diagnosis]}
+  - {profile: ALPHANUMERIC_STROKE_V2, contains: [cpt, hcpcs, icd, diagnosis]}

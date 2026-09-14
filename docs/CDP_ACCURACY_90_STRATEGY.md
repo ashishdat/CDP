@@ -37,12 +37,13 @@ Prior NAME_STROKE_V2-only experiment **regressed** (Phase 8.10B) because it stac
 ## Strategy ladder (ordered)
 
 ### S1 — Wire Phase 8.10 field-profile prep into regional RapidOCR (this change)
-- Load `ocr_preprocessing_phase8_10.yaml` in `RapidOCRTextExtractor` **as defined** (including `NAME_STROKE_V2` for names)
+- Load `ocr_preprocessing_phase8_10.yaml` in `RapidOCRTextExtractor`
 - Honor `set_context(field=..., field_type=...)`
-- Apply resolved profile before recognition
-- Skip blind 3× upscale when profile includes `upscale_2x` (this is what made NAME_STROKE regress in 8.10B)
-- Record real profile in provenance (not `REGIONAL_DEFAULT`)
-- Expected: recover OCR-empty/character errors on correctly localized crops without stacking prep + blind upscale
+- Apply **specialized** profiles only (DIGIT / DATE / CURRENCY) before recognition
+- Unmatched fields (names, free text) keep **REGIONAL_DEFAULT** (legacy blind ≤3×) — Golden V2 crop probes show NAME_STROKE / GENERAL_TEXT destroy readable names
+- Skip blind 3× upscale when a specialized profile already includes `upscale_2x`
+- Record real profile in provenance
+- Expected: recover OCR-empty (esp. currency) and digit/date character errors without regressing names
 
 ### S2 — Bounded cause-driven OCR recovery (uses new recovery planner)
 - On empty/rejected regional OCR with explicit OCR signal: `diagnose(..., ocr_attempted=True)` → `plan_recovery(ALTERNATIVE_OCR)`
@@ -80,6 +81,7 @@ Prior NAME_STROKE_V2-only experiment **regressed** (Phase 8.10B) because it stac
 
 | Track | Status | Notes |
 |---|---|---|
-| Phase 8.10 frozen replay (420 fields, 89.05% baseline) | `PENDING_REPLAY` | `evaluation_data/phase8_8_generalization` and `evaluation_results/phase8_10` artifacts absent in this environment |
-| Unit proofs (S1/S2 wiring) | PASS | `test_regional_field_profile_ocr`, `test_ocr_recovery`, `test_recovery_planner` |
-| Safety | HOLD | No accept-threshold changes; recovery max_attempts=1; no second engine |
+| Phase 8.10 frozen replay (420 fields, 89.05% baseline) | `PENDING_REPLAY` | `evaluation_data/phase8_8_generalization` and `evaluation_results/phase8_10` artifacts absent here |
+| Unit proofs (S1/S2 wiring) | PASS | regional profile OCR, OCR recovery, recovery planner, glyph-merge |
+| Golden V2 CMS001 crop probe (proxy, not governed gate) | 8/11 soft-Exact after normalize | Names keep REGIONAL_DEFAULT; NPI/DOB/CPT/currency recover; service_date/relationship/diagnosis remain residual |
+| Safety | HOLD | No accept-threshold changes; recovery max_attempts=1; REGIONAL_DEFAULT empty does not alternate into digit prep |

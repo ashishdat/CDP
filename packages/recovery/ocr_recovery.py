@@ -13,6 +13,8 @@ from .planner import Strategy, plan_recovery
 
 
 # Mild fallbacks only — never re-apply NAME_STROKE_V2 (Phase 8.10B regression).
+# REGIONAL_DEFAULT is intentionally omitted: empty free-text/name crops must not
+# be re-read with digit-preserving prep (false-accept risk on CPT/IDs).
 _ALTERNATE_PROFILES: dict[str, str] = {
     "DIGIT_PRESERVING_V2": "GENERAL_TEXT",
     "DATE_DELIMITER_V2": "GENERAL_TEXT",
@@ -56,10 +58,14 @@ def decide_ocr_recovery(
         return OcrRecoveryDecision(
             False, None, diagnosis.primary_cause, plan.strategy, plan.reason
         )
-    alternate = _ALTERNATE_PROFILES.get(primary_profile, "GENERAL_TEXT")
-    if alternate == primary_profile:
+    alternate = _ALTERNATE_PROFILES.get(primary_profile)
+    if not alternate or alternate == primary_profile:
         return OcrRecoveryDecision(
-            False, None, diagnosis.primary_cause, Strategy.NONE, "No distinct alternate profile"
+            False,
+            None,
+            diagnosis.primary_cause,
+            Strategy.NONE,
+            "No distinct alternate profile for primary",
         )
     return OcrRecoveryDecision(
         True,
