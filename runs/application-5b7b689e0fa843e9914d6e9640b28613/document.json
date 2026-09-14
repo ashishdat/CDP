@@ -1,0 +1,3830 @@
+{
+  "document_id": "2aa7a14f1512bd1da5e8722ba51e113a3c2ddbc14f394eadbdcb52adf6f0a6c8",
+  "page_count": 4,
+  "fields": [],
+  "status": "FAILED",
+  "stages": {
+    "load": "SUCCESS",
+    "classification": "SUCCESS",
+    "template_selection": "UNAVAILABLE",
+    "registration": "UNAVAILABLE",
+    "geometry": "SKIPPED",
+    "ocr": "SKIPPED",
+    "ranking": "SKIPPED",
+    "validators": "SKIPPED",
+    "decision": "SKIPPED",
+    "evidence": "SKIPPED"
+  },
+  "geometry": {
+    "status": "SKIPPED",
+    "reason": "STOP_AFTER_REGISTRATION"
+  },
+  "ocr": null,
+  "ranking": null,
+  "validators": null,
+  "decision": null,
+  "evidence": null,
+  "latency_ms": {
+    "load": 2674.7268000035547,
+    "classification": 14201.14919997286,
+    "template_selection": 4738.802500010934,
+    "registration": 0.053099996875971556,
+    "geometry": null,
+    "ocr": null,
+    "ranking": null,
+    "validators": null,
+    "decision": null,
+    "evidence": null,
+    "total": 21631.535199994687
+  },
+  "errors": [
+    {
+      "stage": "registration",
+      "type": "RegistrationNotAccepted",
+      "message": "NO_TEMPLATE_ABOVE_THRESHOLD"
+    }
+  ],
+  "warnings": [],
+  "dataset": {
+    "dataset_id": "DEVELOPMENT_DATASET_V1",
+    "version": 1,
+    "type": "DEVELOPMENT",
+    "pages": 2173,
+    "documents": 1000,
+    "hash": "8c09d4ec4de3fef8bf41771ae45bc69b69300221781a9eea9183936cfcbe85f3",
+    "description": "Hackathon claims development corpus; not ENGINEERING_BENCHMARK_V1.",
+    "source": "Hackathon - 1000 Claims.zip",
+    "root": "C:\\Users\\ashish.singh\\Downloads\\key docs\\Hackathon - 1000 Claims.zip",
+    "hash_algorithm": "SHA256"
+  },
+  "dataset_verification": {
+    "dataset_id": "DEVELOPMENT_DATASET_V1",
+    "verified": true,
+    "expected_documents": 1000,
+    "actual_documents": 1000,
+    "expected_pages": 2173,
+    "actual_pages": 2173,
+    "expected_hash": "8c09d4ec4de3fef8bf41771ae45bc69b69300221781a9eea9183936cfcbe85f3",
+    "actual_hash": "8c09d4ec4de3fef8bf41771ae45bc69b69300221781a9eea9183936cfcbe85f3",
+    "sha_match": true,
+    "counts_match": true,
+    "archive_unchanged": true,
+    "errors": []
+  },
+  "source": {
+    "archive": "C:\\Users\\ashish.singh\\Downloads\\key docs\\Hackathon - 1000 Claims.zip",
+    "entry": "Group D/M048DJK5.001"
+  },
+  "pages": [
+    {
+      "page_number": 1,
+      "width": 1683,
+      "height": 2193
+    },
+    {
+      "page_number": 2,
+      "width": 1711,
+      "height": 2210
+    },
+    {
+      "page_number": 3,
+      "width": 1716,
+      "height": 2216
+    },
+    {
+      "page_number": 4,
+      "width": 1720,
+      "height": 2215
+    }
+  ],
+  "classification": {
+    "bundle_type": "D_UNSTRUCTURED",
+    "selected_page_number": null,
+    "template": null,
+    "page_roles": {
+      "1": "UNSTRUCTURED_CLAIM_PAGE",
+      "2": "UNSTRUCTURED_CLAIM_PAGE",
+      "3": "UNSTRUCTURED_CLAIM_PAGE",
+      "4": "UNSTRUCTURED_CLAIM_PAGE"
+    },
+    "page_scores": {
+      "1": {
+        "page_number": 1,
+        "method": "GRID_LAYOUT_SIGNATURE",
+        "confidence": 0.0,
+        "reason_codes": [
+          "no_signal"
+        ],
+        "registration_evidence": null
+      },
+      "2": {
+        "page_number": 2,
+        "method": "GRID_LAYOUT_SIGNATURE",
+        "confidence": 0.0,
+        "reason_codes": [
+          "no_signal"
+        ],
+        "registration_evidence": null
+      },
+      "3": {
+        "page_number": 3,
+        "method": "GRID_LAYOUT_SIGNATURE",
+        "confidence": 0.0,
+        "reason_codes": [
+          "no_signal"
+        ],
+        "registration_evidence": null
+      },
+      "4": {
+        "page_number": 4,
+        "method": "GRID_LAYOUT_SIGNATURE",
+        "confidence": 0.0,
+        "reason_codes": [
+          "no_signal"
+        ],
+        "registration_evidence": null
+      }
+    },
+    "needs_review": false,
+    "reason_codes": [
+      "no_cms1500_signal_routed_to_unstructured"
+    ],
+    "canonical_route": null,
+    "route_decision": null
+  },
+  "template_selection": {
+    "template_id": null,
+    "confidence": 0.0,
+    "reason": "NO_TEMPLATE_ABOVE_THRESHOLD",
+    "candidate_templates": [
+      {
+        "template_id": "cms1500",
+        "template_version": "02-12",
+        "page_number": 1,
+        "scores": {
+          "anchors": 0.0,
+          "features": 0.633224093689572,
+          "registration": 0.13203125000000002
+        },
+        "reasons": [],
+        "diagnostics": {
+          "anchor_count": 4,
+          "matched_anchor_count": 0,
+          "matched_anchor_phrases": [],
+          "expected_anchors": [
+            "HEALTH INSURANCE CLAIM FORM",
+            "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE",
+            "PICA",
+            "FORM 1500"
+          ],
+          "missing_required_anchors": [
+            "HEALTH INSURANCE CLAIM FORM",
+            "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE",
+            "PICA"
+          ],
+          "thresholds": {
+            "anchors": 0.75,
+            "features": 0.75,
+            "registration": 0.35
+          },
+          "registration_policy": {
+            "lowe_ratio": 0.72,
+            "ransac_reprojection_threshold": 4.0,
+            "min_good_matches": 12,
+            "min_inliers": 8,
+            "min_inlier_ratio": 0.12,
+            "max_reprojection_error": 5.0,
+            "min_coverage_ratio": 0.12,
+            "cheap_min_confidence": 0.92,
+            "cheap_max_aspect_delta": 0.015,
+            "sift_features": 3000,
+            "min_scale": 0.65,
+            "max_scale": 1.55,
+            "max_abs_rotation_degrees": 8.0,
+            "max_perspective_distortion": 0.02
+          },
+          "cheap_registration_evidence": {
+            "template_id": null,
+            "template_version": null,
+            "candidate_family": null,
+            "compatibility_policy_version": null,
+            "compatibility_status": null,
+            "compatibility_score": null,
+            "algorithm": "edge_phase_correlation",
+            "keypoints_source": 0,
+            "keypoints_template": 0,
+            "candidate_match_count": 0,
+            "good_matches": 0,
+            "inlier_count": 0,
+            "inlier_ratio": 0.0,
+            "reprojection_error": null,
+            "coverage_ratio": null,
+            "template_coverage": null,
+            "scale_change": null,
+            "rotation_degrees": null,
+            "perspective_distortion": null,
+            "corner_validity": null,
+            "homography_quality": 0.0,
+            "alignment_confidence": 0.0,
+            "transform_matrix": null,
+            "accepted": false,
+            "rejection_reason": "cheap_confidence_below_threshold",
+            "processing_time_ms": 210.94040002208203
+          },
+          "matched_features": 192,
+          "homography_score": 0.13203125000000002,
+          "registration_evidence": {
+            "template_id": null,
+            "template_version": null,
+            "candidate_family": null,
+            "compatibility_policy_version": null,
+            "compatibility_status": null,
+            "compatibility_score": null,
+            "algorithm": "sift_flann_ransac_homography",
+            "keypoints_source": 3000,
+            "keypoints_template": 3001,
+            "candidate_match_count": 3000,
+            "good_matches": 192,
+            "inlier_count": 39,
+            "inlier_ratio": 0.203125,
+            "reprojection_error": 0.0,
+            "coverage_ratio": 0.0,
+            "template_coverage": 0.0,
+            "scale_change": 6.265070998900192e-09,
+            "rotation_degrees": -171.69272668332928,
+            "perspective_distortion": 1.3682962586455045,
+            "corner_validity": false,
+            "homography_quality": 0.13203125000000002,
+            "alignment_confidence": 0.13203125000000002,
+            "transform_matrix": [
+              [
+                -0.3535426103643683,
+                -0.9278558969802673,
+                1591.3909912109375
+              ],
+              [
+                -0.051622124920535035,
+                -0.13547983077006173,
+                232.3651580810547
+              ],
+              [
+                -0.00022215948960182754,
+                -0.0005830470965995816,
+                1.0
+              ]
+            ],
+            "accepted": false,
+            "rejection_reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "processing_time_ms": 1256.8557999911718
+          },
+          "registration_gates_passed": false
+        }
+      },
+      {
+        "template_id": "cms1500",
+        "template_version": "02-12",
+        "page_number": 2,
+        "scores": {
+          "anchors": 0.0,
+          "features": 0.30629114134639207,
+          "registration": 0.29240036201130415
+        },
+        "reasons": [],
+        "diagnostics": {
+          "anchor_count": 4,
+          "matched_anchor_count": 0,
+          "matched_anchor_phrases": [],
+          "expected_anchors": [
+            "HEALTH INSURANCE CLAIM FORM",
+            "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE",
+            "PICA",
+            "FORM 1500"
+          ],
+          "missing_required_anchors": [
+            "HEALTH INSURANCE CLAIM FORM",
+            "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE",
+            "PICA"
+          ],
+          "thresholds": {
+            "anchors": 0.75,
+            "features": 0.75,
+            "registration": 0.35
+          },
+          "registration_policy": {
+            "lowe_ratio": 0.72,
+            "ransac_reprojection_threshold": 4.0,
+            "min_good_matches": 12,
+            "min_inliers": 8,
+            "min_inlier_ratio": 0.12,
+            "max_reprojection_error": 5.0,
+            "min_coverage_ratio": 0.12,
+            "cheap_min_confidence": 0.92,
+            "cheap_max_aspect_delta": 0.015,
+            "sift_features": 3000,
+            "min_scale": 0.65,
+            "max_scale": 1.55,
+            "max_abs_rotation_degrees": 8.0,
+            "max_perspective_distortion": 0.02
+          },
+          "cheap_registration_evidence": {
+            "template_id": null,
+            "template_version": null,
+            "candidate_family": null,
+            "compatibility_policy_version": null,
+            "compatibility_status": null,
+            "compatibility_score": null,
+            "algorithm": "edge_phase_correlation",
+            "keypoints_source": 0,
+            "keypoints_template": 0,
+            "candidate_match_count": 0,
+            "good_matches": 0,
+            "inlier_count": 0,
+            "inlier_ratio": 0.0,
+            "reprojection_error": null,
+            "coverage_ratio": null,
+            "template_coverage": null,
+            "scale_change": null,
+            "rotation_degrees": null,
+            "perspective_distortion": null,
+            "corner_validity": null,
+            "homography_quality": 0.0,
+            "alignment_confidence": 0.0022630790270895622,
+            "transform_matrix": null,
+            "accepted": false,
+            "rejection_reason": "cheap_confidence_below_threshold",
+            "processing_time_ms": 226.8986999988556
+          },
+          "matched_features": 100,
+          "homography_score": 0.29240036201130415,
+          "registration_evidence": {
+            "template_id": null,
+            "template_version": null,
+            "candidate_family": null,
+            "compatibility_policy_version": null,
+            "compatibility_status": null,
+            "compatibility_score": null,
+            "algorithm": "sift_flann_ransac_homography",
+            "keypoints_source": 3000,
+            "keypoints_template": 3001,
+            "candidate_match_count": 3000,
+            "good_matches": 100,
+            "inlier_count": 11,
+            "inlier_ratio": 0.11,
+            "reprojection_error": 1.2127927541732788,
+            "coverage_ratio": 0.20321870393267755,
+            "template_coverage": 0.20321870393267755,
+            "scale_change": 0.11949404994627663,
+            "rotation_degrees": 47.188417778110946,
+            "perspective_distortion": 5.165970517647148,
+            "corner_validity": false,
+            "homography_quality": 0.29240036201130415,
+            "alignment_confidence": 0.29240036201130415,
+            "transform_matrix": [
+              [
+                1.6722272074632214,
+                -3.329595498391585,
+                1593.5068642356434
+              ],
+              [
+                1.8051090225062307,
+                -3.602717188506124,
+                1726.9307169892238
+              ],
+              [
+                0.0010482944582900283,
+                -0.0020893030027135167,
+                1.0
+              ]
+            ],
+            "accepted": false,
+            "rejection_reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "processing_time_ms": 1649.173499958124
+          },
+          "registration_gates_passed": false
+        }
+      },
+      {
+        "template_id": "cms1500",
+        "template_version": "02-12",
+        "page_number": 3,
+        "scores": {
+          "anchors": 0.0,
+          "features": 0.001531565043254455,
+          "registration": 0.0
+        },
+        "reasons": [],
+        "diagnostics": {
+          "anchor_count": 4,
+          "matched_anchor_count": 0,
+          "matched_anchor_phrases": [],
+          "expected_anchors": [
+            "HEALTH INSURANCE CLAIM FORM",
+            "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE",
+            "PICA",
+            "FORM 1500"
+          ],
+          "missing_required_anchors": [
+            "HEALTH INSURANCE CLAIM FORM",
+            "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE",
+            "PICA"
+          ],
+          "thresholds": {
+            "anchors": 0.75,
+            "features": 0.75,
+            "registration": 0.35
+          },
+          "registration_policy": {
+            "lowe_ratio": 0.72,
+            "ransac_reprojection_threshold": 4.0,
+            "min_good_matches": 12,
+            "min_inliers": 8,
+            "min_inlier_ratio": 0.12,
+            "max_reprojection_error": 5.0,
+            "min_coverage_ratio": 0.12,
+            "cheap_min_confidence": 0.92,
+            "cheap_max_aspect_delta": 0.015,
+            "sift_features": 3000,
+            "min_scale": 0.65,
+            "max_scale": 1.55,
+            "max_abs_rotation_degrees": 8.0,
+            "max_perspective_distortion": 0.02
+          },
+          "cheap_registration_evidence": {
+            "template_id": null,
+            "template_version": null,
+            "candidate_family": null,
+            "compatibility_policy_version": null,
+            "compatibility_status": null,
+            "compatibility_score": null,
+            "algorithm": "edge_phase_correlation",
+            "keypoints_source": 0,
+            "keypoints_template": 0,
+            "candidate_match_count": 0,
+            "good_matches": 0,
+            "inlier_count": 0,
+            "inlier_ratio": 0.0,
+            "reprojection_error": null,
+            "coverage_ratio": null,
+            "template_coverage": null,
+            "scale_change": null,
+            "rotation_degrees": null,
+            "perspective_distortion": null,
+            "corner_validity": null,
+            "homography_quality": 0.0,
+            "alignment_confidence": 0.005960711608698339,
+            "transform_matrix": null,
+            "accepted": false,
+            "rejection_reason": "cheap_confidence_below_threshold",
+            "processing_time_ms": 423.89690002892166
+          },
+          "matched_features": 0,
+          "homography_score": 0.0,
+          "registration_evidence": {
+            "template_id": null,
+            "template_version": null,
+            "candidate_family": null,
+            "compatibility_policy_version": null,
+            "compatibility_status": null,
+            "compatibility_score": null,
+            "algorithm": "template_compatibility_precheck",
+            "keypoints_source": 0,
+            "keypoints_template": 0,
+            "candidate_match_count": 0,
+            "good_matches": 0,
+            "inlier_count": 0,
+            "inlier_ratio": 0.0,
+            "reprojection_error": null,
+            "coverage_ratio": null,
+            "template_coverage": null,
+            "scale_change": null,
+            "rotation_degrees": null,
+            "perspective_distortion": null,
+            "corner_validity": null,
+            "homography_quality": 0.0,
+            "alignment_confidence": 0.0,
+            "transform_matrix": null,
+            "accepted": false,
+            "rejection_reason": "template_lineage_mismatch",
+            "processing_time_ms": 0.0
+          },
+          "registration_gates_passed": false
+        }
+      },
+      {
+        "template_id": "cms1500",
+        "template_version": "02-12",
+        "page_number": 4,
+        "scores": {
+          "anchors": 0.0,
+          "features": 0.030233981686198796,
+          "registration": 0.0
+        },
+        "reasons": [],
+        "diagnostics": {
+          "anchor_count": 4,
+          "matched_anchor_count": 0,
+          "matched_anchor_phrases": [],
+          "expected_anchors": [
+            "HEALTH INSURANCE CLAIM FORM",
+            "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE",
+            "PICA",
+            "FORM 1500"
+          ],
+          "missing_required_anchors": [
+            "HEALTH INSURANCE CLAIM FORM",
+            "APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE",
+            "PICA"
+          ],
+          "thresholds": {
+            "anchors": 0.75,
+            "features": 0.75,
+            "registration": 0.35
+          },
+          "registration_policy": {
+            "lowe_ratio": 0.72,
+            "ransac_reprojection_threshold": 4.0,
+            "min_good_matches": 12,
+            "min_inliers": 8,
+            "min_inlier_ratio": 0.12,
+            "max_reprojection_error": 5.0,
+            "min_coverage_ratio": 0.12,
+            "cheap_min_confidence": 0.92,
+            "cheap_max_aspect_delta": 0.015,
+            "sift_features": 3000,
+            "min_scale": 0.65,
+            "max_scale": 1.55,
+            "max_abs_rotation_degrees": 8.0,
+            "max_perspective_distortion": 0.02
+          },
+          "cheap_registration_evidence": {
+            "template_id": null,
+            "template_version": null,
+            "candidate_family": null,
+            "compatibility_policy_version": null,
+            "compatibility_status": null,
+            "compatibility_score": null,
+            "algorithm": "edge_phase_correlation",
+            "keypoints_source": 0,
+            "keypoints_template": 0,
+            "candidate_match_count": 0,
+            "good_matches": 0,
+            "inlier_count": 0,
+            "inlier_ratio": 0.0,
+            "reprojection_error": null,
+            "coverage_ratio": null,
+            "template_coverage": null,
+            "scale_change": null,
+            "rotation_degrees": null,
+            "perspective_distortion": null,
+            "corner_validity": null,
+            "homography_quality": 0.0,
+            "alignment_confidence": 0.0012444534301757812,
+            "transform_matrix": null,
+            "accepted": false,
+            "rejection_reason": "cheap_confidence_below_threshold",
+            "processing_time_ms": 240.53829995682463
+          },
+          "matched_features": 0,
+          "homography_score": 0.0,
+          "registration_evidence": {
+            "template_id": null,
+            "template_version": null,
+            "candidate_family": null,
+            "compatibility_policy_version": null,
+            "compatibility_status": null,
+            "compatibility_score": null,
+            "algorithm": "template_compatibility_precheck",
+            "keypoints_source": 0,
+            "keypoints_template": 0,
+            "candidate_match_count": 0,
+            "good_matches": 0,
+            "inlier_count": 0,
+            "inlier_ratio": 0.0,
+            "reprojection_error": null,
+            "coverage_ratio": null,
+            "template_coverage": null,
+            "scale_change": null,
+            "rotation_degrees": null,
+            "perspective_distortion": null,
+            "corner_validity": null,
+            "homography_quality": 0.0,
+            "alignment_confidence": 0.0,
+            "transform_matrix": null,
+            "accepted": false,
+            "rejection_reason": "template_lineage_mismatch",
+            "processing_time_ms": 0.0
+          },
+          "registration_gates_passed": false
+        }
+      },
+      {
+        "template_id": "ub04",
+        "template_version": "2014",
+        "page_number": 1,
+        "scores": {
+          "anchors": 0.0
+        },
+        "reasons": [
+          "REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE"
+        ],
+        "diagnostics": {
+          "anchor_count": 4,
+          "matched_anchor_count": 0,
+          "matched_anchor_phrases": [],
+          "expected_anchors": [
+            "TYPE OF BILL",
+            "STATEMENT COVERS PERIOD",
+            "UB-04",
+            "CMS-1450"
+          ],
+          "missing_required_anchors": [
+            "TYPE OF BILL",
+            "STATEMENT COVERS PERIOD"
+          ],
+          "thresholds": {
+            "anchors": 0.75,
+            "features": 0.75,
+            "registration": 0.35
+          }
+        }
+      },
+      {
+        "template_id": "ub04",
+        "template_version": "2014",
+        "page_number": 2,
+        "scores": {
+          "anchors": 0.0
+        },
+        "reasons": [
+          "REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE"
+        ],
+        "diagnostics": {
+          "anchor_count": 4,
+          "matched_anchor_count": 0,
+          "matched_anchor_phrases": [],
+          "expected_anchors": [
+            "TYPE OF BILL",
+            "STATEMENT COVERS PERIOD",
+            "UB-04",
+            "CMS-1450"
+          ],
+          "missing_required_anchors": [
+            "TYPE OF BILL",
+            "STATEMENT COVERS PERIOD"
+          ],
+          "thresholds": {
+            "anchors": 0.75,
+            "features": 0.75,
+            "registration": 0.35
+          }
+        }
+      },
+      {
+        "template_id": "ub04",
+        "template_version": "2014",
+        "page_number": 3,
+        "scores": {
+          "anchors": 0.0
+        },
+        "reasons": [
+          "REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE"
+        ],
+        "diagnostics": {
+          "anchor_count": 4,
+          "matched_anchor_count": 0,
+          "matched_anchor_phrases": [],
+          "expected_anchors": [
+            "TYPE OF BILL",
+            "STATEMENT COVERS PERIOD",
+            "UB-04",
+            "CMS-1450"
+          ],
+          "missing_required_anchors": [
+            "TYPE OF BILL",
+            "STATEMENT COVERS PERIOD"
+          ],
+          "thresholds": {
+            "anchors": 0.75,
+            "features": 0.75,
+            "registration": 0.35
+          }
+        }
+      },
+      {
+        "template_id": "ub04",
+        "template_version": "2014",
+        "page_number": 4,
+        "scores": {
+          "anchors": 0.0
+        },
+        "reasons": [
+          "REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE"
+        ],
+        "diagnostics": {
+          "anchor_count": 4,
+          "matched_anchor_count": 0,
+          "matched_anchor_phrases": [],
+          "expected_anchors": [
+            "TYPE OF BILL",
+            "STATEMENT COVERS PERIOD",
+            "UB-04",
+            "CMS-1450"
+          ],
+          "missing_required_anchors": [
+            "TYPE OF BILL",
+            "STATEMENT COVERS PERIOD"
+          ],
+          "thresholds": {
+            "anchors": 0.75,
+            "features": 0.75,
+            "registration": 0.35
+          }
+        }
+      }
+    ],
+    "template_version": null,
+    "page_number": null
+  },
+  "registration": {
+    "status": "UNAVAILABLE",
+    "accepted": false,
+    "reason": "NO_TEMPLATE_ABOVE_THRESHOLD",
+    "page_number": null,
+    "evidence": null,
+    "transform_matrix": null
+  },
+  "stop_after": "registration",
+  "registration_trace": {
+    "type": "RegistrationTrace",
+    "traces": [
+      {
+        "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+        "events": [
+          {
+            "sequence": 1,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:07.988776+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Started",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 2,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:07.989092+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Anchor Detection",
+            "status": "SKIPPED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "Not executed by image registration",
+            "data": {}
+          },
+          {
+            "sequence": 3,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:08.039486+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "edge_phase_correlation"
+            }
+          },
+          {
+            "sequence": 4,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:08.433146+00:00",
+            "latency": 393.66050000535324,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 5,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:08.433383+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "edge_phase_correlation",
+              "threshold": 0.92
+            }
+          },
+          {
+            "sequence": 6,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:08.433662+00:00",
+            "latency": 0.27730001602321863,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": 0.0,
+            "reason": "cheap_confidence_below_threshold",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "edge_phase_correlation",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "cheap_confidence_below_threshold",
+                "processing_time_ms": 394.0031999954954
+              }
+            }
+          },
+          {
+            "sequence": 7,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:08.439702+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "sift_flann_ransac_homography"
+            }
+          },
+          {
+            "sequence": 8,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:10.561030+00:00",
+            "latency": 2121.334699972067,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": 3000,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 9,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:10.561323+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "matched_features": 212
+            }
+          },
+          {
+            "sequence": 10,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:10.670672+00:00",
+            "latency": 109.34640001505613,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 11,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:10.670907+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "homography_inliers": 41,
+              "transform_matrix": [
+                [
+                  -0.3535426103643687,
+                  -0.9278558969802668,
+                  1591.3909912109377
+                ],
+                [
+                  -0.05162212492053513,
+                  -0.13547983077006168,
+                  232.36515808105474
+                ],
+                [
+                  -0.00022215948960182784,
+                  -0.0005830470965995813,
+                  1.0
+                ]
+              ]
+            }
+          },
+          {
+            "sequence": 12,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:10.671447+00:00",
+            "latency": 0.5440000095404685,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.12570754716981133,
+            "transform_residual": 0.0,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 13,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:10.671532+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "policy": {
+                "lowe_ratio": 0.72,
+                "ransac_reprojection_threshold": 4.0,
+                "min_good_matches": 12,
+                "min_inliers": 8,
+                "min_inlier_ratio": 0.12,
+                "max_reprojection_error": 5.0,
+                "min_coverage_ratio": 0.12,
+                "cheap_min_confidence": 0.92,
+                "cheap_max_aspect_delta": 0.015,
+                "sift_features": 3000,
+                "min_scale": 0.65,
+                "max_scale": 1.55,
+                "max_abs_rotation_degrees": 8.0,
+                "max_perspective_distortion": 0.02
+              }
+            }
+          },
+          {
+            "sequence": 14,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:10.678892+00:00",
+            "latency": 7.348500017542392,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.12570754716981133,
+            "transform_residual": 0.0,
+            "confidence": 0.12570754716981133,
+            "reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 212,
+                "inlier_count": 41,
+                "inlier_ratio": 0.19339622641509435,
+                "reprojection_error": 0.0,
+                "coverage_ratio": 0.0,
+                "template_coverage": 0.0,
+                "scale_change": 3.13253549945009e-09,
+                "rotation_degrees": -171.69272668332928,
+                "perspective_distortion": 1.368296258645504,
+                "corner_validity": false,
+                "homography_quality": 0.12570754716981133,
+                "alignment_confidence": 0.12570754716981133,
+                "transform_matrix": [
+                  [
+                    -0.3535426103643687,
+                    -0.9278558969802668,
+                    1591.3909912109377
+                  ],
+                  [
+                    -0.05162212492053513,
+                    -0.13547983077006168,
+                    232.36515808105474
+                  ],
+                  [
+                    -0.00022215948960182784,
+                    -0.0005830470965995813,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 2231.946100015193
+              }
+            }
+          },
+          {
+            "sequence": 15,
+            "trace_id": "6fd72bfd848f4f63bbd6ce0a501a3fb7",
+            "timestamp": "2026-09-14T06:02:10.679182+00:00",
+            "latency": 2690.457599994261,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Finished",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.12570754716981133,
+            "transform_residual": 0.0,
+            "confidence": 0.12570754716981133,
+            "reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 212,
+                "inlier_count": 41,
+                "inlier_ratio": 0.19339622641509435,
+                "reprojection_error": 0.0,
+                "coverage_ratio": 0.0,
+                "template_coverage": 0.0,
+                "scale_change": 3.13253549945009e-09,
+                "rotation_degrees": -171.69272668332928,
+                "perspective_distortion": 1.368296258645504,
+                "corner_validity": false,
+                "homography_quality": 0.12570754716981133,
+                "alignment_confidence": 0.12570754716981133,
+                "transform_matrix": [
+                  [
+                    -0.3535426103643687,
+                    -0.9278558969802668,
+                    1591.3909912109377
+                  ],
+                  [
+                    -0.05162212492053513,
+                    -0.13547983077006168,
+                    232.36515808105474
+                  ],
+                  [
+                    -0.00022215948960182784,
+                    -0.0005830470965995813,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 2231.946100015193
+              }
+            }
+          }
+        ],
+        "missing_events": []
+      },
+      {
+        "trace_id": "857573d27d46450d93e19ae3672b4024",
+        "events": [
+          {
+            "sequence": 1,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:13.152944+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Started",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 2,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:13.153149+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Anchor Detection",
+            "status": "SKIPPED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "Not executed by image registration",
+            "data": {}
+          },
+          {
+            "sequence": 3,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:13.203013+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "edge_phase_correlation"
+            }
+          },
+          {
+            "sequence": 4,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:13.390311+00:00",
+            "latency": 187.30350001715124,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 5,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:13.390533+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "edge_phase_correlation",
+              "threshold": 0.92
+            }
+          },
+          {
+            "sequence": 6,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:13.390707+00:00",
+            "latency": 0.17909996677190065,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": 0.0022630790270895622,
+            "reason": "cheap_confidence_below_threshold",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "edge_phase_correlation",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0022630790270895622,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "cheap_confidence_below_threshold",
+                "processing_time_ms": 187.62940005399287
+              }
+            }
+          },
+          {
+            "sequence": 7,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:13.395125+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "sift_flann_ransac_homography"
+            }
+          },
+          {
+            "sequence": 8,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:14.777843+00:00",
+            "latency": 1383.2475999952294,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": 3000,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 9,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:14.778135+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "matched_features": 98
+            }
+          },
+          {
+            "sequence": 10,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:14.875995+00:00",
+            "latency": 97.8575000190176,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 11,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:14.876310+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "homography_inliers": 9,
+              "transform_matrix": [
+                [
+                  -0.3408738669040009,
+                  -0.24376864181018854,
+                  317.4813062429857
+                ],
+                [
+                  -0.2673572857091808,
+                  -0.18520666893368276,
+                  244.2817560482723
+                ],
+                [
+                  -0.0010908065283487117,
+                  -0.0007523546610919918,
+                  1.0
+                ]
+              ]
+            }
+          },
+          {
+            "sequence": 12,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:14.877080+00:00",
+            "latency": 0.7733000093139708,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.22874751124842246,
+            "transform_residual": 1.6627742052078247,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 13,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:14.877274+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "policy": {
+                "lowe_ratio": 0.72,
+                "ransac_reprojection_threshold": 4.0,
+                "min_good_matches": 12,
+                "min_inliers": 8,
+                "min_inlier_ratio": 0.12,
+                "max_reprojection_error": 5.0,
+                "min_coverage_ratio": 0.12,
+                "cheap_min_confidence": 0.92,
+                "cheap_max_aspect_delta": 0.015,
+                "sift_features": 3000,
+                "min_scale": 0.65,
+                "max_scale": 1.55,
+                "max_abs_rotation_degrees": 8.0,
+                "max_perspective_distortion": 0.02
+              }
+            }
+          },
+          {
+            "sequence": 14,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:14.889870+00:00",
+            "latency": 12.589399993885309,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.22874751124842246,
+            "transform_residual": 1.6627742052078247,
+            "confidence": 0.22874751124842246,
+            "reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 98,
+                "inlier_count": 9,
+                "inlier_ratio": 0.09183673469387756,
+                "reprojection_error": 1.6627742052078247,
+                "coverage_ratio": 0.14323276492218195,
+                "template_coverage": 0.23032302995655762,
+                "scale_change": 0.045179741030156435,
+                "rotation_degrees": -141.8918785149661,
+                "perspective_distortion": 2.9284763439180668,
+                "corner_validity": false,
+                "homography_quality": 0.22874751124842246,
+                "alignment_confidence": 0.22874751124842246,
+                "transform_matrix": [
+                  [
+                    -0.3408738669040009,
+                    -0.24376864181018854,
+                    317.4813062429857
+                  ],
+                  [
+                    -0.2673572857091808,
+                    -0.18520666893368276,
+                    244.2817560482723
+                  ],
+                  [
+                    -0.0010908065283487117,
+                    -0.0007523546610919918,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1483.189399994444
+              }
+            }
+          },
+          {
+            "sequence": 15,
+            "trace_id": "857573d27d46450d93e19ae3672b4024",
+            "timestamp": "2026-09-14T06:02:14.890201+00:00",
+            "latency": 1737.2988000279292,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Finished",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.22874751124842246,
+            "transform_residual": 1.6627742052078247,
+            "confidence": 0.22874751124842246,
+            "reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 98,
+                "inlier_count": 9,
+                "inlier_ratio": 0.09183673469387756,
+                "reprojection_error": 1.6627742052078247,
+                "coverage_ratio": 0.14323276492218195,
+                "template_coverage": 0.23032302995655762,
+                "scale_change": 0.045179741030156435,
+                "rotation_degrees": -141.8918785149661,
+                "perspective_distortion": 2.9284763439180668,
+                "corner_validity": false,
+                "homography_quality": 0.22874751124842246,
+                "alignment_confidence": 0.22874751124842246,
+                "transform_matrix": [
+                  [
+                    -0.3408738669040009,
+                    -0.24376864181018854,
+                    317.4813062429857
+                  ],
+                  [
+                    -0.2673572857091808,
+                    -0.18520666893368276,
+                    244.2817560482723
+                  ],
+                  [
+                    -0.0010908065283487117,
+                    -0.0007523546610919918,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1483.189399994444
+              }
+            }
+          }
+        ],
+        "missing_events": []
+      },
+      {
+        "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+        "events": [
+          {
+            "sequence": 1,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:16.000310+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Started",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 2,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:16.001116+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Anchor Detection",
+            "status": "SKIPPED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "Not executed by image registration",
+            "data": {}
+          },
+          {
+            "sequence": 3,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:16.047368+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "edge_phase_correlation"
+            }
+          },
+          {
+            "sequence": 4,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:16.291630+00:00",
+            "latency": 244.26429998129606,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 5,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:16.291905+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "edge_phase_correlation",
+              "threshold": 0.92
+            }
+          },
+          {
+            "sequence": 6,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:16.292213+00:00",
+            "latency": 0.30590000096708536,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": 0.005960711608698339,
+            "reason": "cheap_confidence_below_threshold",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "edge_phase_correlation",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.005960711608698339,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "cheap_confidence_below_threshold",
+                "processing_time_ms": 244.70520002068952
+              }
+            }
+          },
+          {
+            "sequence": 7,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:16.295594+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "sift_flann_ransac_homography"
+            }
+          },
+          {
+            "sequence": 8,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:17.667758+00:00",
+            "latency": 1372.16890003765,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": 3001,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 9,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:17.669146+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "matched_features": 96
+            }
+          },
+          {
+            "sequence": 10,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:17.754157+00:00",
+            "latency": 85.48139996128157,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 11,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:17.754451+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "homography_inliers": 22,
+              "transform_matrix": [
+                [
+                  -1.7917781516527571,
+                  0.10988455694374219,
+                  1029.0276211029243
+                ],
+                [
+                  -0.5895234253302739,
+                  0.03596833916399379,
+                  338.80244338579087
+                ],
+                [
+                  -0.0017413298742106535,
+                  0.00010683509734069706,
+                  1.0
+                ]
+              ]
+            }
+          },
+          {
+            "sequence": 12,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:17.754861+00:00",
+            "latency": 0.41530001908540726,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.22963797410329184,
+            "transform_residual": 0.9660179615020752,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 13,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:17.754963+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "policy": {
+                "lowe_ratio": 0.72,
+                "ransac_reprojection_threshold": 4.0,
+                "min_good_matches": 12,
+                "min_inliers": 8,
+                "min_inlier_ratio": 0.12,
+                "max_reprojection_error": 5.0,
+                "min_coverage_ratio": 0.12,
+                "cheap_min_confidence": 0.92,
+                "cheap_max_aspect_delta": 0.015,
+                "sift_features": 3000,
+                "min_scale": 0.65,
+                "max_scale": 1.55,
+                "max_abs_rotation_degrees": 8.0,
+                "max_perspective_distortion": 0.02
+              }
+            }
+          },
+          {
+            "sequence": 14,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:17.761359+00:00",
+            "latency": 6.38859998434782,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.22963797410329184,
+            "transform_residual": 0.9660179615020752,
+            "confidence": 0.22963797410329184,
+            "reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3001,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3001,
+                "good_matches": 96,
+                "inlier_count": 22,
+                "inlier_ratio": 0.22916666666666666,
+                "reprojection_error": 0.9660179615020752,
+                "coverage_ratio": 0.0,
+                "template_coverage": 0.0,
+                "scale_change": 0.018227345804975453,
+                "rotation_degrees": -161.78797461362504,
+                "perspective_distortion": 3.8660426875722917,
+                "corner_validity": false,
+                "homography_quality": 0.22963797410329184,
+                "alignment_confidence": 0.22963797410329184,
+                "transform_matrix": [
+                  [
+                    -1.7917781516527571,
+                    0.10988455694374219,
+                    1029.0276211029243
+                  ],
+                  [
+                    -0.5895234253302739,
+                    0.03596833916399379,
+                    338.80244338579087
+                  ],
+                  [
+                    -0.0017413298742106535,
+                    0.00010683509734069706,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1459.4781999476254
+              }
+            }
+          },
+          {
+            "sequence": 15,
+            "trace_id": "85837408e5b54388b0f814aeb32ebebd",
+            "timestamp": "2026-09-14T06:02:17.761653+00:00",
+            "latency": 1761.3964000483975,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Finished",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.22963797410329184,
+            "transform_residual": 0.9660179615020752,
+            "confidence": 0.22963797410329184,
+            "reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3001,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3001,
+                "good_matches": 96,
+                "inlier_count": 22,
+                "inlier_ratio": 0.22916666666666666,
+                "reprojection_error": 0.9660179615020752,
+                "coverage_ratio": 0.0,
+                "template_coverage": 0.0,
+                "scale_change": 0.018227345804975453,
+                "rotation_degrees": -161.78797461362504,
+                "perspective_distortion": 3.8660426875722917,
+                "corner_validity": false,
+                "homography_quality": 0.22963797410329184,
+                "alignment_confidence": 0.22963797410329184,
+                "transform_matrix": [
+                  [
+                    -1.7917781516527571,
+                    0.10988455694374219,
+                    1029.0276211029243
+                  ],
+                  [
+                    -0.5895234253302739,
+                    0.03596833916399379,
+                    338.80244338579087
+                  ],
+                  [
+                    -0.0017413298742106535,
+                    0.00010683509734069706,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1459.4781999476254
+              }
+            }
+          }
+        ],
+        "missing_events": []
+      },
+      {
+        "trace_id": "85393ccff8994a43afe078993cc526ff",
+        "events": [
+          {
+            "sequence": 1,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:19.049144+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Started",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 2,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:19.050111+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Anchor Detection",
+            "status": "SKIPPED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "Not executed by image registration",
+            "data": {}
+          },
+          {
+            "sequence": 3,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:19.097527+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "edge_phase_correlation"
+            }
+          },
+          {
+            "sequence": 4,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:19.332515+00:00",
+            "latency": 234.98900001868606,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 5,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:19.334269+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "edge_phase_correlation",
+              "threshold": 0.92
+            }
+          },
+          {
+            "sequence": 6,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:19.335081+00:00",
+            "latency": 0.8670000243000686,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": 0.0012444534301757812,
+            "reason": "cheap_confidence_below_threshold",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "edge_phase_correlation",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0012444534301757812,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "cheap_confidence_below_threshold",
+                "processing_time_ms": 237.20800003502518
+              }
+            }
+          },
+          {
+            "sequence": 7,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:19.338548+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "algorithm": "sift_flann_ransac_homography"
+            }
+          },
+          {
+            "sequence": 8,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:20.755214+00:00",
+            "latency": 1416.669099999126,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": 3000,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 9,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:20.755529+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "matched_features": 157
+            }
+          },
+          {
+            "sequence": 10,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:20.822280+00:00",
+            "latency": 66.74740003654733,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 11,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:20.822829+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "homography_inliers": 14,
+              "transform_matrix": [
+                [
+                  -0.01743580881898109,
+                  -3.4901298129478255,
+                  1274.271508791579
+                ],
+                [
+                  0.1905385306822892,
+                  -1.1486483669536693,
+                  293.2898674035328
+                ],
+                [
+                  0.00020245882425610863,
+                  -0.0033363931402921937,
+                  1.0
+                ]
+              ]
+            }
+          },
+          {
+            "sequence": 12,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:20.827467+00:00",
+            "latency": 4.642300016712397,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.13290910962280955,
+            "transform_residual": 1.2526336908340454,
+            "confidence": null,
+            "reason": null,
+            "data": {}
+          },
+          {
+            "sequence": 13,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:20.827782+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "policy": {
+                "lowe_ratio": 0.72,
+                "ransac_reprojection_threshold": 4.0,
+                "min_good_matches": 12,
+                "min_inliers": 8,
+                "min_inlier_ratio": 0.12,
+                "max_reprojection_error": 5.0,
+                "min_coverage_ratio": 0.12,
+                "cheap_min_confidence": 0.92,
+                "cheap_max_aspect_delta": 0.015,
+                "sift_features": 3000,
+                "min_scale": 0.65,
+                "max_scale": 1.55,
+                "max_abs_rotation_degrees": 8.0,
+                "max_perspective_distortion": 0.02
+              }
+            }
+          },
+          {
+            "sequence": 14,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:20.837671+00:00",
+            "latency": 9.886400017421693,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.13290910962280955,
+            "transform_residual": 1.2526336908340454,
+            "confidence": 0.13290910962280955,
+            "reason": "low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 157,
+                "inlier_count": 14,
+                "inlier_ratio": 0.08917197452229299,
+                "reprojection_error": 1.2526336908340454,
+                "coverage_ratio": 0.0,
+                "template_coverage": 0.0,
+                "scale_change": 0.8276664906687781,
+                "rotation_degrees": 95.22846342898472,
+                "perspective_distortion": 7.40370459981847,
+                "corner_validity": false,
+                "homography_quality": 0.13290910962280955,
+                "alignment_confidence": 0.13290910962280955,
+                "transform_matrix": [
+                  [
+                    -0.01743580881898109,
+                    -3.4901298129478255,
+                    1274.271508791579
+                  ],
+                  [
+                    0.1905385306822892,
+                    -1.1486483669536693,
+                    293.2898674035328
+                  ],
+                  [
+                    0.00020245882425610863,
+                    -0.0033363931402921937,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1489.7294999682344
+              }
+            }
+          },
+          {
+            "sequence": 15,
+            "trace_id": "85393ccff8994a43afe078993cc526ff",
+            "timestamp": "2026-09-14T06:02:20.837983+00:00",
+            "latency": 1788.8904999708757,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Finished",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.13290910962280955,
+            "transform_residual": 1.2526336908340454,
+            "confidence": 0.13290910962280955,
+            "reason": "low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 157,
+                "inlier_count": 14,
+                "inlier_ratio": 0.08917197452229299,
+                "reprojection_error": 1.2526336908340454,
+                "coverage_ratio": 0.0,
+                "template_coverage": 0.0,
+                "scale_change": 0.8276664906687781,
+                "rotation_degrees": 95.22846342898472,
+                "perspective_distortion": 7.40370459981847,
+                "corner_validity": false,
+                "homography_quality": 0.13290910962280955,
+                "alignment_confidence": 0.13290910962280955,
+                "transform_matrix": [
+                  [
+                    -0.01743580881898109,
+                    -3.4901298129478255,
+                    1274.271508791579
+                  ],
+                  [
+                    0.1905385306822892,
+                    -1.1486483669536693,
+                    293.2898674035328
+                  ],
+                  [
+                    0.00020245882425610863,
+                    -0.0033363931402921937,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1489.7294999682344
+              }
+            }
+          }
+        ],
+        "missing_events": []
+      },
+      {
+        "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+        "events": [
+          {
+            "sequence": 1,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:21.211703+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Started",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1
+            }
+          },
+          {
+            "sequence": 2,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:21.211937+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Anchor Detection",
+            "status": "SKIPPED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "Not executed by image registration",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1
+            }
+          },
+          {
+            "sequence": 3,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:21.276946+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1,
+              "algorithm": "edge_phase_correlation"
+            }
+          },
+          {
+            "sequence": 4,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:21.487212+00:00",
+            "latency": 210.26480000000447,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1
+            }
+          },
+          {
+            "sequence": 5,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:21.487564+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1,
+              "algorithm": "edge_phase_correlation",
+              "threshold": 0.92
+            }
+          },
+          {
+            "sequence": 6,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:21.488133+00:00",
+            "latency": 0.5747000104747713,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": 0.0,
+            "reason": "cheap_confidence_below_threshold",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "edge_phase_correlation",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "cheap_confidence_below_threshold",
+                "processing_time_ms": 210.94040002208203
+              }
+            }
+          },
+          {
+            "sequence": 7,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:21.491071+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1,
+              "algorithm": "sift_flann_ransac_homography"
+            }
+          },
+          {
+            "sequence": 8,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:22.676883+00:00",
+            "latency": 1185.8187000034377,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": 3000,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1
+            }
+          },
+          {
+            "sequence": 9,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:22.677165+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1,
+              "matched_features": 192
+            }
+          },
+          {
+            "sequence": 10,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:22.746305+00:00",
+            "latency": 69.1352000576444,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1
+            }
+          },
+          {
+            "sequence": 11,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:22.746689+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1,
+              "homography_inliers": 39,
+              "transform_matrix": [
+                [
+                  -0.3535426103643683,
+                  -0.9278558969802673,
+                  1591.3909912109375
+                ],
+                [
+                  -0.051622124920535035,
+                  -0.13547983077006173,
+                  232.3651580810547
+                ],
+                [
+                  -0.00022215948960182754,
+                  -0.0005830470965995816,
+                  1.0
+                ]
+              ]
+            }
+          },
+          {
+            "sequence": 12,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:22.747571+00:00",
+            "latency": 0.8840999798849225,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.13203125000000002,
+            "transform_residual": 0.0,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1
+            }
+          },
+          {
+            "sequence": 13,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:22.747760+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1,
+              "policy": {
+                "lowe_ratio": 0.72,
+                "ransac_reprojection_threshold": 4.0,
+                "min_good_matches": 12,
+                "min_inliers": 8,
+                "min_inlier_ratio": 0.12,
+                "max_reprojection_error": 5.0,
+                "min_coverage_ratio": 0.12,
+                "cheap_min_confidence": 0.92,
+                "cheap_max_aspect_delta": 0.015,
+                "sift_features": 3000,
+                "min_scale": 0.65,
+                "max_scale": 1.55,
+                "max_abs_rotation_degrees": 8.0,
+                "max_perspective_distortion": 0.02
+              }
+            }
+          },
+          {
+            "sequence": 14,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:22.754491+00:00",
+            "latency": 6.724900042172521,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.13203125000000002,
+            "transform_residual": 0.0,
+            "confidence": 0.13203125000000002,
+            "reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 192,
+                "inlier_count": 39,
+                "inlier_ratio": 0.203125,
+                "reprojection_error": 0.0,
+                "coverage_ratio": 0.0,
+                "template_coverage": 0.0,
+                "scale_change": 6.265070998900192e-09,
+                "rotation_degrees": -171.69272668332928,
+                "perspective_distortion": 1.3682962586455045,
+                "corner_validity": false,
+                "homography_quality": 0.13203125000000002,
+                "alignment_confidence": 0.13203125000000002,
+                "transform_matrix": [
+                  [
+                    -0.3535426103643683,
+                    -0.9278558969802673,
+                    1591.3909912109375
+                  ],
+                  [
+                    -0.051622124920535035,
+                    -0.13547983077006173,
+                    232.3651580810547
+                  ],
+                  [
+                    -0.00022215948960182754,
+                    -0.0005830470965995816,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1256.8557999911718
+              }
+            }
+          },
+          {
+            "sequence": 15,
+            "trace_id": "8f80d70cc46a4d8b859362a03c996a65",
+            "timestamp": "2026-09-14T06:02:22.754784+00:00",
+            "latency": 1543.119999987539,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Finished",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.13203125000000002,
+            "transform_residual": 0.0,
+            "confidence": 0.13203125000000002,
+            "reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 1,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 192,
+                "inlier_count": 39,
+                "inlier_ratio": 0.203125,
+                "reprojection_error": 0.0,
+                "coverage_ratio": 0.0,
+                "template_coverage": 0.0,
+                "scale_change": 6.265070998900192e-09,
+                "rotation_degrees": -171.69272668332928,
+                "perspective_distortion": 1.3682962586455045,
+                "corner_validity": false,
+                "homography_quality": 0.13203125000000002,
+                "alignment_confidence": 0.13203125000000002,
+                "transform_matrix": [
+                  [
+                    -0.3535426103643683,
+                    -0.9278558969802673,
+                    1591.3909912109375
+                  ],
+                  [
+                    -0.051622124920535035,
+                    -0.13547983077006173,
+                    232.3651580810547
+                  ],
+                  [
+                    -0.00022215948960182754,
+                    -0.0005830470965995816,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1256.8557999911718
+              }
+            }
+          }
+        ],
+        "missing_events": []
+      },
+      {
+        "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+        "events": [
+          {
+            "sequence": 1,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:22.757187+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Started",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2
+            }
+          },
+          {
+            "sequence": 2,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:22.757491+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Anchor Detection",
+            "status": "SKIPPED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "Not executed by image registration",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2
+            }
+          },
+          {
+            "sequence": 3,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:22.817268+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2,
+              "algorithm": "edge_phase_correlation"
+            }
+          },
+          {
+            "sequence": 4,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:23.043603+00:00",
+            "latency": 226.33570001926273,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2
+            }
+          },
+          {
+            "sequence": 5,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:23.043937+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2,
+              "algorithm": "edge_phase_correlation",
+              "threshold": 0.92
+            }
+          },
+          {
+            "sequence": 6,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:23.044228+00:00",
+            "latency": 0.2995000104419887,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": 0.0022630790270895622,
+            "reason": "cheap_confidence_below_threshold",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "edge_phase_correlation",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0022630790270895622,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "cheap_confidence_below_threshold",
+                "processing_time_ms": 226.8986999988556
+              }
+            }
+          },
+          {
+            "sequence": 7,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:23.045989+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2,
+              "algorithm": "sift_flann_ransac_homography"
+            }
+          },
+          {
+            "sequence": 8,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:24.591714+00:00",
+            "latency": 1545.7222999539226,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": 3000,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2
+            }
+          },
+          {
+            "sequence": 9,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:24.592091+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2,
+              "matched_features": 100
+            }
+          },
+          {
+            "sequence": 10,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:24.692883+00:00",
+            "latency": 100.7936000241898,
+            "latency_unit": "milliseconds",
+            "stage": "Homography",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2
+            }
+          },
+          {
+            "sequence": 11,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:24.693552+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2,
+              "homography_inliers": 11,
+              "transform_matrix": [
+                [
+                  1.6722272074632214,
+                  -3.329595498391585,
+                  1593.5068642356434
+                ],
+                [
+                  1.8051090225062307,
+                  -3.602717188506124,
+                  1726.9307169892238
+                ],
+                [
+                  0.0010482944582900283,
+                  -0.0020893030027135167,
+                  1.0
+                ]
+              ]
+            }
+          },
+          {
+            "sequence": 12,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:24.694665+00:00",
+            "latency": 1.1214999831281602,
+            "latency_unit": "milliseconds",
+            "stage": "Transform",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.29240036201130415,
+            "transform_residual": 1.2127927541732788,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2
+            }
+          },
+          {
+            "sequence": 13,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:24.694844+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2,
+              "policy": {
+                "lowe_ratio": 0.72,
+                "ransac_reprojection_threshold": 4.0,
+                "min_good_matches": 12,
+                "min_inliers": 8,
+                "min_inlier_ratio": 0.12,
+                "max_reprojection_error": 5.0,
+                "min_coverage_ratio": 0.12,
+                "cheap_min_confidence": 0.92,
+                "cheap_max_aspect_delta": 0.015,
+                "sift_features": 3000,
+                "min_scale": 0.65,
+                "max_scale": 1.55,
+                "max_abs_rotation_degrees": 8.0,
+                "max_perspective_distortion": 0.02
+              }
+            }
+          },
+          {
+            "sequence": 14,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:24.707369+00:00",
+            "latency": 12.515299953520298,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.29240036201130415,
+            "transform_residual": 1.2127927541732788,
+            "confidence": 0.29240036201130415,
+            "reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 100,
+                "inlier_count": 11,
+                "inlier_ratio": 0.11,
+                "reprojection_error": 1.2127927541732788,
+                "coverage_ratio": 0.20321870393267755,
+                "template_coverage": 0.20321870393267755,
+                "scale_change": 0.11949404994627663,
+                "rotation_degrees": 47.188417778110946,
+                "perspective_distortion": 5.165970517647148,
+                "corner_validity": false,
+                "homography_quality": 0.29240036201130415,
+                "alignment_confidence": 0.29240036201130415,
+                "transform_matrix": [
+                  [
+                    1.6722272074632214,
+                    -3.329595498391585,
+                    1593.5068642356434
+                  ],
+                  [
+                    1.8051090225062307,
+                    -3.602717188506124,
+                    1726.9307169892238
+                  ],
+                  [
+                    0.0010482944582900283,
+                    -0.0020893030027135167,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1649.173499958124
+              }
+            }
+          },
+          {
+            "sequence": 15,
+            "trace_id": "83f5cf06d08847c7ae9acd5644763085",
+            "timestamp": "2026-09-14T06:02:24.707773+00:00",
+            "latency": 1950.6362999673001,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Finished",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": 0.29240036201130415,
+            "transform_residual": 1.2127927541732788,
+            "confidence": 0.29240036201130415,
+            "reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 2,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "sift_flann_ransac_homography",
+                "keypoints_source": 3000,
+                "keypoints_template": 3001,
+                "candidate_match_count": 3000,
+                "good_matches": 100,
+                "inlier_count": 11,
+                "inlier_ratio": 0.11,
+                "reprojection_error": 1.2127927541732788,
+                "coverage_ratio": 0.20321870393267755,
+                "template_coverage": 0.20321870393267755,
+                "scale_change": 0.11949404994627663,
+                "rotation_degrees": 47.188417778110946,
+                "perspective_distortion": 5.165970517647148,
+                "corner_validity": false,
+                "homography_quality": 0.29240036201130415,
+                "alignment_confidence": 0.29240036201130415,
+                "transform_matrix": [
+                  [
+                    1.6722272074632214,
+                    -3.329595498391585,
+                    1593.5068642356434
+                  ],
+                  [
+                    1.8051090225062307,
+                    -3.602717188506124,
+                    1726.9307169892238
+                  ],
+                  [
+                    0.0010482944582900283,
+                    -0.0020893030027135167,
+                    1.0
+                  ]
+                ],
+                "accepted": false,
+                "rejection_reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+                "processing_time_ms": 1649.173499958124
+              }
+            }
+          }
+        ],
+        "missing_events": []
+      },
+      {
+        "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+        "events": [
+          {
+            "sequence": 1,
+            "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+            "timestamp": "2026-09-14T06:02:24.708752+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Started",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 3
+            }
+          },
+          {
+            "sequence": 2,
+            "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+            "timestamp": "2026-09-14T06:02:24.708930+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Anchor Detection",
+            "status": "SKIPPED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "Not executed by image registration",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 3
+            }
+          },
+          {
+            "sequence": 3,
+            "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+            "timestamp": "2026-09-14T06:02:24.819374+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 3,
+              "algorithm": "edge_phase_correlation"
+            }
+          },
+          {
+            "sequence": 4,
+            "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+            "timestamp": "2026-09-14T06:02:25.242171+00:00",
+            "latency": 422.79829998733476,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 3
+            }
+          },
+          {
+            "sequence": 5,
+            "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+            "timestamp": "2026-09-14T06:02:25.242856+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 3,
+              "algorithm": "edge_phase_correlation",
+              "threshold": 0.92
+            }
+          },
+          {
+            "sequence": 6,
+            "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+            "timestamp": "2026-09-14T06:02:25.243620+00:00",
+            "latency": 0.7708999910391867,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": 0.005960711608698339,
+            "reason": "cheap_confidence_below_threshold",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 3,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "edge_phase_correlation",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.005960711608698339,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "cheap_confidence_below_threshold",
+                "processing_time_ms": 423.89690002892166
+              }
+            }
+          },
+          {
+            "sequence": 7,
+            "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+            "timestamp": "2026-09-14T06:02:25.246669+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 3,
+              "algorithm": "template_compatibility_precheck"
+            }
+          },
+          {
+            "sequence": 8,
+            "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+            "timestamp": "2026-09-14T06:02:25.247246+00:00",
+            "latency": 0.5867999861948192,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "template_lineage_mismatch",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 3,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "template_compatibility_precheck",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "template_lineage_mismatch",
+                "processing_time_ms": 0.0
+              }
+            }
+          },
+          {
+            "sequence": 9,
+            "trace_id": "c66e9ff748bb4d63b101ea3d636d514c",
+            "timestamp": "2026-09-14T06:02:25.248310+00:00",
+            "latency": 539.5984999486245,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Finished",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "template_lineage_mismatch",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 3,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "template_compatibility_precheck",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "template_lineage_mismatch",
+                "processing_time_ms": 0.0
+              }
+            }
+          }
+        ],
+        "missing_events": [
+          "Homography",
+          "Transform"
+        ]
+      },
+      {
+        "trace_id": "41e6858565e549e2a3678e7e949b5464",
+        "events": [
+          {
+            "sequence": 1,
+            "trace_id": "41e6858565e549e2a3678e7e949b5464",
+            "timestamp": "2026-09-14T06:02:25.251746+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Started",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 4
+            }
+          },
+          {
+            "sequence": 2,
+            "trace_id": "41e6858565e549e2a3678e7e949b5464",
+            "timestamp": "2026-09-14T06:02:25.253811+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Anchor Detection",
+            "status": "SKIPPED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "Not executed by image registration",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 4
+            }
+          },
+          {
+            "sequence": 3,
+            "trace_id": "41e6858565e549e2a3678e7e949b5464",
+            "timestamp": "2026-09-14T06:02:25.321524+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 4,
+              "algorithm": "edge_phase_correlation"
+            }
+          },
+          {
+            "sequence": 4,
+            "trace_id": "41e6858565e549e2a3678e7e949b5464",
+            "timestamp": "2026-09-14T06:02:25.559603+00:00",
+            "latency": 238.0799999809824,
+            "latency_unit": "milliseconds",
+            "stage": "Feature Matching",
+            "status": "SUCCESS",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 4
+            }
+          },
+          {
+            "sequence": 5,
+            "trace_id": "41e6858565e549e2a3678e7e949b5464",
+            "timestamp": "2026-09-14T06:02:25.560402+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 4,
+              "algorithm": "edge_phase_correlation",
+              "threshold": 0.92
+            }
+          },
+          {
+            "sequence": 6,
+            "trace_id": "41e6858565e549e2a3678e7e949b5464",
+            "timestamp": "2026-09-14T06:02:25.562302+00:00",
+            "latency": 1.9118000054731965,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": 0.0012444534301757812,
+            "reason": "cheap_confidence_below_threshold",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 4,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "edge_phase_correlation",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0012444534301757812,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "cheap_confidence_below_threshold",
+                "processing_time_ms": 240.53829995682463
+              }
+            }
+          },
+          {
+            "sequence": 7,
+            "trace_id": "41e6858565e549e2a3678e7e949b5464",
+            "timestamp": "2026-09-14T06:02:25.571163+00:00",
+            "latency": 0.0,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "STARTED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": null,
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 4,
+              "algorithm": "template_compatibility_precheck"
+            }
+          },
+          {
+            "sequence": 8,
+            "trace_id": "41e6858565e549e2a3678e7e949b5464",
+            "timestamp": "2026-09-14T06:02:25.575633+00:00",
+            "latency": 4.474099958315492,
+            "latency_unit": "milliseconds",
+            "stage": "Acceptance",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "template_lineage_mismatch",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 4,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "template_compatibility_precheck",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "template_lineage_mismatch",
+                "processing_time_ms": 0.0
+              }
+            }
+          },
+          {
+            "sequence": 9,
+            "trace_id": "41e6858565e549e2a3678e7e949b5464",
+            "timestamp": "2026-09-14T06:02:25.577314+00:00",
+            "latency": 325.60179999563843,
+            "latency_unit": "milliseconds",
+            "stage": "Registration Finished",
+            "status": "FAILED",
+            "anchor_count": null,
+            "feature_count": null,
+            "homography_score": null,
+            "transform_residual": null,
+            "confidence": null,
+            "reason": "template_lineage_mismatch",
+            "data": {
+              "template_id": "cms1500",
+              "page_number": 4,
+              "evidence": {
+                "template_id": null,
+                "template_version": null,
+                "candidate_family": null,
+                "compatibility_policy_version": null,
+                "compatibility_status": null,
+                "compatibility_score": null,
+                "algorithm": "template_compatibility_precheck",
+                "keypoints_source": 0,
+                "keypoints_template": 0,
+                "candidate_match_count": 0,
+                "good_matches": 0,
+                "inlier_count": 0,
+                "inlier_ratio": 0.0,
+                "reprojection_error": null,
+                "coverage_ratio": null,
+                "template_coverage": null,
+                "scale_change": null,
+                "rotation_degrees": null,
+                "perspective_distortion": null,
+                "corner_validity": null,
+                "homography_quality": 0.0,
+                "alignment_confidence": 0.0,
+                "transform_matrix": null,
+                "accepted": false,
+                "rejection_reason": "template_lineage_mismatch",
+                "processing_time_ms": 0.0
+              }
+            }
+          }
+        ],
+        "missing_events": [
+          "Homography",
+          "Transform"
+        ]
+      }
+    ]
+  }
+}
