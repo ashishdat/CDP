@@ -74,3 +74,45 @@ def test_region_scoped_anchor_only_matches_within_region():
 
     assert verify_anchors(inside, anchors).all_required_matched
     assert not verify_anchors(outside, anchors).all_required_matched
+
+
+def test_normalizes_punctuation_and_ocr_spacing_across_tokens():
+    lines = [_line("  hea"), _line("LTH.\t"), _line("Insurance"),
+             _line("claim"), _line("FORM:")]
+    anchor = AnchorDefinition(phrase="HEALTH INSURANCE CLAIM FORM")
+    original = [line.text for line in lines]
+    result = verify_anchors(lines, [anchor])
+    assert result.matched_phrases == [anchor.phrase]
+    assert result.confidence == 1.0
+    assert [line.text for line in lines] == original
+
+
+def test_normalization_is_symmetric():
+    result = verify_anchors([_line("HEALTH FORM")], [
+        AnchorDefinition(phrase="Hea Lth.  Form:")])
+    assert result.matched_phrases == ["Hea Lth.  Form:"]
+
+
+def test_normalization_does_not_correct_missing_or_substituted_letters():
+    for text in ("INSURANCE CLAIM FORM", "HEA1TH INSURANCE CLAIM FORM",
+                 "HEALH INSURANCE CLAIM FORM", "HEAL+TH INSURANCE CLAIM FORM"):
+        result = verify_anchors([_line(text)], [
+            AnchorDefinition(phrase="HEALTH INSURANCE CLAIM FORM")])
+        assert result.confidence == 0.0
+        assert not result.all_required_matched
+
+
+def test_split_anchor_cannot_use_tokens_outside_region():
+    region = FieldRegion(field_name="header", x0=0, y0=0, x1=200, y1=50)
+    result = verify_anchors([
+        _line("PI", x0=10, y0=10),
+        _line("CA", x0=500, y0=900, x1=560, y1=920),
+    ], [AnchorDefinition(phrase="PICA", region=region)])
+    assert result.missing_required == ["PICA"]
+
+
+def test_empty_normalized_anchor_does_not_match():
+    for phrase in ("", "  ", ".:"):
+        result = verify_anchors([_line("anything")], [AnchorDefinition(phrase=phrase)])
+        assert result.confidence == 0.0
+        assert not result.all_required_matched

@@ -9,7 +9,7 @@ Pure text-matching logic, decoupled from any OCR engine (see
 
 from __future__ import annotations
 
-import re
+import unicodedata
 from dataclasses import dataclass
 
 from packages.templates.models import AnchorDefinition
@@ -28,7 +28,15 @@ class AnchorMatchResult:
 
 
 def _normalize(text: str) -> str:
-    return re.sub(r"\s+", " ", text.strip().upper())
+    """Ignore spacing and punctuation without substituting OCR characters.
+
+    Compact both phrases and saved OCR so split tokens (HEA LTH) compare
+    identically to HEALTH. Symbols, digits and letter order remain significant.
+    """
+    return "".join(
+        char for char in text.upper()
+        if not char.isspace() and not unicodedata.category(char).startswith("P")
+    )
 
 
 def _region_overlaps(line: TextLine, region) -> bool:
@@ -46,7 +54,7 @@ def verify_anchors(
         return AnchorMatchResult(confidence=0.0, matched_phrases=[], missing_required=[])
 
     normalized_lines = [(_normalize(l.text), l) for l in text_lines]
-    full_text = " ".join(text for text, _ in normalized_lines)
+    full_text = "".join(text for text, _ in normalized_lines)
 
     matched: list[str] = []
     missing_required: list[str] = []
@@ -54,12 +62,12 @@ def verify_anchors(
     for anchor in anchor_definitions:
         phrase = _normalize(anchor.phrase)
         if anchor.region is not None:
-            scoped_text = " ".join(
+            scoped_text = "".join(
                 text for text, line in normalized_lines if _region_overlaps(line, anchor.region)
             )
-            found = phrase in scoped_text
+            found = bool(phrase) and phrase in scoped_text
         else:
-            found = phrase in full_text
+            found = bool(phrase) and phrase in full_text
 
         if found:
             matched.append(anchor.phrase)
