@@ -203,6 +203,12 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
         (output / "document.json").write_text(
             json.dumps(state, indent=2, default=str, allow_nan=False) + "\n", encoding="utf-8",
         )
+        try:
+            from workers.page_detection.template_discovery import write_report
+
+            write_report(state, output)
+        except Exception:
+            LOGGER.exception("Template discovery report could not be written")
     return output / "document.json", state
 
 

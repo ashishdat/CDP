@@ -71,6 +71,14 @@ class TemplateSelector:
         for candidate, (template, page, _) in zip(candidates, pairs, strict=True):
             anchors = verify_anchors(text_lines.get(page, []), template.anchor_definitions)
             candidate["scores"]["anchors"] = anchors.confidence
+            candidate["diagnostics"] = {
+                "anchor_count": len(template.anchor_definitions),
+                "matched_anchor_count": len(anchors.matched_phrases),
+                "missing_required_anchors": list(anchors.missing_required),
+                "thresholds": {"anchors": ANCHOR_CONFIDENT_THRESHOLD,
+                               "features": GRID_CONFIDENT_THRESHOLD,
+                               "registration": ALIGNMENT_CONFIDENT_THRESHOLD},
+            }
             if anchors.all_required_matched and anchors.confidence >= ANCHOR_CONFIDENT_THRESHOLD:
                 scores.append((candidate, anchors.confidence))
         selected = self._choose(candidates, scores, "ANCHOR_MATCH")
@@ -107,6 +115,16 @@ class TemplateSelector:
                     candidate["scores"]["registration"] = score if isfinite(score) else None
                     compatible = (result.compatibility is not None
                                   and result.compatibility.status.value != "INCOMPATIBLE")
+                    candidate["diagnostics"].update(
+                        matched_features=result.good_match_count,
+                        homography_score=(result.evidence.homography_quality
+                                          if result.evidence else None),
+                        registration_evidence=(result.evidence.model_dump(mode="json")
+                                               if result.evidence else None),
+                        registration_gates_passed=bool(
+                            result.success and result.accepted and compatible and result.evidence
+                            and result.evidence.accepted and result.evidence.corner_validity),
+                    )
                     if (result.success and result.accepted and compatible and result.evidence
                             and result.evidence.accepted and result.evidence.corner_validity
                             and isfinite(score) and score >= ALIGNMENT_CONFIDENT_THRESHOLD):
