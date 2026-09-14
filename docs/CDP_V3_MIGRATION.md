@@ -2,9 +2,13 @@
 
 ## Status and baseline
 
-Phase 1 foundation is implemented beside the existing application. No production
-worker or public API has been switched to it. Phases 2–10 remain pending; this
-document is not a claim that the extractor has been replaced.
+Phase 1 foundation and the Phase 2 source-only geometry engine are implemented
+beside the existing application. See [Phase 2 geometry](CDP_V3_GEOMETRY.md).
+No production worker or public API has been switched to them. Phases 3-10 and
+production migration remain pending; the extractor has not been replaced.
+
+Phase 2 is published to `ashishdat/CDP` on `feature/cdp-v3`. The following
+baseline records the origin of the existing Phase 1 commit.
 
 The destination repository is `ashneevai/cdp`. Its remote had no
 `feature/cdp-v3` branch, so this branch is based on `main`, commit
