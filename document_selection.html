@@ -1,0 +1,2602 @@
+<!doctype html><meta charset="utf-8"><title>Document Selection Report</title><style>body{font:15px system-ui;margin:28px}table{border-collapse:collapse}td,th{padding:8px;border:1px solid #bbb}pre{white-space:pre-wrap}</style><h1>Document Selection Report</h1><p>Different claim cohort and qualification method, not observed alternate-page selection for the same claim</p><p>No evidence that runtime selected a different page from baseline on any shared claim. Runtime choices follow recorded rules; independent correctness cannot be determined for either cohort without correct-page labels.</p><table><tr><th>Claim</th><th>Pages</th><th>Baseline page</th><th>Runtime candidates</th><th>Selected</th><th>Rejected/excluded</th><th>Reason</th></tr>
+<tr><td>Group A/M048DJJF.001</td><td>[1]</td><td>1</td><td>[1]</td><td>1</td><td>[]</td><td>ANCHOR_MATCH</td></tr>
+<tr><td>Group A/M048EJH6.004</td><td>[1]</td><td>NOT IN BASELINE</td><td>[1]</td><td>1</td><td>[]</td><td>ANCHOR_MATCH</td></tr>
+<tr><td>Group A/M048HJHO.044</td><td>[1]</td><td>NOT IN BASELINE</td><td>[1]</td><td>1</td><td>[]</td><td>REGISTRATION_CONFIDENCE</td></tr>
+<tr><td>Group A/M048JJJG.014</td><td>[1]</td><td>NOT IN BASELINE</td><td>[1]</td><td>1</td><td>[]</td><td>ANCHOR_MATCH</td></tr>
+<tr><td>Group B/M048DJJZ.001</td><td>[1, 2, 3]</td><td>NOT IN BASELINE</td><td>[2, 3]</td><td>2</td><td>[1, 3]</td><td>ANCHOR_MATCH</td></tr>
+<tr><td>Group B/M048JJJM.029</td><td>[1, 2, 3, 4, 5, 6, 7]</td><td>NOT IN BASELINE</td><td>[2, 3, 4, 5, 6, 7]</td><td>2</td><td>[1, 3, 4, 5, 6, 7]</td><td>ANCHOR_MATCH</td></tr>
+<tr><td>Group C/M048DJJR.001</td><td>[1]</td><td>NOT IN BASELINE</td><td>[1]</td><td>None</td><td>[1]</td><td>NO_TEMPLATE_ABOVE_THRESHOLD</td></tr>
+<tr><td>Group C/M048JJIO.001</td><td>[1]</td><td>NOT IN BASELINE</td><td>[1]</td><td>None</td><td>[1]</td><td>NO_TEMPLATE_ABOVE_THRESHOLD</td></tr>
+<tr><td>Group D/M048DJK5.001</td><td>[1, 2, 3, 4]</td><td>NOT IN BASELINE</td><td>[2, 3, 4]</td><td>None</td><td>[1, 2, 3, 4]</td><td>NO_TEMPLATE_ABOVE_THRESHOLD</td></tr>
+<tr><td>Group D/M048JJJO.001</td><td>[1, 2]</td><td>NOT IN BASELINE</td><td>[2]</td><td>None</td><td>[1, 2]</td><td>NO_TEMPLATE_ABOVE_THRESHOLD</td></tr>
+</table><h2>Page-level rules, confidence and evidence</h2>
+<details><summary>Group A/M048DJJF.001</summary><p>Selected page has required CMS1500 anchors at the configured threshold.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;SELECTED&quot;,
+    &quot;rule&quot;: &quot;ANCHOR_MATCH&quot;,
+    &quot;confidence&quot;: 1.0,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;CMS1500&quot;,
+      &quot;confidence&quot;: 1.0,
+      &quot;reason&quot;: &quot;Existing required form anchors matched&quot;,
+      &quot;status&quot;: &quot;PROCESSABLE&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [
+        &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+        &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+        &quot;PICA&quot;,
+        &quot;FORM 1500&quot;
+      ],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-01\\orchestrated-197f6e8ac00c40678e3857b4ae7a4b4e\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 1.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 4,
+            &quot;matched_anchor_phrases&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<details><summary>Group A/M048EJH6.004</summary><p>Selected page has required CMS1500 anchors at the configured threshold.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;SELECTED&quot;,
+    &quot;rule&quot;: &quot;ANCHOR_MATCH&quot;,
+    &quot;confidence&quot;: 1.0,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;CMS1500&quot;,
+      &quot;confidence&quot;: 1.0,
+      &quot;reason&quot;: &quot;Existing required form anchors matched&quot;,
+      &quot;status&quot;: &quot;PROCESSABLE&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [
+        &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+        &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+        &quot;PICA&quot;,
+        &quot;FORM 1500&quot;
+      ],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-02\\orchestrated-9116ee49fd8e4b4b8e5356f557a2f56e\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 1.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 4,
+            &quot;matched_anchor_phrases&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<details><summary>Group A/M048HJHO.044</summary><p>Selection used registration confidence despite Unknown page classification; structural fit is not independent form identity proof.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;SELECTED&quot;,
+    &quot;rule&quot;: &quot;REGISTRATION_CONFIDENCE&quot;,
+    &quot;confidence&quot;: 0.42471873957535317,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-03\\orchestrated-5f49049853d4478693f9cab44d61b3c8\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.5,
+            &quot;features&quot;: 0.4133962404639685,
+            &quot;registration&quot;: 0.42471873957535317
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;FEATURE_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 2,
+            &quot;matched_anchor_phrases&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;
+            ],
+            &quot;registration_gates_passed&quot;: true
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<details><summary>Group A/M048JJJG.014</summary><p>Selected page has required CMS1500 anchors at the configured threshold.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;SELECTED&quot;,
+    &quot;rule&quot;: &quot;ANCHOR_MATCH&quot;,
+    &quot;confidence&quot;: 0.75,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;CMS1500&quot;,
+      &quot;confidence&quot;: 0.75,
+      &quot;reason&quot;: &quot;Existing required form anchors matched&quot;,
+      &quot;status&quot;: &quot;PROCESSABLE&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [
+        &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+        &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+        &quot;PICA&quot;
+      ],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-04\\orchestrated-e3d42ddfcf414ead8b1a19763ef5132a\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.75
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 3,
+            &quot;matched_anchor_phrases&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<details><summary>Group B/M048DJJZ.001</summary><p>Selected page has required CMS1500 anchors at the configured threshold.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;EXCLUDED_BEFORE_CANDIDATES&quot;,
+    &quot;rule&quot;: &quot;DOCUMENT_SEPARATOR_EXCLUDED&quot;,
+    &quot;confidence&quot;: 1.0,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Separator&quot;,
+      &quot;confidence&quot;: 1.0,
+      &quot;reason&quot;: &quot;Explicit Document Separator marker&quot;,
+      &quot;status&quot;: &quot;NON_PROCESSABLE&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [
+        &quot;DOCUMENT SEPARATOR&quot;
+      ],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-05\\orchestrated-b0997dd6f44f4dbb859ab968498adf1e\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: []
+    }
+  },
+  {
+    &quot;page_number&quot;: 2,
+    &quot;disposition&quot;: &quot;SELECTED&quot;,
+    &quot;rule&quot;: &quot;ANCHOR_MATCH&quot;,
+    &quot;confidence&quot;: 0.75,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;CMS1500&quot;,
+      &quot;confidence&quot;: 0.75,
+      &quot;reason&quot;: &quot;Existing required form anchors matched&quot;,
+      &quot;status&quot;: &quot;PROCESSABLE&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [
+        &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+        &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+        &quot;PICA&quot;
+      ],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-05\\orchestrated-b0997dd6f44f4dbb859ab968498adf1e\\ApplicationResult.json#/outputs/classification/pages/1&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.75
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 3,
+            &quot;matched_anchor_phrases&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  },
+  {
+    &quot;page_number&quot;: 3,
+    &quot;disposition&quot;: &quot;NOT_SELECTED&quot;,
+    &quot;rule&quot;: &quot;NO_QUALIFYING_CANDIDATE_AT_SELECTED_TIER&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-05\\orchestrated-b0997dd6f44f4dbb859ab968498adf1e\\ApplicationResult.json#/outputs/classification/pages/2&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<details><summary>Group B/M048JJJM.029</summary><p>Selected page has required CMS1500 anchors at the configured threshold.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;EXCLUDED_BEFORE_CANDIDATES&quot;,
+    &quot;rule&quot;: &quot;DOCUMENT_SEPARATOR_EXCLUDED&quot;,
+    &quot;confidence&quot;: 1.0,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Separator&quot;,
+      &quot;confidence&quot;: 1.0,
+      &quot;reason&quot;: &quot;Explicit Document Separator marker&quot;,
+      &quot;status&quot;: &quot;NON_PROCESSABLE&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [
+        &quot;DOCUMENT SEPARATOR&quot;
+      ],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-06\\orchestrated-555802fdebde4235b517c9fe0c0711db\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: []
+    }
+  },
+  {
+    &quot;page_number&quot;: 2,
+    &quot;disposition&quot;: &quot;SELECTED&quot;,
+    &quot;rule&quot;: &quot;ANCHOR_MATCH&quot;,
+    &quot;confidence&quot;: 1.0,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;CMS1500&quot;,
+      &quot;confidence&quot;: 1.0,
+      &quot;reason&quot;: &quot;Existing required form anchors matched&quot;,
+      &quot;status&quot;: &quot;PROCESSABLE&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [
+        &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+        &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+        &quot;PICA&quot;,
+        &quot;FORM 1500&quot;
+      ],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-06\\orchestrated-555802fdebde4235b517c9fe0c0711db\\ApplicationResult.json#/outputs/classification/pages/1&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 1.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 4,
+            &quot;matched_anchor_phrases&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  },
+  {
+    &quot;page_number&quot;: 3,
+    &quot;disposition&quot;: &quot;NOT_SELECTED&quot;,
+    &quot;rule&quot;: &quot;NO_QUALIFYING_CANDIDATE_AT_SELECTED_TIER&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-06\\orchestrated-555802fdebde4235b517c9fe0c0711db\\ApplicationResult.json#/outputs/classification/pages/2&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  },
+  {
+    &quot;page_number&quot;: 4,
+    &quot;disposition&quot;: &quot;NOT_SELECTED&quot;,
+    &quot;rule&quot;: &quot;NO_QUALIFYING_CANDIDATE_AT_SELECTED_TIER&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-06\\orchestrated-555802fdebde4235b517c9fe0c0711db\\ApplicationResult.json#/outputs/classification/pages/3&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  },
+  {
+    &quot;page_number&quot;: 5,
+    &quot;disposition&quot;: &quot;NOT_SELECTED&quot;,
+    &quot;rule&quot;: &quot;NO_QUALIFYING_CANDIDATE_AT_SELECTED_TIER&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-06\\orchestrated-555802fdebde4235b517c9fe0c0711db\\ApplicationResult.json#/outputs/classification/pages/4&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  },
+  {
+    &quot;page_number&quot;: 6,
+    &quot;disposition&quot;: &quot;NOT_SELECTED&quot;,
+    &quot;rule&quot;: &quot;NO_QUALIFYING_CANDIDATE_AT_SELECTED_TIER&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-06\\orchestrated-555802fdebde4235b517c9fe0c0711db\\ApplicationResult.json#/outputs/classification/pages/5&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  },
+  {
+    &quot;page_number&quot;: 7,
+    &quot;disposition&quot;: &quot;NOT_SELECTED&quot;,
+    &quot;rule&quot;: &quot;NO_QUALIFYING_CANDIDATE_AT_SELECTED_TIER&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-06\\orchestrated-555802fdebde4235b517c9fe0c0711db\\ApplicationResult.json#/outputs/classification/pages/6&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;NOT_EVALUATED&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<details><summary>Group C/M048DJJR.001</summary><p>No candidate qualified; UB04 reference absence prevents complete template comparison. This does not prove no processable page exists.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;REJECTED&quot;,
+    &quot;rule&quot;: &quot;NO_TEMPLATE_ABOVE_THRESHOLD&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-07\\orchestrated-2fe9730165d5412c8bc67a390a5dba6d\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0,
+            &quot;features&quot;: 0.38015345340207707,
+            &quot;registration&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;FEATURE_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REGISTRATION_SCORE_BELOW_SELECTION_THRESHOLD&quot;,
+            &quot;REGISTRATION_GATES_NOT_PASSED&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: false
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<details><summary>Group C/M048JJIO.001</summary><p>No candidate qualified; UB04 reference absence prevents complete template comparison. This does not prove no processable page exists.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;REJECTED&quot;,
+    &quot;rule&quot;: &quot;NO_TEMPLATE_ABOVE_THRESHOLD&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-08\\orchestrated-c5891daa57c6439282c7b3e5c2857d53\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0,
+            &quot;features&quot;: 0.32985170969668987,
+            &quot;registration&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;FEATURE_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REGISTRATION_SCORE_BELOW_SELECTION_THRESHOLD&quot;,
+            &quot;REGISTRATION_GATES_NOT_PASSED&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: false
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.25
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 1,
+            &quot;matched_anchor_phrases&quot;: [
+              &quot;UB-04&quot;
+            ],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<details><summary>Group D/M048DJK5.001</summary><p>No candidate qualified; UB04 reference absence prevents complete template comparison. This does not prove no processable page exists.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;EXCLUDED_BEFORE_CANDIDATES&quot;,
+    &quot;rule&quot;: &quot;DOCUMENT_SEPARATOR_EXCLUDED&quot;,
+    &quot;confidence&quot;: 1.0,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Separator&quot;,
+      &quot;confidence&quot;: 1.0,
+      &quot;reason&quot;: &quot;Explicit Document Separator marker&quot;,
+      &quot;status&quot;: &quot;NON_PROCESSABLE&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [
+        &quot;DOCUMENT SEPARATOR&quot;
+      ],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-09\\orchestrated-1910a0e00e0e4202b9503e768ec14cdd\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: []
+    }
+  },
+  {
+    &quot;page_number&quot;: 2,
+    &quot;disposition&quot;: &quot;REJECTED&quot;,
+    &quot;rule&quot;: &quot;NO_TEMPLATE_ABOVE_THRESHOLD&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-09\\orchestrated-1910a0e00e0e4202b9503e768ec14cdd\\ApplicationResult.json#/outputs/classification/pages/1&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0,
+            &quot;features&quot;: 0.30629114134639207,
+            &quot;registration&quot;: 0.1222073140875036
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;FEATURE_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REGISTRATION_SCORE_BELOW_SELECTION_THRESHOLD&quot;,
+            &quot;REGISTRATION_GATES_NOT_PASSED&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: false
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        }
+      ]
+    }
+  },
+  {
+    &quot;page_number&quot;: 3,
+    &quot;disposition&quot;: &quot;REJECTED&quot;,
+    &quot;rule&quot;: &quot;NO_TEMPLATE_ABOVE_THRESHOLD&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-09\\orchestrated-1910a0e00e0e4202b9503e768ec14cdd\\ApplicationResult.json#/outputs/classification/pages/2&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0,
+            &quot;features&quot;: 0.001531565043254455,
+            &quot;registration&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;FEATURE_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REGISTRATION_SCORE_BELOW_SELECTION_THRESHOLD&quot;,
+            &quot;REGISTRATION_GATES_NOT_PASSED&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: false
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        }
+      ]
+    }
+  },
+  {
+    &quot;page_number&quot;: 4,
+    &quot;disposition&quot;: &quot;REJECTED&quot;,
+    &quot;rule&quot;: &quot;NO_TEMPLATE_ABOVE_THRESHOLD&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-09\\orchestrated-1910a0e00e0e4202b9503e768ec14cdd\\ApplicationResult.json#/outputs/classification/pages/3&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0,
+            &quot;features&quot;: 0.030233981686198796,
+            &quot;registration&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;FEATURE_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REGISTRATION_SCORE_BELOW_SELECTION_THRESHOLD&quot;,
+            &quot;REGISTRATION_GATES_NOT_PASSED&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: false
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<details><summary>Group D/M048JJJO.001</summary><p>No candidate qualified; UB04 reference absence prevents complete template comparison. This does not prove no processable page exists.</p><pre>[
+  {
+    &quot;page_number&quot;: 1,
+    &quot;disposition&quot;: &quot;EXCLUDED_BEFORE_CANDIDATES&quot;,
+    &quot;rule&quot;: &quot;DOCUMENT_SEPARATOR_EXCLUDED&quot;,
+    &quot;confidence&quot;: 1.0,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Separator&quot;,
+      &quot;confidence&quot;: 1.0,
+      &quot;reason&quot;: &quot;Explicit Document Separator marker&quot;,
+      &quot;status&quot;: &quot;NON_PROCESSABLE&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [
+        &quot;DOCUMENT SEPARATOR&quot;
+      ],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-10\\orchestrated-faffd64ea9fc4ba68425c03fb7d6287c\\ApplicationResult.json#/outputs/classification/pages/0&quot;,
+      &quot;candidate_assessments&quot;: []
+    }
+  },
+  {
+    &quot;page_number&quot;: 2,
+    &quot;disposition&quot;: &quot;REJECTED&quot;,
+    &quot;rule&quot;: &quot;NO_TEMPLATE_ABOVE_THRESHOLD&quot;,
+    &quot;confidence&quot;: null,
+    &quot;confidence_note&quot;: &quot;Null means no aggregate page-rejection confidence was recorded; per-template tier scores are provided. Scores are not calibrated probabilities.&quot;,
+    &quot;classification&quot;: {
+      &quot;page_type&quot;: &quot;Unknown&quot;,
+      &quot;confidence&quot;: 0.0,
+      &quot;reason&quot;: &quot;Insufficient evidence for any supported document class&quot;,
+      &quot;status&quot;: &quot;REVIEW_REQUIRED&quot;
+    },
+    &quot;evidence&quot;: {
+      &quot;rules_matched&quot;: [],
+      &quot;source_reference&quot;: &quot;runs\\application-validation-10-01\\document-10\\orchestrated-faffd64ea9fc4ba68425c03fb7d6287c\\ApplicationResult.json#/outputs/classification/pages/1&quot;,
+      &quot;candidate_assessments&quot;: [
+        {
+          &quot;template_id&quot;: &quot;cms1500&quot;,
+          &quot;template_version&quot;: &quot;02-12&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0,
+            &quot;features&quot;: 0.3098725128280284,
+            &quot;registration&quot;: 0.24932144960078956
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;FEATURE_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REGISTRATION_SCORE_BELOW_SELECTION_THRESHOLD&quot;,
+            &quot;REGISTRATION_GATES_NOT_PASSED&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;,
+              &quot;FORM 1500&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;HEALTH INSURANCE CLAIM FORM&quot;,
+              &quot;APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE&quot;,
+              &quot;PICA&quot;
+            ],
+            &quot;registration_gates_passed&quot;: false
+          },
+          &quot;recorded_reasons&quot;: [],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        },
+        {
+          &quot;template_id&quot;: &quot;ub04&quot;,
+          &quot;template_version&quot;: &quot;2014&quot;,
+          &quot;confidence_by_tier&quot;: {
+            &quot;anchors&quot;: 0.0
+          },
+          &quot;thresholds&quot;: {
+            &quot;anchors&quot;: 0.75,
+            &quot;features&quot;: 0.75,
+            &quot;registration&quot;: 0.35
+          },
+          &quot;rule_assessment&quot;: [
+            &quot;REQUIRED_ANCHORS_MISSING&quot;,
+            &quot;ANCHOR_SCORE_BELOW_THRESHOLD&quot;,
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;assessment_basis&quot;: &quot;Derived comparison of recorded scores/diagnostics to recorded thresholds, not new execution&quot;,
+          &quot;evidence&quot;: {
+            &quot;anchor_count&quot;: 4,
+            &quot;matched_anchor_count&quot;: 0,
+            &quot;matched_anchor_phrases&quot;: [],
+            &quot;expected_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;,
+              &quot;UB-04&quot;,
+              &quot;CMS-1450&quot;
+            ],
+            &quot;missing_required_anchors&quot;: [
+              &quot;TYPE OF BILL&quot;,
+              &quot;STATEMENT COVERS PERIOD&quot;
+            ],
+            &quot;registration_gates_passed&quot;: null
+          },
+          &quot;recorded_reasons&quot;: [
+            &quot;REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE&quot;
+          ],
+          &quot;later_tiers&quot;: &quot;SEE_RECORDED_SCORES&quot;
+        }
+      ]
+    }
+  }
+]</pre></details>
+<h2>All baseline selections</h2><pre>[
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.001&quot;,
+    &quot;document_id&quot;: &quot;27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: true
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.002&quot;,
+    &quot;document_id&quot;: &quot;61b8c05f31a4f3d8c538466cb136a4dc8b210e6d42cc8d8413faa5a5a5955474&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.003&quot;,
+    &quot;document_id&quot;: &quot;9b6e340577fe724181bcd9e0147b46f516c41613d64056df03d22edc5bf97cad&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.004&quot;,
+    &quot;document_id&quot;: &quot;e739d2f2e2400ba0bd3cdd29f07ab672626a40e4fce3dd9a706c6701741ccefb&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.005&quot;,
+    &quot;document_id&quot;: &quot;58533794cbfd0620dfe41c25269aa17a6eed4bf0ea56777ea7396f18c580f897&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.006&quot;,
+    &quot;document_id&quot;: &quot;4f0e20d42276f30475e94d483e9a87c8e8440e5a14761e90d6dde5397f07b786&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.007&quot;,
+    &quot;document_id&quot;: &quot;5e35f1e7db43af0e13d8fd8365eb0555d95eaf5f05a8c8814a70909077f3b0fa&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.008&quot;,
+    &quot;document_id&quot;: &quot;4ba617871658c0f8fdd4868a8a8e8a2ec170408eece0a04a8f7fb0aaa54a60dc&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.009&quot;,
+    &quot;document_id&quot;: &quot;64a13a261110024d9dacad0fa36709ef40bdf149fe513f14bcdabbc9d68381ad&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.010&quot;,
+    &quot;document_id&quot;: &quot;babba6bb08a5228b7c2747a4e4294e2ec27828c5dbf96aeed9de49564b6011d4&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.011&quot;,
+    &quot;document_id&quot;: &quot;dcf50f4ce32b17b0bb860c5d4bef0eba3121bfcfd6c356b4635a85f3c4436e5a&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.012&quot;,
+    &quot;document_id&quot;: &quot;a5d43ac7e594ce82d5f2c9cd3da536512e4a9c314b8ae47a59d24f2782450e37&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.013&quot;,
+    &quot;document_id&quot;: &quot;b3a10696a5f973d028289d644d29640aa9383e828cb44b5d3cf6d6ada069a00f&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.014&quot;,
+    &quot;document_id&quot;: &quot;3c60f74bf80ded209fd3828a0dacb9999ddeb48db4d9b3066126e60f7a21d0f7&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJF.015&quot;,
+    &quot;document_id&quot;: &quot;0bde238980bbaf481f36923734c8d2bb54514f867b61c0f68f812b3d8553f5c9&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.001&quot;,
+    &quot;document_id&quot;: &quot;3d24ceba7b8d8fc41ca391e05062ee48d617439996e5cd832adcf8772de83706&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.002&quot;,
+    &quot;document_id&quot;: &quot;d048d9e17284b6d7a88c20e3cbf51ae0978c3c66a7cd4b5a0d9b33622294ef2b&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.003&quot;,
+    &quot;document_id&quot;: &quot;cfe02612b2f56e052617adc6dd96a1b9eedb348ab97b73a5c37e30a7ff65b4de&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.004&quot;,
+    &quot;document_id&quot;: &quot;2c9f3353e768d248f212407c3bafa1a642792b1f066e582511ca0d5ced262bd7&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.005&quot;,
+    &quot;document_id&quot;: &quot;757161becb7cb5b2da974c31e57ec51aaa26e5542992726d1cbdf05cc6b41bd3&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.006&quot;,
+    &quot;document_id&quot;: &quot;a7d946999060cc6d7259f3e1b6f055af129be7f8f59dbd2a23c47d20ff2a885e&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.007&quot;,
+    &quot;document_id&quot;: &quot;27f79ad319b1413fe23c1625cec48d5d1fda42444cda241fbd242912f35bed96&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.008&quot;,
+    &quot;document_id&quot;: &quot;353b21d4fc875f43f4739092bf47f59fbf4c9a4b36c35e903ade55cf2058d7c9&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.009&quot;,
+    &quot;document_id&quot;: &quot;1fb87dc890ea652d6cdfe3f8856223a2ea3fcf22bbc29fe390ee33e47ce076b3&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.010&quot;,
+    &quot;document_id&quot;: &quot;75860d673f6858ba83d8776d866a8ca2ef1b46dede14b24b6e088b837a1394e6&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.011&quot;,
+    &quot;document_id&quot;: &quot;580650dab9d142ff28dd09a6eb5e46cc3bb9215b79b4c38a3107c1212d50c8a4&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.012&quot;,
+    &quot;document_id&quot;: &quot;8c62e7c4af70595ce951b433e75317f6d8d2d73d5820759485a81f61b3ab53c4&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.013&quot;,
+    &quot;document_id&quot;: &quot;0f418d8e612a6caed0836f870589d8173b33407d2f83d153c6a30edf25866162&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.014&quot;,
+    &quot;document_id&quot;: &quot;a5053dfe7df559c4d58445c333d93d7ae1928a0df0150940a48f5cad33ac629e&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.015&quot;,
+    &quot;document_id&quot;: &quot;580005f7cb6683082ed299809bc389c7661c3c6162eb966659d33db95e9655a2&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.016&quot;,
+    &quot;document_id&quot;: &quot;c8f03cf7c6338df9797029894de7794382a6a64edf195c5371ba93651fac7839&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.017&quot;,
+    &quot;document_id&quot;: &quot;6f486619042e498c762b758ce8aa7a342c8dd3eac2bc333189ab217cf996f101&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.018&quot;,
+    &quot;document_id&quot;: &quot;b71dfa8ec80ab7621c4e3e2a8592f370a5c5f93e80adf1cc120ef11cae66fe36&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.019&quot;,
+    &quot;document_id&quot;: &quot;6c44a43c306951ffbfef9ce22df9d536f7b980f22134eb6a9be7888294dda36d&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.020&quot;,
+    &quot;document_id&quot;: &quot;b4d148e40c8961d69fcc41a469eb3efb4337a657abdc2e79d9e0e58c9baa6a09&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.021&quot;,
+    &quot;document_id&quot;: &quot;8726f63a5eae9278e03699263d8690be5214ee115212979848c61a35b725ac16&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.022&quot;,
+    &quot;document_id&quot;: &quot;388b4295df64dc42137f0482b5a702c33988f72deb1317dea61f952990c473f6&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.023&quot;,
+    &quot;document_id&quot;: &quot;23e63866cf53860de734f0763de4f57ee59f3fd18ab815a1e9b56c36364d17e7&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.024&quot;,
+    &quot;document_id&quot;: &quot;73b5cef3b4678b553dd8e4611c3868339f17a88d961b1261d7d6e7eb727ebfcb&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.025&quot;,
+    &quot;document_id&quot;: &quot;22c2da9e11c3f16ad544ecc45e298393ae55af4c5a4970ce971e5ebeaa1c64e7&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.026&quot;,
+    &quot;document_id&quot;: &quot;3c3d8b95a6b1af42f8b53b8d438a56617fc5d2164bba01f039b4321c04b8961a&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.027&quot;,
+    &quot;document_id&quot;: &quot;a71f120e1a3d590eb7b1f0b5ba9e013c8040b62ed6007226345882ecef3b8b81&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.028&quot;,
+    &quot;document_id&quot;: &quot;6c733435a46040f0e84cd99e5cdc014c364350879449deef80704ce5656d4a0e&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.029&quot;,
+    &quot;document_id&quot;: &quot;128133c12007dd400bc77b5bbfed68aaa440ad4bc5dfbf7f003fce3e5736badd&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.030&quot;,
+    &quot;document_id&quot;: &quot;766aad7b3892cf1c52d97f386587ef2b50cd239efeb61b71f5055dadbd59e574&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.031&quot;,
+    &quot;document_id&quot;: &quot;e8266747e70a38f587ef7bdf03cb5e209ad743d5b5defc1f9abdd7c414c953ef&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.032&quot;,
+    &quot;document_id&quot;: &quot;c9c514afa9ce7a923338e955a3847f209bd213d906541adba3cb90236dd7198a&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.033&quot;,
+    &quot;document_id&quot;: &quot;db76c4f01e0e0cb7a6e320631f4e47641e96fb2f69614cd6201cb8629bfbe2e0&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.034&quot;,
+    &quot;document_id&quot;: &quot;765594b887c8b983be8c36966e7242c6ca7550511e42d7bc0ca9a051790dcbb1&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  },
+  {
+    &quot;document&quot;: &quot;Group A/M048DJJM.035&quot;,
+    &quot;document_id&quot;: &quot;575329812691119361d90ec523cd8673aea347a3f32022bebd175cde4b7de13d&quot;,
+    &quot;pages&quot;: [
+      1
+    ],
+    &quot;candidate_pages&quot;: [
+      1
+    ],
+    &quot;selected_page&quot;: 1,
+    &quot;rejected_pages&quot;: [],
+    &quot;reason&quot;: &quot;Single-page Group A corpus selection; CMS1500 supplied, no runtime classification&quot;,
+    &quot;qualification_evidence&quot;: &quot;Baseline metadata: first 50 sorted Group A single-page TIFFs; not independent page ground truth&quot;,
+    &quot;selection_confidence&quot;: null,
+    &quot;application_present&quot;: false
+  }
+]</pre><h2>Interpretation limits</h2><ul><li>Rejected pages includes excluded separators and non-selected candidates; dispositions distinguish these cases.</li><li>Unknown classification does not exclude a page in the existing selector; only separator text is excluded before candidates.</li><li>An anchor-tier winner ends selection; later tiers for other candidates are unexecuted, not proven failures.</li><li>UB04 reference is unavailable in fallback records; do not relabel those pages as definitively incorrect.</li><li>Raw OCR/patient text is not included; evidence references point to original local artifacts.</li></ul>
