@@ -2,9 +2,10 @@
 
 ## Status and baseline
 
-Phase 1 foundation and the Phase 2 source-only geometry engine are implemented
-beside the existing application. See [Phase 2 geometry](CDP_V3_GEOMETRY.md).
-No production worker or public API has been switched to them. Phases 3-10 and
+Phase 1 foundation, Phase 2 source-only geometry, and Phase 3 OCR routing are
+implemented beside the existing application. See [Phase 2 geometry](CDP_V3_GEOMETRY.md)
+and [Phase 3 OCR routing](CDP_V3_OCR_ROUTER.md).
+No production worker or public API has been switched to them. Phases 4-10 and
 production migration remain pending; the extractor has not been replaced.
 
 Phase 2 is published to `ashishdat/CDP` on `feature/cdp-v3`. The following
