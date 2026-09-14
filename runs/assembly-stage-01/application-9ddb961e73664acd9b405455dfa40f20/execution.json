@@ -1,0 +1,298 @@
+{
+  "commit_sha": "0de417078ca36cfd442faac1c7373eb943774f06",
+  "working_tree_note": "Execution included existing uncommitted classification changes; HEAD alone does not reproduce this run.",
+  "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+  "source": {
+    "archive": "C:\\Users\\ashish.singh\\Downloads\\key docs\\Hackathon - 1000 Claims.zip",
+    "entry": "Group A/M048DJJF.001"
+  },
+  "status": "FAILED",
+  "first_failing_stage": "registration",
+  "stages": [
+    {
+      "stage": "load",
+      "status": "SUCCESS",
+      "latency_ms": 1351.9120999844745,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "SUCCESS"
+      },
+      "warnings": [],
+      "errors": [],
+      "telemetry_reference": "document.json",
+      "coverage": null,
+      "parity": "NOT_MEASURED"
+    },
+    {
+      "stage": "classification",
+      "status": "SUCCESS",
+      "latency_ms": 3313.7458999990486,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "SUCCESS"
+      },
+      "warnings": [],
+      "errors": [],
+      "telemetry_reference": "document.json",
+      "coverage": null,
+      "parity": "NOT_MEASURED"
+    },
+    {
+      "stage": "template_selection",
+      "status": "SUCCESS",
+      "latency_ms": 1.22969999210909,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "SUCCESS"
+      },
+      "warnings": [],
+      "errors": [],
+      "telemetry_reference": "document.json",
+      "coverage": null,
+      "parity": "NOT_MEASURED"
+    },
+    {
+      "stage": "registration",
+      "status": "FAILED",
+      "latency_ms": 7501.87250005547,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "FAILED",
+        "accepted": false,
+        "reason": "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+        "page_number": 1,
+        "evidence": {
+          "template_id": null,
+          "template_version": null,
+          "candidate_family": null,
+          "compatibility_policy_version": null,
+          "compatibility_status": null,
+          "compatibility_score": null,
+          "algorithm": "sift_flann_ransac_homography",
+          "keypoints_source": 3000,
+          "keypoints_template": 3000,
+          "candidate_match_count": 3000,
+          "good_matches": 85,
+          "inlier_count": 8,
+          "inlier_ratio": 0.09411764705882353,
+          "reprojection_error": 0.0,
+          "coverage_ratio": 0.02490825893714739,
+          "template_coverage": 0.10898271218144139,
+          "scale_change": 0.22851468362254168,
+          "rotation_degrees": 85.54461633892622,
+          "perspective_distortion": 3.1922702681243624,
+          "corner_validity": false,
+          "homography_quality": 0.07896808411476915,
+          "alignment_confidence": 0.07896808411476915,
+          "transform_matrix": [
+            [
+              0.03700549923920989,
+              -0.2509708664698806,
+              186.2716102777537
+            ],
+            [
+              0.4749273631473764,
+              -1.8098383371431137,
+              1300.5643048643299
+            ],
+            [
+              0.00037641201115144735,
+              -0.00139320681799571,
+              1.0
+            ]
+          ],
+          "accepted": false,
+          "rejection_reason": "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+          "processing_time_ms": 7210.827599978074
+        },
+        "transform_matrix": null,
+        "template_id": "cms1500",
+        "template_version": "02-12",
+        "compatibility": {
+          "policy_version": "template-compatibility-v1",
+          "family": "CMS1500",
+          "family_compatibility": 1.0,
+          "aspect_ratio_similarity": 0.999096657633243,
+          "line_structure_similarity": 0.7090790595076955,
+          "edge_projection_similarity": 0.11525222275141142,
+          "anchor_visibility": 0.6617946750126932,
+          "normalized_layout_similarity": 0.7500491460441516,
+          "form_fingerprint_similarity": 0.4643905305624186,
+          "compatibility_score": 0.618658576919383,
+          "status": "PARTIALLY_COMPATIBLE",
+          "reason_codes": [
+            "FORM_STRUCTURE_PARTIAL"
+          ]
+        },
+        "method": "sift_flann_ransac_homography"
+      },
+      "warnings": [],
+      "errors": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+        }
+      ],
+      "telemetry_reference": "registration_trace.json",
+      "coverage": 0.02490825893714739,
+      "parity": "NOT_MEASURED"
+    },
+    {
+      "stage": "geometry",
+      "status": "SKIPPED",
+      "latency_ms": null,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "SKIPPED"
+      },
+      "warnings": [],
+      "errors": [],
+      "telemetry_reference": "document.json",
+      "coverage": null,
+      "parity": "NOT_MEASURED"
+    },
+    {
+      "stage": "ocr",
+      "status": "SKIPPED",
+      "latency_ms": null,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "SKIPPED"
+      },
+      "warnings": [],
+      "errors": [],
+      "telemetry_reference": "document.json",
+      "coverage": null,
+      "parity": "NOT_MEASURED"
+    },
+    {
+      "stage": "ranking",
+      "status": "SKIPPED",
+      "latency_ms": null,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "SKIPPED"
+      },
+      "warnings": [],
+      "errors": [],
+      "telemetry_reference": "document.json",
+      "coverage": null,
+      "parity": "NOT_MEASURED"
+    },
+    {
+      "stage": "validators",
+      "status": "SKIPPED",
+      "latency_ms": null,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "SKIPPED"
+      },
+      "warnings": [],
+      "errors": [],
+      "telemetry_reference": "document.json",
+      "coverage": null,
+      "parity": "NOT_MEASURED"
+    },
+    {
+      "stage": "decision",
+      "status": "SKIPPED",
+      "latency_ms": null,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "SKIPPED"
+      },
+      "warnings": [],
+      "errors": [],
+      "telemetry_reference": "document.json",
+      "coverage": null,
+      "parity": "NOT_MEASURED"
+    },
+    {
+      "stage": "evidence",
+      "status": "SKIPPED",
+      "latency_ms": null,
+      "inputs": {
+        "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+        "page_count": 1
+      },
+      "outputs": {
+        "status": "SKIPPED"
+      },
+      "warnings": [],
+      "errors": [],
+      "telemetry_reference": "document.json",
+      "coverage": null,
+      "parity": "NOT_MEASURED"
+    }
+  ],
+  "coverage": {
+    "registration_hull": 0.02490825893714739,
+    "pipeline": "NOT_MEASURED"
+  },
+  "parity": {
+    "status": "NOT_MEASURED",
+    "reason": "No V2 comparison executed"
+  },
+  "quality_gates": {
+    "compile": "PASS",
+    "unit_tests": "21 passed, 1 skipped",
+    "architecture_integration_tests": "31 passed",
+    "lint": "FAIL: pre-existing app.py:162 I001 import order",
+    "static_analysis": "UNAVAILABLE: mypy not installed",
+    "runtime_coverage": "NOT_MEASURED",
+    "runtime_parity": "NOT_MEASURED",
+    "repository_safety": "No application code changes; existing uncommitted work preserved",
+    "telemetry": "RegistrationTrace persisted"
+  },
+  "source_sha256": {
+    "app.py": "267287a9e080d3ee143ff75a66ac5127481f1e044ea89a5b21b28d99c34428c6",
+    "workers\\page_detection\\anchor_matching.py": "cc167485395e29d085616d0197e6fa0829d5ef1c3bfe9f7742d078c7294c0aa2",
+    "workers\\page_detection\\consumer.py": "08bc093a7b5dde93e223158dba8efbba279326148eab8d81a79756fb473a327b",
+    "workers\\page_detection\\crop_safety.py": "44ad5302544aeb054b58922a41707517eca8e3b5772ba4e45a89e354e9433750",
+    "workers\\page_detection\\grid_signature.py": "657f4fa74a041a40994621b836a399f397be96cd0b4ed21495f047f75ce8bded",
+    "workers\\page_detection\\local_crop_alignment.py": "e2a0eaa76b2adcc3e93395256d79728b642598235fc8398f581e63f3fda3e682",
+    "workers\\page_detection\\mobilenet_classifier.py": "9e4c7fb56791161beb3014172e18066ad7f834b049917ee32a9285afac22d56d",
+    "workers\\page_detection\\page_classification.py": "585a1683aa1510dca5bb5d901379d2a3365340a5949de381c6c39c56def711c2",
+    "workers\\page_detection\\registration_coverage.py": "1f2b1ce7ef946759b4edb10e3cff2f40311d2c7fd758413a6a07db51092ad65d",
+    "workers\\page_detection\\registration_diagnostics.py": "b48662a336cb114c8d469ef02e52aa9c0207aab854664b0d2a46182750a254b3",
+    "workers\\page_detection\\registration_preprocessing.py": "76919ffa815e20f40bd4bdcaf145c16a213950c8d04a6da1ba42b042baf01fc2",
+    "workers\\page_detection\\registration_safety.py": "3bb8c2287c0b9883af4525ab63d1c2a5151bed4bbddcaad239dea96fcc4e588a",
+    "workers\\page_detection\\registration_telemetry.py": "be47869666fc59c2b12cc310a4558ca068868184617d83d1d21b0e5ef6ae0887",
+    "workers\\page_detection\\router.py": "4c0438e86e9a9d9eebca009e018878e82e502feb7d0b7fb05f1d3150f2087726",
+    "workers\\page_detection\\routing_input.py": "b642aff3f8a0f33226c7b071edfa30b4ef810c79c844fe629605567eca32bea5",
+    "workers\\page_detection\\template_alignment.py": "682304a4c9a56d9023d0bd0493208a5e7fbdf421888016eabdc82c01909ae78d",
+    "workers\\page_detection\\template_compatibility.py": "65d7e9c68fb88f2cfbc296e5d56971834788f597cacfde30e8e457adabe9d38c",
+    "workers\\page_detection\\template_discovery.py": "1249d4f88d26a2496283d6f7f9c4341b290372714a7f12149195cc187e92be52",
+    "workers\\page_detection\\template_selector.py": "a7a548854ebfbe811c5f0e9e1a002a6b05d56d668f26a580f8b97817247f69be",
+    "workers\\page_detection\\text_extraction.py": "c9c7363acd654373a358b43482161fb00a02f62f34ed487ed8108fd2d41924f7",
+    "workers\\page_detection\\__init__.py": "87b02486a74df86abe1f879f36ac9c4c4e008f52ca14d1c2f560b698212f6759"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "stage": "registration",
+  "root_cause": "Existing registration rejected an unsafe estimated transform. The cause of incorrect correspondences is not established by this execution; no missing integration was observed at this stage.",
+  "first_final_safety_failure": {
+    "check": "inlier_ratio",
+    "actual": 0.09411764705882353,
+    "minimum": 0.12
+  },
+  "evidence": {
+    "template_id": null,
+    "template_version": null,
+    "candidate_family": null,
+    "compatibility_policy_version": null,
+    "compatibility_status": null,
+    "compatibility_score": null,
+    "algorithm": "sift_flann_ransac_homography",
+    "keypoints_source": 3000,
+    "keypoints_template": 3000,
+    "candidate_match_count": 3000,
+    "good_matches": 85,
+    "inlier_count": 8,
+    "inlier_ratio": 0.09411764705882353,
+    "reprojection_error": 0.0,
+    "coverage_ratio": 0.02490825893714739,
+    "template_coverage": 0.10898271218144139,
+    "scale_change": 0.22851468362254168,
+    "rotation_degrees": 85.54461633892622,
+    "perspective_distortion": 3.1922702681243624,
+    "corner_validity": false,
+    "homography_quality": 0.07896808411476915,
+    "alignment_confidence": 0.07896808411476915,
+    "transform_matrix": [
+      [
+        0.03700549923920989,
+        -0.2509708664698806,
+        186.2716102777537
+      ],
+      [
+        0.4749273631473764,
+        -1.8098383371431137,
+        1300.5643048643299
+      ],
+      [
+        0.00037641201115144735,
+        -0.00139320681799571,
+        1.0
+      ]
+    ],
+    "accepted": false,
+    "rejection_reason": "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+    "processing_time_ms": 7210.827599978074
+  },
+  "telemetry": "registration_trace.json",
+  "recommended_next_fix": "No code fix justified yet. Review the recorded correspondences and source/reference compatibility before choosing a single registration fix. Do not relax safety gates.",
+  "code_fix_applied": false,
+  "retry_count": 0,
+  "downstream_stages": "SKIPPED"
+}
