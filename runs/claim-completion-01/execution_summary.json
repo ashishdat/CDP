@@ -1,0 +1,23 @@
+{
+  "status": "COMPLETED",
+  "claim_status": "FIELD_REVIEW_REQUIRED",
+  "review_required": true,
+  "missing_fields": [
+    "insured_id_number",
+    "patient_dob"
+  ],
+  "critical_field_count": 6,
+  "decision_reason": [
+    "BLOCKING_FIELDS_UNRESOLVED"
+  ],
+  "field_count": 25,
+  "input_sha256": "36aa68b2049ebe098cadf32eda0852c1b7b4c04f37900f9cfaba27b09a926db9",
+  "artifacts": {
+    "DecisionResult.json": "336ecdf6bd41619efcc4b6531b93ddbb8c4173e16043e971224b727c0ea2caf9",
+    "FinalClaim.json": "ab41b3852e0c73899c68c90ec3f692f4272d5a730376dacf1944760e76465b3f",
+    "completion_telemetry.json": "48a6966b2068f513696957ebf5e9208050da9a4b9b2138f0585770df9de704bd"
+  },
+  "tests": "5 passed; compile passed",
+  "upstream_executed": false,
+  "raw_claim_artifacts": "Local only; not committed"
+}

@@ -1,0 +1,18 @@
+{
+  "input_sha256": "36aa68b2049ebe098cadf32eda0852c1b7b4c04f37900f9cfaba27b09a926db9",
+  "events": [
+    {
+      "stage": "decision",
+      "status": "SUCCESS",
+      "latency_ms": 761.0068999929354
+    },
+    {
+      "stage": "evidence",
+      "status": "SUCCESS",
+      "latency_ms": 19.67000000877306
+    }
+  ],
+  "upstream_executed": false,
+  "retries": 0,
+  "input_unchanged": true
+}
