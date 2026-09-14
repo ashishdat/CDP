@@ -78,7 +78,12 @@ def _crop_sha256(image, bbox: tuple[int, int, int, int]) -> str | None:
 
 
 def _reconcile_secondary_name(primary: str, secondary: str) -> str:
-    """Drop one isolated OCR artifact only when primary evidence proves it extraneous."""
+    """Prefer spaced secondary text when it matches the glued primary compact form.
+
+    Drops one isolated OCR artifact (a single-letter token, or one surplus
+    character inside a token) only when the primary compact form proves it
+    extraneous. Never invents characters that were not observed.
+    """
     if _compact_alnum(primary) == _compact_alnum(secondary):
         return secondary
     parts = secondary.split()
@@ -87,25 +92,38 @@ def _reconcile_secondary_name(primary: str, secondary: str) -> str:
             candidate = " ".join(parts[:index] + parts[index + 1 :])
             if _compact_alnum(primary) == _compact_alnum(candidate):
                 return candidate
+    target = _compact_alnum(primary)
+    if not target:
+        return secondary
+    for index, part in enumerate(parts):
+        if len(part) < 2:
+            continue
+        for offset in range(len(part)):
+            trimmed = part[:offset] + part[offset + 1 :]
+            candidate_parts = [item for item in parts[:index] + [trimmed] + parts[index + 1 :] if item]
+            candidate = " ".join(candidate_parts)
+            if _compact_alnum(candidate) == target:
+                return candidate
     return secondary
 
 
 def _clean_secondary_name(value: str, *, split_md: bool = True) -> str:
-    """Remove a duplicated OCR initial only when its following word agrees."""
+    """Normalize secondary name OCR and drop single-glyph debris.
+
+    Full-page OCR often emits glued tokens (``PRIYABROWNMD``). Regional OCR is
+    spaced but inserts isolated letters (``PRIYA E BROWN I MD``). Dropping
+    single-character tokens and peeling a glued trailing credential lets the
+    regional recovery path become deterministically valid without relaxing
+    PERSON_OR_ORGANIZATION shape rules.
+    """
     value = re.sub(r"[.:'\u00b7\uff1a\ufffd]+", " ", value)
     value = value.upper()
     if split_md:
-        value = re.sub(r"(?<=[A-Z])MD$", " MD", value)
-    parts = value.split()
-    return " ".join(
-        part
-        for index, part in enumerate(parts)
-        if not (
-            len(part) == 1
-            and index + 1 < len(parts)
-            and parts[index + 1].upper().startswith(part.upper())
-        )
-    )
+        value = re.sub(r"(?<=[A-Z])(MD|DO|NP|PA)$", r" \1", value)
+    for suffix in ("HOSPITAL", "CENTER", "CLINIC", "SYSTEM", "HEALTH", "MEDICAL", "GROUP"):
+        value = re.sub(rf"(?<=[A-Z]){suffix}$", f" {suffix}", value)
+    parts = [part for part in value.split() if len(part) > 1]
+    return " ".join(parts)
 
 
 def _valid_regional_organization(value: str) -> bool:
