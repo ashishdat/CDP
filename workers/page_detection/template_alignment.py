@@ -12,6 +12,15 @@ from PIL import Image
 
 from packages.domain.registration import RegistrationEvidence
 from workers.page_detection import registration_telemetry as telemetry
+from workers.page_detection.registration_coverage import (
+    capture_inliers,
+    capture_keypoints,
+    capture_matches,
+)
+from workers.page_detection.registration_coverage import (
+    observe as observe_coverage,
+)
+from workers.page_detection.registration_safety import record as record_safety
 from workers.page_detection.template_compatibility import (
     TemplateCompatibilityEvidence,
     TemplateCompatibilityStatus,
@@ -98,6 +107,7 @@ def _cheap_alignment(
     ch, cw = candidate.shape
     rh, rw = reference.shape
     aspect_delta = abs((cw / ch) - (rw / rh)) / (rw / rh)
+    record_safety("Aspect ratio", aspect_delta, {"max": policy.cheap_max_aspect_delta}, not aspect_delta > policy.cheap_max_aspect_delta, inputs={"source_dimensions": [cw, ch], "reference_dimensions": [rw, rh]})
     if aspect_delta > policy.cheap_max_aspect_delta:
         return _failure(
             "edge_phase_correlation", "aspect_ratio_mismatch", (perf_counter() - started) * 1000
@@ -115,6 +125,7 @@ def _cheap_alignment(
     confidence = float(np.clip(response, 0.0, 1.0))
     telemetry.stage("Acceptance", algorithm="edge_phase_correlation", threshold=policy.cheap_min_confidence)
     telemetry.measurements(confidence=confidence)
+    record_safety("Cheap alignment confidence", confidence, {"min": policy.cheap_min_confidence}, not confidence < policy.cheap_min_confidence)
     if confidence < policy.cheap_min_confidence:
         return _failure(
             "edge_phase_correlation",
@@ -155,9 +166,16 @@ def _sift_alignment(
 ) -> AlignmentResult:
     started = perf_counter()
     telemetry.stage("Feature Matching", algorithm="sift_flann_ransac_homography")
+    observe_coverage("Working image", candidate, reference, expected_feature_count=policy.sift_features, preprocessing="PIL grayscale conversion; no crop or resize in SIFT path")
     sift = cv2.SIFT_create(nfeatures=policy.sift_features)
     kp_source, desc_source = sift.detectAndCompute(candidate, None)
     kp_template, desc_template = sift.detectAndCompute(reference, None)
+    observe_coverage("Detected", candidate, reference, detected_feature_count=len(kp_source),
+                     template_feature_count=len(kp_template),
+                     source_descriptor_shape=list(desc_source.shape) if desc_source is not None else None,
+                     template_descriptor_shape=list(desc_template.shape) if desc_template is not None else None,
+                     reason="No descriptors" if desc_source is None or desc_template is None else "Descriptors available")
+    capture_keypoints(kp_source, desc_source, kp_template, desc_template)
     telemetry.measurements(feature_count=len(kp_source))
     common = {
         "keypoints_source": len(kp_source),
@@ -177,6 +195,14 @@ def _sift_alignment(
         for pair in pairs
         if len(pair) == 2 and pair[0].distance < policy.lowe_ratio * pair[1].distance
     ]
+    observe_coverage("Matched and filtered", candidate, reference,
+                     candidate_feature_count=len(pairs), matched_feature_count=len(pairs), filtered_match_count=len(good),
+                     unique_template_features=len({match.trainIdx for match in good}),
+                     reductions={"fewer_than_two_neighbors": sum(len(pair) != 2 for pair in pairs),
+                                 "ratio_test_rejection": sum(len(pair) == 2 and not pair[0].distance < policy.lowe_ratio * pair[1].distance for pair in pairs),
+                                 "distance_rejection": "NOT_APPLIED", "spatial_rejection": "NOT_APPLIED"},
+                     ratio_threshold=policy.lowe_ratio)
+    capture_matches(pairs, good)
     common.update(candidate_match_count=len(pairs), good_matches=len(good))
     if len(good) < policy.min_good_matches:
         return _failure(
@@ -187,6 +213,10 @@ def _sift_alignment(
         )
     src = np.float32([kp_source[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     dst = np.float32([kp_template[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    observe_coverage("RANSAC inputs ready", candidate, reference,
+                     ransac_inputs={"source_points": src.tolist(), "template_points": dst.tolist(),
+                                    "reprojection_threshold": policy.ransac_reprojection_threshold},
+                     reason="Inputs captured before existing homography call; no filtering added")
     telemetry.stage("Homography", matched_features=len(good))
     matrix, mask = cv2.findHomography(src, dst, cv2.RANSAC, policy.ransac_reprojection_threshold)
     if matrix is None or mask is None:
@@ -197,6 +227,7 @@ def _sift_alignment(
             **common,
         )
     inliers = mask.ravel().astype(bool)
+    capture_inliers(good, inliers, kp_source, kp_template)
     inlier_count = int(inliers.sum())
     inlier_ratio = inlier_count / len(good)
     telemetry.stage("Transform", homography_inliers=inlier_count, transform_matrix=matrix.tolist())
@@ -248,22 +279,38 @@ def _sift_alignment(
     telemetry.stage("Acceptance", policy=policy.__dict__)
     telemetry.measurements(confidence=confidence, homography_score=confidence, transform_residual=reprojection_error)
     reasons: list[str] = []
+    record_safety("Inlier count", inlier_count, {"min": policy.min_inliers}, not (inlier_count < policy.min_inliers))
     if inlier_count < policy.min_inliers:
         reasons.append("insufficient_inliers")
+    record_safety("Inlier ratio", inlier_ratio, {"min": policy.min_inlier_ratio}, not (inlier_ratio < policy.min_inlier_ratio))
     if inlier_ratio < policy.min_inlier_ratio:
         reasons.append("low_inlier_ratio")
+    record_safety("Residual", reprojection_error, {"max": policy.max_reprojection_error}, not (reprojection_error is None or reprojection_error > policy.max_reprojection_error))
     if reprojection_error is None or reprojection_error > policy.max_reprojection_error:
         reasons.append("high_reprojection_error")
+    record_safety("Coverage", coverage, {"min": policy.min_coverage_ratio}, not (coverage < policy.min_coverage_ratio))
     if coverage < policy.min_coverage_ratio:
         reasons.append("low_coverage")
+    record_safety("Scale", scale_change, {"min": policy.min_scale, "max": policy.max_scale}, bool(policy.min_scale <= scale_change <= policy.max_scale))
     if not policy.min_scale <= scale_change <= policy.max_scale:
         reasons.append("unsafe_scale_change")
+    record_safety("Rotation", abs(rotation_degrees), {"max": policy.max_abs_rotation_degrees}, not (abs(rotation_degrees) > policy.max_abs_rotation_degrees))
     if abs(rotation_degrees) > policy.max_abs_rotation_degrees:
         reasons.append("unsafe_rotation")
+    record_safety("Perspective", perspective_distortion, {"max": policy.max_perspective_distortion}, not (perspective_distortion > policy.max_perspective_distortion))
     if perspective_distortion > policy.max_perspective_distortion:
         reasons.append("unsafe_perspective_distortion")
+    record_safety("Transformed corners", corner_validity, {"equals": True}, bool(corner_validity))
     if not corner_validity:
         reasons.append("invalid_transformed_corners")
+    record_safety("Transform determinant", float(np.linalg.det(normalized)), None, None,
+                  inputs={"matrix": matrix.tolist(), "note": "No independent determinant gate"})
+    record_safety("Translation", normalized[:2, 2].tolist(), None, None,
+                  inputs={"note": "No independent translation gate; corner validity is enforced"})
+    record_safety("Anchor spread", None, None, None,
+                  inputs={"note": "Registration uses feature inliers, not anchor positions"})
+    record_safety("Homography condition", None, None, None,
+                  inputs={"note": "Condition number is not calculated or gated by registration"})
     accepted = not reasons
     evidence = RegistrationEvidence(
         algorithm="sift_flann_ransac_homography",
@@ -312,6 +359,7 @@ def align_to_reference(
     compatibility_evidence: TemplateCompatibilityEvidence | None = None,
 ) -> AlignmentResult:
     selected = policy or DEFAULT_REGISTRATION_POLICY
+    observe_coverage("Input image", candidate, reference, preprocessing="Before grayscale conversion")
     candidate_arr, reference_arr = _gray(candidate), _gray(reference)
     compatibility = compatibility_evidence or assess_template_compatibility(
         candidate, reference, family=family
