@@ -121,17 +121,19 @@ def capture_keypoints(image_points, image_descriptors, template_points, template
         "template": records(template_points, template_descriptors)})
 
 
-def capture_matches(pairs, good):
+def capture_matches(pairs, good, *, ratio_passed=None):
     trace = ACTIVE.get()
     if trace is None:
         return
     accepted = {id(match) for match in good}
+    ratio_accepted = {id(match) for match in ratio_passed} if ratio_passed is not None else accepted
     records = []
     for pair_id, pair in enumerate(pairs):
         for rank, match in enumerate(pair):
             keep = id(match) in accepted
             reason = None if keep else ("SECOND_NEIGHBOR_COMPARATOR" if rank else
-                                        "FEWER_THAN_TWO_NEIGHBORS" if len(pair) != 2 else "RATIO_TEST_REJECTION")
+                                        "FEWER_THAN_TWO_NEIGHBORS" if len(pair) != 2 else
+                                        "DUPLICATE_TEMPLATE_KEYPOINT" if id(match) in ratio_accepted else "RATIO_TEST_REJECTION")
             records.append({"match_id": f"{pair_id}:{rank}", "template_keypoint_id": match.trainIdx,
                             "image_keypoint_id": match.queryIdx, "distance": float(match.distance),
                             "accepted": keep, "rejected_reason": reason})

@@ -161,6 +161,20 @@ def _cheap_alignment(
     )
 
 
+def _unique_template_matches(matches):
+    """Keep minimum descriptor distance per template ID; retain input order.
+
+    Equal-distance ties keep the first observed match. The KNN ratio filter
+    already supplies at most one candidate per image keypoint.
+    """
+    best = {}
+    for match in matches:
+        previous = best.get(match.trainIdx)
+        if previous is None or match.distance < previous.distance:
+            best[match.trainIdx] = match
+    return [match for match in matches if best[match.trainIdx] is match]
+
+
 def _sift_alignment(
     candidate: np.ndarray, reference: np.ndarray, policy: RegistrationPolicy
 ) -> AlignmentResult:
@@ -202,7 +216,14 @@ def _sift_alignment(
                                  "ratio_test_rejection": sum(len(pair) == 2 and not pair[0].distance < policy.lowe_ratio * pair[1].distance for pair in pairs),
                                  "distance_rejection": "NOT_APPLIED", "spatial_rejection": "NOT_APPLIED"},
                      ratio_threshold=policy.lowe_ratio)
-    capture_matches(pairs, good)
+    ratio_passed = good
+    good = _unique_template_matches(ratio_passed)
+    observe_coverage("One-to-one template correspondences", candidate, reference,
+                     template_matches_before=len(ratio_passed), template_matches_after=len(good),
+                     duplicates_removed=len(ratio_passed) - len(good),
+                     unique_template_points=len({match.trainIdx for match in good}),
+                     unique_template_points_basis="Keypoint IDs; distinct IDs may share coordinates")
+    capture_matches(pairs, good, ratio_passed=ratio_passed)
     common.update(candidate_match_count=len(pairs), good_matches=len(good))
     if len(good) < policy.min_good_matches:
         return _failure(
@@ -216,7 +237,7 @@ def _sift_alignment(
     observe_coverage("RANSAC inputs ready", candidate, reference,
                      ransac_inputs={"source_points": src.tolist(), "template_points": dst.tolist(),
                                     "reprojection_threshold": policy.ransac_reprojection_threshold},
-                     reason="Inputs captured before existing homography call; no filtering added")
+                     reason="Inputs captured after one-to-one template filtering, before existing homography call")
     telemetry.stage("Homography", matched_features=len(good))
     matrix, mask = cv2.findHomography(src, dst, cv2.RANSAC, policy.ransac_reprojection_threshold)
     if matrix is None or mask is None:

@@ -1,0 +1,11 @@
+{
+  "template_matches_before": 212,
+  "template_matches_after": 55,
+  "duplicates_removed": 157,
+  "unique_template_points": 55,
+  "registration_accepted": false,
+  "inlier_count": 4,
+  "coverage": 2.6793767539197207e-05,
+  "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+  "geometry": "NOT_EXECUTED"
+}
