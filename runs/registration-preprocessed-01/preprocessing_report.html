@@ -1,0 +1,97 @@
+<!doctype html><meta charset="utf-8"><title>Registration preprocessing</title><style>body{font:16px system-ui;margin:32px}td,th{padding:10px;border:1px solid #ccc}img{width:45%;vertical-align:top}pre{white-space:pre-wrap}</style><h1>Registration preprocessing ? one TIFF, page 1</h1><p>One registration call. No OCR, Geometry, or benchmark. Baseline is the saved one-to-one trace. Preview images are local artifacts.</p><p><strong>Input limitation:</strong> The saved preview is labeled Document Separator, not a CMS1500 claim form. More inliers on this page do not establish correct registration or general production improvement. Registration remains rejected.</p><table><tr><th>Metric</th><th>Before</th><th>After</th></tr><tr><td>Detected Features</td><td>3000</td><td>3000</td></tr><tr><td>Unique Template IDs</td><td>55</td><td>49</td></tr><tr><td>Inliers</td><td>4</td><td>7</td></tr><tr><td>Coverage</td><td>2.6793767539197207e-05</td><td>0.05775117658189159</td></tr><tr><td>Accepted Matches (ratio-pass)</td><td>212</td><td>153</td></tr></table><h2>Live preprocessing telemetry</h2><pre>{
+  &quot;source&quot;: {
+    &quot;deskew_degrees&quot;: 0.0,
+    &quot;line_pixels_removed&quot;: 378741,
+    &quot;text_pixels_retained&quot;: 114194,
+    &quot;text_pixels_retained_basis&quot;: &quot;Foreground proxy, not OCR-confirmed text&quot;,
+    &quot;intersection_pixels_preserved&quot;: 40621,
+    &quot;large_component_pixels_removed&quot;: 0,
+    &quot;working_size&quot;: [
+      1683,
+      2193
+    ],
+    &quot;to_original&quot;: [
+      [
+        1.0,
+        -0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    ],
+    &quot;feature_count_before&quot;: 3000,
+    &quot;feature_count_after&quot;: 3000
+  },
+  &quot;template&quot;: {
+    &quot;deskew_degrees&quot;: 0.0,
+    &quot;line_pixels_removed&quot;: 95731,
+    &quot;text_pixels_retained&quot;: 183958,
+    &quot;text_pixels_retained_basis&quot;: &quot;Foreground proxy, not OCR-confirmed text&quot;,
+    &quot;intersection_pixels_preserved&quot;: 7514,
+    &quot;large_component_pixels_removed&quot;: 0,
+    &quot;working_size&quot;: [
+      1712,
+      2214
+    ],
+    &quot;to_original&quot;: [
+      [
+        1.0,
+        -0.0,
+        0.0
+      ],
+      [
+        0.0,
+        1.0,
+        -0.0
+      ]
+    ],
+    &quot;feature_count_before&quot;: 3001,
+    &quot;feature_count_after&quot;: 3000
+  }
+}</pre><h2>Registration</h2><pre>{
+  &quot;template_id&quot;: null,
+  &quot;template_version&quot;: null,
+  &quot;candidate_family&quot;: null,
+  &quot;compatibility_policy_version&quot;: null,
+  &quot;compatibility_status&quot;: null,
+  &quot;compatibility_score&quot;: null,
+  &quot;algorithm&quot;: &quot;sift_flann_ransac_homography&quot;,
+  &quot;keypoints_source&quot;: 3000,
+  &quot;keypoints_template&quot;: 3000,
+  &quot;candidate_match_count&quot;: 3000,
+  &quot;good_matches&quot;: 49,
+  &quot;inlier_count&quot;: 7,
+  &quot;inlier_ratio&quot;: 0.14285714285714285,
+  &quot;reprojection_error&quot;: 0.6814436316490173,
+  &quot;coverage_ratio&quot;: 0.05775117658189159,
+  &quot;template_coverage&quot;: 0.05775117658189159,
+  &quot;scale_change&quot;: 0.27340515974401053,
+  &quot;rotation_degrees&quot;: -89.63876607965535,
+  &quot;perspective_distortion&quot;: 3.493875585473142,
+  &quot;corner_validity&quot;: false,
+  &quot;homography_quality&quot;: 0.22047911063979939,
+  &quot;alignment_confidence&quot;: 0.22047911063979939,
+  &quot;transform_matrix&quot;: [
+    [
+      0.017144480115784084,
+      0.013651630983356186,
+      234.44931914415133
+    ],
+    [
+      -2.7192721442378276,
+      2.194751970551222,
+      2710.7942571541894
+    ],
+    [
+      -0.0009452651615827551,
+      0.0012824751683285323,
+      1.0
+    ]
+  ],
+  &quot;accepted&quot;: false,
+  &quot;rejection_reason&quot;: &quot;insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners&quot;,
+  &quot;processing_time_ms&quot;: 6202.774600009434
+}</pre><h2>TIFF: before / after</h2><div><img src="0_before.png"><img src="0_after.png"></div><h2>Template: before / after</h2><div><img src="1_before.png"><img src="1_after.png"></div>

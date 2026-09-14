@@ -1,0 +1,177 @@
+{
+  "document": "Group D/M048DJK5.001",
+  "page": 1,
+  "registration_calls": 1,
+  "commit_before_run": "66328e941f4dc095c10a959f4f74171d12fe4f22",
+  "source_hashes": {
+    "workers/page_detection/registration_preprocessing.py": "76919ffa815e20f40bd4bdcaf145c16a213950c8d04a6da1ba42b042baf01fc2",
+    "workers/page_detection/template_alignment.py": "682304a4c9a56d9023d0bd0493208a5e7fbdf421888016eabdc82c01909ae78d"
+  },
+  "comparison": {
+    "Detected Features": {
+      "before": 3000,
+      "after": 3000
+    },
+    "Unique Template IDs": {
+      "before": 55,
+      "after": 49
+    },
+    "Inliers": {
+      "before": 4,
+      "after": 7
+    },
+    "Coverage": {
+      "before": 2.6793767539197207e-05,
+      "after": 0.05775117658189159
+    },
+    "Accepted Matches (ratio-pass)": {
+      "before": 212,
+      "after": 153
+    }
+  },
+  "preprocessing": {
+    "stage": "Registration preprocessing",
+    "source": {
+      "size": [
+        1683,
+        2193
+      ],
+      "roi": [
+        0,
+        0,
+        1683,
+        2193
+      ],
+      "image_hash": "3ca4383426d4047a4b52c7a0b709d15acc7ad35fa4541b06b5bcb7a8b3ef588a",
+      "roi_hash": "3ca4383426d4047a4b52c7a0b709d15acc7ad35fa4541b06b5bcb7a8b3ef588a",
+      "hash_basis": "shape, dtype and decoded pixels; full-frame ROI",
+      "coverage_denominator": 3690819
+    },
+    "reference": {
+      "size": [
+        1712,
+        2214
+      ],
+      "roi": [
+        0,
+        0,
+        1712,
+        2214
+      ],
+      "image_hash": "4d50635e1de446dadf7662346b7602e137c87df359144de7f35c0b6b2f8f3023",
+      "roi_hash": "4d50635e1de446dadf7662346b7602e137c87df359144de7f35c0b6b2f8f3023",
+      "hash_basis": "shape, dtype and decoded pixels; full-frame ROI",
+      "coverage_denominator": 3790368
+    },
+    "feature_detector": "SIFT",
+    "feature_descriptor": "SIFT float32",
+    "matcher": "FLANN KD-tree, trees=5, checks=64, knn k=2",
+    "ransac_inputs": null,
+    "coverage_numerator": null,
+    "coverage_formula": "min(area(convexHull(source_inliers))/(source_width*source_height), area(convexHull(template_inliers))/(template_width*template_height))",
+    "note": "Coverage numerator requires inliers; unavailable before homography. No new coverage calculation is run.",
+    "source_preprocessing": {
+      "deskew_degrees": 0.0,
+      "line_pixels_removed": 378741,
+      "text_pixels_retained": 114194,
+      "text_pixels_retained_basis": "Foreground proxy, not OCR-confirmed text",
+      "intersection_pixels_preserved": 40621,
+      "large_component_pixels_removed": 0,
+      "working_size": [
+        1683,
+        2193
+      ],
+      "to_original": [
+        [
+          1.0,
+          -0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          -0.0
+        ]
+      ],
+      "feature_count_before": 3000,
+      "feature_count_after": 3000
+    },
+    "template_preprocessing": {
+      "deskew_degrees": 0.0,
+      "line_pixels_removed": 95731,
+      "text_pixels_retained": 183958,
+      "text_pixels_retained_basis": "Foreground proxy, not OCR-confirmed text",
+      "intersection_pixels_preserved": 7514,
+      "large_component_pixels_removed": 0,
+      "working_size": [
+        1712,
+        2214
+      ],
+      "to_original": [
+        [
+          1.0,
+          -0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0,
+          -0.0
+        ]
+      ],
+      "feature_count_before": 3001,
+      "feature_count_after": 3000
+    }
+  },
+  "result": {
+    "template_id": null,
+    "template_version": null,
+    "candidate_family": null,
+    "compatibility_policy_version": null,
+    "compatibility_status": null,
+    "compatibility_score": null,
+    "algorithm": "sift_flann_ransac_homography",
+    "keypoints_source": 3000,
+    "keypoints_template": 3000,
+    "candidate_match_count": 3000,
+    "good_matches": 49,
+    "inlier_count": 7,
+    "inlier_ratio": 0.14285714285714285,
+    "reprojection_error": 0.6814436316490173,
+    "coverage_ratio": 0.05775117658189159,
+    "template_coverage": 0.05775117658189159,
+    "scale_change": 0.27340515974401053,
+    "rotation_degrees": -89.63876607965535,
+    "perspective_distortion": 3.493875585473142,
+    "corner_validity": false,
+    "homography_quality": 0.22047911063979939,
+    "alignment_confidence": 0.22047911063979939,
+    "transform_matrix": [
+      [
+        0.017144480115784084,
+        0.013651630983356186,
+        234.44931914415133
+      ],
+      [
+        -2.7192721442378276,
+        2.194751970551222,
+        2710.7942571541894
+      ],
+      [
+        -0.0009452651615827551,
+        0.0012824751683285323,
+        1.0
+      ]
+    ],
+    "accepted": false,
+    "rejection_reason": "insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+    "processing_time_ms": 6202.774600009434
+  },
+  "baseline": "runs/registration-one-to-one-01/registration_trace.json",
+  "limitations": [
+    "Single TIFF page; no benchmark or general accuracy claim.",
+    "Text retention is a foreground proxy.",
+    "Previews remain local; raw claim images are not committed.",
+    "Visual inspection of the saved output shows a Document Separator page, not a CMS1500 claim form. Increased inliers do not establish correct registration or general production improvement."
+  ]
+}

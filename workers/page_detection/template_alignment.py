@@ -21,6 +21,7 @@ from workers.page_detection.registration_coverage import (
     observe as observe_coverage,
 )
 from workers.page_detection.registration_safety import record as record_safety
+from workers.page_detection.registration_preprocessing import preprocess_registration
 from workers.page_detection.template_compatibility import (
     TemplateCompatibilityEvidence,
     TemplateCompatibilityStatus,
@@ -180,10 +181,20 @@ def _sift_alignment(
 ) -> AlignmentResult:
     started = perf_counter()
     telemetry.stage("Feature Matching", algorithm="sift_flann_ransac_homography")
-    observe_coverage("Working image", candidate, reference, expected_feature_count=policy.sift_features, preprocessing="PIL grayscale conversion; no crop or resize in SIFT path")
     sift = cv2.SIFT_create(nfeatures=policy.sift_features)
-    kp_source, desc_source = sift.detectAndCompute(candidate, None)
-    kp_template, desc_template = sift.detectAndCompute(reference, None)
+    before_source = len(sift.detect(candidate, None))
+    before_template = len(sift.detect(reference, None))
+    source_features = preprocess_registration(candidate)
+    template_features = preprocess_registration(reference)
+    kp_source, desc_source = sift.detectAndCompute(source_features.image, None)
+    kp_template, desc_template = sift.detectAndCompute(template_features.image, None)
+    observe_coverage("Registration preprocessing", source_features.image, template_features.image,
+                     source_preprocessing={**source_features.metrics, "feature_count_before": before_source,
+                                           "feature_count_after": len(kp_source)},
+                     template_preprocessing={**template_features.metrics, "feature_count_before": before_template,
+                                             "feature_count_after": len(kp_template)})
+    kp_source = source_features.restore_keypoints(kp_source)
+    kp_template = template_features.restore_keypoints(kp_template)
     observe_coverage("Detected", candidate, reference, detected_feature_count=len(kp_source),
                      template_feature_count=len(kp_template),
                      source_descriptor_shape=list(desc_source.shape) if desc_source is not None else None,
