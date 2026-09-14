@@ -1,0 +1,348 @@
+{
+  "certification": "FAIL",
+  "documents": 10,
+  "completed_with_extraction_result": 0,
+  "failed_or_incomplete": 10,
+  "attempts_finished": 9,
+  "interrupted_attempts": 1,
+  "stage_success_counts": {
+    "classification": 9,
+    "registration": 3,
+    "geometry": 3,
+    "ocr": 0,
+    "ranking": 0,
+    "validators": 0,
+    "extraction_result": 0
+  },
+  "runs": [
+    {
+      "document": "Group A/M048DJJF.001",
+      "group": "A",
+      "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "registration",
+      "application_result": "runs\\extraction-certification-01\\document-01\\application-cd038e6428e447c8b30922a280452741\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "FAILED",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+        }
+      ],
+      "latency_ms": 11236.687299970072,
+      "certification_status": "FAIL"
+    },
+    {
+      "document": "Group A/M048EJH6.004",
+      "group": "A",
+      "document_id": "96e8b6e9a8e060172c317fc9dddd2d45ef6fe034d555a84ecc1ebc5b20d18493",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "ocr",
+      "application_result": "runs\\extraction-certification-01\\document-02\\application-3847649045a743e5a63816f3c89ffa78\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "SUCCESS",
+        "geometry": "SUCCESS",
+        "ocr": "FAILED_BEFORE_PROVIDER_EXECUTION",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": {
+        "type": "KeyError",
+        "reason": "'registration_evidence'"
+      },
+      "latency_ms": 12122.635899984743,
+      "certification_status": "FAIL"
+    },
+    {
+      "document": "Group A/M048HJHO.044",
+      "group": "A",
+      "document_id": "0fd810901d1a53f7a6cf99947b808dee06d880f89996288b2a98ce9b3617b9ab",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "ocr",
+      "application_result": "runs\\extraction-certification-01\\document-03\\application-be22265d11784957be9c27988e67a31b\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "SUCCESS",
+        "geometry": "SUCCESS",
+        "ocr": "FAILED_BEFORE_PROVIDER_EXECUTION",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": {
+        "type": "KeyError",
+        "reason": "'registration_evidence'"
+      },
+      "latency_ms": 33953.41829996323,
+      "certification_status": "FAIL"
+    },
+    {
+      "document": "Group A/M048JJJG.014",
+      "group": "A",
+      "document_id": "3135ee740353af11fe988780665839f83cbee4f8e024ebbc22f409c2bcaebb17",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "registration",
+      "application_result": "runs\\extraction-certification-01\\document-04\\application-19ffd956ce2e4520b06e933786da93a5\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "FAILED",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "insufficient_inliers,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+        }
+      ],
+      "latency_ms": 10796.693299955223,
+      "certification_status": "FAIL"
+    },
+    {
+      "document": "Group B/M048DJJZ.001",
+      "group": "B",
+      "document_id": "b258b9728896aab94bdfd4730122478087132dbe2c696b689f77f9035579b680",
+      "pages": 3,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "ocr",
+      "application_result": "runs\\extraction-certification-01\\document-05\\application-c25c3ef832514612825132b3f1ab4cf8\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "SUCCESS",
+        "geometry": "SUCCESS",
+        "ocr": "FAILED_BEFORE_PROVIDER_EXECUTION",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": {
+        "type": "KeyError",
+        "reason": "'registration_evidence'"
+      },
+      "latency_ms": 13452.792400028557,
+      "certification_status": "FAIL"
+    },
+    {
+      "document": "Group B/M048JJJM.029",
+      "group": "B",
+      "document_id": "07b38032a2a7efd8b65427cc91be875d9ac853b0176f71a50b34f814befe6e11",
+      "pages": 7,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "registration",
+      "application_result": "runs\\extraction-certification-01\\document-06\\application-2b4ffef56dc54f5ab793533e7826f87d\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "FAILED",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "insufficient_inliers,low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+        }
+      ],
+      "latency_ms": 18637.188600027002,
+      "certification_status": "FAIL"
+    },
+    {
+      "document": "Group C/M048DJJR.001",
+      "group": "C",
+      "document_id": "814ac32f68425d4e3ecbb5067804372375831313d8e9e9a03e570ec0d890743a",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "template_selection",
+      "application_result": "runs\\extraction-certification-01\\document-07\\application-ee250a3b67744f588a94770bbfb52e74\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "UNAVAILABLE",
+        "registration": "UNAVAILABLE",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "NO_TEMPLATE_ABOVE_THRESHOLD"
+        }
+      ],
+      "latency_ms": 4482.83359996276,
+      "certification_status": "FAIL"
+    },
+    {
+      "document": "Group C/M048JJIO.001",
+      "group": "C",
+      "document_id": "46d9096aed65845763144093001386b2971fbfbc8f23174331baaa28c7c82a0c",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "template_selection",
+      "application_result": "runs\\extraction-certification-01\\document-08\\application-167378c54e1f403b944230e3a9ca52ec\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "UNAVAILABLE",
+        "registration": "UNAVAILABLE",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "NO_TEMPLATE_ABOVE_THRESHOLD"
+        }
+      ],
+      "latency_ms": 8595.568599994294,
+      "certification_status": "FAIL"
+    },
+    {
+      "document": "Group D/M048DJK5.001",
+      "group": "D",
+      "document_id": "2aa7a14f1512bd1da5e8722ba51e113a3c2ddbc14f394eadbdcb52adf6f0a6c8",
+      "pages": 4,
+      "certification_status": "FAIL",
+      "extraction_result_exists": false,
+      "stage": "interrupted",
+      "fields": 0,
+      "stages": {
+        "classification": "OUTPUT_SAVED_ROUTING_COMPLETION_UNKNOWN",
+        "registration": "UNRECORDED",
+        "geometry": "UNRECORDED",
+        "ocr": "NOT_EXECUTED",
+        "ranking": "NOT_EXECUTED",
+        "validators": "NOT_EXECUTED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": "Interrupted execution; classification files exist but no resumable application checkpoint. Not restarted.",
+      "latency_ms": null
+    },
+    {
+      "document": "Group D/M048JJJO.001",
+      "group": "D",
+      "document_id": "feba6bd09be31e5a68b6da363635d7737de7a1109e3529322e17e06425470769",
+      "pages": 2,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "stage": "template_selection",
+      "application_result": "runs\\extraction-certification-01\\resume-57220f9\\document-10\\application-c524d7c77f664674896b9352df31684d\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "UNAVAILABLE",
+        "registration": "UNAVAILABLE",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED",
+        "extraction_result": "NOT_GENERATED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "NO_TEMPLATE_ABOVE_THRESHOLD"
+        }
+      ],
+      "latency_ms": 18423.11819997849,
+      "certification_status": "FAIL"
+    }
+  ],
+  "resume_commit": "57220f9",
+  "original_checkpoint_sha256": "6597877c915aed83262d794a5b75fd9c417973f934937ae3e67eee69348948b3",
+  "manifest_sha256": "fde1928d3f5ece2a5eb0f9978691993d1aa72e17abf9aed2c2dedf54b6ef1d6f",
+  "resume_actions": [
+    "Preserved first eight attempts, including historical handoff failures",
+    "Recorded claim nine as interrupted; no safe application checkpoint exists",
+    "Executed only previously unstarted claim ten"
+  ],
+  "code_and_configuration_unchanged": true,
+  "historical_artifacts_unchanged": true,
+  "restarts": 0,
+  "telemetry_modified": false,
+  "benchmark_executed": false,
+  "limitations": [
+    "Contract fix applies to newly produced artifacts; historical telemetry was not repaired.",
+    "This resumed sample does not recertify historical failures against the new contract.",
+    "Interrupted claim latency and later stage outcomes are unknown.",
+    "Execution used the existing working tree, including pre-existing uncommitted changes. Resume commit identifies HEAD, not a clean-tree execution; source_hashes.json records executed source provenance."
+  ],
+  "failed": 9,
+  "incomplete": 1
+}

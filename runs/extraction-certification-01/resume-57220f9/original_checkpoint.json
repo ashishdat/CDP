@@ -1,0 +1,264 @@
+{
+  "status": "RUNNING",
+  "documents_requested": 10,
+  "documents_executed": 8,
+  "extraction_results": 0,
+  "fields": 0,
+  "field_status_counts": {},
+  "coverage": {
+    "definition": "Documents with a generated ExtractionResult divided by 10 selected documents",
+    "numerator": 0,
+    "denominator": 10,
+    "fraction": 0.0
+  },
+  "failures": 8,
+  "latency_ms_total": 113277.81799988588,
+  "runs": [
+    {
+      "document": "Group A/M048DJJF.001",
+      "group": "A",
+      "document_id": "27864b2c8d7e6c5fcfa0d1efcf53c9b375eadb6e4d5e1bf7cc41cd840f0b7986",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "registration",
+      "application_result": "runs\\extraction-certification-01\\document-01\\application-cd038e6428e447c8b30922a280452741\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "FAILED",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+        }
+      ],
+      "latency_ms": 11236.687299970072
+    },
+    {
+      "document": "Group A/M048EJH6.004",
+      "group": "A",
+      "document_id": "96e8b6e9a8e060172c317fc9dddd2d45ef6fe034d555a84ecc1ebc5b20d18493",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "ocr",
+      "application_result": "runs\\extraction-certification-01\\document-02\\application-3847649045a743e5a63816f3c89ffa78\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "SUCCESS",
+        "geometry": "SUCCESS",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED"
+      },
+      "failure": {
+        "type": "KeyError",
+        "reason": "'registration_evidence'"
+      },
+      "latency_ms": 12122.635899984743
+    },
+    {
+      "document": "Group A/M048HJHO.044",
+      "group": "A",
+      "document_id": "0fd810901d1a53f7a6cf99947b808dee06d880f89996288b2a98ce9b3617b9ab",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "ocr",
+      "application_result": "runs\\extraction-certification-01\\document-03\\application-be22265d11784957be9c27988e67a31b\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "SUCCESS",
+        "geometry": "SUCCESS",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED"
+      },
+      "failure": {
+        "type": "KeyError",
+        "reason": "'registration_evidence'"
+      },
+      "latency_ms": 33953.41829996323
+    },
+    {
+      "document": "Group A/M048JJJG.014",
+      "group": "A",
+      "document_id": "3135ee740353af11fe988780665839f83cbee4f8e024ebbc22f409c2bcaebb17",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "registration",
+      "application_result": "runs\\extraction-certification-01\\document-04\\application-19ffd956ce2e4520b06e933786da93a5\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "FAILED",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "insufficient_inliers,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+        }
+      ],
+      "latency_ms": 10796.693299955223
+    },
+    {
+      "document": "Group B/M048DJJZ.001",
+      "group": "B",
+      "document_id": "b258b9728896aab94bdfd4730122478087132dbe2c696b689f77f9035579b680",
+      "pages": 3,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "ocr",
+      "application_result": "runs\\extraction-certification-01\\document-05\\application-c25c3ef832514612825132b3f1ab4cf8\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "SUCCESS",
+        "geometry": "SUCCESS",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED"
+      },
+      "failure": {
+        "type": "KeyError",
+        "reason": "'registration_evidence'"
+      },
+      "latency_ms": 13452.792400028557
+    },
+    {
+      "document": "Group B/M048JJJM.029",
+      "group": "B",
+      "document_id": "07b38032a2a7efd8b65427cc91be875d9ac853b0176f71a50b34f814befe6e11",
+      "pages": 7,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "registration",
+      "application_result": "runs\\extraction-certification-01\\document-06\\application-2b4ffef56dc54f5ab793533e7826f87d\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "SUCCESS",
+        "registration": "FAILED",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "insufficient_inliers,low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+        }
+      ],
+      "latency_ms": 18637.188600027002
+    },
+    {
+      "document": "Group C/M048DJJR.001",
+      "group": "C",
+      "document_id": "814ac32f68425d4e3ecbb5067804372375831313d8e9e9a03e570ec0d890743a",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "template_selection",
+      "application_result": "runs\\extraction-certification-01\\document-07\\application-ee250a3b67744f588a94770bbfb52e74\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "UNAVAILABLE",
+        "registration": "UNAVAILABLE",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "NO_TEMPLATE_ABOVE_THRESHOLD"
+        }
+      ],
+      "latency_ms": 4482.83359996276
+    },
+    {
+      "document": "Group C/M048JJIO.001",
+      "group": "C",
+      "document_id": "46d9096aed65845763144093001386b2971fbfbc8f23174331baaa28c7c82a0c",
+      "pages": 1,
+      "extraction_result_exists": false,
+      "fields": 0,
+      "field_status_counts": {},
+      "stage": "template_selection",
+      "application_result": "runs\\extraction-certification-01\\document-08\\application-167378c54e1f403b944230e3a9ca52ec\\document.json",
+      "stages": {
+        "load": "SUCCESS",
+        "classification": "SUCCESS",
+        "template_selection": "UNAVAILABLE",
+        "registration": "UNAVAILABLE",
+        "geometry": "SKIPPED",
+        "ocr": "SKIPPED",
+        "ranking": "SKIPPED",
+        "validators": "SKIPPED",
+        "decision": "SKIPPED",
+        "evidence": "SKIPPED"
+      },
+      "failure": [
+        {
+          "stage": "registration",
+          "type": "RegistrationNotAccepted",
+          "message": "NO_TEMPLATE_ABOVE_THRESHOLD"
+        }
+      ],
+      "latency_ms": 8595.568599994294
+    }
+  ],
+  "sample": "4 Group A, 2 Group B, 2 Group C, 2 Group D; evenly spaced sorted filenames within groups; fixed before execution",
+  "interpreter": ".venv-ocr Python 3.12",
+  "commit": "11a43f4c9dc0d6ae6a16e2df60fbed53485d4f20",
+  "working_tree_note": "Existing uncommitted registration/classification changes were present; frozen source hashes recorded separately",
+  "retries": 0,
+  "benchmark_executed": false,
+  "tuning": false
+}
