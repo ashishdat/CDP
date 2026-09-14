@@ -255,7 +255,7 @@ def _enrichment_for_documents(
 @app.get("/documents", response_model=list[DocumentResponse])
 def list_documents(
     tenant_id: str | None = None,
-    limit: int = 100,
+    limit: int = 1000,
     offset: int = 0,
     session_factory: sessionmaker[Session] = Depends(get_session_factory),
 ) -> list[DocumentResponse]:

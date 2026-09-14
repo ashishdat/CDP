@@ -104,6 +104,8 @@ export type EvaluationReport = {
     total_documents?: number;
     straight_through_documents?: number;
     document_stp_rate?: number;
+    hard_hitl_documents?: number;
+    claim_hard_hitl_rate?: number;
     measurement_note?: string;
   };
   cost_analysis?: {

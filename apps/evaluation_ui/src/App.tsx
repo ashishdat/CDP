@@ -84,7 +84,7 @@ export default function App() {
     queryKey: ["documents"],
     queryFn: async () => {
       try {
-        const response = await fetch("/api/documents");
+        const response = await fetch("/api/documents?limit=1000");
         if (!response.ok) return [];
         return await response.json();
       } catch {
@@ -309,18 +309,33 @@ export default function App() {
   const rawDocsForMetrics = documentsQuery.data || [];
   const taskDocIds = new Set(rawTasksForMetrics.map((t: any) => t.document_id).filter(Boolean));
 
-  const livePendingCount = rawTasksForMetrics.filter((t: any) => t.status === "OPEN" || t.status === "IN_PROGRESS").length;
-  const totalIngested = rawDocsForMetrics.length;
-  // True STP: Completed/output-generated documents that bypassed human review exceptions entirely
+  const ops = report?.operational_metrics;
+  const governedDocs = ops?.total_documents;
+  const useGovernedKpis = typeof governedDocs === "number" && governedDocs > 0;
+
+  const livePendingCount = useGovernedKpis && typeof ops?.hard_hitl_documents === "number"
+    ? ops.hard_hitl_documents
+    : useGovernedKpis && typeof ops?.straight_through_documents === "number"
+      ? Math.max(0, governedDocs - ops.straight_through_documents)
+      : rawTasksForMetrics.filter((t: any) => t.status === "OPEN" || t.status === "IN_PROGRESS").length;
+  const totalIngested = useGovernedKpis ? governedDocs : rawDocsForMetrics.length;
+  // Prefer Golden Pack / harness report STP when present; else live queue math.
   const stpDocs = rawDocsForMetrics.filter((doc: any) => (doc.status === "COMPLETED" || doc.status === "OUTPUT_GENERATED") && !taskDocIds.has(doc.document_id)).length;
-  const stpRate = totalIngested > 0 ? ((stpDocs / totalIngested) * 100).toFixed(1) + "%" : "—";
+  const stpRate = report
+    ? percent(report.straight_through_processing_rate)
+    : (totalIngested > 0 ? ((stpDocs / totalIngested) * 100).toFixed(1) + "%" : "—");
   const exceptionDocs = rawDocsForMetrics.filter((doc: any) => doc.status === "NEEDS_REVIEW" || taskDocIds.has(doc.document_id)).length;
-  const exceptionRate = totalIngested > 0 ? ((exceptionDocs / totalIngested) * 100).toFixed(1) + "%" : "—";
+  const exceptionRate = useGovernedKpis && typeof ops?.claim_hard_hitl_rate === "number"
+    ? percent(ops.claim_hard_hitl_rate)
+    : report
+      ? percent(1 - report.straight_through_processing_rate)
+      : (totalIngested > 0 ? ((exceptionDocs / totalIngested) * 100).toFixed(1) + "%" : "—");
 
   const fieldAccuracy = report ? percent(report.normalized_field_accuracy) : "—";
   const avgLatency = report?.operational_metrics?.average_latency_seconds != null
     ? `${report.operational_metrics.average_latency_seconds.toFixed(2)}s`
     : "—";
+  const datasetHint = report?.report_metadata?.dataset_label || "Live queue";
 
   const volumeBuckets = (() => {
     const days: { label: string; count: number }[] = [];
@@ -431,23 +446,27 @@ export default function App() {
               <div className="process-intro">
                 <p className="eyebrow">Operational Metrics</p>
                 <h2 style={{ margin: "4px 0" }}>Claims Pipeline Performance</h2>
-                <p style={{ color: "var(--text-secondary)", fontSize: "12px" }}>Real-time measured throughput and STP rates for healthcare documents</p>
+                <p style={{ color: "var(--text-secondary)", fontSize: "12px" }}>
+                  {useGovernedKpis
+                    ? `Governed harness KPIs from ${datasetHint}`
+                    : "Live queue throughput and STP rates for healthcare documents"}
+                </p>
               </div>
 
               {/* KPI Ribbon (Priority 7) */}
               <div className="metric-grid">
                 <div onClick={() => setActiveTab("analytics")}>
-                  <MetricCard label="STP Rate" value={stpRate} tone="good" hint="Auto-adjudicated claim percentage" clickable={true} />
+                  <MetricCard label="STP Rate" value={stpRate} tone="good" hint="Claim STP proxy (exact-perfect claims)" clickable={true} />
                 </div>
                 <div onClick={() => setActiveTab("queue")}>
-                  <MetricCard label="Total Ingested" value={totalIngested.toString()} tone="default" hint="Total claim documents scanned" clickable={true} />
+                  <MetricCard label="Total Ingested" value={totalIngested.toString()} tone="default" hint="Golden Pack / ingested claim documents" clickable={true} />
                 </div>
                 <div onClick={() => { setActiveTab("queue"); setStatusFilter("Needs Review"); }}>
-                  <MetricCard label="Pending HITL" value={livePendingCount.toString()} tone="danger" hint="Claims awaiting manual correction" clickable={true} />
+                  <MetricCard label="Pending HITL" value={livePendingCount.toString()} tone="danger" hint="Hard-HITL claims awaiting correction" clickable={true} />
                 </div>
-                <MetricCard label="Field Accuracy" value={fieldAccuracy} tone="good" hint="Governed sample exact-match accuracy" />
-                <MetricCard label="Exception Rate" value={exceptionRate} tone="warning" hint="Claims escalated to review queue" />
-                <MetricCard label="Avg Latency" value={avgLatency} tone="default" hint="Governed sample average assembly latency" />
+                <MetricCard label="Field Accuracy" value={fieldAccuracy} tone="good" hint="Exact-match field accuracy on governed sample" />
+                <MetricCard label="Exception Rate" value={exceptionRate} tone="warning" hint="Claim hard-HITL / exception rate" />
+                <MetricCard label="Avg Latency" value={avgLatency} tone="default" hint="Mean extraction latency (harness)" />
               </div>
 
               {/* Charts & Pareto lists split panel */}
