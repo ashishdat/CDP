@@ -8,6 +8,8 @@ profiles:
   CURRENCY_DECIMAL_V2: [safe_border, grayscale, upscale_2x, mild_contrast]
   ALPHANUMERIC_STROKE_V2: [safe_border, grayscale, upscale_2x, mild_contrast, character_sharpen]
 field_rules:
+  # Applied by regional RapidOCR via PreprocessingRegistry (Phase 8.10 authorized unit).
+  # Profiles that include upscale_2x must not also receive the adapter's blind 3x upscale.
   - {profile: DIGIT_PRESERVING_V2, contains: [provider_npi, npi, federal_tax_no, tax_id]}
   - {profile: DATE_DELIMITER_V2, contains: [patient_dob, service_date, from_date, through_date]}
   - {profile: CURRENCY_DECIMAL_V2, contains: [total_charge, charge_amount, currency]}

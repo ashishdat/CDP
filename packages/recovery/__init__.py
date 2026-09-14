@@ -6,6 +6,16 @@ algorithms.
 """
 
 from .diagnosis import Cause, Diagnosis, diagnose
-from .planner import RecoveryPlan, plan_recovery
+from .ocr_recovery import OcrRecoveryDecision, decide_ocr_recovery
+from .planner import RecoveryPlan, Strategy, plan_recovery
 
-__all__ = ["Cause", "Diagnosis", "RecoveryPlan", "diagnose", "plan_recovery"]
+__all__ = [
+    "Cause",
+    "Diagnosis",
+    "OcrRecoveryDecision",
+    "RecoveryPlan",
+    "Strategy",
+    "decide_ocr_recovery",
+    "diagnose",
+    "plan_recovery",
+]

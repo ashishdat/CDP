@@ -270,6 +270,12 @@ class StandardFormExtractionService:
                     and not _valid_regional_organization(text)
                 )
                 if (not primary.accepted or primary_provider_shape_missing) and secondary_eligible:
+                    if hasattr(self._text_extractor, "set_context"):
+                        self._text_extractor.set_context(
+                            field=name,
+                            field_type=getattr(definition, "datatype", "text"),
+                            reason="SECONDARY_REGIONAL_OCR",
+                        )
                     regional_text, regional_confidence = _region_text(
                         self._text_extractor, image, resolved.bbox
                     )
@@ -380,9 +386,14 @@ class StandardFormExtractionService:
                             localization_region_id=resolved.localization_evidence_id,
                             localization_method=resolved.mode.value,
                             localization_version=resolved.resolver_version,
-                            preprocessing_profile="REGIONAL_DEFAULT",
+                            preprocessing_profile=getattr(
+                                self._text_extractor,
+                                "last_preprocessing_profile",
+                                "REGIONAL_DEFAULT",
+                            ),
                             preprocessing_sha256=sha256(
-                                f"REGIONAL_DEFAULT|{getattr(self._text_extractor, 'preprocessing_version', 'unknown')}|{crop_hash}".encode()
+                                f"{getattr(self._text_extractor, 'last_preprocessing_profile', 'REGIONAL_DEFAULT')}|"
+                                f"{getattr(self._text_extractor, 'preprocessing_version', 'unknown')}|{crop_hash}".encode()
                             ).hexdigest(),
                             preprocessing_version=getattr(
                                 self._text_extractor, "preprocessing_version", "unknown"

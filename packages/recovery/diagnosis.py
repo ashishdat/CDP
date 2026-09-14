@@ -61,6 +61,15 @@ def diagnose(
         return Diagnosis(Cause.POOR_SCAN, "MEDIUM", extra + reasons, reason="Source quality defect is explicitly recorded")
     if template_incompatible:
         return Diagnosis(Cause.WRONG_TEMPLATE, "MEDIUM", extra + reasons, reason="Template incompatibility is explicitly established")
+    if ocr_attempted and any("regional_ocr_empty" in item.casefold() for item in reasons):
+        # Empty regional read after a prepared crop is an explicit OCR signal
+        # strong enough for one bounded alternate-prep attempt.
+        return Diagnosis(
+            Cause.OCR_FAILURE,
+            "MEDIUM",
+            extra + reasons,
+            reason="Regional OCR returned empty text after a prepared crop",
+        )
     if ocr_attempted and any("ocr" in item.casefold() for item in reasons):
         return Diagnosis(Cause.OCR_FAILURE, "LOW", extra + reasons, reason="OCR failure was observed after valid prerequisites")
     return Diagnosis(
