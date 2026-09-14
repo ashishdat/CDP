@@ -254,6 +254,8 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
                 'stage': stage, 'status': state['status'], 'latency_ms': state['latency_ms'][stage],
                 'registration_reference': 'registration_trace.json',
                 'result_reference': 'GeometryResult.json', 'ocr_executed': False,
+                'registration_evidence': result['evidence'],
+                'source': state['source'], 'document_id': state['document_id'],
             }, indent=2), encoding='utf-8')
 
     except Exception as exc:  # noqa: BLE001 -- persist state before exiting nonzero
