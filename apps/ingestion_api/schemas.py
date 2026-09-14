@@ -24,9 +24,21 @@ class DocumentResponse(BaseModel):
     is_new_document: bool
     claim_id: UUID | None = None
     patient_name: str | None = None
+    payer_name: str | None = None
+    average_confidence: float | None = None
+    extracted_field_count: int = 0
 
     @classmethod
-    def from_domain(cls, document: Document, is_new: bool, patient_name: str | None = None) -> DocumentResponse:
+    def from_domain(
+        cls,
+        document: Document,
+        is_new: bool,
+        patient_name: str | None = None,
+        *,
+        payer_name: str | None = None,
+        average_confidence: float | None = None,
+        extracted_field_count: int = 0,
+    ) -> DocumentResponse:
         return cls(
             document_id=document.document_id,
             status=document.status.value,
@@ -38,6 +50,9 @@ class DocumentResponse(BaseModel):
             is_new_document=is_new,
             claim_id=document.claim_id,
             patient_name=patient_name,
+            payer_name=payer_name,
+            average_confidence=average_confidence,
+            extracted_field_count=extracted_field_count,
         )
 
 

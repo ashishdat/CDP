@@ -4,6 +4,8 @@ batch-directory intake path used by ops/tests."""
 
 from __future__ import annotations
 
+import logging
+
 import asyncio
 from contextlib import asynccontextmanager
 from uuid import UUID
@@ -69,7 +71,16 @@ async def lifespan(app: FastAPI):
                 use_ssl=settings.object_store_use_ssl,
             )
         )
-    object_store.ensure_bucket(settings.object_store_bucket)
+    try:
+        object_store.ensure_bucket(settings.object_store_bucket)
+    except Exception as exc:  # pragma: no cover - local/dev without MinIO
+        if not settings.use_in_memory_bus:
+            raise
+        configure_logging("ingestion-api")
+        logging.getLogger("ingestion-api").warning(
+            "object store unavailable (%s); continuing because USE_IN_MEMORY_BUS=true",
+            exc,
+        )
     _state["object_store"] = object_store
 
     event_bus = (
@@ -168,6 +179,79 @@ async def upload_document(
     return DocumentResponse.from_domain(result.document, is_new=result.is_new_document)
 
 
+_PATIENT_FIELDS = ("patient_name", "patient_last", "patient_first")
+_PAYER_FIELDS = ("payer_name", "insurance_plan_name", "insured_plan_name", "payer")
+
+
+def _enrichment_for_documents(
+    session: Session, doc_ids: list[UUID]
+) -> dict[UUID, dict[str, object]]:
+    """Resolve patient/payer display values and mean field confidence per document."""
+    enrichment: dict[UUID, dict[str, object]] = {
+        doc_id: {
+            "patient_name": None,
+            "payer_name": None,
+            "average_confidence": None,
+            "extracted_field_count": 0,
+        }
+        for doc_id in doc_ids
+    }
+    if not doc_ids:
+        return enrichment
+
+    from sqlalchemy import select
+
+    from apps.ingestion_api.db.models import ExtractedFieldORM
+
+    rows = session.execute(
+        select(
+            ExtractedFieldORM.document_id,
+            ExtractedFieldORM.field_name,
+            ExtractedFieldORM.raw_value,
+            ExtractedFieldORM.normalized_value,
+            ExtractedFieldORM.confidence,
+        ).where(ExtractedFieldORM.document_id.in_(doc_ids))
+    ).all()
+
+    first_names: dict[UUID, str] = {}
+    last_names: dict[UUID, str] = {}
+    confidence_sums: dict[UUID, float] = {}
+    confidence_counts: dict[UUID, int] = {}
+
+    for doc_id, fname, raw_val, norm_val, confidence in rows:
+        bucket = enrichment[doc_id]
+        bucket["extracted_field_count"] = int(bucket["extracted_field_count"]) + 1
+        confidence_sums[doc_id] = confidence_sums.get(doc_id, 0.0) + float(confidence)
+        confidence_counts[doc_id] = confidence_counts.get(doc_id, 0) + 1
+
+        val = norm_val or raw_val
+        if not val:
+            continue
+        if fname == "patient_name":
+            bucket["patient_name"] = val
+        elif fname == "patient_last":
+            last_names[doc_id] = val
+        elif fname == "patient_first":
+            first_names[doc_id] = val
+        elif fname in _PAYER_FIELDS and bucket["payer_name"] is None:
+            bucket["payer_name"] = val
+
+    for doc_id in doc_ids:
+        bucket = enrichment[doc_id]
+        if bucket["patient_name"] is None:
+            last = last_names.get(doc_id, "")
+            first = first_names.get(doc_id, "")
+            if last and first:
+                bucket["patient_name"] = f"{last}, {first}"
+            elif last or first:
+                bucket["patient_name"] = last or first
+        count = confidence_counts.get(doc_id, 0)
+        if count:
+            bucket["average_confidence"] = confidence_sums[doc_id] / count
+
+    return enrichment
+
+
 @app.get("/documents", response_model=list[DocumentResponse])
 def list_documents(
     tenant_id: str | None = None,
@@ -177,41 +261,18 @@ def list_documents(
 ) -> list[DocumentResponse]:
     with session_factory() as session:
         docs = DocumentRepository(session).list_all(tenant_id=tenant_id, limit=limit, offset=offset)
-        doc_ids = [d.document_id for d in docs]
-        patient_names: dict[UUID, str] = {}
-        if doc_ids:
-            from sqlalchemy import select
-            from apps.ingestion_api.db.models import ExtractedFieldORM
-            stmt = select(
-                ExtractedFieldORM.document_id,
-                ExtractedFieldORM.field_name,
-                ExtractedFieldORM.raw_value,
-                ExtractedFieldORM.normalized_value,
-            ).where(
-                ExtractedFieldORM.document_id.in_(doc_ids),
-                ExtractedFieldORM.field_name.in_(["patient_name", "patient_last", "patient_first"]),
+        enrichment = _enrichment_for_documents(session, [d.document_id for d in docs])
+        return [
+            DocumentResponse.from_domain(
+                d,
+                is_new=False,
+                patient_name=enrichment[d.document_id]["patient_name"],  # type: ignore[arg-type]
+                payer_name=enrichment[d.document_id]["payer_name"],  # type: ignore[arg-type]
+                average_confidence=enrichment[d.document_id]["average_confidence"],  # type: ignore[arg-type]
+                extracted_field_count=int(enrichment[d.document_id]["extracted_field_count"]),
             )
-            rows = session.execute(stmt).all()
-            first_names: dict[UUID, str] = {}
-            last_names: dict[UUID, str] = {}
-            for doc_id, fname, raw_val, norm_val in rows:
-                val = norm_val or raw_val
-                if fname == "patient_name":
-                    patient_names[doc_id] = val
-                elif fname == "patient_last":
-                    last_names[doc_id] = val
-                elif fname == "patient_first":
-                    first_names[doc_id] = val
-            for doc_id in doc_ids:
-                if doc_id not in patient_names:
-                    last = last_names.get(doc_id, "")
-                    first = first_names.get(doc_id, "")
-                    if last and first:
-                        patient_names[doc_id] = f"{last}, {first}"
-                    elif last or first:
-                        patient_names[doc_id] = last or first
-
-        return [DocumentResponse.from_domain(d, is_new=False, patient_name=patient_names.get(d.document_id)) for d in docs]
+            for d in docs
+        ]
 
 
 @app.get("/documents/{document_id}", response_model=DocumentResponse)
@@ -223,36 +284,15 @@ def get_document(
         document = DocumentRepository(session).get(document_id)
         if document is None:
             raise HTTPException(status_code=404, detail="document not found")
-        
-        from sqlalchemy import select
-        from apps.ingestion_api.db.models import ExtractedFieldORM
-        stmt = select(
-            ExtractedFieldORM.field_name,
-            ExtractedFieldORM.raw_value,
-            ExtractedFieldORM.normalized_value,
-        ).where(
-            ExtractedFieldORM.document_id == document_id,
-            ExtractedFieldORM.field_name.in_(["patient_name", "patient_last", "patient_first"]),
-        )
-        rows = session.execute(stmt).all()
-        patient_name: str | None = None
-        first_name: str | None = None
-        last_name: str | None = None
-        for fname, raw_val, norm_val in rows:
-            val = norm_val or raw_val
-            if fname == "patient_name":
-                patient_name = val
-            elif fname == "patient_last":
-                last_name = val
-            elif fname == "patient_first":
-                first_name = val
-        if not patient_name:
-            if last_name and first_name:
-                patient_name = f"{last_name}, {first_name}"
-            elif last_name or first_name:
-                patient_name = last_name or first_name
-
-    return DocumentResponse.from_domain(document, is_new=False, patient_name=patient_name)
+        enrichment = _enrichment_for_documents(session, [document_id])[document_id]
+    return DocumentResponse.from_domain(
+        document,
+        is_new=False,
+        patient_name=enrichment["patient_name"],  # type: ignore[arg-type]
+        payer_name=enrichment["payer_name"],  # type: ignore[arg-type]
+        average_confidence=enrichment["average_confidence"],  # type: ignore[arg-type]
+        extracted_field_count=int(enrichment["extracted_field_count"]),
+    )
 
 
 @app.get("/documents/{document_id}/results", response_model=DocumentResultResponse)
@@ -272,8 +312,16 @@ def get_document_results(
         DocumentStatus.FAILED,
         DocumentStatus.QUARANTINED,
     }
+    average_confidence = (
+        sum(field.confidence for field in fields) / len(fields) if fields else None
+    )
     return DocumentResultResponse(
-        document=DocumentResponse.from_domain(document, is_new=False),
+        document=DocumentResponse.from_domain(
+            document,
+            is_new=False,
+            average_confidence=average_confidence,
+            extracted_field_count=len(fields),
+        ),
         fields=[ExtractedFieldResponse.from_domain(field) for field in fields],
         field_count=len(fields),
         # The current vertical slice stops at VALIDATING after persisted OCR.

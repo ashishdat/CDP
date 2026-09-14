@@ -1,181 +1,135 @@
 // High-End Multi-Bundle & Multi-Field Transformation Engine with Interactive HITL Review
 
-const DOCUMENTS = {
-  cms1500_multi: {
-    id: "cms1500_multi",
-    name: "1. CMS-1500 3-Page Professional Claim Bundle (Primary + Itemized + EOB)",
-    pages: [
-      {
-        pageNumber: 1,
-        title: "Page 1: CMS-1500 Primary Claim Form",
-        classification: "CMS1500_FORM",
-        qualityScore: 0.98,
-        fields: [
-          {
-            id: "total_charge",
-            name: "total_charge",
-            label: "Total Claim Charge Amount (Box 28)",
-            criticality: "CRITICAL",
-            requiredThreshold: 0.80,
-            pageNumber: 1,
-            bbox: { x: 1150, y: 1810, w: 480, h: 80 },
-            stages: {
-              s1_opencv: { title: "1. OpenCV", status: "completed", method: "Grid Profile", value: "Box Extracted", confidence: 0.99, cropText: "$ 175.OO" },
-              s2_ocr: { title: "2. Regional", status: "failed", method: "PaddleOCR", value: "$ 175.OO", confidence: 0.72, error: "Non-numeric characters 'OO' in currency", cropText: "$ 175.OO" },
-              s3_retry: { title: "3. Retry", status: "completed", method: "Regex Repair", value: "$175.00", confidence: 0.96, cropText: "$175.00" },
-              s4_vlm: { title: "4. Compact", status: "skipped", method: "N/A", value: "N/A", confidence: 1.0 },
-              s5_hitl: { title: "5. Human Review", status: "completed", method: "Auto-Validated", value: "$175.00", confidence: 0.96 }
-            },
-            whyEscalated: "OCR initially read zeroes as uppercase letters 'OO'. Deterministic normalization converted 'OO' to '00.00' and verified $175.00 matched service line items at 96% confidence (>= 80% threshold). Auto-validated without HITL.",
-            cost: "$0.0001",
-            latency: "110ms"
-          },
-          {
-            id: "patient_name",
-            name: "patient_name",
-            label: "Patient Full Name (Box 2)",
-            criticality: "CRITICAL",
-            requiredThreshold: 0.80,
-            pageNumber: 1,
-            bbox: { x: 50, y: 310, w: 600, h: 90 },
-            stages: {
-              s1_opencv: { title: "1. OpenCV", status: "completed", method: "Anchor Match", value: "Aligned", confidence: 0.98, cropText: "DOE, J0HN" },
-              s2_ocr: { title: "2. Regional", status: "failed", method: "PaddleOCR", value: "DOE, J0HN", confidence: 0.78, error: "Confidence 0.78 < 0.80 Threshold", cropText: "DOE, J0HN" },
-              s3_retry: { title: "3. Retry", status: "failed", method: "Sharpening", value: "DOE, J0HN", confidence: 0.79, error: "Confidence 0.79 < 0.80 Threshold", cropText: "DOE, J0HN" },
-              s4_vlm: { title: "4. Compact", status: "completed", method: "Qwen2.5-VL", value: "DOE, JOHN", confidence: 0.98, cropText: "DOE, JOHN" },
-              s5_hitl: { title: "5. Human Review", status: "completed", method: "VLM Auto-Validated", value: "DOE, JOHN", confidence: 0.98 }
-            },
-            whyEscalated: "OCR initially misidentified letter 'O' as digit '0', lowering confidence to 0.78 (< 0.80 threshold). Compact Vision-Language Model examined the crop with language context and extracted 'DOE, JOHN' at 0.98 confidence (>= 0.80 threshold). Auto-validated without HITL escalation.",
-            cost: "$0.0022",
-            latency: "680ms"
-          },
-          {
-            id: "insured_id_number",
-            name: "insured_id_number",
-            label: "Insured ID Number (Box 1a)",
-            criticality: "CRITICAL",
-            requiredThreshold: 0.80,
-            pageNumber: 1,
-            bbox: { x: 980, y: 210, w: 650, h: 70 },
-            stages: {
-              s1_opencv: { title: "1. OpenCV", status: "completed", method: "Grid Profile", value: "Box Extracted", confidence: 0.99, cropText: "XYZ987654321" },
-              s2_ocr: { title: "2. Regional", status: "completed", method: "PaddleOCR", value: "XYZ987654321", confidence: 0.96, cropText: "XYZ987654321" },
-              s3_retry: { title: "3. Retry", status: "skipped", method: "N/A", value: "XYZ987654321", confidence: 0.96 },
-              s4_vlm: { title: "4. Compact", status: "skipped", method: "N/A", value: "XYZ987654321", confidence: 0.96 },
-              s5_hitl: { title: "5. Human Review", status: "completed", method: "Auto-Validated", value: "XYZ987654321", confidence: 0.96 }
-            },
-            whyEscalated: "Extracted cleanly with high confidence (96% >= 80% threshold). Auto-validated without HITL.",
-            cost: "$0.0001",
-            latency: "32ms"
-          },
-          {
-            id: "federal_tax_id",
-            name: "federal_tax_id",
-            label: "Federal Tax ID (Box 25)",
-            criticality: "CRITICAL",
-            requiredThreshold: 0.80,
-            pageNumber: 1,
-            bbox: { x: 50, y: 1810, w: 550, h: 80 },
-            stages: {
-              s1_opencv: { title: "1. OpenCV", status: "completed", method: "Grid Profile", value: "Box Extracted", confidence: 0.99, cropText: "12-3456789" },
-              s2_ocr: { title: "2. Regional", status: "completed", method: "PaddleOCR", value: "12-3456789", confidence: 0.97, cropText: "12-3456789" },
-              s3_retry: { title: "3. Retry", status: "skipped", method: "N/A", value: "12-3456789", confidence: 0.97 },
-              s4_vlm: { title: "4. Compact", status: "skipped", method: "N/A", value: "12-3456789", confidence: 0.97 },
-              s5_hitl: { title: "5. Human Review", status: "completed", method: "Auto-Validated", value: "12-3456789", confidence: 0.97 }
-            },
-            whyEscalated: "Passed 9-digit EIN syntax validation at 97% confidence (>= 80% threshold). Auto-validated.",
-            cost: "$0.0001",
-            latency: "28ms"
-          },
-          {
-            id: "npi",
-            name: "rendering_provider_npi",
-            label: "Rendering Provider NPI (Box 33a)",
-            criticality: "CRITICAL",
-            requiredThreshold: 0.80,
-            pageNumber: 1,
-            bbox: { x: 50, y: 1950, w: 550, h: 80 },
-            stages: {
-              s1_opencv: { title: "1. OpenCV", status: "completed", method: "ORB Homography", value: "Grid Aligned", confidence: 0.99, cropText: "1234567890" },
-              s2_ocr: { title: "2. Regional", status: "failed", method: "PaddleOCR", value: "1234567890", confidence: 0.78, error: "Failed Luhn Checksum (mod 10 fail)", cropText: "1234567890" },
-              s3_retry: { title: "3. Retry", status: "completed", method: "Binarize", value: "1234567893", confidence: 0.96, cropText: "1234567893" },
-              s4_vlm: { title: "4. Compact", status: "skipped", method: "Qwen2.5-VL", value: "N/A (Resolved Stage 3)", confidence: 1.0 },
-              s5_hitl: { title: "5. Human Review", status: "completed", method: "Auto-Validated", value: "1234567893", confidence: 0.96 }
-            },
-            whyEscalated: "Initial OCR read digit '0' instead of '3' at position 10. The deterministic NPI Luhn checksum rule flagged the value, triggering a targeted crop retry (Stage 3) which corrected the character to 1234567893 at 96% confidence (>= 80% threshold). Auto-validated without HITL.",
-            cost: "$0.0001",
-            latency: "142ms"
-          }
-        ]
+// Live document catalog populated from /api/documents (+ /results).
+const DOCUMENTS = {};
+
+function stageFromField(field) {
+  const value = field.normalized_value || field.value || "";
+  const confidence = typeof field.confidence === "number" ? field.confidence : null;
+  const method = field.extraction_method || "OCR";
+  const validation = field.validation_status || "PENDING";
+  const needsHitl = ["FAILED", "NEEDS_REVIEW", "PENDING"].includes(validation) || (confidence != null && confidence < 0.8);
+  const confLabel = confidence == null ? "n/a" : `${(confidence * 100).toFixed(0)}%`;
+  return {
+    id: field.field_name,
+    name: field.field_name,
+    label: field.field_name.replaceAll("_", " "),
+    criticality: field.is_critical ? "CRITICAL" : "STANDARD",
+    requiredThreshold: 0.80,
+    pageNumber: field.page_number || 1,
+    bbox: field.bounding_box || { x: 80, y: 200, w: 400, h: 60 },
+    stages: {
+      s1_opencv: { title: "1. OpenCV", status: "completed", method: "Page Alignment", value: "Aligned", confidence: 1.0, cropText: value || "—" },
+      s2_ocr: { title: "2. Regional", status: "completed", method: method, value: value || "—", confidence: confidence ?? 0, cropText: value || "—" },
+      s3_retry: { title: "3. Retry", status: "skipped", method: "N/A", value: value || "—", confidence: confidence ?? 0 },
+      s4_vlm: { title: "4. Compact", status: "skipped", method: "N/A", value: "N/A", confidence: 1.0 },
+      s5_hitl: {
+        title: "5. Human Review",
+        status: needsHitl ? "active" : "completed",
+        method: needsHitl ? "HUMAN REVIEW REQUIRED" : "Auto-Validated",
+        value: needsHitl ? (value || "Awaiting Reviewer Action") : (value || "—"),
+        confidence: needsHitl ? (confidence ?? 0) : (confidence ?? 1),
       },
-      {
-        pageNumber: 2,
-        title: "Page 2: Itemized Service Line Attachment",
-        classification: "ATTACHMENT_ITEMIZED_STATEMENT",
-        qualityScore: 0.95,
-        fields: [
-          {
-            id: "line1_cpt",
-            name: "service_line[1].cpt",
-            label: "Line 1 CPT Code (Box 24D)",
-            criticality: "CRITICAL",
-            requiredThreshold: 0.80,
-            pageNumber: 2,
-            bbox: { x: 900, y: 1150, w: 150, h: 70 },
-            stages: {
-              s1_opencv: { title: "1. OpenCV", status: "completed", method: "Table Cell Grid", value: "Cell Box", confidence: 0.99, cropText: "99214" },
-              s2_ocr: { title: "2. Regional", status: "completed", method: "PaddleOCR", value: "99214", confidence: 0.97, cropText: "99214" },
-              s3_retry: { title: "3. Retry", status: "skipped", method: "N/A", value: "99214", confidence: 0.97 },
-              s4_vlm: { title: "4. Compact", status: "skipped", method: "N/A", value: "99214", confidence: 0.97 },
-              s5_hitl: { title: "5. Human Review", status: "completed", method: "Auto-Validated", value: "99214", confidence: 0.97 }
-            },
-            whyEscalated: "Standard PaddleOCR extracted '99214' with high confidence (97% >= 80% required). Auto-validated.",
-            cost: "$0.0000",
-            latency: "28ms"
-          }
-        ]
-      },
-      {
-        pageNumber: 3,
-        title: "Page 3: Clinical Notes & Provider Signature",
-        classification: "CLINICAL_NOTES",
-        qualityScore: 0.91,
-        fields: [
-          {
-            id: "provider_signature",
-            name: "provider_signature",
-            label: "Attending Provider Signature (Box 31)",
-            criticality: "CRITICAL",
-            requiredThreshold: 0.80,
-            pageNumber: 3,
-            bbox: { x: 1050, y: 1150, w: 600, h: 100 },
-            stages: {
-              s1_opencv: { title: "1. OpenCV", status: "completed", method: "Bounding Box", value: "Box Extracted", confidence: 0.99, cropText: "[Cursive Script]" },
-              s2_ocr: { title: "2. Regional", status: "failed", method: "PaddleOCR", value: "J. S... MD", confidence: 0.35, error: "Handwriting OCR failure", cropText: "[Cursive Script]" },
-              s3_retry: { title: "3. Retry", status: "failed", method: "TrOCR Adapter", value: "Dr. John Smith", confidence: 0.68, error: "Confidence 0.68 < 0.80 Threshold", cropText: "[Cursive Script]" },
-              s4_vlm: { title: "4. Compact", status: "failed", method: "Qwen2.5-VL", value: "Dr. John Smith, MD", confidence: 0.74, error: "Confidence 0.74 < 0.80 Threshold", cropText: "[Cursive Script]" },
-              s5_hitl: { title: "5. Human Review", status: "active", method: "HUMAN REVIEW REQUIRED", value: "Awaiting Reviewer Action", confidence: 0.0 }
-            },
-            whyEscalated: "Requires Human Review: Cursive handwriting confidence (0.74) is below the 0.80 threshold. Use the interactive HITL review box below to approve or correct the value.",
-            cost: "$0.1522",
-            latency: "1450ms"
-          }
-        ]
-      }
-    ]
+    },
+    whyEscalated: needsHitl
+      ? `Live extraction for ${field.field_name} requires review (validation=${validation}, confidence=${confLabel}).`
+      : `Live extraction accepted for ${field.field_name} (validation=${validation}, confidence=${confLabel}).`,
+    cost: "—",
+    latency: "—",
+    reviewTaskId: null,
+  };
+}
+
+function buildLiveDocument(doc, fields) {
+  const byPage = new Map();
+  for (const field of fields || []) {
+    const page = field.page_number || 1;
+    if (!byPage.has(page)) byPage.set(page, []);
+    byPage.get(page).push(stageFromField(field));
   }
-};
+  const pages = Array.from(byPage.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([pageNumber, pageFields]) => ({
+      pageNumber,
+      title: `Page ${pageNumber}: ${doc.detected_format || "Claim"}`,
+      classification: doc.detected_format || "CLAIM_FORM",
+      qualityScore: typeof doc.average_confidence === "number" ? doc.average_confidence : 0,
+      fields: pageFields,
+    }));
+  if (pages.length === 0) {
+    pages.push({
+      pageNumber: 1,
+      title: `Page 1: ${doc.detected_format || "Claim"} (no fields yet)`,
+      classification: doc.detected_format || "CLAIM_FORM",
+      qualityScore: 0,
+      fields: [],
+    });
+  }
+  const patient = doc.patient_name || "Unknown patient";
+  return {
+    id: doc.document_id,
+    name: `${patient} · ${doc.source_filename || doc.document_id}`,
+    pages,
+  };
+}
+
+async function loadLiveDocuments() {
+  const statusEl = document.querySelector(".status-pill span:last-child");
+  try {
+    const listRes = await fetch("/api/documents");
+    if (!listRes.ok) throw new Error(`documents ${listRes.status}`);
+    const docs = await listRes.json();
+    Object.keys(DOCUMENTS).forEach((k) => delete DOCUMENTS[k]);
+    for (const doc of docs) {
+      let fields = [];
+      try {
+        const resultRes = await fetch(`/api/documents/${doc.document_id}/results`);
+        if (resultRes.ok) {
+          const payload = await resultRes.json();
+          fields = payload.fields || [];
+        }
+      } catch (_) {}
+      DOCUMENTS[doc.document_id] = buildLiveDocument(doc, fields);
+    }
+    if (statusEl) {
+      statusEl.textContent = docs.length
+        ? `Live data · ${docs.length} document${docs.length === 1 ? "" : "s"}`
+        : "Live data · no ingested documents";
+    }
+  } catch (err) {
+    console.error("Failed to load live documents", err);
+    if (statusEl) statusEl.textContent = "Live API unavailable";
+  }
+}
 
 let state = {
-  doc: DOCUMENTS.cms1500_multi,
+  doc: { id: "empty", name: "No live documents", pages: [{ pageNumber: 1, title: "Page 1", classification: "EMPTY", qualityScore: 0, fields: [] }] },
   currentPageIdx: 0,
-  currentField: DOCUMENTS.cms1500_multi.pages[0].fields[0],
+  currentField: null,
   currentStageIdx: 0,
   zoomLevel: 1.0
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+function selectFirstAvailable() {
+  const docs = Object.values(DOCUMENTS);
+  if (!docs.length) {
+    state.doc = { id: "empty", name: "No live documents", pages: [{ pageNumber: 1, title: "Page 1", classification: "EMPTY", qualityScore: 0, fields: [] }] };
+    state.currentPageIdx = 0;
+    state.currentField = null;
+    state.currentStageIdx = 0;
+    return;
+  }
+  state.doc = docs[0];
+  state.currentPageIdx = 0;
+  state.currentField = state.doc.pages[0]?.fields?.[0] || null;
+  state.currentStageIdx = 0;
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
   initTheme();
+  setupEventListeners();
+  await loadLiveDocuments();
+  selectFirstAvailable();
   renderDocSelectorOptions();
   renderPageTabBar();
   renderFieldList();
@@ -183,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderPipeline();
   renderDiagnostics();
   renderCostLadder();
-  setupEventListeners();
 });
 
 function initTheme() {
@@ -202,7 +155,12 @@ function toggleTheme() {
 function renderDocSelectorOptions() {
   const sel = document.getElementById("doc-selector");
   if (!sel) return;
-  sel.innerHTML = Object.values(DOCUMENTS).map(d => `
+  const docs = Object.values(DOCUMENTS);
+  if (!docs.length) {
+    sel.innerHTML = `<option value="empty">No live documents available</option>`;
+    return;
+  }
+  sel.innerHTML = docs.map(d => `
     <option value="${d.id}" ${d.id === state.doc.id ? 'selected' : ''}>${d.name}</option>
   `).join("");
 }
@@ -211,7 +169,7 @@ function changeDocument(docId) {
   if (DOCUMENTS[docId]) {
     state.doc = DOCUMENTS[docId];
     state.currentPageIdx = 0;
-    state.currentField = state.doc.pages[0].fields[0];
+    state.currentField = state.doc.pages[0]?.fields?.[0] || null;
     state.currentStageIdx = 0;
     renderPageTabBar();
     renderFieldList();
@@ -273,7 +231,7 @@ function renderPageTabBar() {
 function renderFieldList() {
   const container = document.getElementById("field-list");
   if (!container) return;
-  const currentPageFields = state.doc.pages[state.currentPageIdx].fields;
+  const currentPageFields = state.doc.pages[state.currentPageIdx]?.fields || [];
 
   if (currentPageFields.length === 0) {
     container.innerHTML = `<div style="padding: 1rem; color: var(--text-secondary); font-size: 0.8rem;">No extracted fields on this page.</div>`;
@@ -303,6 +261,19 @@ function renderFieldList() {
   }).join("");
 }
 
+
+function liveFieldValue(names, fallback = "—") {
+  const pages = state.doc?.pages || [];
+  for (const page of pages) {
+    for (const field of page.fields || []) {
+      if (names.includes(field.name) || names.includes(field.id)) {
+        return field.stages?.s5_hitl?.value || field.stages?.s2_ocr?.value || fallback;
+      }
+    }
+  }
+  return fallback;
+}
+
 function renderCanvas() {
   const holder = document.getElementById("svg-canvas-holder");
   if (!holder) return;
@@ -315,7 +286,7 @@ function renderCanvas() {
       <rect x="50" y="50" width="1612" height="100" fill="#cbd5e1" rx="4" />
       <text x="80" y="110" font-family="sans-serif" font-size="32" font-weight="bold" fill="#0f172a">UB-04 INSTITUTIONAL CLAIM (CMS-1450) — PAGE ${page.pageNumber}</text>
       <rect x="50" y="180" width="1612" height="1800" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
-      <text x="1200" y="260" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">FL 56 NPI: 1987654321</text>
+      <text x="1200" y="260" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">FL 56 NPI: ${liveFieldValue(["billing_provider_npi","provider_npi"])}</text>
       <text x="1400" y="150" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">FL 4 TOB: 0111</text>
     `;
   } else {
@@ -326,26 +297,26 @@ function renderCanvas() {
       
       <!-- Box 1a Insured ID -->
       <rect x="980" y="210" width="650" height="70" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
-      <text x="1000" y="255" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">1a. INSURED ID: XYZ987654321</text>
+      <text x="1000" y="255" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">1a. INSURED ID: ${liveFieldValue(["insured_id_number","insured_id","member_id"])}</text>
       
       <!-- Box 2 Patient Name -->
       <rect x="50" y="310" width="600" height="90" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
       <text x="70" y="340" font-family="sans-serif" font-size="20" font-weight="bold" fill="#334155">2. PATIENT'S NAME</text>
-      <text x="80" y="380" font-family="sans-serif" font-size="32" font-weight="bold" fill="#0284c7">DOE, JOHN</text>
+      <text x="80" y="380" font-family="sans-serif" font-size="32" font-weight="bold" fill="#0284c7">${(state.currentField?.stages?.s5_hitl?.value || state.doc.name || "LIVE CLAIM").toString().slice(0, 40)}</text>
       
       <!-- Box 24D CPT Code -->
       <rect x="50" y="1100" width="1612" height="150" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
       <rect x="900" y="1150" width="150" height="70" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
       <text x="70" y="1140" font-family="sans-serif" font-size="20" font-weight="bold" fill="#334155">24. A-J SERVICE LINES</text>
-      <text x="920" y="1195" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">99214</text>
+      <text x="920" y="1195" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">${liveFieldValue(["procedure_code","cpt_code","service_line_1_cpt"], "—")}</text>
 
       <!-- Box 25 Federal Tax ID -->
       <rect x="50" y="1810" width="550" height="80" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
-      <text x="70" y="1860" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">25. TAX ID: 12-3456789</text>
+      <text x="70" y="1860" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">25. TAX ID: ${liveFieldValue(["federal_tax_id","billing_provider_tax_id"])}</text>
 
       <!-- Box 28 Total Charge -->
       <rect x="1150" y="1810" width="480" height="80" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
-      <text x="1180" y="1860" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">28. TOTAL: $ 175.00</text>
+      <text x="1180" y="1860" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">28. TOTAL: ${liveFieldValue(["total_charge","total_claim_charge_amount"])}</text>
       
       <!-- Box 31 Signature -->
       <rect x="1050" y="1150" width="600" height="100" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
@@ -354,7 +325,7 @@ function renderCanvas() {
 
       <!-- Box 33a NPI -->
       <rect x="50" y="1950" width="550" height="80" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" rx="4"/>
-      <text x="70" y="2000" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">33a. NPI: 1234567893</text>
+      <text x="70" y="2000" font-family="sans-serif" font-size="28" font-weight="bold" fill="#0284c7">33a. NPI: ${liveFieldValue(["rendering_provider_npi","billing_provider_npi","provider_npi"])}</text>
     `;
   }
 
@@ -412,7 +383,11 @@ function applyZoom() {
 function renderPipeline() {
   const container = document.getElementById("pipeline-container");
   const field = state.currentField;
-  if (!container || !field) return;
+  if (!container) return;
+  if (!field) {
+    container.innerHTML = `<div style="padding:1rem;color:var(--text-secondary);font-size:0.8rem;">Select a live extracted field to inspect pipeline stages.</div>`;
+    return;
+  }
 
   const stages = [
     field.stages.s1_opencv,
@@ -452,8 +427,9 @@ function renderPipeline() {
 
 function completeHitlReview() {
   const field = state.currentField;
+  if (!field) return;
   const inputEl = document.getElementById("hitl-input-value");
-  const val = inputEl ? inputEl.value.trim() : "Dr. John Smith, MD";
+  const val = inputEl ? inputEl.value.trim() : (field.stages.s2_ocr.value || "");
 
   field.stages.s5_hitl.value = val;
   field.stages.s5_hitl.confidence = 1.0;
@@ -461,12 +437,13 @@ function completeHitlReview() {
   field.stages.s5_hitl.method = "APPROVED_BY_OPERATOR";
   field.whyEscalated = `✓ HITL Review Completed & Approved by Human Operator ("${val}"). Confidence set to 100%. Task closed.`;
 
-  // Send async POST request to backend API
-  fetch("/review-api/review-tasks/task-4a76425e/decision", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ decision: "APPROVE", value: val })
-  }).catch(() => {});
+  if (field.reviewTaskId) {
+    fetch(`/review-api/review-tasks/${field.reviewTaskId}/correct?reviewer=reviewer@company.com`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-User-Role": "reviewer" },
+      body: JSON.stringify({ new_value: val, reason: "Approved in transformation visualizer", expected_version: 0 })
+    }).catch(() => {});
+  }
 
   renderFieldList();
   renderPipeline();
@@ -477,7 +454,12 @@ function completeHitlReview() {
 function renderDiagnostics() {
   const container = document.getElementById("diagnostic-box");
   const field = state.currentField;
-  if (!container || !field) return;
+  if (!container) return;
+  if (!field) {
+    container.className = "diagnostic-box";
+    container.innerHTML = `<div class="diag-header"><span>No field selected</span></div><div class="diag-reason">Ingest documents through the Claims IDP UI to populate live transformation stages.</div>`;
+    return;
+  }
 
   const stage = Object.values(field.stages)[state.currentStageIdx];
 
@@ -485,7 +467,7 @@ function renderDiagnostics() {
   if (stage.status === "failed" || stage.status === "active") boxClass = "danger";
 
   const isHitlActive = field.stages.s5_hitl.status === "active" || field.stages.s5_hitl.method === "APPROVED_BY_OPERATOR";
-  const defaultHitlValue = field.stages.s4_vlm.value && field.stages.s4_vlm.value !== "N/A" ? field.stages.s4_vlm.value : "Dr. John Smith, MD";
+  const defaultHitlValue = field.stages.s4_vlm.value && field.stages.s4_vlm.value !== "N/A" ? field.stages.s4_vlm.value : (field.stages.s2_ocr.value || "");
 
   container.className = `diagnostic-box ${boxClass}`;
   container.innerHTML = `

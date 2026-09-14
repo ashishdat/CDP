@@ -297,7 +297,7 @@ export function HitlInspector({ initialTaskId, onBackToQueue }: { initialTaskId?
   };
 
   // Render Row Card
-  const renderFieldRow = (fieldKey: string, displayName: string, defaultVal: string, defaultConf: number) => {
+  const renderFieldRow = (fieldKey: string, displayName: string, defaultVal: string, defaultConf: number | null) => {
     const isActive = activeFieldKey === fieldKey;
     const value = form.watch("newValue");
     const isNpi = fieldKey.includes("npi");
@@ -328,7 +328,11 @@ export function HitlInspector({ initialTaskId, onBackToQueue }: { initialTaskId?
         <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--text-secondary)", fontWeight: "600" }}>
             <span>{displayName}</span>
-            <span className={`badge ${defaultConf >= 90 ? "complete" : "warning"}`} style={{ padding: "2px 6px" }}>{defaultConf}%</span>
+            <span className={`badge ${defaultConf == null ? "" : defaultConf >= 90 ? "complete" : "warning"}`} style={{
+              padding: "2px 6px",
+              background: defaultConf == null ? "rgba(148,163,184,0.15)" : undefined,
+              color: defaultConf == null ? "var(--text-secondary)" : undefined,
+            }}>{defaultConf == null ? "—" : `${defaultConf}%`}</span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <strong style={{ color: "var(--text-primary)", fontSize: "14px" }}>
@@ -603,7 +607,7 @@ export function HitlInspector({ initialTaskId, onBackToQueue }: { initialTaskId?
                   f.field_name,
                   `${f.field_name.replaceAll("_", " ")} (Page ${f.page_number})`,
                   (f.normalized_value || f.value) || "(blank)",
-                  Math.round((f.confidence || 0.7) * 100)
+                  f.confidence == null ? null : Math.round(f.confidence * 100)
                 )
               )}
             </div>
@@ -616,7 +620,7 @@ export function HitlInspector({ initialTaskId, onBackToQueue }: { initialTaskId?
                 selected.field_name,
                 selected.field_name?.replaceAll("_", " ") || "Field",
                 selected.system_recommendation || selected.ocr_candidates?.[0] || "(blank)",
-                Math.round((selected.confidence || 0.74) * 100)
+                selected.confidence == null ? null : Math.round(selected.confidence * 100)
               )}
               {selected.ocr_candidates && selected.ocr_candidates.length > 1 && (
                 <div style={{ marginTop: "10px", padding: "8px", background: "var(--hover-bg)", borderRadius: "6px" }}>

@@ -151,13 +151,13 @@ export default function App() {
         claim_id: claimId,
         patient: patientName ? patientName : `Claim ${claimId}`,
         type: doc.detected_format === "PDF" ? "CMS-1500" : (doc.detected_format || "CMS-1500"),
-        payer: "—",
-        received: doc.received_at ? doc.received_at.replace("T", " ").slice(0, 16) : new Date().toISOString().replace("T", " ").slice(0, 16),
-        confidence: displayStatus === "Completed" ? 96 : 74,
+        payer: doc.payer_name || "—",
+        received: doc.received_at ? doc.received_at.replace("T", " ").slice(0, 16) : "—",
+        confidence: typeof doc.average_confidence === "number" ? Math.round(doc.average_confidence * 100) : null,
         reviewer: assignedReviewer,
         status: displayStatus,
         priority: displayStatus === "Needs Review" ? "CRITICAL" : "STANDARD",
-        sla: displayStatus === "Needs Review" ? "2h remaining" : "SLA Met",
+        sla: "—",
         isLive: true,
         validation: exceptionFields.length > 0 
           ? `Exceptions: ${Array.from(new Set(exceptionFields)).map((f: string) => f.replaceAll("_", " ")).join(", ")}`
@@ -180,12 +180,12 @@ export default function App() {
         patient: task.patient_name ? task.patient_name : `Claim ${claimId}`,
         type: "CMS-1500",
         payer: "—",
-        received: task.created_at ? task.created_at.replace("T", " ").slice(0, 16) : new Date().toISOString().replace("T", " ").slice(0, 16),
-        confidence: isCompleted ? 95 : 72,
+        received: task.created_at ? task.created_at.replace("T", " ").slice(0, 16) : "—",
+        confidence: null,
         reviewer: task.assigned_to || "Unassigned",
         status: isCompleted ? "Completed" : "Needs Review",
         priority: isCompleted ? "STANDARD" : "CRITICAL",
-        sla: isCompleted ? "SLA Met" : "2h remaining",
+        sla: "—",
         isLive: true,
         validation: task.field_name ? `Exceptions: ${task.field_name.replaceAll("_", " ")}` : "None (Passed)",
       });
@@ -317,6 +317,43 @@ export default function App() {
   const exceptionDocs = rawDocsForMetrics.filter((doc: any) => doc.status === "NEEDS_REVIEW" || taskDocIds.has(doc.document_id)).length;
   const exceptionRate = totalIngested > 0 ? ((exceptionDocs / totalIngested) * 100).toFixed(1) + "%" : "—";
 
+  const fieldAccuracy = report ? percent(report.normalized_field_accuracy) : "—";
+  const avgLatency = report?.operational_metrics?.average_latency_seconds != null
+    ? `${report.operational_metrics.average_latency_seconds.toFixed(2)}s`
+    : "—";
+
+  const volumeBuckets = (() => {
+    const days: { label: string; count: number }[] = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i -= 1) {
+      const day = new Date(now);
+      day.setHours(0, 0, 0, 0);
+      day.setDate(now.getDate() - i);
+      const key = day.toISOString().slice(0, 10);
+      days.push({ label: key.slice(5), count: 0 });
+      for (const doc of rawDocsForMetrics) {
+        const received = doc.received_at ? String(doc.received_at) : "";
+        if (received.startsWith(key)) days[days.length - 1].count += 1;
+      }
+    }
+    return days;
+  })();
+  const volumeMax = Math.max(1, ...volumeBuckets.map((b) => b.count));
+
+  const exceptionPareto = (() => {
+    const counts = new Map<string, number>();
+    for (const task of rawTasksForMetrics) {
+      const reason = task.field_name
+        ? String(task.field_name).replaceAll("_", " ")
+        : (Array.isArray(task.review_reason_codes) && task.review_reason_codes[0]) || "Unspecified exception";
+      counts.set(reason, (counts.get(reason) || 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([reason, count]) => ({ reason, count, severity: count >= 3 ? "HIGH" : "MEDIUM" }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+  })();
+
   return (
     <div className="app-container">
       {/* SIDEBAR SHELL */}
@@ -408,9 +445,9 @@ export default function App() {
                 <div onClick={() => { setActiveTab("queue"); setStatusFilter("Needs Review"); }}>
                   <MetricCard label="Pending HITL" value={livePendingCount.toString()} tone="danger" hint="Claims awaiting manual correction" clickable={true} />
                 </div>
-                <MetricCard label="Field Accuracy" value="—" tone="good" hint="Real-time exact-match accuracy" />
+                <MetricCard label="Field Accuracy" value={fieldAccuracy} tone="good" hint="Governed sample exact-match accuracy" />
                 <MetricCard label="Exception Rate" value={exceptionRate} tone="warning" hint="Claims escalated to review queue" />
-                <MetricCard label="Avg Latency" value="—" tone="default" hint="Real-time average pipeline latency" />
+                <MetricCard label="Avg Latency" value={avgLatency} tone="default" hint="Governed sample average assembly latency" />
               </div>
 
               {/* Charts & Pareto lists split panel */}
@@ -422,21 +459,26 @@ export default function App() {
                       <h3>Claims Volume Trends</h3>
                     </div>
                     <div style={{ display: "flex", gap: "6px" }}>
-                      <button className="primary-button" style={{ fontSize: "10px", padding: "4px 8px", background: "var(--cyan)" }}>7 Days (Simulated)</button>
+                      <button className="primary-button" style={{ fontSize: "10px", padding: "4px 8px", background: "var(--cyan)" }}>Last 7 Days (Live)</button>
                     </div>
                   </div>
                   
                   {/* Dynamic Chart Area */}
                   <div style={{ height: "200px", display: "flex", alignItems: "end", gap: "10px", padding: "10px 0" }}>
-                    {[22, 35, 48, 55, 74, 98, 85, 110, 105, 130, 125, 150].map((val, i) => (
-                      <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    {volumeBuckets.every((b) => b.count === 0) ? (
+                      <div style={{ width: "100%", textAlign: "center", color: "var(--text-tertiary)", fontSize: "12px", alignSelf: "center" }}>
+                        No ingested documents in the last 7 days
+                      </div>
+                    ) : volumeBuckets.map((bucket, i) => (
+                      <div key={bucket.label} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <small style={{ fontSize: "9px", color: "var(--text-secondary)", marginBottom: "4px" }}>{bucket.count}</small>
                         <div style={{ 
                           width: "100%", 
-                          height: `${val}px`, 
-                          background: i % 2 === 0 ? "linear-gradient(to top, var(--cyan), var(--blue))" : "rgba(20, 184, 166, 0.15)",
+                          height: `${Math.max(4, Math.round((bucket.count / volumeMax) * 160))}px`, 
+                          background: i % 2 === 0 ? "linear-gradient(to top, var(--cyan), var(--blue))" : "rgba(20, 184, 166, 0.35)",
                           borderRadius: "4px 4px 0 0" 
                         }} />
-                        <small style={{ fontSize: "9px", color: "var(--text-tertiary)", marginTop: "4px" }}>{8 + i}h</small>
+                        <small style={{ fontSize: "9px", color: "var(--text-tertiary)", marginTop: "4px" }}>{bucket.label}</small>
                       </div>
                     ))}
                   </div>
@@ -451,13 +493,10 @@ export default function App() {
                     </div>
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {[
-                      { reason: "Billing Provider NPI Luhn Failure", count: 42, severity: "HIGH" },
-                      { reason: "Low OCR Extraction Confidence (<85%)", count: 28, severity: "MEDIUM" },
-                      { reason: "Missing Patient DOB (Box 3)", count: 18, severity: "HIGH" },
-                      { reason: "Invalid Diagnosis Format (ICD-10)", count: 12, severity: "MEDIUM" }
-                    ].map((item, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px", borderBottom: "1px solid var(--line-color)" }}>
+                    {exceptionPareto.length === 0 ? (
+                      <div style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>No live review exceptions</div>
+                    ) : exceptionPareto.map((item, i) => (
+                      <div key={`${item.reason}-${i}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: "10px", borderBottom: "1px solid var(--line-color)" }}>
                         <div style={{ display: "flex", flexDirection: "column" }}>
                           <span style={{ fontSize: "12px", fontWeight: "700" }}>{item.reason}</span>
                           <small style={{ fontSize: "10px", color: "var(--text-tertiary)" }}>{item.count} occurrences</small>
@@ -554,14 +593,14 @@ export default function App() {
                         <td>{claim.payer}</td>
                         <td><small>{claim.received}</small></td>
                         <td>
-                          <span className={`badge-pill ${claim.confidence >= 90 ? "high" : "warning"}`} style={{
-                            background: claim.confidence >= 90 ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.15)",
-                            color: claim.confidence >= 90 ? "var(--good-bright)" : "var(--warning-bright)",
+                          <span className={`badge-pill ${claim.confidence == null ? "" : claim.confidence >= 90 ? "high" : "warning"}`} style={{
+                            background: claim.confidence == null ? "rgba(148, 163, 184, 0.15)" : claim.confidence >= 90 ? "rgba(16, 185, 129, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                            color: claim.confidence == null ? "var(--text-secondary)" : claim.confidence >= 90 ? "var(--good-bright)" : "var(--warning-bright)",
                             padding: "2px 6px",
                             borderRadius: "4px",
                             fontSize: "11px"
                           }}>
-                            {claim.confidence}%
+                            {claim.confidence == null ? "—" : `${claim.confidence}%`}
                           </span>
                         </td>
                         <td>
@@ -598,11 +637,10 @@ export default function App() {
 
           {/* TAB 3: DOCUMENT REVIEW */}
           <section style={{ display: activeTab === "review" ? "grid" : "none", gap: "20px" }}>
-            {/* Fallback tracking info ribbon */}
-            <div style={{ border: "1px solid var(--line-color)", background: "rgba(245,158,11,0.12)", padding: "12px", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ border: "1px solid var(--line-color)", background: "rgba(20,184,166,0.08)", padding: "12px", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <span style={{ fontSize: "10px", color: "var(--warning-bright)", fontWeight: "700", textTransform: "uppercase" }}>Model Fallback Log</span>
-                <p style={{ margin: "4px 0 0 0", fontSize: "12px" }}>Primary extraction model <strong>Document AI v1.2</strong> confidence dropped to 71%. Fallback model <strong>Layout VLM</strong> triggered.</p>
+                <span style={{ fontSize: "10px", color: "var(--cyan)", fontWeight: "700", textTransform: "uppercase" }}>Live Review Context</span>
+                <p style={{ margin: "4px 0 0 0", fontSize: "12px" }}>Showing extracted field values and confidence from the ingestion API for the selected claim. Missing confidence is shown as — rather than a placeholder.</p>
               </div>
               {selectedTaskId && !selectedTaskId.startsWith("CLM-") && (
                 <button className="primary-button" style={{ padding: "4px 10px", fontSize: "10px", background: "var(--cyan)", color: "#fff" }} onClick={() => setShowFeedbackModal(true)}>
@@ -611,8 +649,8 @@ export default function App() {
               )}
             </div>
 
-            <HitlInspector 
-              initialTaskId={selectedTaskId} 
+            <HitlInspector
+              initialTaskId={selectedTaskId}
               onBackToQueue={() => {
                 reviewTasksQuery.refetch();
                 setActiveTab("queue");
@@ -632,7 +670,7 @@ export default function App() {
               ) : (
                 <div className="panel" style={{ padding: "40px", textAlign: "center", display: "grid", placeItems: "center" }}>
                   <h3>Awaiting Evaluation Report Payload</h3>
-                  <p style={{ color: "var(--text-secondary)" }}>Upload your evaluation report JSON using the header button to load analytics charts</p>
+                  <p style={{ color: "var(--text-secondary)" }}>Deploy evaluation.json under /reports to populate analytics charts</p>
                 </div>
               )}
             </section>
@@ -650,18 +688,17 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Dropdown selectors for real audit ledger (Priority 3) */}
                 <div style={{ background: "var(--card-bg-2)", padding: "12px 18px", borderRadius: "8px", border: "1px solid var(--line-color)", display: "flex", gap: "15px", alignItems: "center", marginBottom: "15px" }}>
                   <span style={{ fontSize: "12px", fontWeight: "700" }}>🔍 Select Live Audit Timeline:</span>
-                  <select 
-                    value={selectedTaskId || ""} 
+                  <select
+                    value={selectedTaskId || ""}
                     onChange={(e) => setSelectedTaskId(e.target.value || undefined)}
                     style={{ padding: "6px 12px", borderRadius: "6px", background: "var(--input-bg)", border: "1px solid var(--line-color)", color: "var(--text-primary)", fontSize: "12px", minWidth: "220px" }}
                   >
-                    <option value="">-- View Global System Log (Demo) --</option>
+                    <option value="">-- No task selected --</option>
                     {(reviewTasksQuery.data || []).map((t: any) => (
                       <option key={t.task_id} value={t.task_id}>
-                        Live Claim Task: {t.claim_id ? t.claim_id.toUpperCase() : t.task_id.slice(0, 8)}
+                        Live Claim Task: {t.claim_id ? String(t.claim_id).toUpperCase() : t.task_id.slice(0, 8)}
                       </option>
                     ))}
                   </select>
@@ -691,7 +728,13 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody>
-                        {activeAuditLogs.map((log: AuditLogEntry, i: number) => (
+                        {activeAuditLogs.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} style={{ textAlign: "center", color: "var(--text-secondary)" }}>
+                              No audit events for the selected live task
+                            </td>
+                          </tr>
+                        ) : activeAuditLogs.map((log: AuditLogEntry, i: number) => (
                           <tr key={i}>
                             <td><small>{log.timestamp}</small></td>
                             <td><code>{log.claimId}</code></td>

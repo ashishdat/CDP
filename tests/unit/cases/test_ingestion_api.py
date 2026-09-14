@@ -124,3 +124,33 @@ def test_list_documents_respects_tenant_filter(client, session_factory):
     response = client.get("/documents", params={"tenant_id": "other-tenant"})
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_list_documents_includes_average_confidence_and_payer(client, session_factory):
+    doc = _seed_document(session_factory)
+    _seed_extracted_field(session_factory, document_id=doc.document_id, field_name="patient_name", value="Lee, Sam")
+    _seed_extracted_field(session_factory, document_id=doc.document_id, field_name="payer_name", value="Acme Health")
+    with session_factory() as session:
+        session.add(
+            ExtractedFieldORM(
+                field_id=uuid4(),
+                document_id=doc.document_id,
+                field_name="billing_provider_npi",
+                raw_value="1234567893",
+                normalized_value="1234567893",
+                confidence=0.85,
+                page_number=1,
+                bounding_box={"x0": 0, "y0": 0, "x1": 1, "y1": 1},
+                extraction_method="REGIONAL_PADDLEOCR",
+                created_at=datetime.now(UTC),
+            )
+        )
+        session.commit()
+
+    response = client.get("/documents")
+    assert response.status_code == 200
+    row = next(item for item in response.json() if item["document_id"] == str(doc.document_id))
+    assert row["patient_name"] == "Lee, Sam"
+    assert row["payer_name"] == "Acme Health"
+    assert row["extracted_field_count"] == 3
+    assert row["average_confidence"] == pytest.approx((0.95 + 0.95 + 0.85) / 3)
