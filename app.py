@@ -16,11 +16,11 @@ from PIL import Image
 from datasets.registry import DatasetManager
 
 LOGGER = logging.getLogger("cdp.application")
-STAGES = ("load", "classification", "registration", "geometry", "ocr", "ranking",
+STAGES = ("load", "classification", "template_selection", "registration", "geometry", "ocr", "ranking",
           "validators", "decision", "evidence")
 
 
-def register_classified_document(images, routing, registry):
+def register_classified_document(images, routing, registry, selection=None):
     """Bind the selected page to existing image registration, without field geometry.
 
     Registration acceptance does not authorize extraction or establish form identity.
@@ -28,6 +28,16 @@ def register_classified_document(images, routing, registry):
     """
     from workers.page_detection.template_alignment import align_to_reference
 
+    if selection is not None:
+        if selection.template_id is None:
+            return {"status": "UNAVAILABLE", "accepted": False, "reason": selection.reason,
+                    "page_number": None, "evidence": None, "transform_matrix": None}
+        from types import SimpleNamespace
+
+        routing = SimpleNamespace(
+            needs_review=False, selected_page_number=selection.page_number,
+            template=registry.get(selection.template_id, selection.template_version),
+        )
     result = {"status": "UNAVAILABLE", "accepted": False, "reason": None,
               "page_number": routing.selected_page_number, "evidence": None,
               "transform_matrix": None}
@@ -77,7 +87,8 @@ def register_classified_document(images, routing, registry):
             aligned.warped.close()
 
 
-def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs"):
+def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs",
+                document_type=None):
     """Decode one entire TIFF in memory, then invoke existing runtime routing.
 
     This assembly stops at the first missing integration. It does not replace
@@ -132,12 +143,21 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
         from packages.templates.registry import TemplateRegistry
         from workers.cascade.tesseract_adapter import TesseractTextExtractor
         from workers.page_detection.router import PageRoutingService
+        from workers.page_detection.template_selector import TemplateSelector
+
+        observed_lines = {}
+
+        class ClassificationTextExtractor(TesseractTextExtractor):
+            def extract(self, image):
+                lines = super().extract(image)
+                observed_lines[id(image)] = lines
+                return lines
 
         registry = TemplateRegistry.load_from_directory()
         cms = registry.latest_for_form_type(ClaimFormType.CMS1500)
         ub = registry.latest_for_form_type(ClaimFormType.UB04)
         router = PageRoutingService(
-            cms_template=cms, ub_template=ub, text_extractor=TesseractTextExtractor(psm=11),
+            cms_template=cms, ub_template=ub, text_extractor=ClassificationTextExtractor(psm=11),
             cms_reference_image=registry.load_reference_image(cms),
             ub_reference_image=registry.load_reference_image(ub),
         )
@@ -146,9 +166,20 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
         state["stages"][stage] = "SUCCESS"
         state["latency_ms"][stage] = (perf_counter() - started) * 1000
         LOGGER.info("classification SUCCESS")
+        stage = "template_selection"
+        started = perf_counter()
+        selection = TemplateSelector(registry).select(
+            images, text_lines={page: observed_lines.get(id(image), [])
+                                for page, image in enumerate(images, 1)},
+            document_type=document_type,
+        )
+        state["template_selection"] = asdict(selection)
+        state["stages"][stage] = "SUCCESS" if selection.template_id else "UNAVAILABLE"
+        state["latency_ms"][stage] = (perf_counter() - started) * 1000
+        LOGGER.info("template_selection %s: %s", state["stages"][stage], selection.reason)
         stage = "registration"
         started = perf_counter()
-        state["registration"] = register_classified_document(images, routing, registry)
+        state["registration"] = register_classified_document(images, routing, registry, selection)
         result = state["registration"]
         state["stages"][stage] = result["status"]
         state["latency_ms"][stage] = (perf_counter() - started) * 1000
@@ -180,9 +211,12 @@ def main():
     parser.add_argument("--dataset", default="dataset.yaml")
     parser.add_argument("--document", help="Exact ZIP entry; default is first document")
     parser.add_argument("--output-root", default="runs")
+    parser.add_argument("--document-type", choices=("CMS1500", "UB04", "UNSTRUCTURED"),
+                        help="Explicit operator-supplied document type; never inferred from filename")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-    path, state = process_one(args.dataset, document=args.document, output_root=args.output_root)
+    path, state = process_one(args.dataset, document=args.document, output_root=args.output_root,
+                              document_type=args.document_type)
     print(path.resolve())
     return 0 if state["status"] == "SUCCESS" else 1
 
