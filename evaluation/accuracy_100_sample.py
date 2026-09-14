@@ -1,6 +1,8 @@
-"""100-sample Golden Pack V2 accuracy + HITL measurement.
+"""100-sample Golden Pack accuracy + HITL measurement.
 
-Full pack: 50 CMS1500 + 50 UB04 from CDP_GOLDEN_ENGINEERING_PACK_V2.
+Default pack: CDP_GOLDEN_ENGINEERING_PACK_V2 (50 CMS + 50 UB).
+Pass --dataset to measure STP/HITL on V3 (Luhn-valid NPIs) without changing
+production Luhn policy.
 Reports Exact field accuracy and HITL under two views:
   - raw_disposition_hitl: validation_status not AUTO_ACCEPTED (extractor leaves PENDING)
   - hard_hitl: INVALID / MISSING / Exact-miss (actionable review)
@@ -8,6 +10,7 @@ Reports Exact field accuracy and HITL under two views:
 
 from __future__ import annotations
 
+import argparse
 import csv
 import json
 import re
@@ -32,8 +35,8 @@ from workers.standard_form_extraction import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-DATASET = ROOT / "evaluation_data/phase8_6_golden_pack/CDP_GOLDEN_ENGINEERING_PACK_V2"
-OUTPUT = ROOT / "evaluation_results/accuracy_100_sample"
+DEFAULT_DATASET = ROOT / "evaluation_data/phase8_6_golden_pack/CDP_GOLDEN_ENGINEERING_PACK_V2"
+DEFAULT_OUTPUT = ROOT / "evaluation_results/accuracy_100_sample"
 AUTO_ACCEPTED = {"AUTO_ACCEPTED", "ACCEPTED", "REFERENCE_CONFIRMED", "HUMAN_CONFIRMED"}
 
 
@@ -62,10 +65,18 @@ def _status_name(value: object) -> str:
     return str(getattr(value, "name", None) or getattr(value, "value", None) or value)
 
 
-def run(*, cms: int = 50, ub: int = 50) -> dict:
-    OUTPUT.mkdir(parents=True, exist_ok=True)
-    manifest = json.loads((DATASET / "manifest.json").read_text("utf-8"))
-    truth_rows = list(csv.DictReader((DATASET / "field_truth.csv").open(encoding="utf-8")))
+def run(
+    *,
+    cms: int = 50,
+    ub: int = 50,
+    dataset: Path | None = None,
+    output: Path | None = None,
+) -> dict:
+    dataset_path = Path(dataset) if dataset else DEFAULT_DATASET
+    output_path = Path(output) if output else DEFAULT_OUTPUT
+    output_path.mkdir(parents=True, exist_ok=True)
+    manifest = json.loads((dataset_path / "manifest.json").read_text("utf-8"))
+    truth_rows = list(csv.DictReader((dataset_path / "field_truth.csv").open(encoding="utf-8")))
     truth_by_doc: dict[str, list[dict]] = defaultdict(list)
     for row in truth_rows:
         truth_by_doc[row["document_id"]].append(row)
@@ -89,7 +100,7 @@ def run(*, cms: int = 50, ub: int = 50) -> dict:
     for index, doc in enumerate(docs, 1):
         doc_id = doc["document_id"]
         family = "CMS1500" if doc_id.startswith("CMS") else "UB04"
-        image = Image.open(DATASET / doc["file"]).convert("RGB")
+        image = Image.open(dataset_path / doc["file"]).convert("RGB")
         identity = FormIdentityDecision(
             family=DocumentClass.CMS1500 if family == "CMS1500" else DocumentClass.UB04,
             status=FormIdentityStatus.VERIFIED,
@@ -269,18 +280,42 @@ def run(*, cms: int = 50, ub: int = 50) -> dict:
         ),
     }
 
-    (OUTPUT / "metrics.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    (OUTPUT / "field_records.jsonl").write_text(
+    report["dataset_path"] = str(dataset_path)
+    (output_path / "metrics.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    (output_path / "field_records.jsonl").write_text(
         "".join(json.dumps(row) + "\n" for row in field_records), encoding="utf-8"
     )
-    (OUTPUT / "claim_records.jsonl").write_text(
+    (output_path / "claim_records.jsonl").write_text(
         "".join(json.dumps(row) + "\n" for row in claim_records), encoding="utf-8"
     )
     return report
 
 
 if __name__ == "__main__":
-    result = run(cms=50, ub=50)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--cms", type=int, default=50)
+    parser.add_argument("--ub", type=int, default=50)
+    parser.add_argument(
+        "--dataset",
+        type=Path,
+        default=DEFAULT_DATASET,
+        help="Golden pack root (V2 or V3).",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=None,
+        help="Artifact directory (defaults from dataset id).",
+    )
+    args = parser.parse_args()
+    output = args.output
+    if output is None:
+        dataset_name = args.dataset.name.lower()
+        if "v3" in dataset_name:
+            output = ROOT / "evaluation_results/accuracy_100_sample_v3"
+        else:
+            output = DEFAULT_OUTPUT
+    result = run(cms=args.cms, ub=args.ub, dataset=args.dataset, output=output)
     printable = {key: value for key, value in result.items() if key not in {"note", "gaps_resolved"}}
     print(json.dumps(printable, indent=2))
     print("gaps_resolved:", result["gaps_resolved"])

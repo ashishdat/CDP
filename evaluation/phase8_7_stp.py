@@ -91,7 +91,12 @@ def _tree_digest(path: Path) -> str:
 
 
 def _font(size: int = 20) -> ImageFont.ImageFont:
-    for candidate in (Path("C:/Windows/Fonts/arial.ttf"), Path("C:/Windows/Fonts/calibri.ttf")):
+    for candidate in (
+        Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("C:/Windows/Fonts/arial.ttf"),
+        Path("C:/Windows/Fonts/calibri.ttf"),
+    ):
         if candidate.is_file():
             return ImageFont.truetype(str(candidate), size)
     return ImageFont.load_default()
@@ -115,13 +120,31 @@ def _render_replacement_npi(
     variant: str,
     document_id: str,
 ) -> list[int]:
-    font = _font(20)
     x0, y0, x1, y1 = (round(value) for value in bbox)
     patch_box = (x0 - 5, y0 - 5, x1 + 7, y1 + 6)
-    patch = Image.new("RGB", (patch_box[2] - patch_box[0], patch_box[3] - patch_box[1]), "white")
+    patch_width = patch_box[2] - patch_box[0]
+    patch_height = patch_box[3] - patch_box[1]
+    patch = Image.new("RGB", (patch_width, patch_height), "white")
     draw = ImageDraw.Draw(patch)
     ink = 70 if variant == "low_contrast" else 0
-    position = (5, 1)
+    font_size = max(10, min(20, patch_height - 4))
+    font = _font(font_size)
+    # Shrink until the 10-digit NPI fits the white patch with a small margin.
+    while font_size > 8:
+        left, top, right, bottom = draw.textbbox((0, 0), value, font=font)
+        text_width = right - left
+        text_height = bottom - top
+        if text_width <= patch_width - 4 and text_height <= patch_height - 2:
+            break
+        font_size -= 1
+        font = _font(font_size)
+        left, top, right, bottom = draw.textbbox((0, 0), value, font=font)
+        text_width = right - left
+        text_height = bottom - top
+    position = (
+        max(1, (patch_width - text_width) // 2),
+        max(0, (patch_height - text_height) // 2 - top),
+    )
     draw.text(position, value, font=font, fill=(ink, ink, ink))
     if variant == "blur":
         patch = patch.filter(ImageFilter.GaussianBlur(0.65))
@@ -143,7 +166,10 @@ def _render_replacement_npi(
 
 
 def _observed_npi_bbox(document_id: str, value: str, fallback: list[int]) -> list[float]:
-    observation = _read_json(OBSERVATIONS / f"{document_id}.json")
+    observation_path = OBSERVATIONS / f"{document_id}.json"
+    if not observation_path.is_file():
+        return fallback
+    observation = _read_json(observation_path)
     expected = "".join(char for char in value if char.isdigit())
     matches = [
         token["bbox"]
@@ -181,7 +207,7 @@ def build_v3(source: Path = V2, target: Path = V3, output: Path = OUTPUT) -> dic
             raise RuntimeError(f"refusing to overwrite unexpected dataset: {target}")
         _write_json(output / "npi_invalid_adversarial_cases.json", _invalid_npi_cases_from_v2())
         return manifest
-    v1_before = _tree_digest(V1)
+    v1_before = _tree_digest(V1) if V1.exists() else None
     v2_before = _tree_digest(V2)
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(source, target)
@@ -263,16 +289,20 @@ def build_v3(source: Path = V2, target: Path = V3, output: Path = OUTPUT) -> dic
         }
     )
     (target / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", "utf-8")
+    v1_after = _tree_digest(V1) if V1.exists() else None
+    v2_after = _tree_digest(V2)
     provenance = {
         "dataset_id": manifest["dataset_id"],
         "created_at": datetime.now(UTC).isoformat(),
         "frozen_phase8_6_commit": FROZEN_SHA,
         "v1_tree_sha256_before": v1_before,
-        "v1_tree_sha256_after": _tree_digest(V1),
+        "v1_tree_sha256_after": v1_after,
         "v2_tree_sha256_before": v2_before,
-        "v2_tree_sha256_after": _tree_digest(V2),
-        "v1_unchanged": v1_before == _tree_digest(V1),
-        "v2_unchanged": v2_before == _tree_digest(V2),
+        "v2_tree_sha256_after": v2_after,
+        "v1_unchanged": (v1_before is None and v1_after is None)
+        or (v1_before is not None and v1_before == v1_after),
+        "v2_unchanged": v2_before == v2_after,
+        "v1_present": V1.exists(),
     }
     _write_json(target / "phase8_7_provenance.json", provenance)
     _write_json(output / "npi_invalid_adversarial_cases.json", invalid_adversarial)
