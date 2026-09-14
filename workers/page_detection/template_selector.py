@@ -1,6 +1,6 @@
 """Conservative template/page selection using existing matching implementations."""
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from math import isfinite
 
 from packages.domain.enums import ClaimFormType
@@ -11,7 +11,10 @@ from workers.page_detection.router import (
     ANCHOR_CONFIDENT_THRESHOLD,
     GRID_CONFIDENT_THRESHOLD,
 )
-from workers.page_detection.template_alignment import align_to_reference
+from workers.page_detection.template_alignment import (
+    DEFAULT_REGISTRATION_POLICY,
+    align_to_reference,
+)
 
 
 @dataclass(frozen=True)
@@ -74,6 +77,8 @@ class TemplateSelector:
             candidate["diagnostics"] = {
                 "anchor_count": len(template.anchor_definitions),
                 "matched_anchor_count": len(anchors.matched_phrases),
+                "matched_anchor_phrases": list(anchors.matched_phrases),
+                "expected_anchors": [anchor.phrase for anchor in template.anchor_definitions],
                 "missing_required_anchors": list(anchors.missing_required),
                 "thresholds": {"anchors": ANCHOR_CONFIDENT_THRESHOLD,
                                "features": GRID_CONFIDENT_THRESHOLD,
@@ -116,6 +121,10 @@ class TemplateSelector:
                     compatible = (result.compatibility is not None
                                   and result.compatibility.status.value != "INCOMPATIBLE")
                     candidate["diagnostics"].update(
+                        registration_policy=asdict(DEFAULT_REGISTRATION_POLICY),
+                        cheap_registration_evidence=(result.cheap_evidence.model_dump(mode="json")
+                            if result.cheap_evidence is not None and result.cheap_evidence is not result.evidence
+                            else None),
                         matched_features=result.good_match_count,
                         homography_score=(result.evidence.homography_quality
                                           if result.evidence else None),

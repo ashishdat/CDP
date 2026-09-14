@@ -209,6 +209,14 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
             write_report(state, output)
         except Exception:
             LOGGER.exception("Template discovery report could not be written")
+        try:
+            from workers.page_detection.registration_diagnostics import (
+                write_report as write_registration_report,
+            )
+
+            write_registration_report(state, output)
+        except Exception:
+            LOGGER.exception("Registration report could not be written")
     return output / "document.json", state
 
 
