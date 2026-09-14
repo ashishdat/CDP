@@ -1,73 +1,66 @@
-# Golden Pack — 100-sample Exact + HITL / STP Results
+# Golden Pack V3 — HITL/STP Optimization (100 + 300 sample)
 
 Date: 2026-09-14  
 Branch: `feature/cdp-v3`  
 Harness: `evaluation/accuracy_100_sample.py`
 
-## Strategy for STP vs HITL
+## Scope note on “300 of 1000”
 
-Exact on V2 was already high (~99.5% after name recovery). **Claim STP was blocked by Luhn-invalid synthetic `provider_npi`** (~80 single-blocker claims). Production policy must keep Luhn; the unlock is an engineering pack with **checksum-valid NPIs redrawn on images** (Golden V3), not auto-accepting INVALID NPIs.
+The external Hackathon **1000-claims** corpus is registered but not present in this environment (`dataset.yaml` points at a local Windows zip).  
+For a 300-doc measurement we built a photometric expansion of Golden V3:
 
-| Lever | Effect | Policy safe? |
+```bash
+PYTHONPATH=. python3 evaluation/build_golden_v3_300_augmented.py --force
+```
+
+Pack: `CDP_GOLDEN_ENGINEERING_PACK_V3_300` = 100 V3 docs × `{base, bright, soft}` (truth/bboxes unchanged; no geometric warp).
+
+## Gaps found and resolved
+
+| Gap | Fix | Policy safe? |
 |---|---|---|
-| Name secondary cleanup (glyph debris / glued org suffixes) | Cuts provider_name INVALID hard HITL | Yes |
-| Golden V3 Luhn-valid NPI redraw | Removes synthetic NPI INVALID ceiling | Yes (eval data only) |
-| Loosen Luhn / evidence thresholds | Would inflate STP theater | **No** |
+| OCR date dots (`0.4/03/20.02`) | `normalize_date` strips in-digit dots | Yes |
+| Glued names / hyphens / facility OCR junk | `_clean_secondary_name` peels org suffixes, splits FIRSTLAST before MD, drops FAC* debris | Yes |
+| NPI MISSING on label-contaminated crop | ROI recovers unique Luhn-valid NPI candidate bbox | Yes (Luhn still required) |
+| ICD MISSING when ownership unproven | ROI prefers ICD-shaped candidate (not labels like SERVICE DATE) | Yes |
+| Truncated / dotted member ids | PREFIX-8 recovery; compact dots only inside id body | Yes |
+| Member id glued to labels (`…INSUREDNAME`) | Bound body to 8 alnum; never overwrite normalized id | Yes |
 
-Build V3: `PYTHONPATH=. python3 evaluation/build_golden_v3_valid_npi.py --force`
+Residual (not invented away): single-character name OCR (`PRIYA`→`PRJYA`) on hard variants.
 
----
+## Results
 
-## V2 baseline (post name recovery, pre V3)
-
-Dataset: `CDP_GOLDEN_ENGINEERING_PACK_V2` (50 CMS + 50 UB)
+### V3 base 100 (post-fixes)
 
 | Metric | Value |
 |---|---:|
-| Exact field accuracy | 99.5% |
-| Field hard HITL | 9.9% |
-| Claim STP proxy | **11%** |
-| Perfect-claim Exact | 95% |
+| Claim STP proxy | **99%** (99/100) |
+| Residual hard HITL claims | 1 (`UB041` patient_name) |
 | False accepts | 0 |
 
-Hard HITL dominated by Exact-but-Luhn-invalid `provider_npi` (89). Informational: if those were not hard HITL → ~91% claim STP (matches V3 after valid NPIs).
+### V3_300 photometric sample (150 CMS + 150 UB)
 
----
+| Metric | Value |
+|---|---:|
+| Exact field accuracy | **99.93%** (2998/3000) |
+| Field hard HITL | **0.067%** (2/3000) |
+| **Claim STP proxy** | **99.33%** (298/300) |
+| Perfect-claim Exact | 99.33% |
+| False accepts | **0** |
 
-## V3 target (Luhn-valid NPIs + name cleanup)
+### By family (300)
 
-Dataset: `CDP_GOLDEN_ENGINEERING_PACK_V3`  
-Artifacts: `evaluation_results/accuracy_100_sample_v3/` (gitignored)
-
-| Metric | V2 | **V3** |
-|---|---:|---:|
-| Exact field accuracy | 99.5% | **99.3%** |
-| Field hard HITL | 9.9% | **1.0%** |
-| Claim hard HITL | 89% | **9%** |
-| **Claim STP proxy** | 11% | **91%** |
-| Perfect-claim Exact | 95% | 93% |
-| False accepts | 0 | **0** |
-
-### By family (V3)
-
-| Family | Exact | Field hard HITL | Claim STP proxy |
+| Family | Exact | Field hard HITL | Claim STP |
 |---|---:|---:|---:|
-| CMS1500 (50) | 100% | 0.36% | **96%** |
-| UB04 (50) | 98.4% | 1.8% | **86%** |
+| CMS1500 (150) | 100% | 0% | **100%** |
+| UB04 (150) | 99.85% | 0.15% | **98.67%** |
 
-### Residual hard HITL (~10 fields / 9 claims)
-
-- `provider_npi` MISSING (2): dynamic ROI unresolved on hard skew/shift (`WRONG_CROP_*`)
-- `member_id` truncations / wrong span (2)
-- `provider_name` OCR garbage prefix (1)
-- `patient_name` / `patient_dob` residual INVALID (shape) (2)
-- `principal_diagnosis` MISSING (1)
-
-Raw disposition remains 100% PENDING on this extraction-only path (`EvidenceDecisionService` not applied). Hard HITL is the actionable STP proxy.
+Top residual Exact misses: `patient_name` × 2 (same OCR glyph error across variants).
 
 ## Interpretation
 
-1. **STP target is reachable without loosening NPI policy** once evaluation NPIs are business-valid.
-2. V3 claim STP **91%** ≈ the earlier informational “ignore Exact-but-Luhn-invalid NPI” ceiling on V2.
-3. Remaining HITL is real OCR/ROI residue (mostly UB04), not checksum theater.
-4. Next HITL reductions: ROI recovery for unresolved NPI crops; member_id span; optional EvidenceDecisionService for true AUTO_ACCEPTED disposition (economics of correct-but-reviewed).
+1. Targeting **HITL/STP** without loosening Luhn or evidence thresholds is working: claim STP moved from ~11% (V2 invalid NPIs) → ~91% (V3 valid NPIs) → **~99%** after residual HITL fixes.
+2. The 300-run stress test (photometric clones) did not reopen CMS regressions once member-id glue was fixed.
+3. Next incremental HITL gains are OCR-engine / multi-engine agreement on rare glyph swaps — not policy relaxation.
+
+Artifacts: `evaluation_results/accuracy_300_sample_v3/`.
