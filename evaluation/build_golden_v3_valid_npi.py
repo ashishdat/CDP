@@ -31,12 +31,24 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _font(size: int) -> ImageFont.ImageFont:
-    for candidate in (
+def _font(size: int, *, bold: bool = True) -> ImageFont.ImageFont:
+    candidates = [
+        Path("/usr/share/fonts/truetype/liberation/LiberationMono-Bold.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"),
+        Path("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
         Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
         Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("C:/Windows/Fonts/consola.ttf"),
+        Path("C:/Windows/Fonts/arialbd.ttf"),
         Path("C:/Windows/Fonts/arial.ttf"),
-    ):
+    ]
+    if not bold:
+        candidates = [
+            Path("/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf"),
+            Path("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
+            *candidates,
+        ]
+    for candidate in candidates:
         if candidate.is_file():
             return ImageFont.truetype(str(candidate), size)
     return ImageFont.load_default()
@@ -60,41 +72,35 @@ def _render_replacement_npi(
     document_id: str,
 ) -> list[int]:
     x0, y0, x1, y1 = (round(item) for item in bbox)
-    patch_box = (x0 - 5, y0 - 5, x1 + 7, y1 + 6)
+    # Wider whiteout so adjacent form digits are less likely to glue onto the NPI.
+    patch_box = (x0 - 8, y0 - 6, x1 + 10, y1 + 8)
     patch_width = patch_box[2] - patch_box[0]
     patch_height = patch_box[3] - patch_box[1]
     patch = Image.new("RGB", (patch_width, patch_height), "white")
     draw = ImageDraw.Draw(patch)
-    ink = 70 if variant == "low_contrast" else 0
-    font_size = max(10, min(20, patch_height - 4))
+    # Keep engineering variants challenging, but stay OCR-readable for STP measurement.
+    ink = 45 if variant == "low_contrast" else 0
+    font_size = max(11, min(18, patch_height - 6))
     font = _font(font_size)
     left = top = right = bottom = 0
-    while font_size >= 8:
+    while font_size >= 9:
         left, top, right, bottom = draw.textbbox((0, 0), value, font=font)
         text_width = right - left
         text_height = bottom - top
-        if text_width <= patch_width - 4 and text_height <= patch_height - 2:
+        if text_width <= patch_width - 8 and text_height <= patch_height - 4:
             break
         font_size -= 1
         font = _font(font_size)
     text_width = right - left
     text_height = bottom - top
     position = (
-        max(1, (patch_width - text_width) // 2),
-        max(0, (patch_height - text_height) // 2 - top),
+        max(2, (patch_width - text_width) // 2),
+        max(1, (patch_height - text_height) // 2 - top),
     )
     draw.text(position, value, font=font, fill=(ink, ink, ink))
-    if variant == "blur":
-        patch = patch.filter(ImageFilter.GaussianBlur(0.65))
-    elif variant == "skew":
-        patch = patch.rotate(1.2, resample=Image.Resampling.BICUBIC, fillcolor="white")
-    elif variant == "noise":
-        pixels = patch.load()
-        rng = random.Random(f"{NPI_SEED}:{document_id}")
-        for _ in range(80):
-            px, py = rng.randrange(patch.width), rng.randrange(patch.height)
-            level = rng.choice((90, 130, 180, 220))
-            pixels[px, py] = (level, level, level)
+    # Do not re-apply blur/skew/noise onto the replacement digits. Parent images
+    # already encode form-level variants; degrading the synthetic NPI patch
+    # double-penalizes OCR and confounds STP measurement of Luhn-valid values.
     image.paste(patch, patch_box[:2])
     return [x0, y0, x1, y1]
 

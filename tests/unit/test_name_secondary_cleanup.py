@@ -14,6 +14,9 @@ def test_clean_secondary_name_drops_isolated_letter_debris():
 
 def test_clean_secondary_name_peels_glued_org_suffix():
     assert _clean_secondary_name("RIVERVALLEYHOSPITAL", split_md=False) == "RIVERVALLEY HOSPITAL"
+    assert _clean_secondary_name("SUNRISEHEALTH SYSTEM", split_md=False) == "SUNRISE HEALTH SYSTEM"
+    assert _clean_secondary_name("SUNRISEHEALTHSYSTEM", split_md=False) == "SUNRISE HEALTH SYSTEM"
+    assert _clean_secondary_name("ROBERTGARCIAMD") == "ROBERTGARCIA MD"
 
 
 def test_regional_name_recovery_beats_glued_primary():

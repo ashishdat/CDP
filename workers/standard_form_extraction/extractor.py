@@ -120,9 +120,31 @@ def _clean_secondary_name(value: str, *, split_md: bool = True) -> str:
     value = value.upper()
     if split_md:
         value = re.sub(r"(?<=[A-Z])(MD|DO|NP|PA)$", r" \1", value)
-    for suffix in ("HOSPITAL", "CENTER", "CLINIC", "SYSTEM", "HEALTH", "MEDICAL", "GROUP"):
-        value = re.sub(rf"(?<=[A-Z]){suffix}$", f" {suffix}", value)
-    parts = [part for part in value.split() if len(part) > 1]
+    # Peel org/credential suffixes on each token so glued OCR like
+    # SUNRISEHEALTH SYSTEM or ROBERTGARCIAMD becomes shape-valid.
+    peeled: list[str] = []
+    for part in value.split():
+        fragments = [part]
+        if split_md:
+            fragments = re.sub(r"(?<=[A-Z])(MD|DO|NP|PA)$", r" \1", part).split()
+        # Keep peeling trailing org suffixes from each fragment until stable so
+        # SUNRISEHEALTHSYSTEM -> SUNRISE HEALTH SYSTEM.
+        stable: list[str] = []
+        queue = list(fragments)
+        while queue:
+            token = queue.pop(0)
+            split_token = None
+            for suffix in ("HOSPITAL", "CENTER", "CLINIC", "SYSTEM", "HEALTH", "MEDICAL", "GROUP"):
+                updated = re.sub(rf"(?<=[A-Z]){suffix}$", f" {suffix}", token)
+                if updated != token:
+                    split_token = updated.split()
+                    break
+            if split_token is None:
+                stable.append(token)
+            else:
+                queue = split_token + queue
+        peeled.extend(stable)
+    parts = [part for part in peeled if len(part) > 1]
     return " ".join(parts)
 
 
@@ -242,7 +264,7 @@ class StandardFormExtractionService:
                 "PERSON_NAME",
                 "PERSON_OR_ORGANIZATION",
             }:
-                text = _clean_secondary_name(text, split_md=False)
+                text = _clean_secondary_name(text, split_md=True)
             if definition is not None and definition.datatype == "ALPHANUMERIC_ID":
                 identifiers = re.findall(r"(?:MBR|MEM|PLN)-[A-Z0-9]+", text.upper())
                 if len(identifiers) == 1:
