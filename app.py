@@ -89,6 +89,50 @@ def register_classified_document(images, routing, registry, selection=None):
             aligned.warped.close()
 
 
+
+def resolve_registered_geometry(images, registration, registry):
+    """Consume only an accepted transform; resolve fields on the rectified page."""
+    import cv2
+    import numpy as np
+    from packages.geometry.engine import GeometryEngine, GeometryRequest
+    from packages.geometry.models import Box, Registration
+
+    if registration.get('accepted') is not True or registration.get('status') != 'SUCCESS':
+        raise ValueError('Geometry requires successful registration')
+    evidence = registration.get('evidence') or {}
+    if evidence.get('accepted') is not True or evidence.get('corner_validity') is not True:
+        raise ValueError('Geometry requires accepted registration evidence')
+    matrix = np.asarray(registration.get('transform_matrix'), dtype=float)
+    if matrix.shape != (3, 3) or not np.isfinite(matrix).all():
+        raise ValueError('Accepted registration transform is missing or invalid')
+    template = registry.get(registration['template_id'], registration['template_version'])
+    page_number = registration['page_number']
+    if not 1 <= page_number <= len(images):
+        raise ValueError('Registered page is out of range')
+    size = (template.reference_dimensions.width_px, template.reference_dimensions.height_px)
+    with images[page_number - 1].convert('L') as source:
+        rectified = cv2.warpPerspective(np.asarray(source), matrix, size, borderValue=255)
+    # The accepted projective transform has already mapped pixels into template space.
+    # Identity here is a coordinate mapping, never an estimated registration or landmark.
+    mapping = Registration(True, ((1., 0., 0.), (0., 1., 0.)), None,
+                           'ACCEPTED_REGISTRATION_RECTIFIED_FRAME')
+    fields = []
+    for field in template.field_regions:
+        started = perf_counter()
+        box = Box(field.x0, field.y0, field.x1, field.y1)
+        result = GeometryEngine().resolve(GeometryRequest(
+            rectified, (), (), box, box, accepted_mapping=mapping))
+        fields.append({'field': field.field_name, 'result': asdict(result),
+                       'latency_ms': (perf_counter() - started) * 1000})
+        if result.reasons not in [('GEOMETRY_RESOLVED',), ('NO_FOREGROUND',)]:
+            return {'type': 'GeometryResult', 'status': 'FAILED', 'fields': fields,
+                    'reason': result.reasons, 'coordinate_frame': 'rectified_template_pixels'}
+    return {'type': 'GeometryResult', 'status': 'SUCCESS' if fields else 'FAILED',
+            'reason': 'GEOMETRY_RESOLVED' if fields else 'NO_TEMPLATE_FIELDS',
+            'page_number': page_number, 'coordinate_frame': 'rectified_template_pixels',
+            'source_to_geometry_transform': matrix.tolist(), 'fields': fields,
+            'warnings': ['NO_FOREGROUND is an empty geometry result, not an OCR or validation decision']}
+
 def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs",
                 document_type=None):
     """Decode one entire TIFF in memory, then invoke existing runtime routing.
@@ -196,6 +240,22 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
             state["errors"].append({"stage": stage, "type": "RegistrationNotAccepted",
                                     "message": result["reason"]})
         LOGGER.info("registration %s: %s", result["status"], result["reason"])
+        if result['accepted']:
+            stage = 'geometry'
+            started = perf_counter()
+            state['geometry'] = resolve_registered_geometry(images, result, registry)
+            state['latency_ms'][stage] = (perf_counter() - started) * 1000
+            state['stages'][stage] = state['geometry']['status']
+            state['status'] = state['geometry']['status']
+            state['stop_after'] = 'geometry'
+            (output / 'GeometryResult.json').write_text(
+                json.dumps(state['geometry'], indent=2, allow_nan=False), encoding='utf-8')
+            (output / 'geometry_telemetry.json').write_text(json.dumps({
+                'stage': stage, 'status': state['status'], 'latency_ms': state['latency_ms'][stage],
+                'registration_reference': 'registration_trace.json',
+                'result_reference': 'GeometryResult.json', 'ocr_executed': False,
+            }, indent=2), encoding='utf-8')
+
     except Exception as exc:  # noqa: BLE001 -- persist state before exiting nonzero
         unavailable = isinstance(exc, (ImportError, FileNotFoundError, NotImplementedError))
         state["stages"][stage] = "UNAVAILABLE" if unavailable else "FAILED"

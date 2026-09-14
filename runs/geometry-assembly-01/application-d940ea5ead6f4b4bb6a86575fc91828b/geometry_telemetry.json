@@ -1,0 +1,75 @@
+{
+  "stage": "geometry",
+  "status": "SUCCESS",
+  "latency_ms": 58.327100006863475,
+  "registration_reference": "registration_trace.json",
+  "result_reference": "GeometryResult.json",
+  "ocr_executed": false,
+  "document_id": "61b8c05f31a4f3d8c538466cb136a4dc8b210e6d42cc8d8413faa5a5a5955474",
+  "source": {
+    "archive": "C:\\Users\\ashish.singh\\Downloads\\key docs\\Hackathon - 1000 Claims.zip",
+    "entry": "Group A/M048DJJF.002"
+  },
+  "stages": {
+    "load": "SUCCESS",
+    "classification": "SUCCESS",
+    "template_selection": "SUCCESS",
+    "registration": "SUCCESS",
+    "geometry": "SUCCESS",
+    "ocr": "SKIPPED",
+    "ranking": "SKIPPED",
+    "validators": "SKIPPED",
+    "decision": "SKIPPED",
+    "evidence": "SKIPPED"
+  },
+  "registration_evidence": {
+    "template_id": null,
+    "template_version": null,
+    "candidate_family": null,
+    "compatibility_policy_version": null,
+    "compatibility_status": null,
+    "compatibility_score": null,
+    "algorithm": "sift_flann_ransac_homography",
+    "keypoints_source": 3000,
+    "keypoints_template": 3000,
+    "candidate_match_count": 3000,
+    "good_matches": 102,
+    "inlier_count": 22,
+    "inlier_ratio": 0.21568627450980393,
+    "reprojection_error": 0.9702782034873962,
+    "coverage_ratio": 0.5051974841522876,
+    "template_coverage": 0.5051974841522876,
+    "scale_change": 0.9333352442138292,
+    "rotation_degrees": -0.1996011574614045,
+    "perspective_distortion": 0.0005284118829656054,
+    "corner_validity": true,
+    "homography_quality": 0.4707905143616246,
+    "alignment_confidence": 0.4707905143616246,
+    "transform_matrix": [
+      [
+        0.9092814529093608,
+        -0.00203198824653292,
+        89.17664468662974
+      ],
+      [
+        -0.0031676742373698895,
+        0.9580324243733834,
+        99.27909523464683
+      ],
+      [
+        -3.673617241506324e-08,
+        -2.3593338085641482e-07,
+        1.0
+      ]
+    ],
+    "accepted": true,
+    "rejection_reason": null,
+    "processing_time_ms": 7112.234200001694
+  },
+  "registration_source_hashes": {
+    "workers\\page_detection\\template_alignment.py": "0f41daa60e733fc8a13999477dbe6d653d7490bcc9e05649a7c266877557922d",
+    "workers\\page_detection\\registration_strategy.py": "398de26309a7a5ad2824f362106f9efc7b6d4c36bcb71cc61e470bfec396bbda",
+    "workers\\page_detection\\registration_preprocessing.py": "76919ffa815e20f40bd4bdcaf145c16a213950c8d04a6da1ba42b042baf01fc2",
+    "workers\\page_detection\\registration_telemetry.py": "192888c656db92ec9886797807ca9c03dde81a8cc393f8108c2410ae3f704e86"
+  }
+}

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from packages.extraction_pipeline.models import FeatureFlag
 from packages.extraction_pipeline.registry import StageRegistration
 
-from .models import Box, GeometryResult
+from .models import Box, GeometryResult, Registration
 from .regions import (
     align_local,
     connected_components,
@@ -25,6 +25,7 @@ class GeometryRequest:
     reference_roi: Box
     source_cell: Box
     reference_patch: object | None = None
+    accepted_mapping: Registration | None = None
 
 
 class GeometryEngine:
@@ -36,7 +37,7 @@ class GeometryEngine:
 
     def resolve(self, request: GeometryRequest) -> GeometryResult:
         page = gray_image(request.image)
-        registration = register(request.reference_points, request.source_points)
+        registration = request.accepted_mapping or register(request.reference_points, request.source_points)
         if not registration.accepted:
             return GeometryResult(
                 registration, None, None, None, (), None, None, (registration.reason,)
