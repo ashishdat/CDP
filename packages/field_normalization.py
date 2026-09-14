@@ -6,7 +6,16 @@ import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
-_DATE_FORMATS = ["%m-%d-%Y", "%m/%d/%Y", "%m-%d-%y", "%m/%d/%y", "%Y%m%d", "%m%d%Y", "%m%d%y"]
+_DATE_FORMATS = [
+    "%Y-%m-%d",  # already-normalized ISO from extractors
+    "%m-%d-%Y",
+    "%m/%d/%Y",
+    "%m-%d-%y",
+    "%m/%d/%y",
+    "%Y%m%d",
+    "%m%d%Y",
+    "%m%d%y",
+]
 
 
 def normalize_text(raw: str) -> tuple[str, bool]:
@@ -17,6 +26,12 @@ def normalize_text(raw: str) -> tuple[str, bool]:
 def normalize_date(raw: str) -> tuple[str | None, bool]:
     # Collapse per-glyph OCR spaces between digits before delimiter normalization.
     cleaned = re.sub(r"(?<=\d)\s+(?=\d)", "", raw.strip())
+    # Preserve ISO dashes; only rewrite whitespace/slash delimiters for US forms.
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", cleaned):
+        try:
+            return datetime.strptime(cleaned, "%Y-%m-%d").date().isoformat(), True  # noqa: DTZ007
+        except ValueError:
+            return None, False
     cleaned = re.sub(r"\s*/\s*", "/", cleaned)
     cleaned = re.sub(r"\s+", "/", cleaned)
     for fmt in _DATE_FORMATS:
@@ -62,6 +77,19 @@ def normalize_code(raw: str) -> tuple[str, bool]:
     return cleaned, bool(cleaned)
 
 
+def normalize_icd(raw: str) -> tuple[str | None, bool]:
+    """Normalize ICD-10-CM style codes and repair common OCR letter/digit swaps."""
+    cleaned = re.sub(r"\s+", "", raw.strip().upper())
+    if not cleaned:
+        return None, False
+    # Leading I/O are frequently read as 1/0 on diagnosis crops (I10 -> 110).
+    if re.fullmatch(r"[10]\d{1,2}(?:\.[0-9A-Z]{1,4})?", cleaned):
+        cleaned = ("I" if cleaned[0] == "1" else "O") + cleaned[1:]
+    if re.fullmatch(r"[A-TV-Z][0-9][0-9A-Z](?:\.[0-9A-Z]{1,4})?", cleaned):
+        return cleaned, True
+    return cleaned, bool(cleaned)
+
+
 def normalize_checkbox(raw: str) -> tuple[bool | None, bool]:
     cleaned = raw.strip().upper()
     if cleaned in ("X", "[X]", "YES"):
@@ -78,6 +106,7 @@ _PROCESSORS = {
     "npi": normalize_npi,
     "tax_id": normalize_tax_id,
     "code": normalize_code,
+    "icd": normalize_icd,
     "checkbox": normalize_checkbox,
 }
 

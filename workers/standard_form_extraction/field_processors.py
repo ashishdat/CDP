@@ -19,12 +19,20 @@ from packages.field_normalization import (
     normalize_code,
     normalize_currency,
     normalize_date,
+    normalize_icd,
     normalize_npi,
     normalize_tax_id,
     normalize_text,
 )
 
 __all__ = [
-    "normalize", "normalize_checkbox", "normalize_code", "normalize_currency",
-    "normalize_date", "normalize_npi", "normalize_tax_id", "normalize_text",
+    "normalize",
+    "normalize_checkbox",
+    "normalize_code",
+    "normalize_currency",
+    "normalize_date",
+    "normalize_icd",
+    "normalize_npi",
+    "normalize_tax_id",
+    "normalize_text",
 ]

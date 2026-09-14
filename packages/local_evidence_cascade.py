@@ -32,7 +32,7 @@ def _field_type(datatype: str) -> str:
         "CHECKBOX": "checkbox",
         "ALPHANUMERIC_ID": "code",
         "CPT_HCPCS": "code",
-        "ICD_CODE": "code",
+        "ICD_CODE": "icd",
         "TYPE_OF_BILL": "code",
         "TAX_IDENTIFIER": "tax_id",
     }.get(datatype, "text")
