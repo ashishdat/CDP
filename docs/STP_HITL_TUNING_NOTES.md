@@ -32,3 +32,14 @@ Frozen 100-claim baseline remains NOT QUALIFIED until a full live 100 re-run.
 4. **DOB token assembly** keeps edge-glyph stripping; currency span rejects NPI-adjacent `$1.00` artifacts.
 
 Still not an identity-policy waiver. Empty/contaminated crops remain HITL.
+
+## Reprocess after charge ROI / DOB crop gates (independent sample B)
+
+| Metric | Value |
+|--------|-------|
+| Completed claims reprocessed | 6 / 6 |
+| True STP (`review_required=false`) | **0 / 6** |
+| `patient_dob` auto-accepted | **1 / 6** |
+| `total_charge` auto-accepted | **0 / 6** |
+
+Tight charge crops clear NPI bleed; empty box-28 digit bands and pointer-bleed line charges stay HITL (no invented amounts).

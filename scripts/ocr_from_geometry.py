@@ -174,11 +174,8 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             raise ValueError('Canonical region exceeds recorded safe cell')
         bbox = _ocr_bbox(field['field'], aligned, cell, (image.width, image.height), template_fields)
         candidates, attempts, reason = _recognize_one(image, field['field'], bbox, router)
-        # If total_charge is empty after the tight crop, retry a slightly taller window
-        # still clamped to the safe cell (crop-backed; does not invent amounts).
         if field['field'] == 'patient_dob' and not any((c.get('value') or '').strip() for c in candidates):
             # Loosen the top inset if the tight digit band is empty/unassemblable.
-            wider = inset_bbox(aligned, 'patient_dob')
             loose = (
                 max(aligned[0], cell['x0'] + 2),
                 max(aligned[1], cell['y0'] + int(0.22 * (cell['y1'] - cell['y0']))),
@@ -190,7 +187,8 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 alt_c, alt_a, alt_r = _recognize_one(image, field['field'], loose, router)
                 if any((c.get('value') or '').strip() for c in alt_c):
                     candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, loose
-                if field['field'] == 'total_charge' and not any((c.get('value') or '').strip() for c in candidates):
+        if field['field'] == 'total_charge' and not any((c.get('value') or '').strip() for c in candidates):
+            # Retry a slightly taller window still clamped to the safe cell.
             taller = (
                 max(aligned[0], cell['x0'] + int(0.24 * (cell['x1'] - cell['x0']))),
                 max(aligned[1], cell['y0'] + 2),
