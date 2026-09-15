@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Run field-cascade-v6 ops on the Hackathon 1000 Claims corpus.
+"""Run field-cascade-v7 ops on the Hackathon 1000 Claims corpus.
 
 Operational completion / true-STP / HITL evaluation (no field-level GT).
-Pipeline per claim: app.py (register+geometry) → ocr → rank → validate →
-assemble → complete.
+Pipeline per claim: app.py (register+geometry+recovery ladder) → ocr → rank →
+validate → assemble → complete (E3 from registration_report).
 
 Resume-safe: JSONL ledger skips finished claim_ids.
 """
@@ -31,7 +31,7 @@ from packages.extraction_recovery.gap_taxonomy import classify_field_gap
 
 DEFAULT_ZIP = ROOT / "data" / "Hackathon - 1000 Claims.zip"
 DEFAULT_DATASET = ROOT / "dataset.yaml"
-DEFAULT_OUT = ROOT / "evaluation_results" / "hackathon_1000_cascade_v6"
+DEFAULT_OUT = ROOT / "evaluation_results" / "hackathon_1000_cascade_v7"
 
 CRITICAL = (
     "patient_dob",
@@ -375,7 +375,7 @@ def _process_one(
         "gap_classes": summary["gap_classes"],
         "service_line_charges": summary["service_line_charges"],
         "claim_status": summary["claim_status"],
-        "strategy_id": "field-cascade-v6",
+        "strategy_id": "field-cascade-v7",
         "elapsed_sec": round(time.time() - started, 3),
         "ts": _utc_now(),
     }
@@ -410,7 +410,7 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
         "dataset": "DEVELOPMENT_DATASET_V1 / Hackathon - 1000 Claims.zip",
         "document_count_requested": limit,
         "document_count_evaluated": n,
-        "strategy_id": "field-cascade-v6",
+        "strategy_id": "field-cascade-v7",
         "registration_ok": reg_ok,
         "registration_fail": n - reg_ok,
         "registration_ok_rate": round(reg_ok / n, 6) if n else 0.0,
@@ -429,7 +429,8 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
         },
         "note": (
             "No field-level ground truth for Hackathon 1000; "
-            "metrics are registration / completion / true STP / HITL under field-cascade-v6."
+            "metrics are registration / completion / true STP / HITL under field-cascade-v7 "
+            "(E3 plumbing, registration recovery ladder, Track-B DOB/charge cascade)."
         ),
         "generated_at": _utc_now(),
     }
@@ -459,7 +460,7 @@ def main() -> int:
     done = _load_done(ledger) if args.resume else set()
     pending = [d for d in selected if _claim_slug(d) not in done]
     print(
-        f"strategy=field-cascade-v6 selected={len(selected)} "
+        f"strategy=field-cascade-v7 selected={len(selected)} "
         f"already_done={len(selected) - len(pending)} pending={len(pending)} "
         f"workers={args.workers}",
         flush=True,

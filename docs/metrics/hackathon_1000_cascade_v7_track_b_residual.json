@@ -19,7 +19,10 @@
       "probe_path": "evaluation_results/hackathon_1000_cascade_v6/registration_recovery_probe",
       "probe_n": 10,
       "probe_accepted": 4,
-      "perspective_only_accepted": "4/5 in initial ladder probe (nondeterministic across re-runs)"
+      "perspective_only_accepted": "4/5 in initial ladder probe (nondeterministic across re-runs)",
+      "reprobe_v2_path": "evaluation_results/hackathon_1000_cascade_v6/registration_recovery_probe_v2",
+      "reprobe_v2_accepted": 1,
+      "note": "Registration SIFT acceptance is nondeterministic; ladder still authorizes one cause-specific enhance without softening gates."
     },
     "track_b_dob_charge_residual": {
       "status": "shipped",
@@ -36,7 +39,8 @@
           "prior": "patient_dob HITL",
           "true_stp": true,
           "patient_dob": "1946-07-16",
-          "total_charge": "910.00"
+          "total_charge": "910.00",
+          "charge_path": "LINE_TOTALS_RECONCILED"
         },
         {
           "document": "Group A/M048DJJF.010",
@@ -50,7 +54,8 @@
           "prior": "charge via service lines (flaky on :/? raw)",
           "true_stp": true,
           "patient_dob": "2005-07-21",
-          "total_charge": "200.00"
+          "total_charge": "200.00",
+          "charge_raw": "200?"
         }
       ],
       "completed": 3,
