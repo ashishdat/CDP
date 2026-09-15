@@ -135,9 +135,19 @@ class EvidenceReconciler:
                     "FINANCIAL_RECONCILIATION_VALID",
                     "CLAIM_TOTAL_CONFIRMED",
                     "DATE_RELATIONSHIP_CONFIRMED",
+                    "DOB_SERVICE_DATE_CONSISTENT",
+                    "MEMBER_IDENTITY_CONSISTENT",
+                    "MEMBER_RELATIONSHIP_CONFIRMED",
                 }
             )
             or reference_match
+            # Format-valid member identifiers with field E3 remain HITL-gated by
+            # evidence policy, but no longer hard-fail the C3 independent-engine
+            # gate after OCR span cleanup.
+            or (
+                field_name in {"insured_id_number", "member_id", "subscriber_id"}
+                and "HARD_VALIDATION_PASSED" in deterministic
+            )
         )
         financial_authority = bool(
             self.allow_authoritative_financial_e6

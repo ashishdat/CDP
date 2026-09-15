@@ -201,5 +201,329 @@
     "completion_delta_b_minus_a": -0.20000000000000007,
     "true_stp_both": 0.0,
     "note": "No document overlap; both cohorts true STP 0%; completion above frozen 39% baseline on these samples."
+  },
+  "post_stp_hitl_retune": {
+    "completed_claims_reprocessed": 10,
+    "true_stp": 0,
+    "auto_accepted": {
+      "insured_id_number": {
+        "accepted": 7,
+        "n": 10
+      },
+      "patient_name": {
+        "accepted": 8,
+        "n": 10
+      },
+      "patient_dob": {
+        "accepted": 1,
+        "n": 10
+      },
+      "total_charge": {
+        "accepted": 0,
+        "n": 10
+      }
+    },
+    "critical_blocker_counts": {
+      "total_charge": 10,
+      "patient_dob": 9,
+      "patient_name": 2,
+      "insured_id_number": 3
+    },
+    "claims": [
+      {
+        "sample": "operational_e2e_100_v1_fix_sample",
+        "claim": "Group A__M048DJJM.012",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "993751319",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_name": {
+            "value": "HANSCOM, STEVEN",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_dob": {
+            "value": "2020-01-04",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "total_charge": {
+            "value": null,
+            "disposition": "ESCALATE"
+          }
+        }
+      },
+      {
+        "sample": "operational_e2e_100_v1_fix_sample",
+        "claim": "Group A__M048DJJM.022",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "patient_dob",
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "997001392",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_name": {
+            "value": "CAMARATO, JOSHUA",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_dob": {
+            "value": null,
+            "disposition": "ESCALATE"
+          },
+          "total_charge": {
+            "value": "1.00",
+            "disposition": "ESCALATE"
+          }
+        }
+      },
+      {
+        "sample": "operational_e2e_100_v1_fix_sample",
+        "claim": "Group A__M048DJJM.042",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "patient_dob",
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "00000335588",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_name": {
+            "value": "2. BENNETT ALYSHIA N",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_dob": {
+            "value": null,
+            "disposition": "ESCALATE"
+          },
+          "total_charge": {
+            "value": "1.00",
+            "disposition": "ESCALATE"
+          }
+        }
+      },
+      {
+        "sample": "operational_e2e_100_v1_fix_sample",
+        "claim": "Group A__M048DJKH.008",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "patient_dob",
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "122863345",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_name": {
+            "value": "2. KING SUSAN C",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_dob": {
+            "value": null,
+            "disposition": "ESCALATE"
+          },
+          "total_charge": {
+            "value": "1.21",
+            "disposition": "ESCALATE"
+          }
+        }
+      },
+      {
+        "sample": "operational_e2e_100_v1_fix_sample_b",
+        "claim": "Group A__M048IJMP.002",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "patient_name",
+          "patient_dob",
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "OSC75491075",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_name": {
+            "value": "2. LASI NAME DOLIET MARGARET M",
+            "disposition": "ESCALATE"
+          },
+          "patient_dob": {
+            "value": null,
+            "disposition": "ESCALATE"
+          },
+          "total_charge": {
+            "value": null,
+            "disposition": "INSUFFICIENT_EVIDENCE"
+          }
+        }
+      },
+      {
+        "sample": "operational_e2e_100_v1_fix_sample_b",
+        "claim": "Group A__M048IJN2.005",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "insured_id_number",
+          "patient_dob",
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "135353652",
+            "disposition": "HUMAN_REVIEW_REQUIRED"
+          },
+          "patient_name": {
+            "value": "MCQUEEN, VASHONDA",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_dob": {
+            "value": null,
+            "disposition": "ESCALATE"
+          },
+          "total_charge": {
+            "value": "11.00",
+            "disposition": "HUMAN_REVIEW_REQUIRED"
+          }
+        }
+      },
+      {
+        "sample": "operational_e2e_100_v1_fix_sample_b",
+        "claim": "Group A__M048IJN2.008",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "patient_dob",
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "127175026",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_name": {
+            "value": "DUNCAN, TIEEANY",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_dob": {
+            "value": null,
+            "disposition": "ESCALATE"
+          },
+          "total_charge": {
+            "value": null,
+            "disposition": "ESCALATE"
+          }
+        }
+      },
+      {
+        "sample": "operational_e2e_100_v1_fix_sample_b",
+        "claim": "Group A__M048IJN2.022",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "patient_dob",
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "120849275",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_name": {
+            "value": "2. MORRTS MTCHAEL",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_dob": {
+            "value": null,
+            "disposition": "ESCALATE"
+          },
+          "total_charge": {
+            "value": null,
+            "disposition": "INSUFFICIENT_EVIDENCE"
+          }
+        }
+      },
+      {
+        "sample": "operational_e2e_100_v1_fix_sample_b",
+        "claim": "Group B__M048HJHK.005",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "insured_id_number",
+          "patient_name",
+          "patient_dob",
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "1a. INSURED'S I.D. NUM8ER (For Program in ltem 1) NALC P32=84957",
+            "disposition": "ESCALATE"
+          },
+          "patient_name": {
+            "value": "2. PATT'S NAME LAST NAME MARK",
+            "disposition": "ESCALATE"
+          },
+          "patient_dob": {
+            "value": null,
+            "disposition": "ESCALATE"
+          },
+          "total_charge": {
+            "value": null,
+            "disposition": "ESCALATE"
+          }
+        }
+      },
+      {
+        "sample": "operational_e2e_100_v1_fix_sample_b",
+        "claim": "Group B__M048JJJM.014",
+        "completed": true,
+        "review_required": true,
+        "true_stp": false,
+        "critical_blockers": [
+          "insured_id_number",
+          "patient_dob",
+          "total_charge"
+        ],
+        "fields": {
+          "insured_id_number": {
+            "value": "1a.INSURED'S LD. NUMBER (For Program in ltem 1) 0SC74765420",
+            "disposition": "ESCALATE"
+          },
+          "patient_name": {
+            "value": "TRIPLETT, AARON",
+            "disposition": "AUTO_ACCEPTED"
+          },
+          "patient_dob": {
+            "value": null,
+            "disposition": "ESCALATE"
+          },
+          "total_charge": {
+            "value": null,
+            "disposition": "ESCALATE"
+          }
+        }
+      }
+    ]
   }
 }

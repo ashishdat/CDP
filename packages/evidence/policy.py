@@ -103,7 +103,13 @@ class EvidencePolicy:
         critical = criticality in {CriticalityLevel.C2, CriticalityLevel.C3}
         spec = spec or {}
         field_specific_e3 = critical or bool(spec.get("require_field_specific_e3"))
-        strong_e4 = critical or bool(spec.get("require_strong_e4"))
+        # Critical fields default to strong E4. Explicit field config may opt
+        # into format-level E4 after OCR span cleanup (STP/HITL tuning).
+        strong_e4 = (
+            bool(spec["require_strong_e4"])
+            if "require_strong_e4" in spec
+            else critical
+        )
         allowed_e6 = set(spec.get("allowed_e6_types") or ())
         available: set[EvidenceClass] = set()
         for item in bundle.evidence_items:

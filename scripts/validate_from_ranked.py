@@ -9,6 +9,7 @@ from time import perf_counter
 from types import SimpleNamespace
 from uuid import NAMESPACE_URL, uuid5
 
+from packages.extraction_recovery import select_field_span, span_datatype_for_field
 from packages.field_normalization import normalize
 from packages.templates.registry import TemplateRegistry
 from packages.validation_rules.engine import ValidationEngine
@@ -17,7 +18,13 @@ from packages.validation_rules.thresholds import ThresholdRegistry
 
 def validate_candidate(row, field_type, engine, claim_id):
     candidate = row['ocr_candidate']
-    raw = candidate['raw_value']
+    raw = candidate.get('value') or candidate['raw_value']
+    span = select_field_span(
+        raw,
+        span_datatype_for_field(row['field_id'], field_type),
+        row['field_id'],
+    )
+    raw = span.selected_text
     normalized, ok = normalize(field_type, raw)
     field = SimpleNamespace(field_name=row['field_id'],
         field_id=uuid5(claim_id, row['candidate_id']), normalized_value=normalized,

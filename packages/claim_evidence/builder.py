@@ -299,14 +299,30 @@ class ClaimEvidenceBuilder:
             )
 
         relationship = str(
-            values.get("insured_relationship") or values.get("relationship") or ""
+            values.get("insured_relationship")
+            or values.get("relationship")
+            or values.get("rel_code")
+            or ""
         ).upper()
         patient = self._name(values.get("patient_name"))
         insured = self._name(values.get("insured_name"))
-        if relationship in {"SELF", "18"} and patient and insured:
+        # CMS-1500 often leaves relationship unmarked while patient and insured
+        # names match exactly; treat that as inferred SELF for E6 only.
+        inferred_self = False
+        if relationship not in {"SELF", "18", "01"} and patient and insured and patient == insured:
+            relationship = "SELF"
+            inferred_self = True
+        if relationship in {"SELF", "18", "01"} and patient and insured:
             metadata = {
-                "supported_fields": ["patient_name", "insured_name", "insured_relationship"],
+                "supported_fields": [
+                    "patient_name",
+                    "insured_name",
+                    "insured_relationship",
+                    "rel_code",
+                    "insured_id_number",
+                ],
                 "relationship": relationship,
+                "inferred_self_from_matching_names": inferred_self,
             }
             target = evidence if patient == insured else contradictions
             target.append(

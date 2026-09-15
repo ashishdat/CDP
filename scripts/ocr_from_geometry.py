@@ -15,6 +15,7 @@ import numpy as np
 from PIL import Image
 
 from packages.domain.common import BoundingBox
+from packages.extraction_recovery import select_field_span, span_datatype_for_field
 from packages.ocr.contracts import OCRCandidate
 from packages.ocr_router import OCRRouter, OCRRouteRequest
 
@@ -47,17 +48,26 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None):
             if observation is None or not observation.lines:
                 continue
             raw = '\n'.join(line.text for line in observation.lines)
+            span = select_field_span(raw, span_datatype_for_field(name, ''), name)
+            selected = span.selected_text
             box = BoundingBox(x0=request.bbox[0], y0=request.bbox[1],
                               x1=request.bbox[2], y1=request.bbox[3],
                               image_width=image.width, image_height=image.height)
             candidate = OCRCandidate(
-                value=raw, raw_value=raw, engine=attempt.engine,
+                value=selected, raw_value=raw, engine=attempt.engine,
                 model_name='unknown', model_version='unknown',
                 preprocessing_variant='recorded_canonical_region',
                 raw_confidence=float(np.mean([line.confidence for line in observation.lines])),
                 calibrated_confidence=None, bounding_box=box,
                 latency_ms=attempt.latency_ns / 1e6)
-            candidates.append({**asdict(candidate), 'bounding_box': box.model_dump(mode='json')})
+            payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
+            payload['span_selection'] = {
+                'selected_text': span.selected_text,
+                'rule_id': span.rule_id,
+                'confidence': span.confidence,
+                'reason_codes': list(span.reason_codes),
+            }
+            candidates.append(payload)
         rows.append({'field': name, 'canonical_region': list(request.bbox),
                      'candidates': candidates, 'attempts': attempts,
                      'router_reason': routed.reason,

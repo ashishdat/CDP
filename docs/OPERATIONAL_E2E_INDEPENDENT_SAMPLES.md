@@ -1,50 +1,41 @@
-# Operational E2E — independent live samples (post-ROI fix)
+# Operational E2E — independent live samples (post STP/HITL tuning)
 
-Frozen 100-claim baseline remains **NOT QUALIFIED** (39% completion in frozen ops report / ~43% prior live, **0% true STP**).
-These live samples measure the application path after CMS-1500 ROI correction, registration content recovery, and E3/STP wiring.
+Frozen 100-claim baseline remains **NOT QUALIFIED** (~39% completion, **0% true STP**).
 
-Document overlap between cohorts: **none**.
+After CMS-1500 ROI correction + this STP/HITL tuning pass, independent completed claims were **reprocessed** through validate → assemble → complete (same OCR crops; span cleanup + policy/reconciler changes applied).
 
-## Cohort A — first 5 paired claims
+Document overlap between cohorts A and B: **none**.
 
-| Metric | Value |
-|--------|-------|
-| Attempted | 5 |
-| FinalClaim completed | **4 / 5 (80%)** |
-| True STP | **0 / 5 (0%)** |
+## Cohort completion (unchanged selection)
 
-Incomplete (1): registration geometry failure after enhancement retry (`insufficient_inliers` / unsafe transform).
+| Cohort | Selection | FinalClaim completed | True STP |
+|--------|-----------|----------------------|----------|
+| A | first 5 paired | **4 / 5 (80%)** | **0 / 5 (0%)** |
+| B | seed `20260915`, n=10 | **6 / 10 (60%)** | **0 / 10 (0%)** |
 
-## Cohort B — seeded independent sample
+## Critical-field auto-accept after retune (10 previously completed claims)
 
-| Metric | Value |
-|--------|-------|
-| Selection | `--live-seed 20260915 --live-limit 10` |
-| Attempted | 10 |
-| FinalClaim completed | **6 / 10 (60%)** |
-| True STP | **0 / 10 (0%)** |
+| Field | AUTO_ACCEPTED | Notes |
+|-------|---------------|-------|
+| `patient_name` | **8 / 10** | Box-header / label bleed stripped |
+| `insured_id_number` | **7 / 10** | Trailing ID span + C3 format-valid path |
+| `patient_dob` | **1 / 10** | Token assembly when MM/DD/YY digits present |
+| `total_charge` | **0 / 10** | Empty / NPI bleed → HITL (no invented amounts) |
 
-Incomplete (4): registration/template failures (`insufficient_inliers` / `unsafe_perspective` / `template_lineage_mismatch`).
+Best case (`Group A/M048DJJM.012`): only **`total_charge`** remains as a critical blocker; name, ID, and DOB auto-accepted.
 
-## Comparison
+## Remaining HITL gates
 
-| Cohort | Completion | True STP vs frozen 39% / 0% |
-|--------|------------|-----------------------------|
-| A (n=5) | 80% | ↑ completion, STP unchanged at 0% |
-| B (n=10) | 60% | ↑ completion, STP unchanged at 0% |
+1. **`total_charge`** — NPI-label bleed or empty crop; span correctly empties contaminated OCR rather than accepting `$1.00`
+2. **`patient_dob`** — empty or un-assemblable digit noise on most forms
+3. Residual name/ID OCR damage when no clean `LAST, FIRST` / ID token exists
 
-## Shared STP blockers (completed claims)
+## Tuning shipped in this pass
 
-Every completed claim has `review_required=true` / `FIELD_REVIEW_REQUIRED`. Dominant critical blockers:
+- Wire `select_field_span` into ops OCR + validate
+- CMS-1500 header/label span cleanup; DOB token assembly; NPI-bleed → empty currency
+- `require_strong_e4: false` for identity/DOB fields; honor explicit opt-out for C2/C3
+- Claim E6: `rel_code` + inferred SELF when patient/insured names match
+- C3 reconciler: format-valid `insured_id_number` clears independent-engine hard fail
 
-1. `patient_dob` — empty / `NORMALIZATION_FAILED` (often also listed in `missing_fields`)
-2. `total_charge` — empty, low calibrated confidence, or `SUSPICIOUS`
-3. `patient_name` — sometimes `SUSPICIOUS` from form-label bleed in OCR text
-4. `diagnosis_codes` — OCR includes printed form labels → invalid ICD tokens
-5. Secondary: `federal_tax_id`, `patient_sex`, `amount_paid`, `rel_code`
-
-## Verdict
-
-ROI correction improved identity OCR vs insurance-row bleed, and sample completion beats the frozen **39%** baseline, but **true STP remains 0%**. Next gates: strip form-label text from OCR values, fix DOB/charge empty-crop recovery, then re-qualify on the full 100.
-
-Machine-readable: `docs/OPERATIONAL_E2E_INDEPENDENT_SAMPLES.json`.
+Machine-readable: `docs/OPERATIONAL_E2E_INDEPENDENT_SAMPLES.json`, `docs/STP_HITL_TUNING_NOTES.md`.
