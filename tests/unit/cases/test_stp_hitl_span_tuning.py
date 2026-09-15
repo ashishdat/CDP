@@ -119,6 +119,13 @@ def test_dob_assembles_when_year_token_is_middle():
     assert selected.selected_text == "12/05/1970"
 
 
+def test_dob_assembles_day_edge_yyyy_month_token_order():
+    """Track-B residual: digit-band OCR '116 11946 07' → 07/16/1946 (ink only)."""
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("116 11946 07", "DATE", "patient_dob")
+    assert selected.selected_text == "07/16/1946"
+
+
 def test_currency_rejects_non_digit_glyph_crop():
     from packages.extraction_recovery.span_selection import select_field_span
     selected = select_field_span("一", "CURRENCY", "total_charge")

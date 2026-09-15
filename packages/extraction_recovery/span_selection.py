@@ -83,7 +83,7 @@ _DOB_HEADER_TOKENS = frozenset({"MM", "DD", "YY", "YYYY", "YYY", "SEX"})
 
 _OCR_CONFUSABLES = str.maketrans({
     "O": "0", "Q": "0", "D": "0", "U": "0",
-    "I": "1", "L": "1", "|": "1",
+    "I": "1", "L": "1", "|": "1", "J": "1",
     "Z": "2",
     "S": "5",
     "B": "8",
@@ -217,8 +217,31 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         first, second, third = digits[0], digits[1], digits[2]
         # OCR sometimes emits MM / YYYY / DD instead of MM / DD / YYYY.
         if _yearish(second) and not _yearish(third) and len(third) <= 2:
+            # Pattern: DDD? YYYY MM  (e.g. "116 11946 07" → 07/16/1946)
+            # When the trailing token is a valid month and the leading token is a
+            # 2–3 digit day-ish blob, prefer month=third and split day uniquely.
+            if (
+                re.fullmatch(r"\d{1,2}", third)
+                and 1 <= int(third) <= 12
+                and re.fullmatch(r"\d{2,3}", first)
+                and not (re.fullmatch(r"\d{1,2}", first) and 1 <= int(first) <= 12)
+            ):
+                # DDD? YYYY MM with trailing month (e.g. "116 11946 07" → 07/16/1946).
+                # Only when the edge-stripped head cannot itself be a month — otherwise
+                # "112 11970 05" stays MM=12/DD=05 (edge on month), not day/month swap.
+                day_norm: str | None = None
+                if len(first) == 2 and 13 <= int(first) <= 31:
+                    day_norm = first
+                elif len(first) == 3 and first[0] == "1" and 13 <= int(first[1:]) <= 31:
+                    day_norm = first[1:]
+                if day_norm is not None:
+                    month, day, year = third, day_norm, second
+                elif len(first) <= 2 and int(first) > 12 and 1 <= int(third) <= 12:
+                    month, day, year = third, first, second
+                else:
+                    month, day, year = first, third, second
             # DD / YYYY / MM when first cannot be a month.
-            if len(first) <= 2 and int(first) > 12 and 1 <= int(third) <= 12:
+            elif len(first) <= 2 and int(first) > 12 and 1 <= int(third) <= 12:
                 month, day, year = third, first, second
             else:
                 month, day, year = first, third, second
@@ -336,6 +359,17 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
                     return got
     if len(compact) == 9 and compact[0] == "1":
         got = _valid(compact[1:3], compact[3:5], compact[5:9])
+        if got:
+            return got
+    # Ten digits: leading-edge day + leading-edge year + trailing month
+    # (e.g. "1161194607" → 1|16|1|1946|07 → 07/16/1946). Observed ink only.
+    if (
+        len(compact) == 10
+        and compact[0] == "1"
+        and compact[3] == "1"
+        and 1900 <= int(compact[4:8]) <= 2100
+    ):
+        got = _valid(compact[8:10], compact[1:3], compact[4:8])
         if got:
             return got
     return None

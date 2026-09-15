@@ -263,6 +263,8 @@ def charge_column_windows(primary_x0: int, primary_x1: int) -> list[tuple[str, i
         ("charges_primary", primary_x0, primary_x1),
         ("charges_mid", max(primary_x0, 1000), min(max(primary_x1, 1145), 1210)),
         ("charges_right", 1050, 1165),
+        # Far-right band for forms where $ amounts sit past the diagnosis pointer.
+        ("charges_far_right", 1100, 1210),
     ]
     seen: set[tuple[int, int]] = set()
     out: list[tuple[str, int, int]] = []

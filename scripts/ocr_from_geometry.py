@@ -171,6 +171,69 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             }
             candidates.append(payload)
             break
+
+    # Digit-whitelist tesseract on charge crops when route OCR still empty —
+    # recovers sparse typed amounts that engines read as punctuation (e.g. "L|1|1").
+    currency_names = {
+        'total_charge', 'total_charges', 'charges', 'charge_amount', 'amount_paid',
+    }
+    if (
+        (name or '').casefold() in currency_names
+        or 'currency' in (field_type or '').casefold()
+        or 'money' in (field_type or '').casefold()
+    ) and not any((c.get('value') or '').strip() for c in candidates):
+        try:
+            import pytesseract
+            from PIL import ImageOps, ImageEnhance
+            x0, y0, x1, y1 = (int(v) for v in bbox)
+            crop = image.crop((x0, y0, x1, y1))
+            up = crop.resize(
+                (max(1, crop.width * 3), max(1, crop.height * 3)),
+                Image.Resampling.LANCZOS,
+            )
+            up = ImageOps.autocontrast(up)
+            up = ImageEnhance.Contrast(up).enhance(1.5)
+            digit_raws = []
+            for psm in (7, 8, 6):
+                cfg = f'--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789.$'
+                raw = pytesseract.image_to_string(up, config=cfg).strip()
+                attempts.append({
+                    'engine': 'tesseract_digits', 'reason': f'PSM_{psm}',
+                    'latency_ms': 0.0,
+                    'observation': {'text': raw} if raw else None,
+                    'preprocessing_profile': 'charge_digit_whitelist',
+                })
+                if raw:
+                    digit_raws.append(raw)
+            for raw in digit_raws:
+                span = select_field_span(
+                    raw, span_datatype_for_field(name, field_type), name,
+                )
+                if not span.selected_text:
+                    continue
+                box = BoundingBox(
+                    x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
+                    image_width=image.width, image_height=image.height,
+                )
+                candidate = OCRCandidate(
+                    value=span.selected_text, raw_value=raw, engine='tesseract_digits',
+                    model_name='unknown', model_version='unknown',
+                    preprocessing_variant='charge_digit_whitelist',
+                    preprocessing_version='cascade-v7',
+                    raw_confidence=0.7, calibrated_confidence=None, bounding_box=box,
+                    latency_ms=0.0,
+                )
+                payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
+                payload['span_selection'] = {
+                    'selected_text': span.selected_text,
+                    'rule_id': span.rule_id,
+                    'confidence': span.confidence,
+                    'reason_codes': list(span.reason_codes) + ['CHARGE_DIGIT_WHITELIST'],
+                }
+                candidates.append(payload)
+                break
+        except Exception:
+            pass
     return candidates, attempts, routed.reason
 
 
@@ -457,49 +520,74 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
         )
         # IJN2.022 / handwriting DOB: whole-band OCR fragments MM/DD/YY; cell
         # segmentation recovers calendar-valid dates from observed digit ink only.
+        # Try the reconstructed digit band plus any cascade crop that already
+        # held year/day fragments (digit_band / year_wide).
         if (not cascaded.accepted) and 'dob_cells' in post_miss_for(field['field']):
-            from packages.extraction_recovery.field_cascade import load_route_engines, CascadeResult, CascadeStepResult
+            from packages.extraction_recovery.field_cascade import (
+                load_route_engines,
+                CascadeResult,
+                CascadeStepResult,
+            )
             engines = load_route_engines('patient_dob')
             cell_box = (int(cell['x0']), int(cell['y0']), int(cell['x1']), int(cell['y1']))
             cell_h = cell_box[3] - cell_box[1]
-            band = (
+            default_band = (
                 max(primary[0], cell_box[0] + 2),
                 max(primary[1], cell_box[3] - max(22, int(0.40 * cell_h))),
                 min(cell_box[2] - 1, image.width),
                 min(primary[3], cell_box[3] - 1),
             )
-            band = _clamp_bbox(band, image.width, image.height)
-            cell_cands, cell_attempts, cell_reason = _recognize_dob_cells(
-                image, band, router, engines,
-            )
-            selected = next((c.get('value') or '' for c in cell_cands if (c.get('value') or '').strip()), '')
-            ok, accept_reason = semantic_accept('patient_dob', selected)
-            step = CascadeStepResult(
-                variant_id='dob_cells',
-                bbox=band,
-                engines=engines,
-                selected_value=selected,
-                raw_value=(cell_cands[0].get('raw_value') if cell_cands else '') or '',
-                accepted=ok,
-                accept_reason=accept_reason if selected else cell_reason,
-                candidates=tuple(cell_cands),
-                attempts=tuple(cell_attempts),
-                router_reason=cell_reason,
-            )
-            cascaded.cascade_trace.append(step)
-            if ok:
-                cascaded = CascadeResult(
-                    field_name='patient_dob',
-                    bbox=band,
-                    candidates=list(cell_cands),
-                    attempts=list(cell_attempts),
-                    router_reason=cell_reason,
-                    status='OBSERVED',
-                    cascade_trace=list(cascaded.cascade_trace),
-                    accepted=True,
-                    accept_reason=accept_reason,
-                    strategy_id=cascade.strategy_id,
+            bands: list[tuple[str, tuple[int, int, int, int]]] = [
+                ('dob_cells', _clamp_bbox(default_band, image.width, image.height)),
+            ]
+            for prior in cascaded.cascade_trace:
+                if prior.variant_id in {'dob_digit_band', 'dob_year_wide', 'dob_loose'}:
+                    bands.append(
+                        (
+                            f'dob_cells_on_{prior.variant_id}',
+                            _clamp_bbox(prior.bbox, image.width, image.height),
+                        )
+                    )
+            seen_bands: set[tuple[int, int, int, int]] = set()
+            for variant_id, band in bands:
+                if band in seen_bands:
+                    continue
+                seen_bands.add(band)
+                cell_cands, cell_attempts, cell_reason = _recognize_dob_cells(
+                    image, band, router, engines,
                 )
+                selected = next(
+                    (c.get('value') or '' for c in cell_cands if (c.get('value') or '').strip()),
+                    '',
+                )
+                ok, accept_reason = semantic_accept('patient_dob', selected)
+                step = CascadeStepResult(
+                    variant_id=variant_id,
+                    bbox=band,
+                    engines=engines,
+                    selected_value=selected,
+                    raw_value=(cell_cands[0].get('raw_value') if cell_cands else '') or '',
+                    accepted=ok,
+                    accept_reason=accept_reason if selected else cell_reason,
+                    candidates=tuple(cell_cands),
+                    attempts=tuple(cell_attempts),
+                    router_reason=cell_reason,
+                )
+                cascaded.cascade_trace.append(step)
+                if ok:
+                    cascaded = CascadeResult(
+                        field_name='patient_dob',
+                        bbox=band,
+                        candidates=list(cell_cands),
+                        attempts=list(cell_attempts),
+                        router_reason=cell_reason,
+                        status='OBSERVED',
+                        cascade_trace=list(cascaded.cascade_trace),
+                        accepted=True,
+                        accept_reason=accept_reason,
+                        strategy_id=cascade.strategy_id,
+                    )
+                    break
         rows.append({
             'field': field['field'],
             'canonical_region': list(aligned),

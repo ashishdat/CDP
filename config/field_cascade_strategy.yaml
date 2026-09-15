@@ -73,6 +73,7 @@ crop_id_aliases:
   charges_primary: charges_primary
   charges_mid: charges_mid
   charges_right: charges_right
+  charges_far_right: charges_far_right
 
 fields:
   patient_dob:
@@ -96,7 +97,7 @@ fields:
     crop_ladder: [primary, id_value_band]
     accept: ID_SHAPED
   charges:
-    crop_ladder: [charges_primary, charges_mid, charges_right]
+    crop_ladder: [charges_primary, charges_mid, charges_right, charges_far_right]
     accept: CURRENCY_SHAPED
 
 # Residual HITL taxonomy (honest classification — not auto-accept paths).

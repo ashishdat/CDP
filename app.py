@@ -35,8 +35,10 @@ def register_classified_document(images, routing, registry, selection=None):
     from packages.recovery.registration_recovery import (
         decide_registration_recovery,
         enhance_for_registration,
+        enhance_for_registration_strong,
         evidence_grade_alignment_confidence,
     )
+    from packages.recovery.planner import Strategy
     from workers.page_detection.registration_telemetry import registration_context
     from workers.page_detection.template_alignment import align_to_reference
 
@@ -138,7 +140,7 @@ def register_classified_document(images, routing, registry, selection=None):
         aligned, evidence, accepted, meta, content_ok, content_reason = _attempt(source, "primary")
         attempts.append(meta)
 
-        should_recover = False
+        recovery_decision = None
         if not accepted:
             failure_reasons = [
                 value for value in (
@@ -146,23 +148,31 @@ def register_classified_document(images, routing, registry, selection=None):
                     evidence.rejection_reason if evidence else None,
                 ) if value
             ]
-            decision = decide_registration_recovery(
-                failure_reasons=failure_reasons,
+            # Rejection reasons may be comma-joined gate tokens from alignment.
+            expanded: list[str] = []
+            for value in failure_reasons:
+                expanded.extend(part.strip() for part in str(value).split(",") if part.strip())
+            recovery_decision = decide_registration_recovery(
+                failure_reasons=expanded or failure_reasons,
                 content_invalid=not content_ok,
                 strategy_available=True,
             )
-            should_recover = decision.attempt
-            if should_recover:
-                recovery_strategies.append(decision.strategy.value)
+            if recovery_decision.attempt:
+                recovery_strategies.append(recovery_decision.strategy.value)
 
-        if should_recover:
+        if recovery_decision is not None and recovery_decision.attempt:
             if aligned is not None and aligned.warped is not None:
                 aligned.warped.close()
                 aligned = None
-            enhanced = enhance_for_registration(source)
+            if recovery_decision.strategy is Strategy.ALTERNATIVE_REGISTRATION:
+                enhanced = enhance_for_registration_strong(source)
+                attempt_name = "enhanced_strong"
+            else:
+                enhanced = enhance_for_registration(source)
+                attempt_name = "enhanced"
             try:
                 aligned, evidence, accepted, meta, content_ok, content_reason = _attempt(
-                    enhanced, "enhanced"
+                    enhanced, attempt_name
                 )
                 attempts.append(meta)
             finally:
