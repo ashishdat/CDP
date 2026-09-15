@@ -1,0 +1,44 @@
+{
+  "phase": "cascade-v5",
+  "sample": "sample_b",
+  "n_claims": 6,
+  "completed": "6/6",
+  "true_stp": "5/6",
+  "patient_dob_auto": "5/6",
+  "total_charge_auto": "6/6",
+  "patient_name_auto": "6/6",
+  "insured_id_auto": "6/6",
+  "insured_name_auto": "6/6",
+  "blockers": {
+    "patient_dob": 1
+  },
+  "vs_cascade_v4": {
+    "true_stp": "4/6 -> 5/6",
+    "dob_auto": "4/6 -> 5/6",
+    "total_auto": "5/6 -> 6/6"
+  },
+  "remaining_gaps": [
+    {
+      "claim": "Group B__M048HJHK.005",
+      "gap": "patient_dob",
+      "class": "HANDWRITING_UNREADABLE",
+      "evidence": "DOB OCR remains header-only (Mly DD) across crop variants and cell splits; no calendar-valid digit assembly from observed ink",
+      "action": "Keep HITL; needs scan/ROI quality or human entry \u2014 not policy waiver. Line charge I/00\u2192100.00 recovered; LINE_TOTALS_RECONCILED clears total_charge"
+    }
+  ],
+  "strategy_notes": [
+    "Currency confusable I/00\u2192100.00 for handwritten line charges",
+    "Service-line noise filter allows /| so repaired amounts are not wiped",
+    "DOB: wider year crop; century-clipped year locate; split-day merge; 1083 trailing-edge repair",
+    "dob_cells require clean MM/DD/YY digit cells (rejects weak assemblies)",
+    "LINE_TOTALS injection mints clean rapidocr candidate (avoids empty invalid box-28 shells)"
+  ],
+  "true_stp_rate": "5/6",
+  "remaining_hitl": {
+    "HJHK.005": "patient_dob only \u2014 header ink OCR still fails (Mly DD); needs scan quality / handwriting model / human entry. total_charge now recovered via I/00 currency confusable + LINE_TOTALS_RECONCILED."
+  },
+  "wins": {
+    "IJN2.022": "patient_dob auto 03/19/1983 via century-clipped year repair (983->1983) + fragment assembly; total already OK",
+    "HJHK.005": "total_charge auto 100.00 via I/00 confusable repair + line sum; DOB remains HITL honestly"
+  }
+}

@@ -124,7 +124,7 @@ route-authorized; raise DOB auto without inventing dates.
 
 Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v3/`.
 
-## Phase 4 — residual gap closure (v4) — current
+## Phase 4 — residual gap closure (v4)
 
 ### Gap inventory after Phase 3 (4 HITL claims)
 
@@ -132,8 +132,8 @@ Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v3/`.
 |-------|---------|-----------|--------------|
 | IJMP.002 | `patient_dob` | Digit-band OCR present (`12 26l 108`) but span never ran on non-empty OCR; trailing `l` / 3-digit year | **Yes** |
 | IJN2.005 | `insured_id_number` | FORMAT+HARD+MEMBER_RELATIONSHIP; calibrated ~0.97 under C3 0.98 | **Yes** (corroboration-backed) |
-| IJN2.022 | `patient_dob` | Ambiguous digit fragments; no unique calendar-valid date | No — HITL |
-| HJHK.005 | DOB + total | Empty DOB ink; empty box-28; **0** service lines | No — HITL |
+| IJN2.022 | `patient_dob` | Ambiguous digit fragments; no unique calendar-valid date | Crop/OCR — Phase 5 |
+| HJHK.005 | DOB + total | Empty DOB ink; empty box-28; missed line charges | Total via OCR — Phase 5; DOB HITL |
 
 ### Architecture changes
 
@@ -151,11 +151,25 @@ Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v3/`.
 | `insured_name` auto | 6/6 | 6/6 |
 | `total_charge` auto | 5/6 | 5/6 |
 
-Remaining 2/6 are honest ink gaps (ambiguous DOB fragments; empty DOB + empty financials).
-
 Metrics: `docs/metrics/sample_b_cascade_v4_metrics.json`.
 
-### Phase 5 (cascade v5)
-- Currency confusable repair for handwritten line charges (`I/00`→`100`).
-- DOB year/day span recovery from clipped digit-band OCR; wider year crop.
-- No identity/financial policy softening.
+## Phase 5 — crop/OCR recovery (v5) — current
+
+**Not policy softening.** Levers are ROI/crop, span repair of observed glyphs, and line-charge OCR.
+
+| Claim | Lever | Outcome |
+|-------|-------|---------|
+| IJN2.022 | Wider DOB year crop; century-clip year (`983`→`1983`); split-day merge; gated cell OCR | STP_SAFE; DOB `03/19/1983` |
+| HJHK.005 total | Currency confusable `I/00`→`100.00`; keep `/` in service-line noise; mint clean `LINE_TOTALS_RECONCILED` | `total_charge` auto |
+| HJHK.005 DOB | Header ink still OCR-fails (`Mly DD`); no inventable date | Honest HITL (scan/ROI or human entry) |
+
+### Sample B Phase 5 result
+
+| Metric | Phase 4 | Phase 5 |
+|--------|---------|---------|
+| True STP | 4/6 | **5/6** |
+| `patient_dob` auto | 4/6 | **5/6** |
+| `total_charge` auto | 5/6 | **6/6** |
+
+Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v5/`.
+Metrics: `docs/metrics/sample_b_cascade_v5_metrics.json`.

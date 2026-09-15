@@ -152,7 +152,7 @@ def main() -> int:
             "insured_name_auto": f"{auto['insured_name']}/{max(completed, 1)}",
         },
         "blockers": dict(blockers),
-        "strategy": "field-cascade-v4",
+        "strategy": "field-cascade-v5",
     }
     (OUT / "cascade_v5_reprocess.json").write_text(json.dumps(rows, indent=2) + "\n")
     (OUT / "metrics_summary.json").write_text(json.dumps(summary, indent=2) + "\n")

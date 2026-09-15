@@ -163,7 +163,7 @@ Metrics: `docs/metrics/sample_b_cascade_v3_metrics.json`.
 
 1. **Cascade span skip** — DOB digit-band values like `12 26l 108` were never assembled because cascade only spanned empty OCR.
 2. **Member-id near-miss** — IJN2.005 had full deterministic + E6 relationship evidence at calibrated ~0.97 vs C3 0.98 gate.
-3. **Hard HITL remainders** — IJN2.022 ambiguous DOB ink; HJHK.005 empty DOB + no line charges.
+3. **Hard HITL remainders (at Phase 4)** — IJN2.022 ambiguous DOB ink; HJHK.005 empty DOB + no usable line-charge sum.
 
 ### Fixes shipped
 
@@ -183,10 +183,11 @@ Metrics: `docs/metrics/sample_b_cascade_v3_metrics.json`.
 Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v4/`.
 Metrics: `docs/metrics/sample_b_cascade_v4_metrics.json`.
 
-### Next honest levers (not policy waivers)
+### Next honest levers (not policy waivers) → Phase 5
 
-- Retarget DOB ROI / handwriting specialist OCR for fragmented digit cells
-- Service-line geometry for scans with blank box-28 and missed line table
+- Retarget DOB ROI / digit-band span for fragmented cells (**done in v5** — IJN2.022 STP)
+- Currency-confusable line charges + line-sum injection (**done in v5** — HJHK total auto)
+- Remaining: HJHK.005 DOB handwriting still header-only — scan/ROI quality, handwriting model, or human entry
 - Do **not** invent DOBs or totals when ink is absent/ambiguous
 
 
@@ -202,3 +203,18 @@ Metrics: `docs/metrics/sample_b_cascade_v4_metrics.json`.
 | DOB cells | Optional MM/DD/YY cell OCR after cascade miss |
 
 Sample B target: true STP **5/6** (HJHK DOB handwriting remains HITL when ink is unreadable).
+
+
+## Cascade v5 sample B results
+
+| Metric | Cascade v4 | Cascade v5 |
+|--------|------------|------------|
+| True STP | 4/6 | **5/6** |
+| `patient_dob` auto | 4/6 | **5/6** |
+| `total_charge` auto | 5/6 | **6/6** |
+
+Recovered without policy softening:
+- **IJN2.022** DOB via digit-band span (`03/19/1983`) after century-clip / split-day repair
+- **HJHK.005** line charge `I/00`→`100.00` → `LINE_TOTALS_RECONCILED` for box-28
+
+Residual HITL: **HJHK.005** handwritten DOB (header-only OCR) — human entry / better scan.
