@@ -93,3 +93,14 @@ Scope note: Golden harness forces verified identity/template and does not run th
 ops field-cascade path end-to-end. It remains the independent **extraction
 accuracy** yardstick; ops Sample A is the independent **STP/HITL** yardstick.
 
+## HITL leftover closure (Sample A)
+
+Both residual DOB HITL claims recovered without policy softening:
+
+| Claim | Before | After | Lever |
+|-------|--------|-------|-------|
+| DJJM.022 | HITL (`4210-01-01` / ambiguous) | STP — DOB `07/11/1990` | `U→0` confusable + glued year `11990→1990` |
+| DJJM.042 | HITL (empty/unreadable) | STP — DOB `06/14/1974` | Split-day merge + DOB-only cross-crop span fusion |
+
+Sample A with geometry: **true STP 4/4**, DOB auto **4/4**, charge auto **4/4**.
+

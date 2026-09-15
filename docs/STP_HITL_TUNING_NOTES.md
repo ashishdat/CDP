@@ -229,3 +229,9 @@ auto **4/4**. Remaining HITL is DOB-only with classified gaps
 See `docs/STP_FIELD_CASCADE_ARCHITECTURE_V6.md` and
 `docs/metrics/cascade_v6_independent_eval.json`.
 
+## Cascade v6 HITL leftover closure (Sample A)
+
+- **DJJM.022** → DOB `07/11/1990` (U→0 + year glue)
+- **DJJM.042** → DOB `06/14/1974` (split-day + cross-variant fusion)
+- Sample A true STP **4/4** (geometry set); no remaining critical HITL
+

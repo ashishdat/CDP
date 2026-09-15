@@ -399,7 +399,6 @@ class FieldCascade:
                             "preprocessing_version": shell.get("preprocessing_version") or "none",
                             "registration_confidence": shell.get("registration_confidence"),
                             "image_quality_score": shell.get("image_quality_score"),
-                            "provenance": "CROSS_VARIANT_SPAN_FUSION",
                             "reason_code": "CROSS_VARIANT_SPAN_FUSION",
                             "span_selection": {
                                 "selected_text": fused_selected,
@@ -409,6 +408,8 @@ class FieldCascade:
                             },
                         }
                     )
+                    if not isinstance(shell.get("provenance"), dict):
+                        shell["provenance"] = None
                     if "bounding_box" not in shell:
                         box = best.bbox if best is not None else primary_bbox
                         x0, y0, x1, y1 = box

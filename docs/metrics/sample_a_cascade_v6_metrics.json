@@ -5,19 +5,18 @@
     "attempted": 5,
     "with_geometry": 4,
     "completed": "4/4",
-    "true_stp": "2/4",
-    "patient_dob_auto": "2/4",
+    "true_stp": "4/4",
+    "patient_dob_auto": "4/4",
     "total_charge_auto": "4/4",
     "patient_name_auto": "4/4",
     "insured_id_auto": "4/4",
     "insured_name_auto": "4/4"
   },
-  "blockers": {
-    "patient_dob": 2
-  },
-  "gap_classes": {
-    "AMBIGUOUS_DIGIT_FRAGMENTS": 1,
-    "HANDWRITING_UNREADABLE": 1
-  },
-  "strategy": "field-cascade-v6"
+  "blockers": {},
+  "gap_classes": {},
+  "strategy": "field-cascade-v6",
+  "hitl_leftovers_resolved": {
+    "Group A__M048DJJM.022": "patient_dob 07/11/1990 via U\u21920 + glued year span on digit-band",
+    "Group A__M048DJJM.042": "patient_dob 06/14/1974 via split-day merge + cross-variant span fusion"
+  }
 }
