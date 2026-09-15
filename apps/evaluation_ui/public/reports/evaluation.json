@@ -2,7 +2,7 @@
   "report_metadata": {
     "dataset_label": "CDP_GOLDEN_ENGINEERING_PACK_V3",
     "synthetic_demo": false,
-    "generated_at": "2026-09-15T05:45:22.701381+00:00",
+    "generated_at": "2026-09-15T07:36:31.615761+00:00",
     "scope": "GOLDEN_PACK_V3_100_INDEPENDENT_EXTRACTION_HARNESS",
     "measurement_scope": "EXTRACTION_HARNESS",
     "production_generalization_claim": false,
@@ -35,11 +35,16 @@
     "operational_baseline": {
       "measurement_scope": "OPERATIONAL_E2E",
       "denominator_claims": 100,
-      "final_claim_count": 39,
-      "incomplete_count": 61,
-      "operational_completion_rate": 0.39,
-      "source": "AnchorNormalizationDeltaReport.json",
-      "definition": "Application SUCCESS and COMPLETED FinalClaim / submitted claims. Not Golden Pack extraction accuracy or claim STP proxy."
+      "final_claim_count": 43,
+      "incomplete_count": 57,
+      "operational_completion_rate": 0.43,
+      "true_stp_rate": 0.0,
+      "true_stp_count": 0,
+      "end_to_end_correct_completion_rate": null,
+      "end_to_end_correct_completion_status": "UNAVAILABLE_NO_GROUND_TRUTH",
+      "production_qualification_status": "NOT_QUALIFIED",
+      "source": "evaluation_results/operational_e2e_100_v1/summary.json",
+      "definition": "Application SUCCESS and COMPLETED FinalClaim / submitted claims. true_stp requires review_required=false. Not Golden Pack Claim STP Proxy."
     },
     "photometric_stress": {
       "measurement_scope": "EXTRACTION_HARNESS_PHOTOMETRIC_STRESS",
@@ -128,7 +133,7 @@
     "processing_time_seconds": null,
     "average_latency_seconds": null,
     "pages_per_second": null,
-    "accuracy": 0.39,
+    "accuracy": 0.43,
     "precision": 0.0,
     "recall": 0.0,
     "total_documents": null,
@@ -136,11 +141,14 @@
     "document_stp_rate": null,
     "hard_hitl_documents": null,
     "claim_hard_hitl_rate": null,
-    "operational_completion_rate": 0.39,
-    "final_claim_count": 39,
-    "incomplete_count": 61,
+    "operational_completion_rate": 0.43,
+    "true_stp_rate": 0.0,
+    "true_stp_count": 0,
+    "final_claim_count": 43,
+    "incomplete_count": 57,
     "denominator_claims": 100,
-    "measurement_note": "Operational completion is FinalClaim / submitted claims from the application path. Golden Pack extraction metrics are under evaluation_metrics."
+    "end_to_end_correct_completion_status": "UNAVAILABLE_NO_GROUND_TRUTH",
+    "measurement_note": "Operational completion is FinalClaim / submitted claims from the application path. True STP requires FinalClaim with review_required=false. Golden Pack extraction metrics are under evaluation_metrics."
   },
   "field_evidence": [
     {

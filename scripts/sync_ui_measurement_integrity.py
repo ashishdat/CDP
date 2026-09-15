@@ -287,12 +287,18 @@ def build_report(
             "hard_hitl_documents": None,
             "claim_hard_hitl_rate": None,
             "operational_completion_rate": float(ops["operational_completion_rate"]),
+            "true_stp_rate": float(ops.get("true_stp_rate") or 0.0),
+            "true_stp_count": int(ops.get("true_stp_count") or 0),
             "final_claim_count": int(ops["final_claim_count"]),
             "incomplete_count": int(ops["incomplete_count"]),
             "denominator_claims": int(ops["denominator_claims"]),
+            "end_to_end_correct_completion_status": ops.get(
+                "end_to_end_correct_completion_status"
+            ),
             "measurement_note": (
                 "Operational completion is FinalClaim / submitted claims from the "
-                "application path. Golden Pack extraction metrics are under evaluation_metrics."
+                "application path. True STP requires FinalClaim with review_required=false. "
+                "Golden Pack extraction metrics are under evaluation_metrics."
             ),
         },
         "field_evidence": [

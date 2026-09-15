@@ -1,0 +1,2840 @@
+{
+  "title": "Operational E2E 100-claim live qualification",
+  "generated_from": "evaluation_results/operational_e2e_100_v1/production_qualification.json",
+  "archive_sha256": "8c09d4ec4de3fef8bf41771ae45bc69b69300221781a9eea9183936cfcbe85f3",
+  "metrics": {
+    "measurement_scope": "OPERATIONAL_E2E_LIVE",
+    "submitted_claims": 100,
+    "operational_completion_count": 43,
+    "operational_completion_rate": 0.43,
+    "true_stp_count": 0,
+    "true_stp_rate": 0.0,
+    "completed_with_review_count": 43,
+    "incomplete_count": 57,
+    "end_to_end_correct_completion_status": "UNAVAILABLE_NO_GROUND_TRUTH",
+    "end_to_end_correct_completion_rate": null,
+    "recovery_plan_counts": {
+      "IMAGE_ENHANCEMENT": 29,
+      "HUMAN_QUEUE": 17,
+      "ALTERNATIVE_TEMPLATE": 11
+    }
+  },
+  "production_qualification": {
+    "status": "NOT_QUALIFIED",
+    "basis": "LIVE_100_CLAIM_RUN",
+    "blocking_reasons": [
+      "true_stp_rate is 0% (all completed claims still require field review)",
+      "operational_completion_rate is below target (43%)",
+      "end_to_end_correct_completion unavailable without independent ground truth",
+      "57/100 claims never reach FinalClaim (selection/registration failures)",
+      "recovery plans generated but no executable recovery strategy succeeded in-run"
+    ],
+    "passed_gates": [
+      "measurement_scope separation enforced (OPERATIONAL_E2E vs EXTRACTION_HARNESS)",
+      "live 100-claim app-path E2E executed against verified Hackathon archive",
+      "true_stp reported separately from Golden Pack Claim STP Proxy",
+      "recovery framework diagnosed and planned all incomplete live claims"
+    ],
+    "live_vs_frozen": {
+      "frozen_completion_rate": 0.39,
+      "live_completion_rate": 0.43,
+      "frozen_true_stp_rate": 0.0,
+      "live_true_stp_rate": 0.0
+    }
+  },
+  "live_vs_frozen": {
+    "frozen_completion_rate": 0.39,
+    "live_completion_rate": 0.43,
+    "frozen_true_stp_rate": 0.0,
+    "live_true_stp_rate": 0.0
+  },
+  "claims": [
+    {
+      "document": "Group A/M048DJJF.005",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "6499626506, 1.7059378902608326, 656.6449424064838], [-3.249158764244343, 0.7362138624428402, 255.69339523836166], [-0.01296124617615314, 0.0029664703368431815, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3227.323746003094}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "6499626506, 1.7059378902608326, 656.6449424064838], [-3.249158764244343, 0.7362138624428402, 255.69339523836166], [-0.01296124617615314, 0.0029664703368431815, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3227.323746003094}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048DJJM.012",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJJM.022",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJJM.042",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKH.008",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKH.012",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKH.016",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKH.018",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKH.020",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKH.024",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKH.034",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "tive_distortion\": 0.008612708883650585, \"corner_validity\": true, \"homography_quality\": 0.3886407823992159, \"alignment_confidence\": 0.3886407823992159, \"transform_matrix\": [[0.9060031736309145, 0.002911167234705581, 95.75047287105458], [-0.005229644601088919, 0.964806498973383, 93.95744125104926], [-2.5678257903730777e-06, 2.9198603219271247e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3579.476828002953}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "tive_distortion\": 0.008612708883650585, \"corner_validity\": true, \"homography_quality\": 0.3886407823992159, \"alignment_confidence\": 0.3886407823992159, \"transform_matrix\": [[0.9060031736309145, 0.002911167234705581, 95.75047287105458], [-0.005229644601088919, 0.964806498973383, 93.95744125104926], [-2.5678257903730777e-06, 2.9198603219271247e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3579.476828002953}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048DJKH.041",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKH.047",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKN.006",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKN.010",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048DJKN.023",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "311.2694976991268], [-0.33331172692486044, -0.0908520846313292, 701.7241861209054], [-0.0004634396108355782, -0.00025690461513787235, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3625.046968998504}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "311.2694976991268], [-0.33331172692486044, -0.0908520846313292, 701.7241861209054], [-0.0004634396108355782, -0.00025690461513787235, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3625.046968998504}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048EJG7.007",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048EJG7.020",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "521.0342453127162], [-0.16122683707763916, -0.9073201507045935, 1947.4456941613978], [0.0001278965310331715, -0.00046406245279537834, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3497.019406000618}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "521.0342453127162], [-0.16122683707763916, -0.9073201507045935, 1947.4456941613978], [0.0001278965310331715, -0.00046406245279537834, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3497.019406000618}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048EJGE.019",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            " -0.369021724739331, 1078.8475596357061], [-0.0006031793165253446, -0.0003418939225677664, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3518.5649110062514}}}\nINFO registration FAILED: insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            " -0.369021724739331, 1078.8475596357061], [-0.0006031793165253446, -0.0003418939225677664, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3518.5649110062514}}}\nINFO registration FAILED: insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048EJGE.043",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048EJGE.046",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "true, \"homography_quality\": 0.30214417354019774, \"alignment_confidence\": 0.30214417354019774, \"transform_matrix\": [[0.8064831059041769, -0.1306755827307094, 342.0826848007465], [0.01896287449844952, 0.7643400921077076, 224.8330633516361], [7.324526547199291e-06, -6.282220959313324e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion\", \"processing_time_ms\": 3380.6136299972422}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "true, \"homography_quality\": 0.30214417354019774, \"alignment_confidence\": 0.30214417354019774, \"transform_matrix\": [[0.8064831059041769, -0.1306755827307094, 342.0826848007465], [0.01896287449844952, 0.7643400921077076, 224.8330633516361], [7.324526547199291e-06, -6.282220959313324e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion\", \"processing_time_ms\": 3380.6136299972422}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048EJH6.002",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048EJI2.009",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "rm_matrix\": [[0.8729200277905889, -0.028316782201428355, 101.12106550826763], [-0.0194393000136825, 0.9660606153341312, 93.30780287515054], [-5.9744185049522203e-05, 1.3400027826358865e-06, 0.9999999999999999]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3162.4819739954546}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "rm_matrix\": [[0.8729200277905889, -0.028316782201428355, 101.12106550826763], [-0.0194393000136825, 0.9660606153341312, 93.30780287515054], [-5.9744185049522203e-05, 1.3400027826358865e-06, 0.9999999999999999]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3162.4819739954546}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048EJI2.019",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048EJI2.033",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048EJI2.037",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "22463748656, \"corner_validity\": true, \"homography_quality\": 0.3115188477860278, \"alignment_confidence\": 0.3115188477860278, \"transform_matrix\": [[0.9184986713659088, -0.02532161634247287, 94.13471170092578], [-0.0009244342165508531, 0.9391850384222203, 96.69032426709833], [2.525450828232985e-06, -1.9110383265236566e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3340.187471010722}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "22463748656, \"corner_validity\": true, \"homography_quality\": 0.3115188477860278, \"alignment_confidence\": 0.3115188477860278, \"transform_matrix\": [[0.9184986713659088, -0.02532161634247287, 94.13471170092578], [-0.0009244342165508531, 0.9391850384222203, 96.69032426709833], [2.525450828232985e-06, -1.9110383265236566e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3340.187471010722}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048EJI2.038",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "95, 659.9998558897246], [-0.7001412529236647, 2.1491632397290847, -5196.719256997913], [-0.014439453622829468, 0.0019508623059447028, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3397.966215998167}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "95, 659.9998558897246], [-0.7001412529236647, 2.1491632397290847, -5196.719256997913], [-0.014439453622829468, 0.0019508623059447028, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3397.966215998167}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048HJBI.009",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048HJCX.013",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ent_confidence\": 0.21796344774025306, \"transform_matrix\": [[0.9722316990871073, 0.0888225723356182, 87.34396253289225], [-0.03308645985434287, 1.1484220180636737, 85.48177901122673], [-4.7034685699265317e-05, 0.00020882879919197317, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3256.55196000298}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ent_confidence\": 0.21796344774025306, \"transform_matrix\": [[0.9722316990871073, 0.0888225723356182, 87.34396253289225], [-0.03308645985434287, 1.1484220180636737, 85.48177901122673], [-4.7034685699265317e-05, 0.00020882879919197317, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3256.55196000298}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048HJDF.019",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "distortion\": 0.007961796850567136, \"corner_validity\": true, \"homography_quality\": 0.39637716202900325, \"alignment_confidence\": 0.39637716202900325, \"transform_matrix\": [[0.9170127674374463, -0.00020603061403222562, 92.67502292777003], [0.0021076067570307724, 0.9565952530235846, 68.04254041136569], [3.213747232324424e-06, -1.610028557837407e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3133.5427290032385}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "distortion\": 0.007961796850567136, \"corner_validity\": true, \"homography_quality\": 0.39637716202900325, \"alignment_confidence\": 0.39637716202900325, \"transform_matrix\": [[0.9170127674374463, -0.00020603061403222562, 92.67502292777003], [0.0021076067570307724, 0.9565952530235846, 68.04254041136569], [3.213747232324424e-06, -1.610028557837407e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3133.5427290032385}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048HJE5.005",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048HJE5.016",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048HJE5.020",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "035003812428761605, 0.3049342440249014, -219.81065035984165], [-1.754622487345456, 0.17999450235912826, 2043.7670196488154], [-0.0007567529986251664, 4.832477289676012e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3068.4167240106035}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "035003812428761605, 0.3049342440249014, -219.81065035984165], [-1.754622487345456, 0.17999450235912826, 2043.7670196488154], [-0.0007567529986251664, 4.832477289676012e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3068.4167240106035}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048HJHO.007",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048HJHO.020",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "95, 3.2442758434652674, 1492.333325260555], [-0.0028318233680137903, 0.002555566034471587, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3190.8888519974425}}}\nINFO registration FAILED: insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "95, 3.2442758434652674, 1492.333325260555], [-0.0028318233680137903, 0.002555566034471587, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3190.8888519974425}}}\nINFO registration FAILED: insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048HJHO.025",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048HJHO.045",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048HJI6.003",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048HJI6.010",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048HJI6.024",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            " true, \"homography_quality\": 0.3847069079905966, \"alignment_confidence\": 0.3847069079905966, \"transform_matrix\": [[0.9267087373936873, -0.003447395492925962, 96.66545323063607], [0.030389528935402706, 0.95033579267413, 98.59270792010543], [1.823102143358784e-05, -4.063488122263235e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion\", \"processing_time_ms\": 3277.2250970010646}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            " true, \"homography_quality\": 0.3847069079905966, \"alignment_confidence\": 0.3847069079905966, \"transform_matrix\": [[0.9267087373936873, -0.003447395492925962, 96.66545323063607], [0.030389528935402706, 0.95033579267413, 98.59270792010543], [1.823102143358784e-05, -4.063488122263235e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion\", \"processing_time_ms\": 3277.2250970010646}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048HJI6.025",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ue, \"homography_quality\": 0.39927541962152796, \"alignment_confidence\": 0.39927541962152796, \"transform_matrix\": [[0.92211050478707, -0.003203309487332049, 91.80772638989096], [0.004476881970266274, 0.955959953677273, 94.98274348995237], [1.1468066617695688e-05, -2.5166016757287173e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion\", \"processing_time_ms\": 3224.4658799900208}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ue, \"homography_quality\": 0.39927541962152796, \"alignment_confidence\": 0.39927541962152796, \"transform_matrix\": [[0.92211050478707, -0.003203309487332049, 91.80772638989096], [0.004476881970266274, 0.955959953677273, 94.98274348995237], [1.1468066617695688e-05, -2.5166016757287173e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion\", \"processing_time_ms\": 3224.4658799900208}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048IJJH.013",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048IJMP.001",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048IJMP.002",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "_quality\": 0.3270944394765419, \"alignment_confidence\": 0.3270944394765419, \"transform_matrix\": [[0.8969035548664946, -0.00048290894419060135, 91.77533939834613], [-0.021668870994755215, 0.958786028757116, 107.20709611705834], [-1.673180151661194e-05, 2.680979416717286e-06, 0.9999999999999999]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion\", \"processing_time_ms\": 3024.43313501135}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "_quality\": 0.3270944394765419, \"alignment_confidence\": 0.3270944394765419, \"transform_matrix\": [[0.8969035548664946, -0.00048290894419060135, 91.77533939834613], [-0.021668870994755215, 0.958786028757116, 107.20709611705834], [-1.673180151661194e-05, 2.680979416717286e-06, 0.9999999999999999]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,unsafe_perspective_distortion\", \"processing_time_ms\": 3024.43313501135}}}\nINFO registration FAILED: low_inlier_ratio,unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048IJN2.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            ", -0.6221780862829389, 1126.5957387915703], [0.0005675722455475502, -0.0005700341373052493, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3008.886095994967}}}\nINFO registration FAILED: insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            ", -0.6221780862829389, 1126.5957387915703], [0.0005675722455475502, -0.0005700341373052493, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3008.886095994967}}}\nINFO registration FAILED: insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048IJN2.005",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ve_distortion\": 0.017356463456583735, \"corner_validity\": true, \"homography_quality\": 0.33565973113687275, \"alignment_confidence\": 0.33565973113687275, \"transform_matrix\": [[0.9156155091349261, -0.009025335709544889, 95.5990639206722], [-0.0020102455111036736, 0.9361846146003788, 90.355978711901], [-3.6025219903452025e-06, -6.970612331118033e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3131.171130997245}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ve_distortion\": 0.017356463456583735, \"corner_validity\": true, \"homography_quality\": 0.33565973113687275, \"alignment_confidence\": 0.33565973113687275, \"transform_matrix\": [[0.9156155091349261, -0.009025335709544889, 95.5990639206722], [-0.0020102455111036736, 0.9361846146003788, 90.355978711901], [-3.6025219903452025e-06, -6.970612331118033e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3131.171130997245}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048IJN2.008",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048IJN2.010",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048IJN2.016",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "736655176, \"corner_validity\": true, \"homography_quality\": 0.43542197021649043, \"alignment_confidence\": 0.43542197021649043, \"transform_matrix\": [[0.902005579018956, -0.004961547379504667, 90.54804986626773], [-0.00792561089715594, 0.9448836731179072, 99.78505471839468], [-1.2619092062055762e-05, -4.958795710131189e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3447.3420809954405}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "736655176, \"corner_validity\": true, \"homography_quality\": 0.43542197021649043, \"alignment_confidence\": 0.43542197021649043, \"transform_matrix\": [[0.902005579018956, -0.004961547379504667, 90.54804986626773], [-0.00792561089715594, 0.9448836731179072, 99.78505471839468], [-1.2619092062055762e-05, -4.958795710131189e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3447.3420809954405}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048IJN2.022",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048IJN2.023",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "68607773976, \"corner_validity\": true, \"homography_quality\": 0.4267360441773026, \"alignment_confidence\": 0.4267360441773026, \"transform_matrix\": [[0.9076903136472688, -0.0046036782560912376, 61.97498055909216], [-0.01267045202933775, 0.959575600207812, 100.45495155326401], [-1.1285086234761185e-05, 3.883537862579692e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3185.345962003339}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "68607773976, \"corner_validity\": true, \"homography_quality\": 0.4267360441773026, \"alignment_confidence\": 0.4267360441773026, \"transform_matrix\": [[0.9076903136472688, -0.0046036782560912376, 61.97498055909216], [-0.01267045202933775, 0.959575600207812, 100.45495155326401], [-1.1285086234761185e-05, 3.883537862579692e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3185.345962003339}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048IJN2.024",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048IJN2.028",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048IJN2.029",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048IJN2.045",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "747165886, \"corner_validity\": true, \"homography_quality\": 0.45622794832502095, \"alignment_confidence\": 0.45622794832502095, \"transform_matrix\": [[0.910725069840482, -0.007697370911918211, 62.16879143394572], [-0.0038332374580537635, 0.9582525617762432, 92.4236086638056], [-9.735313585104387e-06, 1.0940383279279255e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3024.0506760019343}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "747165886, \"corner_validity\": true, \"homography_quality\": 0.45622794832502095, \"alignment_confidence\": 0.45622794832502095, \"transform_matrix\": [[0.910725069840482, -0.007697370911918211, 62.16879143394572], [-0.0038332374580537635, 0.9582525617762432, 92.4236086638056], [-9.735313585104387e-06, 1.0940383279279255e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3024.0506760019343}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048IJN2.048",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "688979726, \"corner_validity\": true, \"homography_quality\": 0.4942450881004334, \"alignment_confidence\": 0.4942450881004334, \"transform_matrix\": [[0.9104173512164578, -0.004902833371943063, 87.40472275221178], [-0.023148261098527488, 0.9633254053848361, 96.22089540127652], [-1.2717802475697297e-05, 2.2124016793048984e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3237.8547190019162}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "688979726, \"corner_validity\": true, \"homography_quality\": 0.4942450881004334, \"alignment_confidence\": 0.4942450881004334, \"transform_matrix\": [[0.9104173512164578, -0.004902833371943063, 87.40472275221178], [-0.023148261098527488, 0.9633254053848361, 96.22089540127652], [-1.2717802475697297e-05, 2.2124016793048984e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3237.8547190019162}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048IJPD.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            " 151.1684462318716], [-1.2057031892424468, -0.535645852187775, 1316.8577369431885], [-0.0009600459235307495, -0.0003754988393607061, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3233.5076090093935}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            " 151.1684462318716], [-1.2057031892424468, -0.535645852187775, 1316.8577369431885], [-0.0009600459235307495, -0.0003754988393607061, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3233.5076090093935}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048IJPD.013",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "[[1.2656869764822196, -0.11550145704985035, 73.79033439949603], [0.257917580007894, 0.6389809471135225, 380.12779949559945], [0.0005708052479911246, -0.0001888706262883316, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3207.8767149941996}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "[[1.2656869764822196, -0.11550145704985035, 73.79033439949603], [0.257917580007894, 0.6389809471135225, 380.12779949559945], [0.0005708052479911246, -0.0001888706262883316, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3207.8767149941996}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048JJCL.003",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048JJH1.006",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "0.23558430518983414, \"alignment_confidence\": 0.23558430518983414, \"transform_matrix\": [[0.9494845874460736, 0.009242389287618084, 86.39483872325094], [-0.013870085107293524, 1.0236677871926982, 90.44895469791322], [-5.770426085207725e-06, 3.00944331121672e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_perspective_distortion\", \"processing_time_ms\": 3097.1524589986075}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "0.23558430518983414, \"alignment_confidence\": 0.23558430518983414, \"transform_matrix\": [[0.9494845874460736, 0.009242389287618084, 86.39483872325094], [-0.013870085107293524, 1.0236677871926982, 90.44895469791322], [-5.770426085207725e-06, 3.00944331121672e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_perspective_distortion\", \"processing_time_ms\": 3097.1524589986075}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048JJH1.009",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "7372791932, \"corner_validity\": true, \"homography_quality\": 0.42098197031155116, \"alignment_confidence\": 0.42098197031155116, \"transform_matrix\": [[0.895581816191983, 0.013707124894849383, 74.0213742606294], [-0.054375892957984825, 0.9352490273832486, 108.96341686936323], [-4.376959532585018e-05, -9.207436828589002e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3166.9484220037702}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "7372791932, \"corner_validity\": true, \"homography_quality\": 0.42098197031155116, \"alignment_confidence\": 0.42098197031155116, \"transform_matrix\": [[0.895581816191983, 0.013707124894849383, 74.0213742606294], [-0.054375892957984825, 0.9352490273832486, 108.96341686936323], [-4.376959532585018e-05, -9.207436828589002e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3166.9484220037702}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048JJH1.013",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "5, 150.3676665216766], [-1.2131229219356845, -0.5907991131539944, 2048.406963114968], [-0.0005951601972363117, -0.0002854386473978782, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3150.26114101056}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "5, 150.3676665216766], [-1.2131229219356845, -0.5907991131539944, 2048.406963114968], [-0.0005951601972363117, -0.0002854386473978782, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3150.26114101056}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048JJH1.015",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048JJH1.047",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group A/M048JJJG.001",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "dity\": true, \"homography_quality\": 0.21375753106436002, \"alignment_confidence\": 0.21375753106436002, \"transform_matrix\": [[0.9886743404960838, 0.004112782002191484, 67.14346835149793], [0.06361974758392154, 1.0143125578180399, 54.02157646785221], [7.365352796312215e-05, 1.1190803666091148e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_coverage,unsafe_perspective_distortion\", \"processing_time_ms\": 3341.2327239930164}}}\nINFO registration FAILED: low_coverage,unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "dity\": true, \"homography_quality\": 0.21375753106436002, \"alignment_confidence\": 0.21375753106436002, \"transform_matrix\": [[0.9886743404960838, 0.004112782002191484, 67.14346835149793], [0.06361974758392154, 1.0143125578180399, 54.02157646785221], [7.365352796312215e-05, 1.1190803666091148e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_coverage,unsafe_perspective_distortion\", \"processing_time_ms\": 3341.2327239930164}}}\nINFO registration FAILED: low_coverage,unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048JJJG.005",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ive_distortion\": 0.007617673654230337, \"corner_validity\": true, \"homography_quality\": 0.2518936834035626, \"alignment_confidence\": 0.2518936834035626, \"transform_matrix\": [[0.9201133917815526, -0.0034846763921350834, 105.63181813318467], [-0.0038013272586512282, 0.961042412730724, 83.5299506259299], [2.989106257394058e-06, 1.7133871066264446e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3304.251386987744}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ive_distortion\": 0.007617673654230337, \"corner_validity\": true, \"homography_quality\": 0.2518936834035626, \"alignment_confidence\": 0.2518936834035626, \"transform_matrix\": [[0.9201133917815526, -0.0034846763921350834, 105.63181813318467], [-0.0038013272586512282, 0.961042412730724, 83.5299506259299], [2.989106257394058e-06, 1.7133871066264446e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3304.251386987744}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group A/M048JJJG.012",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group B/M048DJKA.005",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group B/M048HJHK.005",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group B/M048HJI8.002",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "768.8780538886223], [-0.06793649780080355, -1.343469822504692, 2122.6687365701464], [-4.9922240138317804e-06, -0.0006331672110216183, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3245.469101006165}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "768.8780538886223], [-0.06793649780080355, -1.343469822504692, 2122.6687365701464], [-4.9922240138317804e-06, -0.0006331672110216183, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3245.469101006165}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJBI.002",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "nsform_matrix\": [[-0.3840284590085049, 0.0359256745635334, 682.2579087549271], [-0.1582639562177269, 1.1827422068773756, 406.2103286077101], [-0.0006374790499478378, 0.0011299444054951786, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3288.703935002559}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "nsform_matrix\": [[-0.3840284590085049, 0.0359256745635334, 682.2579087549271], [-0.1582639562177269, 1.1827422068773756, 406.2103286077101], [-0.0006374790499478378, 0.0011299444054951786, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3288.703935002559}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJD5.002",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "4, \"transform_matrix\": [[0.617903864696684, 0.07793709976736404, 125.87718152454316], [-0.12867256791056467, 0.7772984969316897, 128.61713819857673], [-0.0005250596872852114, 0.000212212122347392, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3949.369515001308}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "4, \"transform_matrix\": [[0.617903864696684, 0.07793709976736404, 125.87718152454316], [-0.12867256791056467, 0.7772984969316897, 128.61713819857673], [-0.0005250596872852114, 0.000212212122347392, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3949.369515001308}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJKK.008",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group B/M048IJKK.010",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "711012, \"corner_validity\": true, \"homography_quality\": 0.43712214936031385, \"alignment_confidence\": 0.43712214936031385, \"transform_matrix\": [[0.9490601785761142, -0.002078802967637445, 35.234879124518024], [-0.012109725587598081, 0.9990746350564279, 52.77836300627662], [-1.1681475937441817e-05, 2.4752040791309726e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3182.6847869961057}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "711012, \"corner_validity\": true, \"homography_quality\": 0.43712214936031385, \"alignment_confidence\": 0.43712214936031385, \"transform_matrix\": [[0.9490601785761142, -0.002078802967637445, 35.234879124518024], [-0.012109725587598081, 0.9990746350564279, 52.77836300627662], [-1.1681475937441817e-05, 2.4752040791309726e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3182.6847869961057}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJM0.002",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "863, -2.7403662632042436, 5088.0764640484995], [-1.2673129493111384, -2.340214106671461, 3605.2734977184355], [0.0004884381351808251, -0.00019180843380449725, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3292.110933994991}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "863, -2.7403662632042436, 5088.0764640484995], [-1.2673129493111384, -2.340214106671461, 3605.2734977184355], [0.0004884381351808251, -0.00019180843380449725, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3292.110933994991}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJM0.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "_matrix\": [[0.820238586640459, 0.0004162406038909693, 48.23299661829137], [-0.057530056551826095, 1.1098198146982543, 37.74130186801269], [-0.00026732786393725825, 7.243737355748681e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3248.5555019957246}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "_matrix\": [[0.820238586640459, 0.0004162406038909693, 48.23299661829137], [-0.057530056551826095, 1.1098198146982543, 37.74130186801269], [-0.00026732786393725825, 7.243737355748681e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3248.5555019957246}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJM0.007",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "4233097625, 176.5393822403992], [-6.08551376112738, 2.126199486341103, 1242.6143478754132], [-0.004602433699361732, 0.001572242313605486, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3038.9585369994165}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "4233097625, 176.5393822403992], [-6.08551376112738, 2.126199486341103, 1242.6143478754132], [-0.004602433699361732, 0.001572242313605486, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3038.9585369994165}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJM0.012",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "568031616, \"corner_validity\": true, \"homography_quality\": 0.4501867047425743, \"alignment_confidence\": 0.4501867047425743, \"transform_matrix\": [[1.010602954598535, -0.0077967374654766015, -23.4156656117818], [-0.021966260052791366, 1.0758895954109082, -46.18565693324288], [-1.4270581927450489e-05, 4.6800333140773845e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3354.110514992499}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "568031616, \"corner_validity\": true, \"homography_quality\": 0.4501867047425743, \"alignment_confidence\": 0.4501867047425743, \"transform_matrix\": [[1.010602954598535, -0.0077967374654766015, -23.4156656117818], [-0.021966260052791366, 1.0758895954109082, -46.18565693324288], [-1.4270581927450489e-05, 4.6800333140773845e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3354.110514992499}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJMD.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ix\": [[3.307810833118044, -2.126094652057643, 520.2686895975452], [12.808936291692174, -8.389516618083736, 1711.1078770423107], [0.009119576837750816, -0.005702887193152535, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3214.559141997597}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ix\": [[3.307810833118044, -2.126094652057643, 520.2686895975452], [12.808936291692174, -8.389516618083736, 1711.1078770423107], [0.009119576837750816, -0.005702887193152535, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3214.559141997597}}}\nINFO registration FAILED: low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJMJ.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "distortion\": 0.009571069076688319, \"corner_validity\": true, \"homography_quality\": 0.396944170827451, \"alignment_confidence\": 0.396944170827451, \"transform_matrix\": [[0.9198647271728474, -0.0034950793663635817, 53.68577654828379], [-0.0076180097130383335, 0.9516149425474851, 106.76241748315933], [-4.1326201541495065e-06, -1.2950998113490146e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3300.8265680109616}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "distortion\": 0.009571069076688319, \"corner_validity\": true, \"homography_quality\": 0.396944170827451, \"alignment_confidence\": 0.396944170827451, \"transform_matrix\": [[0.9198647271728474, -0.0034950793663635817, 53.68577654828379], [-0.0076180097130383335, 0.9516149425474851, 106.76241748315933], [-4.1326201541495065e-06, -1.2950998113490146e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_inlier_ratio\", \"processing_time_ms\": 3300.8265680109616}}}\nINFO registration FAILED: low_inlier_ratio\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048IJND.002",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group B/M048JJDJ.002",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "\": [[2.2517385090889728, -0.41122828862494903, 48.62803850877756], [4.157541683441361, -0.6379298184854325, -270.7628669393164], [0.004771974570598244, -0.0016590134878828333, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3452.6995869964594}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "\": [[2.2517385090889728, -0.41122828862494903, 48.62803850877756], [4.157541683441361, -0.6379298184854325, -270.7628669393164], [0.004771974570598244, -0.0016590134878828333, 1.0]], \"accepted\": false, \"rejection_reason\": \"low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3452.6995869964594}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048JJGM.001",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048JJH5.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "830405140593797, \"corner_validity\": true, \"homography_quality\": 0.4835878663860591, \"alignment_confidence\": 0.4835878663860591, \"transform_matrix\": [[0.9202967326456292, 0.0007128137365167472, 93.62115999322933], [0.006217832869620435, 0.9628498995616901, 67.04899878490633], [1.0716648247879e-05, -7.118565321045244e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3230.126750000636}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "830405140593797, \"corner_validity\": true, \"homography_quality\": 0.4835878663860591, \"alignment_confidence\": 0.4835878663860591, \"transform_matrix\": [[0.9202967326456292, 0.0007128137365167472, 93.62115999322933], [0.006217832869620435, 0.9628498995616901, 67.04899878490633], [1.0716648247879e-05, -7.118565321045244e-06, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_perspective_distortion\", \"processing_time_ms\": 3230.126750000636}}}\nINFO registration FAILED: unsafe_perspective_distortion\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048JJJM.004",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "4181578280282434, 95.51608513513169], [-1.1881517735955969, -0.10849525416421048, 1695.2587614239076], [-0.0006881295357585547, -3.581566736354867e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3140.356635005446}}}\nINFO registration FAILED: insufficient_inliers,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "4181578280282434, 95.51608513513169], [-1.1881517735955969, -0.10849525416421048, 1695.2587614239076], [-0.0006881295357585547, -3.581566736354867e-05, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3140.356635005446}}}\nINFO registration FAILED: insufficient_inliers,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group B/M048JJJM.014",
+      "app_returncode": 0,
+      "completed": true,
+      "review_required": true,
+      "true_stp": false,
+      "stages": {
+        "scripts.ocr_from_geometry": {
+          "returncode": 0
+        },
+        "scripts.rank_from_ocr": {
+          "returncode": 0
+        },
+        "scripts.validate_from_ranked": {
+          "returncode": 0
+        },
+        "scripts.assemble_extraction_result": {
+          "returncode": 0
+        },
+        "scripts.complete_from_extraction": {
+          "returncode": 0
+        }
+      },
+      "recovery": null
+    },
+    {
+      "document": "Group C/M048DJKQ.004",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group C/M048HJHZ.001",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group C/M048IJJX.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "POOR_SCAN",
+          "confidence": "MEDIUM",
+          "reason": "Source quality defect is explicitly recorded",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "04599514253, 893.0207029616183], [-17.532949076377747, 12.72357279732102, 442.7243962533368], [-0.04962513063261339, 0.036712237797728475, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3063.541237002937}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "04599514253, 893.0207029616183], [-17.532949076377747, 12.72357279732102, 442.7243962533368], [-0.04962513063261339, 0.036712237797728475, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3063.541237002937}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "IMAGE_ENHANCEMENT",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group C/M048IJL1.001",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "rm_matrix\": [[-0.5233936421870473, 0.02040267933758227, -28.009499257290138], [-1.117141262745242, -1.5497823864738411, 1899.7951472851566], [-0.000689785295233141, -0.000916826193826151, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3265.8775259915274}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "rm_matrix\": [[-0.5233936421870473, 0.02040267933758227, -28.009499257290138], [-1.117141262745242, -1.5497823864738411, 1899.7951472851566], [-0.000689785295233141, -0.000916826193826151, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3265.8775259915274}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group C/M048IJL1.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group C/M048IJL7.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "andidate_match_count\": 0, \"good_matches\": 0, \"inlier_count\": 0, \"inlier_ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO registration FAILED: template_lineage_mismatch\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "andidate_match_count\": 0, \"good_matches\": 0, \"inlier_count\": 0, \"inlier_ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO registration FAILED: template_lineage_mismatch\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group C/M048JJBP.001",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            " -0.24808560767712387, 143.493173768798], [-1.3346486679553895, -2.6429606142113014, 1473.4683477685955], [-0.0009331667991068161, -0.0017746325155277264, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3152.0762809959706}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            " -0.24808560767712387, 143.493173768798], [-1.3346486679553895, -2.6429606142113014, 1473.4683477685955], [-0.0009331667991068161, -0.0017746325155277264, 1.0]], \"accepted\": false, \"rejection_reason\": \"insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3152.0762809959706}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group C/M048JJBZ.001",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group C/M048JJDL.001",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "UNDETERMINED",
+          "confidence": "INSUFFICIENT_EVIDENCE",
+          "reason": "Recorded failure mechanism does not establish a physical root cause",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "form_matrix\": [[-0.9049037916881837, 0.05708743354019477, 1649.3753655483956], [0.43496023061018013, 3.051382028782425, -147.61189062863477], [-0.0005808002524930549, 0.0027507018549743716, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3428.637308999896}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "form_matrix\": [[-0.9049037916881837, 0.05708743354019477, 1649.3753655483956], [0.43496023061018013, 3.051382028782425, -147.61189062863477], [-0.0005808002524930549, 0.0027507018549743716, 1.0]], \"accepted\": false, \"rejection_reason\": \"unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners\", \"processing_time_ms\": 3428.637308999896}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "HUMAN_QUEUE",
+          "executable": false,
+          "reason": "Queue for human resolution; no automated retry",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group D/M048IJBP.001",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group D/M048IJDF.003",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group D/M048IJDF.004",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group D/M048IJDF.006",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    },
+    {
+      "document": "Group D/M048JJD1.002",
+      "app_returncode": 1,
+      "completed": false,
+      "review_required": null,
+      "true_stp": false,
+      "stages": {},
+      "recovery": {
+        "diagnosis": {
+          "primary_cause": "WRONG_TEMPLATE",
+          "confidence": "MEDIUM",
+          "reason": "Template incompatibility is explicitly established",
+          "evidence": [
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED",
+            "LIVE_APP_FAILURE",
+            "ratio\": 0.0, \"reprojection_error\": null, \"coverage_ratio\": null, \"template_coverage\": null, \"scale_change\": null, \"rotation_degrees\": null, \"perspective_distortion\": null, \"corner_validity\": null, \"homography_quality\": 0.0, \"alignment_confidence\": 0.0, \"transform_matrix\": null, \"accepted\": false, \"rejection_reason\": \"template_lineage_mismatch\", \"processing_time_ms\": 0.0}}}\nINFO template_selection UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\nINFO registration UNAVAILABLE: NO_TEMPLATE_ABOVE_THRESHOLD\n",
+            "FAILED"
+          ]
+        },
+        "plan": {
+          "strategy": "ALTERNATIVE_TEMPLATE",
+          "executable": false,
+          "reason": "Approved strategy is unavailable",
+          "max_attempts": 0
+        },
+        "executed": false
+      }
+    }
+  ],
+  "archive_path": "data/Hackathon - 1000 Claims.zip",
+  "archive_verified": true
+}
