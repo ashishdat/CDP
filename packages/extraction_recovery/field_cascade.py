@@ -355,61 +355,96 @@ class FieldCascade:
                     strategy_id=self.strategy_id,
                 )
 
-        # Cross-variant fusion: DOB digit-band may hold the year while primary
-        # holds MM/DD (or vice versa). Span-select over observed ink only —
-        # never invent characters that no crop produced.
-        fused_bits: list[str] = []
-        for step in trace:
-            if step.selected_value:
-                fused_bits.append(step.selected_value)
-            if step.raw_value:
-                fused_bits.append(step.raw_value)
-            for cand in step.candidates:
-                val = (cand.get("value") or cand.get("raw_value") or "").strip()
-                if val:
-                    fused_bits.append(val)
-        fused = " ".join(fused_bits).strip()
-        if fused:
-            span = select_field_span(
-                fused,
-                span_datatype_for_field(field_name, field_type),
-                field_name,
-            )
-            fused_selected = span.selected_text or ""
-            ok, accept_reason = semantic_accept(field_name, fused_selected)
-            if ok and fused_selected:
-                fusion_step = CascadeStepResult(
-                    variant_id="cross_variant_span",
-                    bbox=(best.bbox if best is not None else primary_bbox),
-                    engines=engines,
-                    selected_value=fused_selected,
-                    raw_value=fused,
-                    accepted=True,
-                    accept_reason=f"CROSS_VARIANT_SPAN_FUSION:{accept_reason}",
-                    candidates=(
+        # Cross-variant fusion (DOB/DATE only): digit-band may hold the year
+        # while primary holds MM/DD. Span over observed ink only — never invent
+        # glyphs. Gated so free-text fields do not mint incomplete shells.
+        datatype = span_datatype_for_field(field_name, field_type)
+        if field_name.casefold() in {"patient_dob", "date_of_birth"} or datatype == "DATE":
+            fused_bits: list[str] = []
+            donor: dict | None = None
+            for step in trace:
+                if step.selected_value:
+                    fused_bits.append(step.selected_value)
+                if step.raw_value:
+                    fused_bits.append(step.raw_value)
+                for cand in step.candidates:
+                    if donor is None and isinstance(cand, dict) and "raw_confidence" in cand:
+                        donor = dict(cand)
+                    val = (cand.get("value") or cand.get("raw_value") or "").strip()
+                    if val:
+                        fused_bits.append(val)
+            fused = " ".join(fused_bits).strip()
+            if fused:
+                span = select_field_span(fused, datatype, field_name)
+                fused_selected = span.selected_text or ""
+                ok, accept_reason = semantic_accept(field_name, fused_selected)
+                if ok and fused_selected:
+                    shell = dict(donor) if donor else {}
+                    shell.update(
                         {
                             "value": fused_selected,
                             "raw_value": fused,
-                            "engine": "cross_variant_span",
+                            "engine": shell.get("engine") or "rapidocr",
+                            "model_name": shell.get("model_name") or "unknown",
+                            "model_version": shell.get("model_version") or "unknown",
+                            "preprocessing_variant": shell.get("preprocessing_variant")
+                            or "recorded_canonical_region",
+                            "raw_confidence": float(shell.get("raw_confidence") or 0.8),
+                            "calibrated_confidence": shell.get("calibrated_confidence"),
+                            "latency_ms": float(shell.get("latency_ms") or 0.0),
+                            "validation_results": [],
+                            "evidence_reference": None,
+                            "estimated_cost_usd": 0.0,
+                            "actual_cost_usd": None,
+                            "preprocessing_version": shell.get("preprocessing_version") or "none",
+                            "registration_confidence": shell.get("registration_confidence"),
+                            "image_quality_score": shell.get("image_quality_score"),
+                            "provenance": "CROSS_VARIANT_SPAN_FUSION",
                             "reason_code": "CROSS_VARIANT_SPAN_FUSION",
-                        },
-                    ),
-                    attempts=(),
-                    router_reason="CROSS_VARIANT_SPAN_FUSION",
-                )
-                trace.append(fusion_step)
-                return CascadeResult(
-                    field_name=field_name,
-                    bbox=fusion_step.bbox,
-                    candidates=list(fusion_step.candidates),
-                    attempts=[],
-                    router_reason="CROSS_VARIANT_SPAN_FUSION",
-                    status="OBSERVED",
-                    cascade_trace=trace,
-                    accepted=True,
-                    accept_reason=fusion_step.accept_reason,
-                    strategy_id=self.strategy_id,
-                )
+                            "span_selection": {
+                                "selected_text": fused_selected,
+                                "rule_id": span.rule_id,
+                                "confidence": span.confidence,
+                                "reason_codes": list(span.reason_codes),
+                            },
+                        }
+                    )
+                    if "bounding_box" not in shell:
+                        box = best.bbox if best is not None else primary_bbox
+                        x0, y0, x1, y1 = box
+                        shell["bounding_box"] = {
+                            "x0": float(x0),
+                            "y0": float(y0),
+                            "x1": float(x1),
+                            "y1": float(y1),
+                            "image_width": float(image_size[0]),
+                            "image_height": float(image_size[1]),
+                        }
+                    fusion_step = CascadeStepResult(
+                        variant_id="cross_variant_span",
+                        bbox=(best.bbox if best is not None else primary_bbox),
+                        engines=engines,
+                        selected_value=fused_selected,
+                        raw_value=fused,
+                        accepted=True,
+                        accept_reason=f"CROSS_VARIANT_SPAN_FUSION:{accept_reason}",
+                        candidates=(shell,),
+                        attempts=(),
+                        router_reason="CROSS_VARIANT_SPAN_FUSION",
+                    )
+                    trace.append(fusion_step)
+                    return CascadeResult(
+                        field_name=field_name,
+                        bbox=fusion_step.bbox,
+                        candidates=list(fusion_step.candidates),
+                        attempts=[],
+                        router_reason="CROSS_VARIANT_SPAN_FUSION",
+                        status="OBSERVED",
+                        cascade_trace=trace,
+                        accepted=True,
+                        accept_reason=fusion_step.accept_reason,
+                        strategy_id=self.strategy_id,
+                    )
 
         if best is not None and best.candidates:
             return CascadeResult(
