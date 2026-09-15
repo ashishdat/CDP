@@ -60,6 +60,11 @@ export type EvaluationReport = {
       final_claim_count?: number;
       incomplete_count?: number;
       operational_completion_rate?: number;
+      true_stp_rate?: number;
+      true_stp_count?: number;
+      end_to_end_correct_completion_rate?: number | null;
+      end_to_end_correct_completion_status?: string;
+      production_qualification_status?: string;
       source?: string;
       definition?: string;
     };
@@ -151,6 +156,10 @@ export type EvaluationReport = {
     hard_hitl_documents?: number | null;
     claim_hard_hitl_rate?: number | null;
     operational_completion_rate?: number;
+    true_stp_rate?: number;
+    true_stp_count?: number;
+    end_to_end_correct_completion_rate?: number | null;
+    end_to_end_correct_completion_status?: string;
     final_claim_count?: number;
     incomplete_count?: number;
     denominator_claims?: number;

@@ -64,6 +64,35 @@ def _pick_primary() -> Path:
 
 
 def _ops_baseline() -> dict:
+    """Prefer scored OPERATIONAL_E2E qualification summary when present."""
+    e2e_summary = ROOT / "evaluation_results" / "operational_e2e_100_v1" / "summary.json"
+    if e2e_summary.exists():
+        summary = json.loads(e2e_summary.read_text())
+        denom = int(summary.get("submitted_claims") or 100)
+        completion = float(summary.get("operational_completion_rate") or 0.0)
+        final_count = int(round(completion * denom))
+        return {
+            "measurement_scope": "OPERATIONAL_E2E",
+            "denominator_claims": denom,
+            "final_claim_count": final_count,
+            "incomplete_count": int(summary.get("incomplete_count") or max(0, denom - final_count)),
+            "operational_completion_rate": completion,
+            "true_stp_rate": float(summary.get("true_stp_rate") or 0.0),
+            "true_stp_count": int(round(float(summary.get("true_stp_rate") or 0.0) * denom)),
+            "end_to_end_correct_completion_rate": summary.get("end_to_end_correct_completion_rate"),
+            "end_to_end_correct_completion_status": summary.get(
+                "end_to_end_correct_completion_status", "UNAVAILABLE_NO_GROUND_TRUTH"
+            ),
+            "production_qualification_status": summary.get(
+                "production_qualification_status", "NOT_QUALIFIED"
+            ),
+            "source": str(e2e_summary.relative_to(ROOT)),
+            "definition": (
+                "Application SUCCESS and COMPLETED FinalClaim / submitted claims. "
+                "true_stp requires review_required=false. Not Golden Pack Claim STP Proxy."
+            ),
+        }
+
     if not OPS_REPORT.exists():
         return {
             "measurement_scope": "OPERATIONAL_E2E",
@@ -71,6 +100,11 @@ def _ops_baseline() -> dict:
             "final_claim_count": 39,
             "incomplete_count": 61,
             "operational_completion_rate": 0.39,
+            "true_stp_rate": 0.0,
+            "true_stp_count": 0,
+            "end_to_end_correct_completion_rate": None,
+            "end_to_end_correct_completion_status": "UNAVAILABLE_NO_GROUND_TRUTH",
+            "production_qualification_status": "NOT_QUALIFIED",
             "source": "documented baseline (AnchorNormalizationDeltaReport unavailable)",
             "definition": (
                 "Application SUCCESS and COMPLETED FinalClaim / submitted claims. "
@@ -87,6 +121,11 @@ def _ops_baseline() -> dict:
         "final_claim_count": after,
         "incomplete_count": max(0, denom - after),
         "operational_completion_rate": after / max(1, denom),
+        "true_stp_rate": 0.0,
+        "true_stp_count": 0,
+        "end_to_end_correct_completion_rate": None,
+        "end_to_end_correct_completion_status": "UNAVAILABLE_NO_GROUND_TRUTH",
+        "production_qualification_status": "NOT_QUALIFIED",
         "source": str(OPS_REPORT.relative_to(ROOT)),
         "definition": (
             "Application SUCCESS and COMPLETED FinalClaim / submitted claims. "

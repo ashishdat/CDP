@@ -1,5 +1,8 @@
 # Raw dataset (potentially sensitive claim data) - never commit
 /dataset_raw/
+/data/*.zip
+/data/**/*
+!/data/.gitkeep
 
 # Operator-supplied template reference scans (potentially sensitive) - never commit
 /config/templates/reference_images/

@@ -347,6 +347,24 @@ export default function App() {
         integrity?.operational_baseline?.denominator_claims ??
         operationalIngested) - Number(operationalFinalClaims || 0)
     );
+  const trueStpRate =
+    typeof ops?.true_stp_rate === "number"
+      ? percent(ops.true_stp_rate)
+      : typeof integrity?.operational_baseline?.true_stp_rate === "number"
+        ? percent(integrity.operational_baseline.true_stp_rate)
+        : "—";
+  const e2eCorrectStatus =
+    ops?.end_to_end_correct_completion_status ??
+    integrity?.operational_baseline?.end_to_end_correct_completion_status ??
+    "UNAVAILABLE_NO_GROUND_TRUTH";
+  const e2eCorrectDisplay =
+    typeof ops?.end_to_end_correct_completion_rate === "number"
+      ? percent(ops.end_to_end_correct_completion_rate)
+      : typeof integrity?.operational_baseline?.end_to_end_correct_completion_rate === "number"
+        ? percent(integrity.operational_baseline.end_to_end_correct_completion_rate)
+        : e2eCorrectStatus === "UNAVAILABLE_NO_GROUND_TRUTH"
+          ? "N/A"
+          : "—";
 
   // EVALUATION ribbon — Golden Pack extraction harness (identity supplied).
   const evalIndependentDocs =
@@ -512,6 +530,18 @@ export default function App() {
                     value={operationalCompletionRate}
                     tone="warning"
                     hint="FinalClaim / submitted claims (not Golden Pack STP)"
+                  />
+                  <MetricCard
+                    label="True STP"
+                    value={trueStpRate}
+                    tone="danger"
+                    hint="Completed FinalClaim with review_required=false / submitted — production STP"
+                  />
+                  <MetricCard
+                    label="E2E Correct Completion"
+                    value={e2eCorrectDisplay}
+                    tone="warning"
+                    hint="Correct FinalClaim vs independent GT / submitted (N/A without ground truth)"
                   />
                   <MetricCard
                     label="Final Claims"

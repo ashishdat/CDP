@@ -6,7 +6,7 @@ Harness: `evaluation/accuracy_100_sample.py`
 
 ## Scope note on “300 of 1000”
 
-The external Hackathon **1000-claims** corpus is registered but not present in this environment (`dataset.yaml` points at a local Windows zip).  
+The external Hackathon **1000-claims** corpus is registered at `data/Hackathon - 1000 Claims.zip` (gitignored). Place the operator ZIP there before live operational E2E runs.  
 For a 300-doc measurement we built a photometric expansion of Golden V3:
 
 ```bash
