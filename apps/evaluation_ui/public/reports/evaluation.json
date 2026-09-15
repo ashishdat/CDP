@@ -1,32 +1,76 @@
 {
   "report_metadata": {
-    "dataset_label": "CDP_GOLDEN_ENGINEERING_PACK_V3_300",
+    "dataset_label": "CDP_GOLDEN_ENGINEERING_PACK_V3",
     "synthetic_demo": false,
-    "generated_at": "2026-09-14T23:27:14.947037+00:00",
-    "scope": "GOLDEN_PACK_V3_300_RAPIDOCR_HARNESS",
+    "generated_at": "2026-09-15T05:45:22.701381+00:00",
+    "scope": "GOLDEN_PACK_V3_100_INDEPENDENT_EXTRACTION_HARNESS",
+    "measurement_scope": "EXTRACTION_HARNESS",
     "production_generalization_claim": false,
-    "optimization_measurement": "ACCURACY_300_SAMPLE_V3",
+    "optimization_measurement": "ACCURACY_100_SAMPLE_V3_INDEPENDENT",
     "hitl_optimization_policy": "hard_hitl_exact_or_invalid",
     "hitl_cohort_status": "MEASURED",
-    "dataset_path": "evaluation_data/phase8_7_golden_pack/CDP_GOLDEN_ENGINEERING_PACK_V3_300",
-    "source_metrics": "evaluation_results/accuracy_300_sample_v3/metrics.json"
+    "dataset_path": "evaluation_data/phase8_7_golden_pack/CDP_GOLDEN_ENGINEERING_PACK_V3",
+    "source_metrics": "evaluation_results/accuracy_100_sample_v3_independent/metrics.json",
+    "independent_source_documents": 100,
+    "augmented_observation_count": 100,
+    "identity_supplied_by_harness": true,
+    "identity_note": "Harness forces FormIdentityStatus.VERIFIED and selects the matching template. This isolates extraction accuracy and is NOT end-to-end operational completion."
   },
-  "field_count": 3000,
-  "raw_exact_match_accuracy": 0.9993333333333333,
-  "normalized_field_accuracy": 0.9993333333333333,
-  "ocr_deterministic_accuracy": 0.9993333333333333,
+  "measurement_integrity": {
+    "measurement_scope": "EXTRACTION_HARNESS",
+    "forbidden_operational_labels": [
+      "Total Ingested",
+      "STP Rate",
+      "production STP",
+      "operational completion"
+    ],
+    "required_display_labels": {
+      "stp": "Golden Pack Claim STP Proxy",
+      "accuracy": "Extraction Field Accuracy (harness)",
+      "sample": "Independent source documents",
+      "hitl": "Hard-HITL Proxy"
+    },
+    "independent_source_documents": 100,
+    "photometric_observations": 300,
+    "operational_baseline": {
+      "measurement_scope": "OPERATIONAL_E2E",
+      "denominator_claims": 100,
+      "final_claim_count": 39,
+      "incomplete_count": 61,
+      "operational_completion_rate": 0.39,
+      "source": "AnchorNormalizationDeltaReport.json",
+      "definition": "Application SUCCESS and COMPLETED FinalClaim / submitted claims. Not Golden Pack extraction accuracy or claim STP proxy."
+    },
+    "photometric_stress": {
+      "measurement_scope": "EXTRACTION_HARNESS_PHOTOMETRIC_STRESS",
+      "dataset_id": "CDP_GOLDEN_ENGINEERING_PACK_V3_300",
+      "observation_count": 300,
+      "independent_source_documents": 100,
+      "photometric_variants_per_source": 3,
+      "independence_note": "V3_300 clones each of 100 source docs into base/bright/soft OCR-stress variants. Observations share truth and structure; not 300 independent claims.",
+      "exact_accuracy": 0.9993333333333333,
+      "claim_stp_proxy": 0.9933333333333333,
+      "claim_hard_hitl": 0.006666666666666667,
+      "average_latency_seconds": 1.5052563558496088,
+      "source_metrics": "evaluation_results/accuracy_300_sample_v3/metrics.json"
+    }
+  },
+  "field_count": 1000,
+  "raw_exact_match_accuracy": 0.999,
+  "normalized_field_accuracy": 0.999,
+  "ocr_deterministic_accuracy": 0.999,
   "llm_diversion_rate": 0.0,
   "llm_diverted_fields": 0,
-  "critical_field_accuracy": 0.9990476190476191,
+  "critical_field_accuracy": 0.9985714285714286,
   "character_error_rate": 0.0,
   "missing_field_rate": 0.0,
   "false_accept_rate": 0.0,
   "critical_false_accept_rate": 0.0,
-  "false_review_rate": 0.9993333333333333,
-  "perfect_claim_rate": 0.9933333333333333,
-  "straight_through_processing_rate": 0.9933333333333333,
-  "accuracy_before_fallback": 0.9993333333333333,
-  "accuracy_after_fallback": 0.9993333333333333,
+  "false_review_rate": 0.999,
+  "perfect_claim_rate": 0.99,
+  "straight_through_processing_rate": 0.99,
+  "accuracy_before_fallback": 0.999,
+  "accuracy_after_fallback": 0.999,
   "accuracy_by_field": {
     "cpt_hcpcs": 1.0,
     "diagnosis": 1.0,
@@ -34,7 +78,7 @@
     "insured_name": 1.0,
     "member_id": 1.0,
     "patient_dob": 1.0,
-    "patient_name": 0.9933333333333333,
+    "patient_name": 0.99,
     "principal_diagnosis": 1.0,
     "provider_name": 1.0,
     "provider_npi": 1.0,
@@ -45,10 +89,10 @@
   },
   "accuracy_by_form_type": {
     "CMS1500": 1.0,
-    "UB04": 0.9985185185185185
+    "UB04": 0.9977777777777778
   },
   "accuracy_by_extraction_method": {
-    "RAPIDOCR": 0.9993333333333333
+    "RAPIDOCR": 0.999
   },
   "accuracy_by_image_quality_bucket": {},
   "mismatches": [
@@ -65,36 +109,38 @@
       "bounding_box": null,
       "crop_reference": null,
       "failure_category": "EXACT_MISS"
-    },
-    {
-      "document_id": "UB041_BRIGHT",
-      "form_type": "UB04",
-      "field_name": "patient_name",
-      "expected_value": "PRIYA SMITH",
-      "extracted_value": "PRJYA SMITH",
-      "normalized_value": "PRJYA SMITH",
-      "ocr_confidence": null,
-      "validation_result": "HARD_HITL",
-      "extraction_method": "RAPIDOCR_V3_HARNESS",
-      "bounding_box": null,
-      "crop_reference": null,
-      "failure_category": "EXACT_MISS"
     }
   ],
+  "evaluation_metrics": {
+    "measurement_scope": "EXTRACTION_HARNESS",
+    "metric_name_stp": "golden_pack_claim_stp_proxy",
+    "golden_pack_claim_stp_proxy": 0.99,
+    "extraction_field_accuracy": 0.999,
+    "hard_hitl_proxy_rate": 0.01,
+    "hard_hitl_proxy_documents": 1,
+    "independent_source_documents": 100,
+    "average_latency_seconds": 1.7354242415301269,
+    "identity_supplied_by_harness": true
+  },
   "operational_metrics": {
-    "total_pages_processed": 300,
-    "processing_time_seconds": 455.83539954200387,
-    "average_latency_seconds": 1.5052563558496088,
-    "pages_per_second": 0.6581323001711189,
-    "accuracy": 0.9993333333333333,
-    "precision": 0.9993333333333333,
-    "recall": 0.9993333333333333,
-    "total_documents": 300,
-    "straight_through_documents": 298,
-    "document_stp_rate": 0.9933333333333333,
-    "hard_hitl_documents": 2,
-    "claim_hard_hitl_rate": 0.006666666666666667,
-    "measurement_note": "Golden Pack V3_300 RapidOCR harness: exact field match + claim STP proxy. Latency is mean end-to-end extraction latency (ms\u2192s)."
+    "measurement_scope": "OPERATIONAL_E2E",
+    "total_pages_processed": 0,
+    "processing_time_seconds": null,
+    "average_latency_seconds": null,
+    "pages_per_second": null,
+    "accuracy": 0.39,
+    "precision": 0.0,
+    "recall": 0.0,
+    "total_documents": null,
+    "straight_through_documents": null,
+    "document_stp_rate": null,
+    "hard_hitl_documents": null,
+    "claim_hard_hitl_rate": null,
+    "operational_completion_rate": 0.39,
+    "final_claim_count": 39,
+    "incomplete_count": 61,
+    "denominator_claims": 100,
+    "measurement_note": "Operational completion is FinalClaim / submitted claims from the application path. Golden Pack extraction metrics are under evaluation_metrics."
   },
   "field_evidence": [
     {
@@ -111,21 +157,11 @@
       "original_page_url": null,
       "row_context_url": null,
       "crop_url": null
-    },
-    {
-      "document_id": "UB041_BRIGHT",
-      "form_type": "UB04",
-      "field_name": "patient_name",
-      "expected_value": "PRIYA SMITH",
-      "extracted_value": "PRJYA SMITH",
-      "normalized_value": "PRJYA SMITH",
-      "extraction_method": "RAPIDOCR_V3_HARNESS",
-      "confidence": 0.72,
-      "status": "MISMATCH",
-      "correct": false,
-      "original_page_url": null,
-      "row_context_url": null,
-      "crop_url": null
     }
-  ]
+  ],
+  "provenance": {
+    "primary_metrics_sha256": "61141fdddfcdd8527368521fed8cddb3e80fdedb15d2ffc1dac95870e9e28e3d",
+    "stress_metrics_sha256": "fa128374f52050357ec157fc45c656baa0faea9f9bd5a4307c09293a4d138dab",
+    "evaluator": "evaluation/accuracy_100_sample.py"
+  }
 }

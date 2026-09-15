@@ -309,33 +309,75 @@ export default function App() {
   const rawDocsForMetrics = documentsQuery.data || [];
   const taskDocIds = new Set(rawTasksForMetrics.map((t: any) => t.document_id).filter(Boolean));
 
+  const integrity = report?.measurement_integrity;
+  const evaluation = report?.evaluation_metrics;
   const ops = report?.operational_metrics;
-  const governedDocs = ops?.total_documents;
-  const useGovernedKpis = typeof governedDocs === "number" && governedDocs > 0;
+  const measurementScope = integrity?.measurement_scope || report?.report_metadata?.measurement_scope || null;
+  const isExtractionHarness = measurementScope === "EXTRACTION_HARNESS";
 
-  const livePendingCount = useGovernedKpis && typeof ops?.hard_hitl_documents === "number"
-    ? ops.hard_hitl_documents
-    : useGovernedKpis && typeof ops?.straight_through_documents === "number"
-      ? Math.max(0, governedDocs - ops.straight_through_documents)
-      : rawTasksForMetrics.filter((t: any) => t.status === "OPEN" || t.status === "IN_PROGRESS").length;
-  const totalIngested = useGovernedKpis ? governedDocs : rawDocsForMetrics.length;
-  // Prefer Golden Pack / harness report STP when present; else live queue math.
-  const stpDocs = rawDocsForMetrics.filter((doc: any) => (doc.status === "COMPLETED" || doc.status === "OUTPUT_GENERATED") && !taskDocIds.has(doc.document_id)).length;
-  const stpRate = report
-    ? percent(report.straight_through_processing_rate)
-    : (totalIngested > 0 ? ((stpDocs / totalIngested) * 100).toFixed(1) + "%" : "—");
-  const exceptionDocs = rawDocsForMetrics.filter((doc: any) => doc.status === "NEEDS_REVIEW" || taskDocIds.has(doc.document_id)).length;
-  const exceptionRate = useGovernedKpis && typeof ops?.claim_hard_hitl_rate === "number"
-    ? percent(ops.claim_hard_hitl_rate)
-    : report
-      ? percent(1 - report.straight_through_processing_rate)
-      : (totalIngested > 0 ? ((exceptionDocs / totalIngested) * 100).toFixed(1) + "%" : "—");
+  // OPERATIONAL ribbon — live queue / FinalClaim completion only.
+  // Never substitute Golden Pack harness counts into Total Ingested / production STP.
+  const operationalIngested = rawDocsForMetrics.length;
+  const operationalPendingHitl = rawTasksForMetrics.filter(
+    (t: any) => t.status === "OPEN" || t.status === "IN_PROGRESS"
+  ).length;
+  const operationalCompleted = rawDocsForMetrics.filter(
+    (doc: any) =>
+      (doc.status === "COMPLETED" || doc.status === "OUTPUT_GENERATED") &&
+      !taskDocIds.has(doc.document_id)
+  ).length;
+  const operationalCompletionRate =
+    typeof ops?.operational_completion_rate === "number"
+      ? percent(ops.operational_completion_rate)
+      : typeof integrity?.operational_baseline?.operational_completion_rate === "number"
+        ? percent(integrity.operational_baseline.operational_completion_rate)
+        : operationalIngested > 0
+          ? percent(operationalCompleted / operationalIngested)
+          : "—";
+  const operationalFinalClaims =
+    ops?.final_claim_count ??
+    integrity?.operational_baseline?.final_claim_count ??
+    operationalCompleted;
+  const operationalIncomplete =
+    ops?.incomplete_count ??
+    integrity?.operational_baseline?.incomplete_count ??
+    Math.max(
+      0,
+      (ops?.denominator_claims ??
+        integrity?.operational_baseline?.denominator_claims ??
+        operationalIngested) - Number(operationalFinalClaims || 0)
+    );
 
-  const fieldAccuracy = report ? percent(report.normalized_field_accuracy) : "—";
-  const avgLatency = report?.operational_metrics?.average_latency_seconds != null
-    ? `${report.operational_metrics.average_latency_seconds.toFixed(2)}s`
-    : "—";
-  const datasetHint = report?.report_metadata?.dataset_label || "Live queue";
+  // EVALUATION ribbon — Golden Pack extraction harness (identity supplied).
+  const evalIndependentDocs =
+    evaluation?.independent_source_documents ??
+    integrity?.independent_source_documents ??
+    null;
+  const evalStpProxy =
+    typeof evaluation?.golden_pack_claim_stp_proxy === "number"
+      ? percent(evaluation.golden_pack_claim_stp_proxy)
+      : report
+        ? percent(report.straight_through_processing_rate)
+        : "—";
+  const evalFieldAccuracy =
+    typeof evaluation?.extraction_field_accuracy === "number"
+      ? percent(evaluation.extraction_field_accuracy)
+      : report
+        ? percent(report.normalized_field_accuracy)
+        : "—";
+  const evalHardHitl =
+    evaluation?.hard_hitl_proxy_documents ??
+    (typeof evaluation?.hard_hitl_proxy_rate === "number" && evalIndependentDocs
+      ? Math.round(evaluation.hard_hitl_proxy_rate * evalIndependentDocs)
+      : null);
+  const evalLatency =
+    evaluation?.average_latency_seconds != null
+      ? `${evaluation.average_latency_seconds.toFixed(2)}s`
+      : report?.operational_metrics?.average_latency_seconds != null
+        ? `${report.operational_metrics.average_latency_seconds.toFixed(2)}s`
+        : "—";
+  const photometricObservations = integrity?.photometric_observations ?? 0;
+  const datasetHint = report?.report_metadata?.dataset_label || "Golden Pack V3";
 
   const volumeBuckets = (() => {
     const days: { label: string; count: number }[] = [];
@@ -444,29 +486,107 @@ export default function App() {
           {activeTab === "dashboard" && (
             <section style={{ display: "grid", gap: "25px" }}>
               <div className="process-intro">
-                <p className="eyebrow">Operational Metrics</p>
+                <p className="eyebrow">Measurement Integrity</p>
                 <h2 style={{ margin: "4px 0" }}>Claims Pipeline Performance</h2>
                 <p style={{ color: "var(--text-secondary)", fontSize: "12px" }}>
-                  {useGovernedKpis
-                    ? `Governed harness KPIs from ${datasetHint}`
-                    : "Live queue throughput and STP rates for healthcare documents"}
+                  Operational completion and Golden Pack extraction metrics are scoped separately.
+                  {isExtractionHarness ? ` Evaluation source: ${datasetHint} (identity supplied by harness).` : ""}
                 </p>
               </div>
 
-              {/* KPI Ribbon (Priority 7) */}
-              <div className="metric-grid">
-                <div onClick={() => setActiveTab("analytics")}>
-                  <MetricCard label="STP Rate" value={stpRate} tone="good" hint="Claim STP proxy (exact-perfect claims)" clickable={true} />
+              {/* OPERATIONAL ribbon — live / FinalClaim path only */}
+              <div>
+                <p className="eyebrow" style={{ marginBottom: "8px" }}>Operational (application path)</p>
+                <div className="metric-grid">
+                  <div onClick={() => setActiveTab("queue")}>
+                    <MetricCard
+                      label="Queue Documents"
+                      value={operationalIngested.toString()}
+                      tone="default"
+                      hint="Live ingested documents in the work queue"
+                      clickable={true}
+                    />
+                  </div>
+                  <MetricCard
+                    label="Operational Completion"
+                    value={operationalCompletionRate}
+                    tone="warning"
+                    hint="FinalClaim / submitted claims (not Golden Pack STP)"
+                  />
+                  <MetricCard
+                    label="Final Claims"
+                    value={String(operationalFinalClaims)}
+                    tone="default"
+                    hint="Completed FinalClaim outputs on the application path"
+                  />
+                  <MetricCard
+                    label="Incomplete Claims"
+                    value={String(operationalIncomplete)}
+                    tone="danger"
+                    hint="Submitted claims without a completed FinalClaim"
+                  />
+                  <div onClick={() => { setActiveTab("queue"); setStatusFilter("Needs Review"); }}>
+                    <MetricCard
+                      label="Open Review Tasks"
+                      value={operationalPendingHitl.toString()}
+                      tone="danger"
+                      hint="Live open / in-progress human review tasks"
+                      clickable={true}
+                    />
+                  </div>
                 </div>
-                <div onClick={() => setActiveTab("queue")}>
-                  <MetricCard label="Total Ingested" value={totalIngested.toString()} tone="default" hint="Golden Pack / ingested claim documents" clickable={true} />
+              </div>
+
+              {/* EVALUATION ribbon — Golden Pack extraction harness */}
+              <div>
+                <p className="eyebrow" style={{ marginBottom: "8px" }}>
+                  Evaluation (Golden Pack extraction harness)
+                </p>
+                <div className="metric-grid">
+                  <div onClick={() => setActiveTab("analytics")}>
+                    <MetricCard
+                      label="Golden Pack Claim STP Proxy"
+                      value={evalStpProxy}
+                      tone="good"
+                      hint="No hard-HITL proxy flags after extraction — not production STP"
+                      clickable={true}
+                    />
+                  </div>
+                  <MetricCard
+                    label="Independent Source Docs"
+                    value={evalIndependentDocs != null ? String(evalIndependentDocs) : "—"}
+                    tone="default"
+                    hint={
+                      photometricObservations > evalIndependentDocs!
+                        ? `${evalIndependentDocs} independent docs; ${photometricObservations} photometric observations are stress-only`
+                        : "Independent Golden Pack source documents (not photometric clones)"
+                    }
+                  />
+                  <MetricCard
+                    label="Extraction Field Accuracy"
+                    value={evalFieldAccuracy}
+                    tone="good"
+                    hint="Exact-match accuracy conditional on harness-supplied form identity"
+                  />
+                  <MetricCard
+                    label="Hard-HITL Proxy"
+                    value={evalHardHitl != null ? String(evalHardHitl) : "—"}
+                    tone="warning"
+                    hint="Claims with exact miss / INVALID / MISSING on the extraction harness"
+                  />
+                  <MetricCard
+                    label="Harness Latency"
+                    value={evalLatency}
+                    tone="default"
+                    hint="Mean extraction latency on the Golden Pack harness path"
+                  />
                 </div>
-                <div onClick={() => { setActiveTab("queue"); setStatusFilter("Needs Review"); }}>
-                  <MetricCard label="Pending HITL" value={livePendingCount.toString()} tone="danger" hint="Hard-HITL claims awaiting correction" clickable={true} />
-                </div>
-                <MetricCard label="Field Accuracy" value={fieldAccuracy} tone="good" hint="Exact-match field accuracy on governed sample" />
-                <MetricCard label="Exception Rate" value={exceptionRate} tone="warning" hint="Claim hard-HITL / exception rate" />
-                <MetricCard label="Avg Latency" value={avgLatency} tone="default" hint="Mean extraction latency (harness)" />
+                {photometricObservations > 0 && (
+                  <p style={{ color: "var(--text-tertiary)", fontSize: "11px", marginTop: "8px" }}>
+                    Photometric stress appendix: {photometricObservations} OCR-stress observations from{" "}
+                    {evalIndependentDocs ?? 100} source docs (base/bright/soft). Not independent claims.
+                  </p>
+                )}
               </div>
 
               {/* Charts & Pareto lists split panel */}

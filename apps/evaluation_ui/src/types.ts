@@ -29,14 +29,57 @@ export type FieldEvidence = {
   crop_url: string | null;
 };
 
+export type MeasurementScope =
+  | "EXTRACTION_HARNESS"
+  | "EXTRACTION_HARNESS_PHOTOMETRIC_STRESS"
+  | "OPERATIONAL_E2E"
+  | "PRODUCTION";
+
 export type EvaluationReport = {
   report_metadata?: {
     dataset_label?: string;
     synthetic_demo?: boolean;
     generated_at?: string;
     scope?: string;
+    measurement_scope?: MeasurementScope;
     production_generalization_claim?: boolean;
     optimization_measurement?: string;
+    independent_source_documents?: number;
+    identity_supplied_by_harness?: boolean;
+    identity_note?: string;
+  };
+  measurement_integrity?: {
+    measurement_scope?: MeasurementScope;
+    forbidden_operational_labels?: string[];
+    required_display_labels?: Record<string, string>;
+    independent_source_documents?: number;
+    photometric_observations?: number;
+    operational_baseline?: {
+      measurement_scope?: MeasurementScope;
+      denominator_claims?: number;
+      final_claim_count?: number;
+      incomplete_count?: number;
+      operational_completion_rate?: number;
+      source?: string;
+      definition?: string;
+    };
+    photometric_stress?: {
+      measurement_scope?: MeasurementScope;
+      observation_count?: number;
+      independent_source_documents?: number;
+      independence_note?: string;
+    };
+  };
+  evaluation_metrics?: {
+    measurement_scope?: MeasurementScope;
+    metric_name_stp?: string;
+    golden_pack_claim_stp_proxy?: number;
+    extraction_field_accuracy?: number;
+    hard_hitl_proxy_rate?: number;
+    hard_hitl_proxy_documents?: number;
+    independent_source_documents?: number;
+    average_latency_seconds?: number;
+    identity_supplied_by_harness?: boolean;
   };
   field_count: number;
   raw_exact_match_accuracy: number;
@@ -94,6 +137,7 @@ export type EvaluationReport = {
     gates?: Record<string, boolean>;
   };
   operational_metrics?: {
+    measurement_scope?: MeasurementScope;
     total_pages_processed: number;
     processing_time_seconds: number | null;
     average_latency_seconds: number | null;
@@ -101,11 +145,15 @@ export type EvaluationReport = {
     accuracy: number;
     precision: number;
     recall: number;
-    total_documents?: number;
-    straight_through_documents?: number;
-    document_stp_rate?: number;
-    hard_hitl_documents?: number;
-    claim_hard_hitl_rate?: number;
+    total_documents?: number | null;
+    straight_through_documents?: number | null;
+    document_stp_rate?: number | null;
+    hard_hitl_documents?: number | null;
+    claim_hard_hitl_rate?: number | null;
+    operational_completion_rate?: number;
+    final_claim_count?: number;
+    incomplete_count?: number;
+    denominator_claims?: number;
     measurement_note?: string;
   };
   cost_analysis?: {

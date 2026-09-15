@@ -64,3 +64,21 @@ Top residual Exact misses: `patient_name` × 2 (same OCR glyph error across vari
 3. Next incremental HITL gains are OCR-engine / multi-engine agreement on rare glyph swaps — not policy relaxation.
 
 Artifacts: `evaluation_results/accuracy_300_sample_v3/`.
+
+## Measurement integrity (V3)
+
+Do **not** promote Golden Pack harness KPIs as production-qualified operational metrics.
+
+| Scope | What it measures | Current result |
+|---|---|---|
+| `OPERATIONAL_E2E` | FinalClaim / submitted claims on the application path | **39%** (39/100 FinalClaim, 61 incomplete) |
+| `EXTRACTION_HARNESS` | Exact field accuracy + claim STP **proxy** with harness-supplied form identity on **100 independent** V3 docs | **99.9%** field accuracy, **99%** Golden Pack Claim STP Proxy, **1** hard-HITL |
+| `EXTRACTION_HARNESS_PHOTOMETRIC_STRESS` | OCR-stress clones of the same 100 docs (base/bright/soft → 300 observations) | Useful stress only — **not** 300 independent claims |
+
+Rules:
+1. Rename harness STP to **Golden Pack Claim STP Proxy** everywhere in UI/reports.
+2. Show independent sample size as **100 source docs**; never label photometric observations as Total Ingested.
+3. Keep operational completion on a separate ribbon from extraction harness KPIs.
+4. The accuracy harness forces `FormIdentityStatus.VERIFIED` and selects the matching template — extraction accuracy is conditional on a correct identity/template path.
+5. The end-to-end KPI that matters for production qualification is: correct FinalClaim / submitted claims.
+

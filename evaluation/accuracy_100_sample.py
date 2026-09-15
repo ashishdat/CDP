@@ -267,6 +267,10 @@ def run(
             "max": max(latencies) if latencies else 0.0,
         },
         "elapsed_s": time.perf_counter() - started_all,
+        "measurement_scope": "EXTRACTION_HARNESS",
+        "identity_supplied_by_harness": True,
+        "metric_name_stp": "golden_pack_claim_stp_proxy",
+        "independent_source_documents": len(docs),
         "gaps_resolved": [
             "normalize_date accepts ISO YYYY-MM-DD (Exact date false-misses)",
             "normalize_icd repairs leading I/O OCR swaps (I10 <- 110)",
@@ -274,9 +278,14 @@ def run(
             "HITL reported as hard_hitl + correct_but_reviewed (PENDING is not auto-accept)",
         ],
         "note": (
+            "measurement_scope=EXTRACTION_HARNESS. Form identity is forced to VERIFIED and the "
+            "matching template is selected by the harness — this is extraction accuracy "
+            "conditional on a correct identity/template path, NOT end-to-end operational "
+            "completion or production STP. "
             "hard_hitl = Exact miss OR INVALID/MISSING/empty. "
             "raw_disposition_hitl counts PENDING as HITL because EvidenceDecisionService "
-            "is not applied on this extraction-only path; claim STP remains gated there."
+            "is not applied on this extraction-only path; claim STP remains gated there. "
+            "claim_stp_proxy is a Golden Pack Claim STP Proxy, not production STP."
         ),
     }
 
