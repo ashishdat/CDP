@@ -285,7 +285,40 @@ def score_frozen_run(ops_report: dict) -> dict[str, Any]:
     }
 
 
-def _run_live_claim(document: str, output_root: Path, document_type: str | None) -> dict[str, Any]:
+def _resolve_live_dataset() -> tuple[Path | None, Path | None]:
+    """Return (dataset_yaml, archive_path) when a usable archive is present."""
+    from datasets.registry import DatasetManager
+
+    candidates: list[Path] = []
+    ops_yaml = ROOT / "data" / "dataset_ops_100.yaml"
+    if ops_yaml.exists():
+        candidates.append(ops_yaml)
+    candidates.append(ROOT / "dataset.yaml")
+
+    for yaml_path in candidates:
+        try:
+            dataset = DatasetManager.load(yaml_path)
+        except Exception:
+            continue
+        local_candidates = [
+            dataset.root,
+            ROOT / "Hackathon - 1000 Claims.zip",
+            ROOT / "data" / "Hackathon - 1000 Claims.zip",
+            ROOT / "data" / "Hackathon-100-ops-subset.zip",
+            Path("/data/Hackathon - 1000 Claims.zip"),
+        ]
+        archive = next((path for path in local_candidates if path.exists()), None)
+        if archive is not None:
+            return yaml_path, archive
+    return None, None
+
+
+def _run_live_claim(
+    document: str,
+    output_root: Path,
+    document_type: str | None,
+    dataset_yaml: Path,
+) -> dict[str, Any]:
     """Best-effort live chain when the Hackathon archive is present."""
     output_root.mkdir(parents=True, exist_ok=True)
     app_out = output_root / "application"
@@ -293,7 +326,7 @@ def _run_live_claim(document: str, output_root: Path, document_type: str | None)
         sys.executable,
         str(ROOT / "app.py"),
         "--dataset",
-        str(ROOT / "dataset.yaml"),
+        str(dataset_yaml),
         "--document",
         document,
         "--output-root",
@@ -418,17 +451,8 @@ def main() -> int:
     report = score_frozen_run(ops_report)
 
     if args.live:
-        from datasets.registry import DatasetManager
-
-        dataset = DatasetManager.load(ROOT / "dataset.yaml")
-        local_candidates = [
-            dataset.root,
-            ROOT / "Hackathon - 1000 Claims.zip",
-            ROOT / "data" / "Hackathon - 1000 Claims.zip",
-            Path("/data/Hackathon - 1000 Claims.zip"),
-        ]
-        archive_path = next((path for path in local_candidates if path.exists()), None)
-        archive_available = archive_path is not None
+        dataset_yaml, archive_path = _resolve_live_dataset()
+        archive_available = archive_path is not None and dataset_yaml is not None
         tesseract_available = bool(
             __import__("shutil").which("tesseract")
             or Path(r"C:\Program Files\Tesseract-OCR\tesseract.exe").is_file()
@@ -437,15 +461,18 @@ def main() -> int:
             "requested": True,
             "archive_available": archive_available,
             "archive_path": str(archive_path) if archive_path else None,
+            "dataset_yaml": str(dataset_yaml) if dataset_yaml else None,
             "tesseract_available": tesseract_available,
             "note": (
-                "Live mode requires the Hackathon ZIP at data/Hackathon - 1000 Claims.zip "
-                "and tesseract. Frozen scoring remains the authoritative OPERATIONAL_E2E result."
+                "Live mode needs either the full ZIP at data/Hackathon - 1000 Claims.zip "
+                "or the 100-claim subset (data/Hackathon-100-ops-subset.zip + "
+                "data/dataset_ops_100.yaml). Prefer a download URL over chat upload "
+                "(10 MB chat limit). Frozen scoring remains authoritative until live completes."
                 if not archive_available or not tesseract_available
                 else "Live archive detected; executing bounded claim sample."
             ),
         }
-        if archive_available and tesseract_available:
+        if archive_available and tesseract_available and dataset_yaml is not None:
             live_root = args.output / "live"
             live_root.mkdir(parents=True, exist_ok=True)
             docs = [row["document"] for row in ops_report.get("paired_claims") or []]
@@ -454,7 +481,9 @@ def main() -> int:
             live_results = []
             for document in docs:
                 claim_dir = live_root / document.replace("/", "__")
-                live_results.append(_run_live_claim(document, claim_dir, "CMS1500"))
+                live_results.append(
+                    _run_live_claim(document, claim_dir, "CMS1500", dataset_yaml)
+                )
             report["live_execution"]["results"] = live_results
             report["live_execution"]["claims_attempted"] = len(live_results)
             report["live_execution"]["claims_completed"] = sum(

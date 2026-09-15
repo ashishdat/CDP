@@ -5,7 +5,7 @@ Usage: manager = DatasetManager.load("dataset.yaml")
        manager.verify()    # read-only SHA-256 and image-frame counts
 """
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from enum import Enum
 from hashlib import file_digest
 from io import BytesIO
@@ -47,6 +47,20 @@ REGISTRY = MappingProxyType({
         description="Hackathon claims development corpus; not ENGINEERING_BENCHMARK_V1.",
         source="Hackathon - 1000 Claims.zip",
     ),
+    # Hash is pack-time specific; YAML must supply the concrete SHA-256.
+    "OPERATIONAL_E2E_100_V1": DatasetMetadata(
+        dataset_id="OPERATIONAL_E2E_100_V1",
+        version=1,
+        type=DatasetType.VALIDATION,
+        pages=284,
+        documents=100,
+        hash="PACK_TIME_SHA256",
+        description=(
+            "Frozen 100 paired Hackathon claims for operational E2E "
+            "(from AnchorNormalizationDeltaReport); not the full DEVELOPMENT_DATASET_V1."
+        ),
+        source="Hackathon-100-ops-subset.zip",
+    ),
 })
 
 
@@ -61,22 +75,38 @@ class DatasetManager:
 
         Root refers to the original ZIP, not an extracted directory. Loading
         metadata does not require the archive to be available on this machine.
+
+        OPERATIONAL_E2E_100_V1 requires an extra YAML ``hash`` field because the
+        subset archive digest is produced when the operator packs the 100 claims.
         """
         config_path = Path(path).resolve()
         config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
-        required = {"dataset_id", "root", "pages", "documents", "description"}
-        if not isinstance(config, dict) or set(config) != required:
-            raise ValueError(f"Dataset configuration must contain exactly {sorted(required)}")
-        if not isinstance(config["dataset_id"], str) or config["dataset_id"] not in REGISTRY:
+        if not isinstance(config, dict) or "dataset_id" not in config:
+            raise ValueError("Dataset configuration must include dataset_id")
+        dataset_id = config["dataset_id"]
+        if not isinstance(dataset_id, str) or dataset_id not in REGISTRY:
             raise ValueError("Unknown dataset_id")
-        metadata = REGISTRY[config["dataset_id"]]
+        template = REGISTRY[dataset_id]
+        if dataset_id == "OPERATIONAL_E2E_100_V1":
+            required = {"dataset_id", "root", "pages", "documents", "description", "hash"}
+        else:
+            required = {"dataset_id", "root", "pages", "documents", "description"}
+        if set(config) != required:
+            raise ValueError(f"Dataset configuration must contain exactly {sorted(required)}")
         for name in ("pages", "documents"):
-            if type(config[name]) is not int or config[name] != getattr(metadata, name):
+            if type(config[name]) is not int or config[name] != getattr(template, name):
                 raise ValueError(f"{name} does not match registered dataset")
-        if config["description"] != metadata.description:
+        if config["description"] != template.description:
             raise ValueError("description does not match registered dataset")
         if not isinstance(config["root"], str) or not config["root"].strip():
             raise ValueError("root must be an archive path")
+        if dataset_id == "OPERATIONAL_E2E_100_V1":
+            digest = config["hash"]
+            if not isinstance(digest, str) or len(digest) != 64:
+                raise ValueError("hash must be a 64-character SHA-256 hex digest")
+            metadata = replace(template, hash=digest.casefold())
+        else:
+            metadata = template
         root = Path(config["root"]).expanduser()
         if not root.is_absolute():
             root = config_path.parent / root

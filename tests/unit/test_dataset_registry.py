@@ -59,3 +59,35 @@ def test_unreadable_document_does_not_pass(tmp_path):
     result = DatasetManager(REGISTRY["DEVELOPMENT_DATASET_V1"], path).verify()
     assert not result["verified"]
     assert result["errors"][0]["file"] == "invalid.001"
+
+
+def test_operational_e2e_subset_requires_hash(tmp_path):
+    image = Image.new("L", (2, 2))
+    payload = BytesIO()
+    image.save(payload, format="TIFF")
+    archive = tmp_path / "Hackathon-100-ops-subset.zip"
+    with ZipFile(archive, "w") as zf:
+        for index in range(100):
+            zf.writestr(f"Group A/doc_{index:03d}.tif", payload.getvalue())
+    digest = sha256(archive.read_bytes()).hexdigest()
+    meta = REGISTRY["OPERATIONAL_E2E_100_V1"]
+    config = {
+        "dataset_id": meta.dataset_id,
+        "root": archive.name,
+        "pages": meta.pages,
+        "documents": meta.documents,
+        "description": meta.description,
+        "hash": digest,
+    }
+    path = tmp_path / "dataset_ops_100.yaml"
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    # pages will not verify (100 single-frame docs != 284), but load must succeed
+    manager = DatasetManager.load(path)
+    assert manager.metadata.dataset_id == "OPERATIONAL_E2E_100_V1"
+    assert manager.metadata.hash == digest
+    assert manager.root == archive.resolve()
+    without_hash = {key: value for key, value in config.items() if key != "hash"}
+    bad = tmp_path / "bad.yaml"
+    bad.write_text(yaml.safe_dump(without_hash), encoding="utf-8")
+    with pytest.raises(ValueError, match="exactly"):
+        DatasetManager.load(bad)
