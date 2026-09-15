@@ -1,6 +1,8 @@
 # Field-cascade OCR strategy (operational CMS-1500 STP)
-version: field-cascade-v1
+version: field-cascade-v2
 status: ACTIVE
+phase: 2
+
 
 # Order of work for every critical field:
 #   1. Build typed crop variants (primary → specialty bands)
@@ -10,7 +12,9 @@ status: ACTIVE
 #
 # Honesty constraints:
 #   - Empty or NPI-contaminated total_charge crops stay empty
-#   - Claim-total E6 fires only when crop total matches Σ service-line charges
+#   - Claim-total E6: crop total ∩ Σ lines (CLAIM_TOTAL_CONFIRMED)
+#   - Phase 2: empty box-28 + observed line charges → LINE_TOTALS_RECONCILED (no invented amounts)
+#   - Phase 2: DATE_DELIMITER_V2 / CURRENCY_DECIMAL_V2 preprocess on cascade crops
 #   - Cascade maximizes recovery of real ink; it does not invent amounts or DOBs
 
 defaults:

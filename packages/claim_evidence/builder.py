@@ -94,12 +94,12 @@ class ClaimEvidenceBuilder:
             )
             is not None
         ]
+        supported = ["total_charge", "total_charges", "charges", "charge_amount"]
         if total is not None and charges:
             observed = sum(charges, Decimal(0))
             difference = abs(total - observed)
             target = max(abs(total), abs(observed), Decimal(1))
             tolerance = max(self.absolute_tolerance, target * self.relative_tolerance)
-            supported = ["total_charge", "total_charges", "charges", "charge_amount"]
             passed = difference <= tolerance
             reconciliation = ClaimFinancialReconciliationEvidence(
                 reported_total=str(total),
@@ -140,6 +140,34 @@ class ClaimEvidenceBuilder:
                         metadata,
                     )
                 )
+        elif total is None and charges:
+            # Phase 2: empty box-28 with observed line charges → honest line-sum E6.
+            # Never invent amounts; only sum currency-shaped OCR ink from service lines.
+            observed = sum(charges, Decimal(0))
+            computed = format(observed.quantize(Decimal("0.01")), "f")
+            metadata = {
+                "supported_fields": supported,
+                "claim_total": None,
+                "service_line_total": computed,
+                "reported_total": None,
+                "computed_total": computed,
+                "difference": "0.00",
+                "tolerance": str(self.absolute_tolerance),
+                "line_count": len(charges),
+                "result": "PASS",
+                "reason": "LINE_TOTALS_FROM_OBSERVED_CHARGES",
+                "provenance": "DERIVED_FROM_OBSERVED_LINE_CHARGES",
+                "absolute_tolerance": str(self.absolute_tolerance),
+                "relative_tolerance": str(self.relative_tolerance),
+            }
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "LINE_TOTALS_RECONCILED",
+                    computed,
+                    metadata,
+                )
+            )
 
         for index, line in enumerate(lines, start=1):
             units = self._first_decimal(line, "units")

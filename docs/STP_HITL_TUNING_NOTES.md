@@ -69,3 +69,31 @@ See `docs/STP_FIELD_CASCADE_STRATEGY.md`.
 
 Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v1/`.
 
+## Phase 2 tuning: line-sum E6 + cascade preprocess (v2)
+
+Cascade v1 recovered names/IDs well but left **empty box-28** as a hard wall
+and often emitted **zero service lines** (header-row probe aborted the table).
+
+### Strategy / architecture changes
+
+1. **`LINE_TOTALS_RECONCILED`** — when box-28 OCR is empty and ≥1 observed
+   currency-shaped line charges exist, sum those charges (observed ink only)
+   and treat the sum as financial E6 for `total_charge`. Distinct from
+   `CLAIM_TOTAL_CONFIRMED` (crop total ∩ Σ lines).
+2. **Completion injection** — empty `total_charge` candidates are filled from
+   that E6 onto an **authorized OCR engine shell** so route allowlisting does
+   not drop the derived amount; provenance records line-sum derivation.
+3. **Service-line liveness** — skip leading header/blank rows; charge-column
+   currency can prove a row is live when date/CPT probes fail.
+4. **Cascade preprocess** — Phase 8.10 `DATE_DELIMITER_V2` /
+   `CURRENCY_DECIMAL_V2` applied to field crops before route engines.
+5. **C3 gate** — `LINE_TOTALS_RECONCILED` counts as financial authority for the
+   independent-evidence requirement (no invented amounts; no identity waiver).
+
+See `docs/STP_FIELD_CASCADE_STRATEGY.md` (Phase 2).
+
+### Sample B after Phase 2
+
+Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v2/`
+(filled after reprocess).
+

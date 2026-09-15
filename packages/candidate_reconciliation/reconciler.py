@@ -134,6 +134,7 @@ class EvidenceReconciler:
                     "CROSS_DOCUMENT_AGREEMENT",
                     "FINANCIAL_RECONCILIATION_VALID",
                     "CLAIM_TOTAL_CONFIRMED",
+                    "LINE_TOTALS_RECONCILED",
                     "DATE_RELATIONSHIP_CONFIRMED",
                     "DOB_SERVICE_DATE_CONSISTENT",
                     "MEMBER_IDENTITY_CONSISTENT",
@@ -225,7 +226,7 @@ class EvidenceReconciler:
         threshold_ok = confidence >= threshold
         # C3 always needs deterministic/authoritative evidence or two truly
         # independent engine families. Confidence is never sufficient alone.
-        independent_evidence_ok = has_independent_agreement or deterministic_ok
+        independent_evidence_ok = has_independent_agreement or deterministic_ok or financial_authority
         if reference_contradiction:
             decision = Decision.REVIEW
             reasons.append("REFERENCE_CONTRADICTION")

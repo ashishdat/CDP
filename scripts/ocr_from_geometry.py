@@ -67,15 +67,35 @@ def _load_cms1500_template():
     return templates[0] if templates else None
 
 
+_PREPROCESS = None
+
+
+def _preprocessing_registry():
+    global _PREPROCESS
+    if _PREPROCESS is None:
+        from packages.ocr.preprocessing import PreprocessingRegistry
+        from pathlib import Path
+        phase = Path('config/ocr_preprocessing_phase8_10.yaml')
+        _PREPROCESS = PreprocessingRegistry.load(phase if phase.is_file() else None)
+    return _PREPROCESS
+
+
 def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
-    routed = router.route(OCRRouteRequest(image, bbox, engine_order=engine_order))
+    # Phase 2: apply field-typed preprocess on the crop, then OCR the enhanced crop.
+    x0, y0, x1, y1 = (int(v) for v in bbox)
+    crop = image.crop((x0, y0, x1, y1))
+    applied = _preprocessing_registry().apply(crop, name, field_type or '')
+    crop_image = applied.image
+    crop_bbox = (0, 0, crop_image.width, crop_image.height)
+    routed = router.route(OCRRouteRequest(crop_image, crop_bbox, engine_order=engine_order))
     candidates = []
     attempts = []
     for attempt in routed.attempts:
         observation = attempt.observation
         attempts.append({'engine': attempt.engine, 'reason': attempt.reason,
                          'latency_ms': attempt.latency_ns / 1e6,
-                         'observation': asdict(observation) if observation else None})
+                         'observation': asdict(observation) if observation else None,
+                         'preprocessing_profile': applied.profile})
         if observation is None or not observation.lines:
             continue
         raw = chr(10).join(line.text for line in observation.lines)
@@ -86,7 +106,8 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
         candidate = OCRCandidate(
             value=selected, raw_value=raw, engine=attempt.engine,
             model_name='unknown', model_version='unknown',
-            preprocessing_variant='recorded_canonical_region',
+            preprocessing_variant=applied.profile,
+            preprocessing_version=applied.version,
             raw_confidence=float(np.mean([line.confidence for line in observation.lines])),
             calibrated_confidence=None, bounding_box=box,
             latency_ms=attempt.latency_ns / 1e6)
@@ -168,9 +189,8 @@ def recognize_service_lines(image, router, template):
                     break
             if not probe_empty:
                 break
-        if probe_empty:
-            break
-
+        # Phase 2: skip leading header/blank rows; only stop after a live block ends.
+        # Charge-column currency ink can also prove the row is live when date/CPT probes fail.
         best = None
         for x0, x1 in charge_windows:
             bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
@@ -207,12 +227,16 @@ def recognize_service_lines(image, router, template):
                 break
         assert best is not None
         best.pop('_score', None)
+        if best.get('status') != 'OBSERVED':
+            if any(l.get('status') == 'OBSERVED' for l in lines):
+                # End of live block — do not emit the empty sentinel.
+                break
+            if probe_empty:
+                # Leading header/blank row with no charge ink — keep scanning.
+                continue
+            # Probe saw date/CPT but charge empty: still end once we are past a live block.
+            continue
         lines.append(best)
-        # Stop once a live block ends — trailing empty rows are form rules, not lines.
-        if best.get('status') != 'OBSERVED' and any(l.get('status') == 'OBSERVED' for l in lines[:-1]):
-            # Keep the empty sentinel out of emitted service lines.
-            lines.pop()
-            break
     return lines
 
 

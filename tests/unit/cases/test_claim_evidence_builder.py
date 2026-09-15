@@ -72,3 +72,22 @@ def test_ub04_service_line_coherence_and_failure_are_recorded():
         service_lines=[{"revenue_code": "45", "units": "0", "charges": "25.00"}],
     )
     assert "UB04_SERVICE_LINE_CONTRADICTION" in _types(invalid.contradictions)
+
+
+def test_empty_box28_with_observed_line_charges_emits_line_totals_reconciled():
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="claim-1",
+        document_family="CMS1500",
+        claim_values={"total_charge": None},
+        service_lines=[
+            {"charges": "200.00"},
+            {"charges": "150.50"},
+        ],
+    )
+    assert "LINE_TOTALS_RECONCILED" in _types(result.evidence_items)
+    assert "CLAIM_TOTAL_CONFIRMED" not in _types(result.evidence_items)
+    assert not result.contradictions
+    item = next(i for i in result.evidence_items if i.evidence_type == "LINE_TOTALS_RECONCILED")
+    assert item.value == "350.50"
+    assert "total_charge" in item.metadata.get("supported_fields", [])
+    assert item.metadata.get("provenance") == "DERIVED_FROM_OBSERVED_LINE_CHARGES"
