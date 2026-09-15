@@ -155,3 +155,7 @@ Remaining 2/6 are honest ink gaps (ambiguous DOB fragments; empty DOB + empty fi
 
 Metrics: `docs/metrics/sample_b_cascade_v4_metrics.json`.
 
+### Phase 5 (cascade v5)
+- Currency confusable repair for handwritten line charges (`I/00`→`100`).
+- DOB year/day span recovery from clipped digit-band OCR; wider year crop.
+- No identity/financial policy softening.

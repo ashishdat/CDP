@@ -195,11 +195,30 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         # 3-digit years with a leading edge 1 (e.g. "108" → "08").
         if len(year) == 3 and year[0] == "1" and 0 <= int(year[1:]) <= 99:
             year = year[1:]
+        # 3-digit years missing a leading century 1 (e.g. "983" → "1983").
+        # Only repair when the observed digits already form a plausible 19xx/20xx year.
+        year_repaired_from_3 = False
+        if len(year) == 3 and year[0] in "89" and 1900 <= int("1" + year) <= 2100:
+            year = "1" + year
+            year_repaired_from_3 = True
         # Single-digit year tokens are usually mid-stream fragments; fall through
         # to compact digit-stream assembly instead of aborting recovery.
         if len(year) != 1:
             if len(year) == 2:
                 year = f"20{year}" if int(year) <= 36 else f"19{year}"
+            # Split day before a century-repaired year: "03 1 983 1 9" → day 1+9=19.
+            # Gated on 3-digit year repair so plain "12 2 1983 6" noise does not become 26.
+            # Skip a post-year edge glyph that merely duplicates the day tens digit.
+            if year_repaired_from_3 and len(day) == 1 and len(digits) > 3:
+                for tok in digits[3:]:
+                    if not re.fullmatch(r"\d", tok):
+                        break
+                    if tok == day:
+                        continue
+                    merged = day + tok
+                    if 10 <= int(merged) <= 31:
+                        day = merged
+                        break
             if len(month) == 1:
                 month = f"0{month}"
             if len(day) == 1:
@@ -240,9 +259,12 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
     # 了→7 survive into the compact digit stream.
     normalized_text = text.translate(_OCR_CONFUSABLES)
     compact = re.sub(r"\D", "", _normalize_digit_token(re.sub(r"[^0-9A-Za-z]", "", normalized_text)))
+    def _yy_to_yyyy(yy: str) -> str:
+        return f"20{yy}" if int(yy) <= 36 else f"19{yy}"
+
     # Prefer digit streams that look like MM DD YY / MM DD YYYY / YYYY MM DD.
     if len(compact) == 6:
-        return _valid(compact[:2], compact[2:4], f"20{compact[4:]}")
+        return _valid(compact[:2], compact[2:4], _yy_to_yyyy(compact[4:]))
     if len(compact) == 8:
         if int(compact[:4]) > 1900:
             got = _valid(compact[4:6], compact[6:8], compact[:4])
@@ -258,11 +280,15 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             got = _valid(compact[:2], compact[2:4], repaired)
             if got:
                 return got
-    # Fragmented OCR may yield 7-9 digits with an edge glyph; try dropping one edge.
+    # Seven digits: often MMDDYYY with a missing century leading-1 (0319983 → 03/19/1983).
     if len(compact) == 7:
+        inserted = compact[:4] + "1" + compact[4:]
+        got = _valid(inserted[:2], inserted[2:4], inserted[4:])
+        if got:
+            return got
         for candidate in (compact[1:], compact[:-1]):
             if len(candidate) == 6:
-                got = _valid(candidate[:2], candidate[2:4], f"20{candidate[4:]}")
+                got = _valid(candidate[:2], candidate[2:4], _yy_to_yyyy(candidate[4:]))
                 if got:
                     return got
     if len(compact) == 9 and compact[0] == "1":
@@ -372,6 +398,31 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
         patterns = [("npi", r"(?<!\d)\d{10}(?!\d)", "first")]
     elif datatype == "CURRENCY":
         npi_bleed = bool(re.search(r"\bN[P1]I\b|\bNP1\b|\bN21\b", search_space))
+        currency_space_before = search_space
+
+        def _repair_currency_confusables(space: str) -> str:
+            """Map digit confusions common on handwritten / low-contrast charge ink.
+
+            Examples observed on sample-B HJHK.005: ``I/00`` / ``l/00`` / ``L00``
+            for handwritten ``100``. A slash/pipe between a leading 1-confusable
+            and trailing ``00`` is treated as a damaged middle ``0``.
+            """
+            out = space
+            # Slash/pipe between a 1-confusable and trailing 00 is noise (I/00 → 100),
+            # not an extra zero and not a decimal point.
+            out = re.sub(
+                r"(?<!\d)([IL1|])[/|]([0O]{2})(?!\d)",
+                lambda m: "1" + m.group(2).translate(str.maketrans("O", "0")),
+                out,
+            )
+            out = re.sub(
+                r"(?<!\d)([IL|])([0O]{2})(?!\d)",
+                lambda m: "1" + m.group(2).translate(str.maketrans("O", "0")),
+                out,
+            )
+            return out
+
+        search_space = _repair_currency_confusables(search_space)
 
         def _repair_currency_separator(match: re.Match[str]) -> str:
             dollars, cents = match.group(1), match.group(2)
@@ -412,10 +463,15 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
             # Reject obviously tiny NPI-bleed remnants even without an NPI token.
             if field_name in {"total_charge", "total_charges"} and re.fullmatch(r"[0-9]\.\d{2}", selected):
                 return _result(raw, "", "span-v1-currency-suspicious-tiny", [], 0.2, "CURRENCY_SUSPICIOUS")
+            reasons = ["FIELD_SEMANTIC_SPAN"]
+            if search_space != currency_space_before:
+                reasons.append("CURRENCY_CONFUSABLE_REPAIRED")
+            reasons.append(
+                "CURRENCY_SEPARATOR_REPAIRED" if repaired != search_space else "NO_REPAIR"
+            )
             return _result(
                 raw, selected, "span-v1-currency", amounts, 0.9 if len(amounts) == 1 else 0.8,
-                "FIELD_SEMANTIC_SPAN",
-                "CURRENCY_SEPARATOR_REPAIRED" if repaired != search_space else "NO_REPAIR",
+                *reasons,
             )
         # Reject non-currency glyph crops / incomplete digit junk rather than preserving OCR noise.
         return _result(raw, "", "span-v1-currency-empty", [], 0.2, "CURRENCY_EMPTY_CROP")

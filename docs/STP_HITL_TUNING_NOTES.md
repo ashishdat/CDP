@@ -189,3 +189,16 @@ Metrics: `docs/metrics/sample_b_cascade_v4_metrics.json`.
 - Service-line geometry for scans with blank box-28 and missed line table
 - Do **not** invent DOBs or totals when ink is absent/ambiguous
 
+
+
+## Cascade v5 — residual IJN2 / HJHK recovery (crop/OCR, not policy)
+
+| Lever | Change |
+|-------|--------|
+| Currency confusable | `I/00` / `L00` → `100.00` (observed glyph repair only) |
+| Service-line noise | Allow `/` `|` in raw charge ink so repaired amounts are not wiped |
+| DOB ROI / crops | Reduce right inset; keep year column; add `dob_year_wide` |
+| DOB span | 3-digit year `983`→`1983`; split day `03 1 983 1 9`→`03/19/1983` |
+| DOB cells | Optional MM/DD/YY cell OCR after cascade miss |
+
+Sample B target: true STP **5/6** (HJHK DOB handwriting remains HITL when ink is unreadable).

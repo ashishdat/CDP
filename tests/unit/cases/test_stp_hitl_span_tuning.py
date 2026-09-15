@@ -218,3 +218,33 @@ def test_dob_rejects_impossible_calendar_day():
     assert selected.selected_text != "11/31/1993"
     assert "11/31" not in selected.selected_text
 
+
+def test_currency_repairs_i_slash_zero_zero_handwritten_charge():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("I/00", "CURRENCY", "charges")
+    assert selected.selected_text == "100.00"
+    assert "CURRENCY_CONFUSABLE_REPAIRED" in selected.reason_codes
+
+
+def test_currency_repairs_l00_confusable_charge():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("L00", "CURRENCY", "charges")
+    assert selected.selected_text == "100.00"
+
+
+def test_dob_repairs_three_digit_year_missing_century_one():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("03 19 983", "DATE", "patient_dob")
+    assert selected.selected_text == "03/19/1983"
+
+
+def test_dob_merges_split_day_around_century_repaired_year():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("03 1 983 1 9 7 1", "DATE", "patient_dob")
+    assert selected.selected_text == "03/19/1983"
+
+
+def test_dob_does_not_merge_day_when_year_already_four_digits():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("12 2 1983 6", "DATE", "patient_dob")
+    assert selected.selected_text == "12/02/1983"

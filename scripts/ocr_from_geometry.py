@@ -3,6 +3,7 @@
 Run: python -m scripts.ocr_from_geometry GEOMETRY_DIRECTORY OUTPUT_DIRECTORY
 """
 import argparse
+import re
 import hashlib
 import json
 from dataclasses import asdict
@@ -133,6 +134,42 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             'reason_codes': list(span.reason_codes),
         }
         candidates.append(payload)
+
+    # Handwritten charge crops sometimes regress under currency preprocess
+    # (100 → I/00). If span emptied after preprocess, retry the raw crop once.
+    if use_preprocess and not any((c.get('value') or '').strip() for c in candidates):
+        raw_routed = router.route(OCRRouteRequest(image, tuple(int(v) for v in bbox), engine_order=engine_order))
+        for attempt in raw_routed.attempts:
+            observation = attempt.observation
+            attempts.append({'engine': attempt.engine, 'reason': attempt.reason,
+                             'latency_ms': attempt.latency_ns / 1e6,
+                             'observation': asdict(observation) if observation else None,
+                             'preprocessing_profile': 'raw_charge_fallback'})
+            if observation is None or not observation.lines:
+                continue
+            raw = chr(10).join(line.text for line in observation.lines)
+            span = select_field_span(raw, span_datatype_for_field(name, field_type), name)
+            if not span.selected_text:
+                continue
+            box = BoundingBox(x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
+                              image_width=image.width, image_height=image.height)
+            candidate = OCRCandidate(
+                value=span.selected_text, raw_value=raw, engine=attempt.engine,
+                model_name='unknown', model_version='unknown',
+                preprocessing_variant='raw_charge_fallback',
+                preprocessing_version='none',
+                raw_confidence=float(np.mean([line.confidence for line in observation.lines])),
+                calibrated_confidence=None, bounding_box=box,
+                latency_ms=attempt.latency_ns / 1e6)
+            payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
+            payload['span_selection'] = {
+                'selected_text': span.selected_text,
+                'rule_id': span.rule_id,
+                'confidence': span.confidence,
+                'reason_codes': list(span.reason_codes) + ['RAW_CHARGE_FALLBACK'],
+            }
+            candidates.append(payload)
+            break
     return candidates, attempts, routed.reason
 
 
@@ -219,8 +256,10 @@ def recognize_service_lines(image, router, template):
                 if value[0] != '0' and not value.startswith('1.'):
                     score += 1
                 # Dashed-rule crops like "-200-\nLAAM" are not service charges.
+                # Allow / and | — common OCR noise inside repaired amounts (I/00 → 100.00).
                 import re as _re_noise
-                if _re_noise.search(r'[^0-9A-Z.\s,-]', (raw or '').upper()) or _re_noise.fullmatch(r'[\s\-.,]*', raw or ''):
+                raw_u = (raw or '').upper()
+                if _re_noise.search(r'[^0-9A-Z./|\s,-]', raw_u) or _re_noise.fullmatch(r'[\s\-.,/|]*', raw or ''):
                     score = 0
                     value = None
             candidate = {
@@ -254,6 +293,120 @@ def recognize_service_lines(image, router, template):
     return lines
 
 
+
+def _dob_cell_bboxes(band):
+    """Split a DOB digit band into MM / DD / YY cells (CMS-1500 box 3)."""
+    x0, y0, x1, y1 = (int(v) for v in band)
+    width = max(1, x1 - x0)
+    return {
+        'MM': (x0, y0, x0 + int(0.30 * width), y1),
+        'DD': (x0 + int(0.30 * width), y0, x0 + int(0.56 * width), y1),
+        'YY': (x0 + int(0.52 * width), y0, x1, y1),
+    }
+
+
+def _preprocess_dob_cell(crop):
+    """Upscale + contrast for tight DOB digit cells (typed or handwritten)."""
+    from PIL import ImageOps, ImageEnhance
+    up = crop.resize((max(1, crop.width * 3), max(1, crop.height * 3)), Image.Resampling.LANCZOS)
+    up = ImageOps.autocontrast(up)
+    up = ImageEnhance.Contrast(up).enhance(1.6)
+    return up
+
+
+def _recognize_dob_cells(image, band, router, engines):
+    """OCR MM/DD/YY cells independently and assemble a calendar date from observed digits."""
+    cells = _dob_cell_bboxes(band)
+    parts = {}
+    attempts = []
+    raw_bits = []
+
+    def _digits_from(raw: str) -> str:
+        return ''.join(ch for ch in raw if ch.isdigit())
+
+    def _consider(label: str, digits: str, raw: str, best_digits: str) -> str:
+        if not digits:
+            return best_digits
+        if label in {'MM', 'DD'}:
+            # Keep last 1-2 digits (leading edge glyphs happen).
+            trimmed = digits[-2:] if len(digits) >= 2 else digits
+            if 1 <= len(trimmed) <= 2 and len(trimmed) >= len(best_digits):
+                return trimmed
+        elif label == 'YY':
+            # Prefer 4-digit years; allow 2-3 (span repairs 983→1983).
+            if 2 <= len(digits) <= 5 and len(digits) >= len(best_digits):
+                return digits[-4:] if len(digits) > 4 else digits
+        return best_digits
+
+    for label, bbox in cells.items():
+        bbox = _clamp_bbox(bbox, image.width, image.height)
+        crop = _preprocess_dob_cell(image.crop(bbox))
+        best_digits = ''
+        # Primary route engines on the upscaled cell.
+        routed = router.route(
+            OCRRouteRequest(crop, (0, 0, crop.width, crop.height), engine_order=engines)
+        )
+        for attempt in routed.attempts:
+            observation = attempt.observation
+            attempts.append({
+                'engine': attempt.engine, 'reason': attempt.reason,
+                'latency_ms': attempt.latency_ns / 1e6,
+                'observation': asdict(observation) if observation else None,
+                'preprocessing_profile': 'dob_cell_upscale',
+                'dob_cell': label,
+            })
+            if observation is None or not observation.lines:
+                continue
+            raw = chr(10).join(line.text for line in observation.lines)
+            raw_bits.append(f'{label}:{raw}')
+            best_digits = _consider(label, _digits_from(raw), raw, best_digits)
+        # Digit-only tesseract pass — typed CMS DOB cells often resolve under whitelist.
+        try:
+            import pytesseract
+            for psm in (10, 7, 8):
+                cfg = f'--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789'
+                raw = pytesseract.image_to_string(crop, config=cfg).strip()
+                attempts.append({
+                    'engine': 'tesseract_digits', 'reason': f'PSM_{psm}',
+                    'latency_ms': 0.0, 'observation': {'text': raw},
+                    'preprocessing_profile': 'dob_cell_upscale', 'dob_cell': label,
+                })
+                if raw:
+                    raw_bits.append(f'{label}:tess{psm}:{raw}')
+                    best_digits = _consider(label, _digits_from(raw), raw, best_digits)
+        except Exception:
+            pass
+        parts[label] = best_digits
+    joined = ' '.join(parts.get(k, '') for k in ('MM', 'DD', 'YY')).strip()
+    span = select_field_span(joined, 'DATE', 'patient_dob')
+    selected = span.selected_text
+    # Only emit when span produced a calendar-shaped date (not the raw join).
+    if not selected or not re.fullmatch(r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}', selected):
+        return [], attempts, 'DOB_CELLS_EMPTY'
+    box = BoundingBox(
+        x0=band[0], y0=band[1], x1=band[2], y1=band[3],
+        image_width=image.width, image_height=image.height,
+    )
+    candidate = OCRCandidate(
+        value=selected, raw_value=' | '.join(raw_bits), engine='dob_cells',
+        model_name='unknown', model_version='unknown',
+        preprocessing_variant='dob_cell_upscale',
+        preprocessing_version='cascade-v5',
+        raw_confidence=0.8,
+        calibrated_confidence=None, bounding_box=box,
+        latency_ms=0.0,
+    )
+    payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
+    payload['span_selection'] = {
+        'selected_text': span.selected_text,
+        'rule_id': span.rule_id,
+        'confidence': span.confidence,
+        'reason_codes': list(span.reason_codes) + ['DOB_CELL_SEGMENT'],
+        'cell_parts': parts,
+    }
+    return [payload], attempts, 'DOB_CELLS_ASSEMBLED'
+
+
 def recognize_regions(image, geometry, router, emit=lambda rows: None, template=None):
     """OCR field regions via the field-semantic cascade strategy.
 
@@ -267,7 +420,7 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
     if template is not None:
         for region in template.field_regions:
             template_fields[region.field_name] = (region.x0, region.y0, region.x1, region.y1)
-    cascade = FieldCascade()
+    cascade = FieldCascade(strategy_id='field-cascade-v5')
     rows = []
 
     def _recognize_with_engines(field_name, bbox, field_type, engines):
@@ -291,6 +444,51 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             image_size=(image.width, image.height),
             recognize_fn=_recognize_with_engines,
         )
+        # IJN2.022 / handwriting DOB: whole-band OCR fragments MM/DD/YY; cell
+        # segmentation recovers calendar-valid dates from observed digit ink only.
+        if field['field'] == 'patient_dob' and not cascaded.accepted:
+            from packages.extraction_recovery.field_cascade import load_route_engines, CascadeResult, CascadeStepResult
+            engines = load_route_engines('patient_dob')
+            cell_box = (int(cell['x0']), int(cell['y0']), int(cell['x1']), int(cell['y1']))
+            cell_h = cell_box[3] - cell_box[1]
+            band = (
+                max(primary[0], cell_box[0] + 2),
+                max(primary[1], cell_box[3] - max(22, int(0.40 * cell_h))),
+                min(cell_box[2] - 1, image.width),
+                min(primary[3], cell_box[3] - 1),
+            )
+            band = _clamp_bbox(band, image.width, image.height)
+            cell_cands, cell_attempts, cell_reason = _recognize_dob_cells(
+                image, band, router, engines,
+            )
+            selected = next((c.get('value') or '' for c in cell_cands if (c.get('value') or '').strip()), '')
+            ok, accept_reason = semantic_accept('patient_dob', selected)
+            step = CascadeStepResult(
+                variant_id='dob_cells',
+                bbox=band,
+                engines=engines,
+                selected_value=selected,
+                raw_value=(cell_cands[0].get('raw_value') if cell_cands else '') or '',
+                accepted=ok,
+                accept_reason=accept_reason if selected else cell_reason,
+                candidates=tuple(cell_cands),
+                attempts=tuple(cell_attempts),
+                router_reason=cell_reason,
+            )
+            cascaded.cascade_trace.append(step)
+            if ok:
+                cascaded = CascadeResult(
+                    field_name='patient_dob',
+                    bbox=band,
+                    candidates=list(cell_cands),
+                    attempts=list(cell_attempts),
+                    router_reason=cell_reason,
+                    status='OBSERVED',
+                    cascade_trace=list(cascaded.cascade_trace),
+                    accepted=True,
+                    accept_reason=accept_reason,
+                    strategy_id='field-cascade-v5',
+                )
         rows.append({
             'field': field['field'],
             'canonical_region': list(aligned),

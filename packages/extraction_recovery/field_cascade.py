@@ -171,20 +171,28 @@ def crop_variants(
     name = (field_name or "").casefold()
 
     if name == "patient_dob":
+        # Keep the year column: prior -8% right trim clipped typed YY on IJN2.022.
         lower = (
             max(primary[0], cell_box[0] + 2),
             max(primary[1], cell_box[3] - max(22, int(0.38 * cell_h))),
-            min(primary[2], cell_box[2] - int(0.08 * cell_w)),
+            min(max(primary[2], cell_box[2] - 2), cell_box[2] - 1),
             min(primary[3], cell_box[3] - 1),
         )
         variants.append(CropVariant("dob_digit_band", _clamp(lower, width, height), "DOB_DIGIT_BAND"))
         loose = (
             max(primary[0], cell_box[0] + 2),
             max(primary[1], cell_box[1] + int(0.22 * cell_h)),
-            min(primary[2], cell_box[2] - int(0.08 * cell_w)),
+            min(max(primary[2], cell_box[2] - 2), cell_box[2] - 1),
             min(primary[3], cell_box[3] - 2),
         )
         variants.append(CropVariant("dob_loose", _clamp(loose, width, height), "DOB_LOOSE_TOP"))
+        year_wide = (
+            max(primary[0], cell_box[0] + int(0.45 * cell_w)),
+            max(primary[1], cell_box[3] - max(22, int(0.40 * cell_h))),
+            min(cell_box[2] - 1, width),
+            min(primary[3], cell_box[3] - 1),
+        )
+        variants.append(CropVariant("dob_year_wide", _clamp(year_wide, width, height), "DOB_YEAR_WIDE"))
 
     elif name in {"total_charge", "total_charges"}:
         cleared = (
