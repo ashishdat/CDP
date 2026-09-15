@@ -47,7 +47,10 @@ _LABELS = (
 _CMS_BOX_HEADER = re.compile(
     r"""
     \b\d{1,2}[A-Z]?\.?\s*
-    (?:PATIENT'?S?|INSURED'?S?|INSUREO'?S?|PATENTS|INSUREO)?\s*
+    (?:
+        PATIENT'?S?|PATENTS|PATT'?S?|PATTENT'?S?|
+        INSURED'?S?|INSUREO'?S?|INSUREO|INSUAED'?S?
+    )?\s*
     (?:
         NAME|
         B[I1L]RTH\s*DATE|
@@ -55,6 +58,8 @@ _CMS_BOX_HEADER = re.compile(
         ADDRESS|
         ID[,.]?\s*NUMBER|
         I\.?D\.?\s*NUMBER|
+        L\.?D\.?\s*NUMBER|
+        NUM[B8]ER|
         POLICY\s*GROUP|
         ACCOUNT\s*NO
     )
@@ -74,6 +79,25 @@ _NAME_BOILERPLATE = re.compile(
 )
 
 _DOB_HEADER_TOKENS = frozenset({"MM", "DD", "YY", "YYYY", "YYY", "SEX"})
+
+
+_OCR_CONFUSABLES = str.maketrans({
+    "O": "0", "Q": "0", "D": "0",
+    "I": "1", "L": "1", "|": "1",
+    "Z": "2",
+    "S": "5",
+    "B": "8",
+    "G": "6",
+})
+
+
+def _normalize_digit_token(tok: str) -> str:
+    """Map common OCR letter/digit confusions inside otherwise-numeric tokens."""
+    upper = tok.upper()
+    # Keep pure alpha headers out of digit normalization.
+    if re.fullmatch(r"[A-Z]+", upper):
+        return tok
+    return upper.translate(_OCR_CONFUSABLES)
 
 
 def _matches(pattern: str, text: str) -> list[str]:
@@ -126,9 +150,10 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             continue
         if tok in {"M", "F", "X"} and digits:
             continue
+        norm = _normalize_digit_token(tok)
         # Allow 5-digit year tokens with a leading edge glyph (e.g. "11970").
-        if re.fullmatch(r"\d{1,5}", tok):
-            digits.append(tok)
+        if re.fullmatch(r"\d{1,5}", norm):
+            digits.append(norm)
     if len(digits) >= 3:
         def _yearish(tok: str) -> bool:
             if re.fullmatch(r"\d{4}", tok) and 1900 <= int(tok) <= 2100:
@@ -140,7 +165,11 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         first, second, third = digits[0], digits[1], digits[2]
         # OCR sometimes emits MM / YYYY / DD instead of MM / DD / YYYY.
         if _yearish(second) and not _yearish(third) and len(third) <= 2:
-            month, day, year = first, third, second
+            # DD / YYYY / MM when first cannot be a month.
+            if len(first) <= 2 and int(first) > 12 and 1 <= int(third) <= 12:
+                month, day, year = third, first, second
+            else:
+                month, day, year = first, third, second
         else:
             month, day, year = first, second, third
         # Drop a leading edge glyph on month/day (e.g. "112" → "12").
@@ -180,13 +209,25 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             return None
         return f"{month}/{day}/{year}"
 
-    compact = re.sub(r"\D", "", text)
+    compact = re.sub(r"\D", "", _normalize_digit_token(re.sub(r"[^0-9A-Za-z]", "", text)))
+    # Prefer digit streams that look like MM DD YY / MM DD YYYY / YYYY MM DD.
     if len(compact) == 6:
         return _valid(compact[:2], compact[2:4], f"20{compact[4:]}")
     if len(compact) == 8:
         if int(compact[:4]) > 1900:
             return _valid(compact[4:6], compact[6:8], compact[:4])
         return _valid(compact[:2], compact[2:4], compact[4:])
+    # Fragmented OCR may yield 7-9 digits with an edge glyph; try dropping one edge.
+    if len(compact) == 7:
+        for candidate in (compact[1:], compact[:-1]):
+            if len(candidate) == 6:
+                got = _valid(candidate[:2], candidate[2:4], f"20{candidate[4:]}")
+                if got:
+                    return got
+    if len(compact) == 9 and compact[0] == "1":
+        got = _valid(compact[1:3], compact[3:5], compact[5:9])
+        if got:
+            return got
     return None
 
 
@@ -204,11 +245,16 @@ def _person_name_from(text: str) -> str | None:
         last, first = match.group(1), match.group(2)
         if last not in junk and first.split()[0] not in junk:
             return f"{last}, {first}"
-    cleaned, _ = _strip_known_labels(upper)
-    cleaned, _ = _strip_cms_headers(cleaned)
+    # CMS box headers must be removed before generic label phrases so
+    # "PATIENTS NAME" is not peeled out of "2. PATIENTS NAME (...)", which
+    # would leave the parenthetical LAST/FIRST boilerplate behind.
+    cleaned, _ = _strip_cms_headers(upper)
+    cleaned, _ = _strip_known_labels(cleaned)
     cleaned = _NAME_BOILERPLATE.sub(" ", cleaned)
     cleaned = re.sub(r"[^A-Z0-9'. -]+", " ", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .'-")
+    # Drop a residual leading box number (e.g. "2. DOLIET ...").
+    cleaned = re.sub(r"^\d{1,2}[A-Z]?\.?\s*", "", cleaned)
     match = re.search(
         r"([A-Z][A-Z'-]{1,30})[,.]\s*([A-Z][A-Z'-]{1,30}(?:\s+[A-Z])?)$",
         cleaned,
@@ -221,7 +267,7 @@ def _person_name_from(text: str) -> str | None:
     stop = {
         "LAST", "FIRST", "MIDDLE", "INITIAL", "NAME", "PATIENT", "INSURED",
         "FOR", "PROGRAM", "ITEM", "TEM", "LNITIAL", "INILIAL", "MIDDLA",
-        "NUMBER", "BIRTH", "DATE",
+        "NUMBER", "BIRTH", "DATE", "LASI", "PATT", "PATTENT", "PATENTS",
     }
     words = [w for w in words if w not in stop]
     if len(words) >= 2 and all(re.search(r"[A-Z]", w) for w in words[:2]):
@@ -232,10 +278,16 @@ def _person_name_from(text: str) -> str | None:
 
 
 def _member_id_from(text: str) -> str | None:
-    space, _ = _strip_known_labels(text.upper())
-    space, _ = _strip_cms_headers(space)
+    # Headers before labels — same ordering rationale as person names.
+    space, _ = _strip_cms_headers(text.upper())
+    space, _ = _strip_known_labels(space)
+    # OCR often renders hyphen as "=" in plan member ids (e.g. P32=84957).
+    space = space.replace("=", "-")
+    # Leading O misread as 0 on alphanumeric member ids (0SC74765420).
+    space = re.sub(r"\b0([A-Z]{2,4}\d{6,14})\b", r"O\1", space)
     patterns = [
         r"[A-Z]\d{2}-\d{7}",
+        r"\b[A-Z]\d{2}-\d{4,8}\b",
         r"\b[A-Z0-9]{2,8}-[A-Z0-9-]{3,20}\b",
         r"\b[A-Z]{1,4}\d{6,14}\b",
         r"\b\d{6,14}\b",
@@ -254,10 +306,12 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
         return _result(raw, "", "span-v1-empty", [], 0, "OCR_EMPTY")
     upper = raw.upper()
     datatype = datatype.upper()
-    search_space, removed_labels = _strip_known_labels(upper)
-    header_stripped, header_removed = _strip_cms_headers(search_space)
+    # Strip numbered CMS headers before known label phrases so box titles are
+    # removed as a unit (including parenthetical LAST/FIRST boilerplate).
+    header_stripped, header_removed = _strip_cms_headers(upper)
+    search_space = header_stripped if header_removed else upper
+    search_space, removed_labels = _strip_known_labels(search_space)
     if header_removed:
-        search_space = header_stripped
         removed_labels = [*removed_labels, "CMS_BOX_HEADER"]
 
     patterns: list[tuple[str, str, str]] = []
@@ -276,20 +330,53 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
         patterns = [("npi", r"(?<!\d)\d{10}(?!\d)", "first")]
     elif datatype == "CURRENCY":
         npi_bleed = bool(re.search(r"\bN[P1]I\b|\bNP1\b|\bN21\b", search_space))
-        amounts = _matches(r"\$?\d[\d,]*\.\d{2}", search_space)
+
+        def _repair_currency_separator(match: re.Match[str]) -> str:
+            dollars, cents = match.group(1), match.group(2)
+            # Three cents digits: prefer trailing-edge drop when leading 0
+            # (2084P080 → 2084.80) else keep the first two (200-000 → 200.00).
+            if len(cents) == 3:
+                if cents[0] == "0":
+                    cents = cents[1:]
+                else:
+                    cents = cents[:2]
+            return f"{dollars}.{cents}"
+
+        # OCR often renders the cents separator as P or - (e.g. "2084P080", "200-00").
+        repaired = re.sub(
+            r"(?<!\d)(\d{1,6})[P:.-](\d{2,3})(?!\d)",
+            _repair_currency_separator,
+            search_space,
+        )
+        amounts = _matches(r"\$?\d[\d,]*\.\d{2}", repaired)
+        # Whole-dollar service-line charges often omit cents (e.g. "225", "200").
+        if not amounts and field_name in {"charges", "charge_amount"}:
+            whole = _matches(r"(?<!\d)\d{2,6}(?!\d)", repaired)
+            amounts = [f"{w}.00" for w in whole if not re.fullmatch(r"0+", w)]
         # NPI legend bleed often yields empty crops or a lone "$1.00" from "1\nNPI".
         if npi_bleed and (
             not amounts
             or all(re.fullmatch(r"\$?[0-9]\.\d{2}", amount) for amount in amounts)
         ):
             return _result(raw, "", "span-v1-currency-npi-bleed", [], 0.2, "NPI_LABEL_BLEED")
-        # Reject non-currency glyph crops (e.g. CJK dash "一") with no digit amount.
-        if not amounts and not re.search(r"\d", search_space):
-            return _result(raw, "", "span-v1-currency-empty", [], 0.2, "CURRENCY_EMPTY_CROP")
-        # Lone digit clusters without decimals are not claim totals.
-        if not amounts and re.fullmatch(r"[\d\s]+", search_space or ""):
-            return _result(raw, "", "span-v1-currency-incomplete", [], 0.2, "CURRENCY_INCOMPLETE")
-        patterns = [("currency", r"\$?\d[\d,]*\.\d{2}", "last")]
+        if amounts:
+            selected = amounts[-1].lstrip("$")
+            # Claim totals are never negative; a leading "-" is almost always a
+            # printed rule / NPI-bleed artifact (e.g. "-2084P080").
+            if field_name in {"total_charge", "total_charges"} and re.search(
+                r"(?<!\d)-\s*\d", search_space
+            ):
+                return _result(raw, "", "span-v1-currency-leading-minus", [], 0.2, "CURRENCY_LEADING_MINUS")
+            # Reject obviously tiny NPI-bleed remnants even without an NPI token.
+            if field_name in {"total_charge", "total_charges"} and re.fullmatch(r"[0-9]\.\d{2}", selected):
+                return _result(raw, "", "span-v1-currency-suspicious-tiny", [], 0.2, "CURRENCY_SUSPICIOUS")
+            return _result(
+                raw, selected, "span-v1-currency", amounts, 0.9 if len(amounts) == 1 else 0.8,
+                "FIELD_SEMANTIC_SPAN",
+                "CURRENCY_SEPARATOR_REPAIRED" if repaired != search_space else "NO_REPAIR",
+            )
+        # Reject non-currency glyph crops / incomplete digit junk rather than preserving OCR noise.
+        return _result(raw, "", "span-v1-currency-empty", [], 0.2, "CURRENCY_EMPTY_CROP")
     elif datatype == "TYPE_OF_BILL":
         # A bounded TOB crop occasionally includes one non-zero edge glyph
         # (for example ``1224`` for observed bill type ``224``).  Four-digit

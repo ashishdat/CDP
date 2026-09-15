@@ -102,12 +102,47 @@ def recognize_service_lines(image, router, template):
     if table is None:
         return []
     charge_col = next((c for c in table.columns if c.field_name in {'charges', 'charge_amount'}), None)
-    probe_cols = [c for c in table.columns if c.field_name in {'cpt_hcpcs', 'date_from', 'charges'}]
+    probe_cols = [c for c in table.columns if c.field_name in {'cpt_hcpcs', 'date_from'}]
     if charge_col is None:
         return []
     lines = []
     # Prefer data rows: start one half-row below the printed header rule.
     header_offset = max(8, table.row_height_px // 3)
+    # Alternate x-windows: primary template column plus a right-shifted band that
+    # avoids diagnosis-pointer bleed on many live CMS-1500 scans.
+    charge_windows = [
+        (charge_col.x0, charge_col.x1),
+        (max(charge_col.x0, 1000), min(max(charge_col.x1, 1145), 1210)),
+        (1050, 1165),
+    ]
+    # De-dupe while preserving order.
+    seen = set()
+    charge_windows = [w for w in charge_windows if not (w in seen or seen.add(w))]
+
+    def _currency_value(raw_text, candidates):
+        import re as _re
+        value = next((c.get('value') for c in candidates if (c.get('value') or '').strip()), None)
+        if value is None and raw_text:
+            # Fall back to span-shaped raw when candidates were empty/rejected.
+            value = raw_text
+        if value is None:
+            return None
+        cleaned = value.strip()
+        if _re.search(r'[A-Za-z]', cleaned) and not _re.search(r'\d', cleaned):
+            return None
+        if not _re.search(r'\d', cleaned):
+            return None
+        if _re.search(r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()):
+            return None
+        # Prefer explicit decimals; accept whole dollars from the charge column.
+        m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
+        if not m:
+            return None
+        amount = m.group(0).lstrip('$')
+        if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
+            amount = f'{amount}.00'
+        return amount
+
     for row_index in range(table.max_rows):
         y0 = table.table_y0 + header_offset + row_index * table.row_height_px
         y1 = min(y0 + table.row_height_px, table.table_y1)
@@ -122,35 +157,44 @@ def recognize_service_lines(image, router, template):
                 break
         if probe_empty:
             break
-        bbox = _clamp_bbox((charge_col.x0, y0, charge_col.x1, y1), image.width, image.height)
-        candidates, attempts, reason = _recognize_one(
-            image, 'charges', bbox, router, charge_col.field_type)
-        value = next((c.get('value') for c in candidates if (c.get('value') or '').strip()), None)
-        raw = candidates[0].get('raw_value') if candidates else ''
-        import re as _re
-        if value is not None:
-            cleaned = value.strip()
-            if _re.search(r'[A-Za-z]', cleaned) and not _re.search(r'\d', cleaned):
-                value = None
-            elif not _re.search(r'\d', cleaned):
-                value = None
-            elif _re.search(r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE)', cleaned.upper()):
-                value = None
-            else:
-                # Normalize common OCR amount shapes: 12345 / 123.45 / 1,234.56
-                m = _re.search(r'\$?\d{1,3}(?:,\d{3})*(?:\.\d{2})?|\$?\d+(?:\.\d{2})', cleaned)
-                value = m.group(0) if m else None
-        lines.append({
-            'line_number': row_index + 1,
-            'charges': value,
-            'charge_amount': value,
-            'raw_charges': raw,
-            'canonical_region': list(bbox),
-            'candidates': candidates,
-            'attempts': attempts,
-            'router_reason': reason,
-            'status': 'OBSERVED' if value else 'NO_VALUE',
-        })
+
+        best = None
+        for x0, x1 in charge_windows:
+            bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
+            candidates, attempts, reason = _recognize_one(
+                image, 'charges', bbox, router, charge_col.field_type)
+            raw = candidates[0].get('raw_value') if candidates else ''
+            value = _currency_value(raw, candidates)
+            score = 0
+            if value:
+                score = 3 if '.' in value else 2
+                # Prefer amounts that are not tiny single-digit dollars.
+                if value[0] != '0' and not value.startswith('1.'):
+                    score += 1
+                # Dashed-rule crops like "-200-\nLAAM" are not service charges.
+                import re as _re_noise
+                if _re_noise.search(r'[^0-9A-Z.\s,-]', (raw or '').upper()) or _re_noise.fullmatch(r'[\s\-.,]*', raw or ''):
+                    score = 0
+                    value = None
+            candidate = {
+                'line_number': row_index + 1,
+                'charges': value,
+                'charge_amount': value,
+                'raw_charges': raw,
+                'canonical_region': list(bbox),
+                'candidates': candidates,
+                'attempts': attempts,
+                'router_reason': reason,
+                'status': 'OBSERVED' if value else 'NO_VALUE',
+                '_score': score,
+            }
+            if best is None or candidate['_score'] > best['_score']:
+                best = candidate
+            if score >= 4:
+                break
+        assert best is not None
+        best.pop('_score', None)
+        lines.append(best)
     return lines
 
 
@@ -174,19 +218,42 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             raise ValueError('Canonical region exceeds recorded safe cell')
         bbox = _ocr_bbox(field['field'], aligned, cell, (image.width, image.height), template_fields)
         candidates, attempts, reason = _recognize_one(image, field['field'], bbox, router)
-        if field['field'] == 'patient_dob' and not any((c.get('value') or '').strip() for c in candidates):
-            # Loosen the top inset if the tight digit band is empty/unassemblable.
-            loose = (
-                max(aligned[0], cell['x0'] + 2),
-                max(aligned[1], cell['y0'] + int(0.22 * (cell['y1'] - cell['y0']))),
-                min(aligned[2], cell['x1'] - int(0.08 * (cell['x1'] - cell['x0']))),
-                min(aligned[3], cell['y1'] - 2),
-            )
-            loose = _clamp_bbox(loose, image.width, image.height)
-            if loose != bbox:
-                alt_c, alt_a, alt_r = _recognize_one(image, field['field'], loose, router)
-                if any((c.get('value') or '').strip() for c in alt_c):
-                    candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, loose
+        if field['field'] == 'patient_dob':
+            import re as _re
+            def _date_shaped(val: str) -> bool:
+                return bool(_re.fullmatch(r'\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}', (val or '').strip()))
+            has_date = any(_date_shaped(c.get('value') or '') for c in candidates)
+            if not has_date:
+                # Prefer the lower digit band; printed MM/DD/YY headers sit above the ink.
+                cell_h = cell['y1'] - cell['y0']
+                lower = (
+                    max(aligned[0], cell['x0'] + 2),
+                    max(aligned[1], cell['y0'] + int(0.45 * cell_h)),
+                    min(aligned[2], cell['x1'] - int(0.08 * (cell['x1'] - cell['x0']))),
+                    min(aligned[3], cell['y1'] - 1),
+                )
+                lower = _clamp_bbox(lower, image.width, image.height)
+                if lower != bbox:
+                    alt_c, alt_a, alt_r = _recognize_one(image, field['field'], lower, router)
+                    if any(_date_shaped(c.get('value') or '') for c in alt_c):
+                        candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, lower
+                    elif not any((c.get('value') or '').strip() for c in candidates) and any(
+                        (c.get('value') or '').strip() for c in alt_c
+                    ):
+                        candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, lower
+                if not any(_date_shaped(c.get('value') or '') for c in candidates):
+                    # Loosen the top inset if the tight digit band is still empty/unassemblable.
+                    loose = (
+                        max(aligned[0], cell['x0'] + 2),
+                        max(aligned[1], cell['y0'] + int(0.22 * cell_h)),
+                        min(aligned[2], cell['x1'] - int(0.08 * (cell['x1'] - cell['x0']))),
+                        min(aligned[3], cell['y1'] - 2),
+                    )
+                    loose = _clamp_bbox(loose, image.width, image.height)
+                    if loose != bbox:
+                        alt_c, alt_a, alt_r = _recognize_one(image, field['field'], loose, router)
+                        if any(_date_shaped(c.get('value') or '') for c in alt_c):
+                            candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, loose
         if field['field'] == 'total_charge' and not any((c.get('value') or '').strip() for c in candidates):
             # Retry a slightly taller window still clamped to the safe cell.
             taller = (

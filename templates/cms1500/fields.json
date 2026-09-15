@@ -137,8 +137,8 @@
       "postprocessor": null,
       "x0": 672,
       "x1": 871,
-      "y0": 424,
-      "y1": 457
+      "y0": 435,
+      "y1": 458
     },
     {
       "field_name": "patient_sex",
@@ -332,8 +332,8 @@
         "field_type": "currency",
         "padding_px": 4,
         "postprocessor": null,
-        "x0": 940,
-        "x1": 1100,
+        "x0": 1000,
+        "x1": 1145,
         "y0": 0,
         "y1": 0
       },
@@ -342,8 +342,8 @@
         "field_type": "text",
         "padding_px": 4,
         "postprocessor": null,
-        "x0": 1100,
-        "x1": 1165,
+        "x0": 1145,
+        "x1": 1210,
         "y0": 0,
         "y1": 0
       },

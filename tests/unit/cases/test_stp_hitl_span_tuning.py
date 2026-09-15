@@ -123,3 +123,54 @@ def test_currency_rejects_non_digit_glyph_crop():
     from packages.extraction_recovery.span_selection import select_field_span
     selected = select_field_span("一", "CURRENCY", "total_charge")
     assert selected.selected_text == ""
+
+
+def test_dob_assembles_dd_yyyy_mm_token_order():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("29\n1983\n10", "DATE", "patient_dob")
+    assert selected.selected_text == "10/29/1983"
+
+
+def test_currency_repairs_p_separator_to_cents():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("2084P080", "CURRENCY", "total_charge")
+    assert selected.selected_text == "2084.80"
+
+
+def test_currency_rejects_leading_minus_total_as_form_artifact():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("-2084P080", "CURRENCY", "total_charge")
+    assert selected.selected_text == ""
+    assert "CURRENCY_LEADING_MINUS" in selected.reason_codes
+
+
+def test_currency_accepts_whole_dollar_service_line_charges():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("225", "CURRENCY", "charges")
+    assert selected.selected_text == "225.00"
+
+
+def test_name_span_strips_header_before_label_phrases():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span(
+        "2.PATIENTS NAME(Lasi Name,First Name,MiddleInitial)\nDOLIET\nMARGARET M",
+        "PERSON_NAME",
+        "patient_name",
+    )
+    assert selected.selected_text == "DOLIET MARGARET M"
+
+
+def test_member_id_repairs_ocr_zero_and_equals():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span(
+        "1a.INSURED'S LD. NUMBER\n(For Program in ltem 1)\n0SC74765420",
+        "ALPHANUMERIC_ID",
+        "insured_id_number",
+    )
+    assert selected.selected_text == "OSC74765420"
+    selected2 = select_field_span(
+        "1a. INSURED'S I.D. NUM8ER\n(For Program in ltem 1)\nNALC\nP32=84957",
+        "ALPHANUMERIC_ID",
+        "insured_id_number",
+    )
+    assert selected2.selected_text == "P32-84957"

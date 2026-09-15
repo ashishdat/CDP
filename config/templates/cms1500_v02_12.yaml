@@ -117,9 +117,9 @@ field_regions:
     field_type: text
   - field_name: patient_dob
     x0: 672
-    y0: 424
+    y0: 435
     x1: 871
-    y1: 457
+    y1: 458
     field_type: date
   - field_name: patient_sex
     x0: 886
@@ -239,15 +239,15 @@ service_line_region:
       y1: 0
       field_type: code
     - field_name: charges
-      x0: 940
+      x0: 1000
       y0: 0
-      x1: 1100
+      x1: 1145
       y1: 0
       field_type: currency
     - field_name: units
-      x0: 1100
+      x0: 1145
       y0: 0
-      x1: 1165
+      x1: 1210
       y1: 0
       field_type: text
     - field_name: rendering_provider_npi
