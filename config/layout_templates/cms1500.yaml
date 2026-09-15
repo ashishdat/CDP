@@ -19,10 +19,10 @@ fields:
   field_type: person_name
 - field_name: patient_dob
   region:
-    x0: 0.3896
-    y0: 0.1816
-    x1: 0.5175
-    y1: 0.2073
+    x0: 0.3925
+    y0: 0.1915
+    x1: 0.5088
+    y1: 0.2064
   field_type: date
 checkbox_regions:
 - x0: 0.42

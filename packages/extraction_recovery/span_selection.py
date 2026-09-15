@@ -130,6 +130,14 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             digits.append(tok)
     if len(digits) >= 3:
         month, day, year = digits[0], digits[1], digits[2]
+        # Drop a leading edge glyph on month/day (e.g. "112" → "12").
+        if len(month) == 3 and month[0] == "1" and 1 <= int(month[1:]) <= 12:
+            month = month[1:]
+        if len(day) == 3 and day[0] == "1" and 1 <= int(day[1:]) <= 31:
+            day = day[1:]
+        # Drop a leading edge glyph on 5-digit years (e.g. "11970" → "1970").
+        if len(year) == 5 and year[0] == "1" and 1900 <= int(year[1:]) <= 2100:
+            year = year[1:]
         if len(year) == 1:
             return None
         if len(year) == 2:
@@ -254,7 +262,13 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
     elif datatype == "NPI":
         patterns = [("npi", r"(?<!\d)\d{10}(?!\d)", "first")]
     elif datatype == "CURRENCY":
-        if re.search(r"\bNPI\b", search_space) and not re.search(r"\$?\d[\d,]*\.\d{2}", search_space):
+        npi_bleed = bool(re.search(r"\bN[P1]I\b|\bNP1\b|\bN21\b", search_space))
+        amounts = _matches(r"\$?\d[\d,]*\.\d{2}", search_space)
+        # NPI legend bleed often yields empty crops or a lone "$1.00" from "1\nNPI".
+        if npi_bleed and (
+            not amounts
+            or all(re.fullmatch(r"\$?[0-9]\.\d{2}", amount) for amount in amounts)
+        ):
             return _result(raw, "", "span-v1-currency-npi-bleed", [], 0.2, "NPI_LABEL_BLEED")
         patterns = [("currency", r"\$?\d[\d,]*\.\d{2}", "last")]
     elif datatype == "TYPE_OF_BILL":

@@ -84,3 +84,30 @@ def test_patient_name_policy_allows_weak_e4_when_configured():
     )
     assert ok, (available, missing, reasons)
     assert "E4" in available
+
+
+def test_roi_insets_shrink_dob_and_charge_windows():
+    from packages.extraction_recovery.roi_insets import inset_bbox
+    dob = inset_bbox((667, 402, 886, 459), "patient_dob")
+    assert dob[1] > 402  # top inset removes header band
+    assert dob[2] < 886  # right inset clears sex checkbox
+    charge = inset_bbox((1280, 1750, 1470, 1811), "total_charge")
+    assert charge[0] > 1280  # left inset clears NPI legend bleed
+
+
+def test_currency_rejects_npi_adjacent_one_dollar_artifact():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("1\nNPI", "CURRENCY", "total_charge")
+    assert selected.selected_text == ""
+    assert "NPI_LABEL_BLEED" in selected.reason_codes
+
+
+def test_claim_total_e6_from_service_lines():
+    from packages.claim_evidence.builder import ClaimEvidenceBuilder
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="c1",
+        document_family="CMS1500",
+        claim_values={"total_charge": "30.00"},
+        service_lines=[{"charges": "20.00"}, {"charges": "10.00"}],
+    )
+    assert "CLAIM_TOTAL_CONFIRMED" in {i.evidence_type for i in result.evidence_items}

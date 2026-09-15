@@ -66,7 +66,7 @@ class DecisionServiceFactory:
         return DecisionServiceBundle(
             profile=profile,
             evidence_decision=EvidenceDecisionService(
-                reconciler=EvidenceReconciler(calibration=calibration),
+                reconciler=EvidenceReconciler(calibration=calibration, allow_authoritative_financial_e6=True),
                 evidence_policy=evidence_policy,
                 field_policy=field_policy,
                 route_mode=profile.route_mode,

@@ -119,8 +119,9 @@ def decide(extraction, family):
     claim_id = extraction['document']['document_id']
     values = {f['field_name']: f['normalized_value'] for f in fields}
     # Existing cross-field facts feed the existing decision rules. No evidence acquisition.
+    service_lines = extraction.get('service_lines') or []
     facts = ClaimEvidenceBuilder.load().build(claim_id=claim_id, document_family=family,
-                                            claim_values=values)
+                                            claim_values=values, service_lines=service_lines)
     registration_confidence, localizations, structural_warnings = _load_registration_context(extraction)
     decisions, checks, critical = [], {}, []
     for f in fields:
@@ -172,7 +173,7 @@ def decide(extraction, family):
         'missing_fields':missing_required, 'missing_observed_fields':missing_observed,
         'critical_fields':critical, 'critical_blockers':claim.critical_blockers,
         'warnings':extraction.get('warnings',[]) + structural_warnings + [
-            {'reason':'Structural localization reused from accepted registration/geometry; no new reference or service-line evidence acquired.'}],
+            {'reason':'Structural localization reused from accepted registration/geometry; service-line charge OCR reused from extraction artifacts when present; no new reference acquisition.'}],
         'decision_reason':claim.reason_codes, 'claim_decision':claim.model_dump(mode='json'),
         'field_decisions':[d.model_dump(mode='json') for d in decisions],
         'deterministic_checks':checks, 'claim_facts':facts.model_dump(mode='json'),

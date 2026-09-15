@@ -23,3 +23,12 @@
 - **`insured_id_number` / `patient_name`**: residual OCR damage when span cannot recover a clean value
 
 Frozen 100-claim baseline remains NOT QUALIFIED until a full live 100 re-run.
+
+## Charge ROI / line-total E6 + DOB crop reliability (next hard gates)
+
+1. **OCR crop insets** (`packages/extraction_recovery/roi_insets.py`) shrink `patient_dob` and `total_charge` inside the recorded safe cell so header/NPI bleed is excluded without re-registration. Template ROIs retargeted to the same windows.
+2. **Service-line charge OCR** in `scripts/ocr_from_geometry.py` writes `service_lines` onto OCR candidates; assemble + complete pass them into `ClaimEvidenceBuilder` so `CLAIM_TOTAL_CONFIRMED` (E6) can auto-accept `total_charge` when the crop total matches Σ line charges.
+3. **Authoritative financial E6** enabled on `EvidenceReconciler` so a confirmed claim-total can clear the C3 confidence gate without inventing amounts.
+4. **DOB token assembly** keeps edge-glyph stripping; currency span rejects NPI-adjacent `$1.00` artifacts.
+
+Still not an identity-policy waiver. Empty/contaminated crops remain HITL.

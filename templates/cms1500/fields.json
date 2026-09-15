@@ -135,10 +135,10 @@
       "field_type": "date",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 667,
-      "x1": 886,
-      "y0": 402,
-      "y1": 459
+      "x0": 672,
+      "x1": 871,
+      "y0": 424,
+      "y1": 457
     },
     {
       "field_name": "patient_sex",
@@ -225,10 +225,10 @@
       "field_type": "currency",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1280,
-      "x1": 1470,
-      "y0": 1750,
-      "y1": 1811
+      "x0": 1335,
+      "x1": 1465,
+      "y0": 1760,
+      "y1": 1805
     },
     {
       "field_name": "amount_paid",

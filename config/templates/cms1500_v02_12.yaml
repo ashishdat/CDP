@@ -116,10 +116,10 @@ field_regions:
     y1: 459
     field_type: text
   - field_name: patient_dob
-    x0: 667
-    y0: 402
-    x1: 886
-    y1: 459
+    x0: 672
+    y0: 424
+    x1: 871
+    y1: 457
     field_type: date
   - field_name: patient_sex
     x0: 886
@@ -170,10 +170,10 @@ field_regions:
     y1: 1811
     field_type: text
   - field_name: total_charge
-    x0: 1280
-    y0: 1750
-    x1: 1470
-    y1: 1811
+    x0: 1335
+    y0: 1760
+    x1: 1465
+    y1: 1805
     field_type: currency
   - field_name: amount_paid
     x0: 1470

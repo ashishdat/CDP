@@ -99,6 +99,7 @@ def assemble(ocr_path, ranking_path, validation_path, output):
             'validated_candidates':len(validated),'field_status_counts':counts},
         'warnings':warnings,'errors':[], 'telemetry':telemetry,
         'source_artifacts':{'geometry':gp,'ocr':op,'ranking':rp,'validation':vp},
+        'service_lines':ocr.get('service_lines') or [],
         'confidence_basis':'Saved winning candidate raw OCR confidence; not document confidence',
         'stop_after':'extraction_result','decision_called':False,'evidence_called':False,
         'note':'ASSEMBLED means artifact assembly completed; it does not mean fields or claim accepted.'}
