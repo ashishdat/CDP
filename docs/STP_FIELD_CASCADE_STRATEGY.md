@@ -59,3 +59,4 @@ Cascade + Phase 2 raise recovery; they do not waive identity gates or invent ink
 - `scripts/complete_from_extraction.py` — inject derived total onto authorized OCR shell
 - `config/field_cascade_strategy.yaml` — declared ladder / Phase 2 notes
 - `config/ocr_preprocessing_phase8_10.yaml` — DOB/currency/charges profiles
+Currency preprocess is limited to charge fields — full-page bbox OCR is kept for DOB/name/ID (crop-then-OCR shifted DOB digits on sample B).

@@ -81,13 +81,27 @@ def _preprocessing_registry():
 
 
 def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
-    # Phase 2: apply field-typed preprocess on the crop, then OCR the enhanced crop.
-    x0, y0, x1, y1 = (int(v) for v in bbox)
-    crop = image.crop((x0, y0, x1, y1))
-    applied = _preprocessing_registry().apply(crop, name, field_type or '')
-    crop_image = applied.image
-    crop_bbox = (0, 0, crop_image.width, crop_image.height)
-    routed = router.route(OCRRouteRequest(crop_image, crop_bbox, engine_order=engine_order))
+    # Phase 2: currency crops get Phase-8.10 preprocess. Other fields keep full-page
+    # bbox OCR — crop-then-OCR shifted DOB digit assembly on sample B (10/29→11/29).
+    currency_fields = {
+        'total_charge', 'total_charges', 'charges', 'charge_amount', 'amount_paid',
+    }
+    use_preprocess = (
+        (name or '').casefold() in currency_fields
+        or 'currency' in (field_type or '').casefold()
+        or 'money' in (field_type or '').casefold()
+    )
+    applied_profile = 'recorded_canonical_region'
+    applied_version = 'none'
+    if use_preprocess:
+        x0, y0, x1, y1 = (int(v) for v in bbox)
+        crop = image.crop((x0, y0, x1, y1))
+        applied = _preprocessing_registry().apply(crop, name, field_type or '')
+        route_image, route_bbox = applied.image, (0, 0, applied.image.width, applied.image.height)
+        applied_profile, applied_version = applied.profile, applied.version
+    else:
+        route_image, route_bbox = image, tuple(int(v) for v in bbox)
+    routed = router.route(OCRRouteRequest(route_image, route_bbox, engine_order=engine_order))
     candidates = []
     attempts = []
     for attempt in routed.attempts:
@@ -95,7 +109,7 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
         attempts.append({'engine': attempt.engine, 'reason': attempt.reason,
                          'latency_ms': attempt.latency_ns / 1e6,
                          'observation': asdict(observation) if observation else None,
-                         'preprocessing_profile': applied.profile})
+                         'preprocessing_profile': applied_profile})
         if observation is None or not observation.lines:
             continue
         raw = chr(10).join(line.text for line in observation.lines)
@@ -106,8 +120,8 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
         candidate = OCRCandidate(
             value=selected, raw_value=raw, engine=attempt.engine,
             model_name='unknown', model_version='unknown',
-            preprocessing_variant=applied.profile,
-            preprocessing_version=applied.version,
+            preprocessing_variant=applied_profile,
+            preprocessing_version=applied_version,
             raw_confidence=float(np.mean([line.confidence for line in observation.lines])),
             calibrated_confidence=None, bounding_box=box,
             latency_ms=attempt.latency_ns / 1e6)

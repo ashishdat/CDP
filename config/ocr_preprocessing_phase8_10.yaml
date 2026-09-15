@@ -13,7 +13,9 @@ field_rules:
   # DATE_DELIMITER_V2 is DOB-only: service_date crops regressed under that profile.
   # NAME_STROKE_V2 remains defined for explicit override / recovery experiments only.
   - {profile: DIGIT_PRESERVING_V2, contains: [provider_npi, npi, federal_tax_no, tax_id]}
-  - {profile: DATE_DELIMITER_V2, contains: [patient_dob, dob]}
+  # DATE_DELIMITER_V2 left defined for experiments; DOB cascade digit-band already
+  # recovers MM/DD/YYYY without this profile (Phase 2 smoke: preprocess flipped 10/29→11/29).
+  # - {profile: DATE_DELIMITER_V2, contains: [patient_dob, dob]}
   - {profile: CURRENCY_DECIMAL_V2, contains: [total_charge, charge_amount, charges, currency]}
   # CPT/HCPCS only — ICD letter categories (I10) regress under stroke sharpening.
   - {profile: ALPHANUMERIC_STROKE_V2, contains: [cpt, hcpcs]}
