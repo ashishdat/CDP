@@ -320,10 +320,11 @@ def recognize_service_lines(image, router, template):
                 if value[0] != '0' and not value.startswith('1.'):
                     score += 1
                 # Dashed-rule crops like "-200-\nLAAM" are not service charges.
-                # Allow / and | — common OCR noise inside repaired amounts (I/00 → 100.00).
+                # Allow / | : ? — common OCR noise inside repaired amounts
+                # (I/00 → 100.00, 200:00 → 200.00, 200? → 200.00).
                 import re as _re_noise
                 raw_u = (raw or '').upper()
-                if _re_noise.search(r'[^0-9A-Z./|\s,-]', raw_u) or _re_noise.fullmatch(r'[\s\-.,/|]*', raw or ''):
+                if _re_noise.search(r'[^0-9A-Z./|:?\s,-]', raw_u) or _re_noise.fullmatch(r'[\s\-.,/|:?]*', raw or ''):
                     score = 0
                     value = None
             candidate = {
