@@ -93,15 +93,33 @@ forbid labeling plumbing misses as handwriting gaps.
 
 ## Implementation slices (in order)
 
-1. **P0 — E3 source fix** (done in this change): read `registration_report.json`
+1. **P0 — E3 source fix** (done): read `registration_report.json`
    (and geometry field registration) in `complete_from_extraction`.
-2. **P0 — Honest gap taxonomy**: skip / reclassify when reason codes include
+2. **P0 — Honest gap taxonomy** (done): skip / reclassify when reason codes include
    `MISSING_E3_*`.
 3. **P1 — Canonical RegistrationEvidence**: write one artifact from app.py;
    GeometryResult carries `registration_ref`.
-4. **P1 — Registration recovery ladder** on ops path (enhance → alternate
-   template → HITL).
-5. **P2 — Residual DOB/charge cascade** only on Track-B HITL after E3-complete.
+4. **P1 — Registration recovery ladder** (done on ops path): one cause-specific
+   enhance retry — `IMAGE_ENHANCEMENT` (poor-scan) or `ALTERNATIVE_REGISTRATION`
+   (perspective/rotation gates, including mixed poor-scan+geometric). Same
+   template only; no threshold softening. Probe:
+   `evaluation_results/hackathon_1000_cascade_v6/registration_recovery_probe/`.
+5. **P2 — Residual DOB/charge cascade** (done on Track-B): day-edge `YYYY MM`
+   DOB token assembly, multi-band `dob_cells`, charge far-right crop + digit
+   whitelist, service-line charge scorer tolerates OCR `:`/`?` in raw when span
+   already yields currency. Track-B residual probe **3/3 true STP**:
+   `evaluation_results/hackathon_1000_cascade_v6/track_b_residual_probe_v2b/`.
+
+## Track-B residual probe (Group A DJJF.002 / .010 / .012)
+
+| Claim | Prior | After ladder + DOB/charge | Notes |
+|---|---|---|---|
+| M048DJJF.002 | DOB HITL | **true STP** | digit-band `116 11946 07` → `07/16/1946` |
+| M048DJJF.010 | registration fail / charge residual | **true STP** | registers; charge via line OCR |
+| M048DJJF.012 | charge via lines (flaky) | **true STP** | `200?` raw kept after `:`/`?` allowlist |
+
+Registration remain Track-A HITL when both primary and one enhance fail gates
+(no invented templates / no softened inlier floors).
 
 ## Metrics rules going forward
 

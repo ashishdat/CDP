@@ -1,0 +1,64 @@
+{
+  "run": "hackathon_1000_cascade_v7_track_b_residual",
+  "generated_at": "2026-09-15T16:55:00+00:00",
+  "architecture": "field-cascade-v7 / docs/STP_PIPELINE_ARCHITECTURE_V7.md",
+  "slices": {
+    "registration_recovery_ladder": {
+      "status": "shipped",
+      "ops_path": "app.py register_classified_document",
+      "strategies": [
+        "IMAGE_ENHANCEMENT",
+        "ALTERNATIVE_REGISTRATION"
+      ],
+      "constraints": [
+        "at most one automated retry",
+        "same accepted template",
+        "no threshold softening",
+        "no invented DOB/amounts"
+      ],
+      "probe_path": "evaluation_results/hackathon_1000_cascade_v6/registration_recovery_probe",
+      "probe_n": 10,
+      "probe_accepted": 4,
+      "perspective_only_accepted": "4/5 in initial ladder probe (nondeterministic across re-runs)"
+    },
+    "track_b_dob_charge_residual": {
+      "status": "shipped",
+      "changes": [
+        "DOB token assembly: day-edge YYYY MM (116 11946 07 -> 07/16/1946)",
+        "J->1 confusable; multi-band dob_cells",
+        "charges_far_right crop + digit-whitelist OCR",
+        "service-line charge scorer allows :/? in raw when span is currency-shaped"
+      ],
+      "probe_path": "evaluation_results/hackathon_1000_cascade_v6/track_b_residual_probe_v2b",
+      "claims": [
+        {
+          "document": "Group A/M048DJJF.002",
+          "prior": "patient_dob HITL",
+          "true_stp": true,
+          "patient_dob": "1946-07-16",
+          "total_charge": "910.00"
+        },
+        {
+          "document": "Group A/M048DJJF.010",
+          "prior": "registration fail or charge residual",
+          "true_stp": true,
+          "patient_dob": "2009-07-19",
+          "total_charge": "270.01"
+        },
+        {
+          "document": "Group A/M048DJJF.012",
+          "prior": "charge via service lines (flaky on :/? raw)",
+          "true_stp": true,
+          "patient_dob": "2005-07-21",
+          "total_charge": "200.00"
+        }
+      ],
+      "completed": 3,
+      "true_stp": 3,
+      "true_stp_rate_of_completed": 1.0,
+      "field_ink_hitl": 0,
+      "registration_hitl": 0
+    }
+  },
+  "note": "Operational completion / true-STP / HITL only — no field-level GT on Hackathon corpus."
+}
