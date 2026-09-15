@@ -12,6 +12,8 @@ from .failure_analysis import classify_extraction_failure
 from .ranking import CandidateScoringPolicy, rank_candidates
 from .roi_insets import ROI_INSETS, inset_bbox
 from .span_selection import select_field_span, span_datatype_for_field
+from .strategy import load_cascade_strategy, crop_ladder_for, post_miss_for
+from .gap_taxonomy import classify_field_gap, GapClassification
 from .field_cascade import (
     FieldCascade,
     CascadeResult,
@@ -43,4 +45,9 @@ __all__ = [
     "crop_variants",
     "load_route_engines",
     "semantic_accept",
+    "load_cascade_strategy",
+    "crop_ladder_for",
+    "post_miss_for",
+    "classify_field_gap",
+    "GapClassification",
 ]

@@ -173,3 +173,12 @@ Metrics: `docs/metrics/sample_b_cascade_v4_metrics.json`.
 
 Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v5/`.
 Metrics: `docs/metrics/sample_b_cascade_v5_metrics.json`.
+
+## Phase 6 — architecture redesign (current)
+
+See `docs/STP_FIELD_CASCADE_ARCHITECTURE_V6.md`.
+
+- YAML (`config/field_cascade_strategy.yaml`) is the strategy source of truth.
+- Orchestrator default: `field-cascade-v6`.
+- Independent ops validation: Sample A (`fix_sample`), not Sample B.
+- Independent accuracy: Golden Pack V3 harness.

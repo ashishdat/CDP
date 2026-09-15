@@ -13,6 +13,8 @@ Principles
    exhausted only until a semantic accept fires.
 4. Empty / contaminated financial crops stay empty — cascade never invents
    amounts. Claim-total E6 remains crop-total ∩ Σ line charges.
+5. Strategy id, crop ladders, and post-miss stages come from
+   ``config/field_cascade_strategy.yaml`` (field-cascade-v6).
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from pathlib import Path
 import yaml
 
 from .span_selection import select_field_span, span_datatype_for_field
+from .strategy import crop_ladder_for, load_cascade_strategy
 
 _ROUTE_PATH = Path(__file__).resolve().parents[2] / "config" / "ocr_field_routes.yaml"
 
@@ -76,7 +79,7 @@ class CascadeResult:
     cascade_trace: list[CascadeStepResult] = field(default_factory=list)
     accepted: bool = False
     accept_reason: str = "EXHAUSTED"
-    strategy_id: str = "field-cascade-v4"
+    strategy_id: str = "field-cascade-v6"
 
 
 RecognizeFn = Callable[
@@ -152,6 +155,22 @@ def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
         return False, "NOT_ID_SHAPED"
 
     return True, "NON_EMPTY"
+
+
+def _order_by_strategy_ladder(field_name: str, variants: list[CropVariant]) -> list[CropVariant]:
+    """Order / filter crop variants using the declared strategy ladder."""
+    ladder = crop_ladder_for(field_name)
+    if not ladder:
+        return variants
+    by_id = {variant.variant_id: variant for variant in variants}
+    ordered: list[CropVariant] = []
+    for variant_id in ladder:
+        variant = by_id.pop(variant_id, None)
+        if variant is not None:
+            ordered.append(variant)
+    # Keep any code-defined variants not yet listed in YAML (forward-compatible).
+    ordered.extend(by_id.values())
+    return ordered
 
 
 def crop_variants(
@@ -235,7 +254,7 @@ def crop_variants(
             continue
         seen.add(variant.bbox)
         unique.append(variant)
-    return unique
+    return _order_by_strategy_ladder(field_name, unique)
 
 
 def charge_column_windows(primary_x0: int, primary_x1: int) -> list[tuple[str, int, int]]:
@@ -263,10 +282,10 @@ class FieldCascade:
         self,
         *,
         route_path: Path | None = None,
-        strategy_id: str = "field-cascade-v4",
+        strategy_id: str | None = None,
     ) -> None:
         self._route_path = route_path
-        self.strategy_id = strategy_id
+        self.strategy_id = strategy_id or load_cascade_strategy().strategy_id
 
     def recognize(
         self,

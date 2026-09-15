@@ -1,37 +1,71 @@
-# Field-cascade OCR strategy (operational CMS-1500 STP)
-version: field-cascade-v3
-status: ACTIVE
-phase: 3
-
-
-# Order of work for every critical field:
-#   1. Build typed crop variants (primary → specialty bands)
-#   2. Run governed route engines (primary → confirmation → fallback)
-#   3. Span-select observed text (never invent characters)
-#   4. Semantically accept field-shaped values; else continue / HITL
+# Field-cascade OCR strategy — operational CMS-1500 STP
 #
-# Honesty constraints:
-#   - Empty or NPI-contaminated total_charge crops stay empty
-#   - Claim-total E6: crop total ∩ Σ lines (CLAIM_TOTAL_CONFIRMED)
-#   - Phase 2: empty box-28 + observed line charges → LINE_TOTALS_RECONCILED (no invented amounts)
-#   - Phase 2: DATE_DELIMITER_V2 / CURRENCY_DECIMAL_V2 preprocess on cascade crops
-#   - Phase 3: insured_name must have route authority (parity with patient_name)
-#   - Phase 3: DOB compact stream recovers CJK/confusable digit fragments; no invented dates
-#   - Cascade maximizes recovery of real ink; it does not invent amounts or DOBs
+# Version field-cascade-v6 consolidates Sample B cascade-v5 learnings into one
+# declared architecture. YAML is the source of truth for strategy id, crop
+# ladders, post-miss stages, and honesty rules. Crop bbox math stays in code.
+#
+version: field-cascade-v6
+status: ACTIVE
+phase: 6
+
+# Pipeline stages (ops path). Later stages must not invent ink.
+stages:
+  - id: roi_inset
+    role: Shrink DOB/charge windows inside the safe cell (no re-registration).
+  - id: crop_ladder
+    role: Typed crop variants ordered per field (digit-band, year-wide, NPI-cleared).
+  - id: route_engines
+    role: Governed engines from ocr_field_routes.yaml (primary → confirmation → fill).
+  - id: span_select
+    role: Always span-select observed text before accept (even when OCR non-empty).
+  - id: semantic_accept
+    role: Stop only on field-shaped values (DATE / CURRENCY / NAME / ID).
+  - id: post_miss
+    role: Declared fallbacks after cascade miss (e.g. DOB cell OCR) — still observed ink only.
+  - id: service_lines
+    role: Probe service-line charges; skip header rows; currency can prove liveness.
+  - id: completion_e6
+    role: LINE_TOTALS_RECONCILED when box-28 empty + observed line charges (not invented).
+
+honesty:
+  - Never invent DOBs or amounts; empty / unreadable ink → HITL.
+  - No identity-policy softening to chase STP rate.
+  - Glyph repair only on observed confusables (e.g. I/00 → 100.00, 983 → 1983).
+  - True STP = FinalClaim completed AND review_required=false.
+  - Residual handwriting with header-only OCR stays HITL (scan/ROI / handwriting model / human).
 
 defaults:
   engine_source: config/ocr_field_routes.yaml
   stop_on: semantic_accept
   exhaust_action: keep_best_nonempty_or_empty
+  always_span_select: true
+
+# Maps strategy ladder ids → CropVariant.variant_id produced by crop_variants().
+crop_id_aliases:
+  primary: primary
+  dob_digit_band: dob_digit_band
+  dob_loose: dob_loose
+  dob_year_wide: dob_year_wide
+  charge_npi_cleared: charge_npi_cleared
+  charge_taller: charge_taller
+  name_value_band: name_value_band
+  id_value_band: id_value_band
+  charges_primary: charges_primary
+  charges_mid: charges_mid
+  charges_right: charges_right
 
 fields:
   patient_dob:
-    crop_ladder: [primary, dob_digit_band, dob_loose]
+    crop_ladder: [primary, dob_digit_band, dob_loose, dob_year_wide]
     accept: DATE_SHAPED
+    post_miss: [dob_cells]
+    notes: Year-wide crop + century-clip / split-day span repair; gated cell OCR after miss.
   total_charge:
     crop_ladder: [primary, charge_npi_cleared, charge_taller]
     accept: CURRENCY_SHAPED
     reject: [CURRENCY_LEADING_MINUS, CURRENCY_SUSPICIOUS_TINY, EMPTY]
+    completion: [LINE_TOTALS_RECONCILED]
+    notes: Currency confusable repair on observed glyphs; line-sum when box-28 empty.
   patient_name:
     crop_ladder: [primary, name_value_band]
     accept: NAME_SHAPED
@@ -44,3 +78,14 @@ fields:
   charges:
     crop_ladder: [charges_primary, charges_mid, charges_right]
     accept: CURRENCY_SHAPED
+
+# Residual HITL taxonomy (honest classification — not auto-accept paths).
+gap_classes:
+  HANDWRITING_UNREADABLE:
+    action: Keep HITL; needs scan/ROI quality, handwriting model, or human entry.
+  AMBIGUOUS_DIGIT_FRAGMENTS:
+    action: Prefer crop/span repair; HITL if no unique calendar-valid date.
+  EMPTY_FINANCIAL_INK:
+    action: Prefer service-line sum when charges observed; else HITL.
+  NPI_CONTAMINATED_CHARGE:
+    action: NPI-cleared crop; empty if still contaminated (never invent).

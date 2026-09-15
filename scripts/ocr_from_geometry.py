@@ -27,6 +27,7 @@ from packages.extraction_recovery.field_cascade import (
     charge_column_windows,
     semantic_accept,
 )
+from packages.extraction_recovery.strategy import post_miss_for
 from packages.ocr.contracts import OCRCandidate
 from packages.ocr_router import OCRRouter, OCRRouteRequest
 from packages.templates.registry import TemplateRegistry
@@ -430,7 +431,7 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
     if template is not None:
         for region in template.field_regions:
             template_fields[region.field_name] = (region.x0, region.y0, region.x1, region.y1)
-    cascade = FieldCascade(strategy_id='field-cascade-v5')
+    cascade = FieldCascade()
     rows = []
 
     def _recognize_with_engines(field_name, bbox, field_type, engines):
@@ -456,7 +457,7 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
         )
         # IJN2.022 / handwriting DOB: whole-band OCR fragments MM/DD/YY; cell
         # segmentation recovers calendar-valid dates from observed digit ink only.
-        if field['field'] == 'patient_dob' and not cascaded.accepted:
+        if (not cascaded.accepted) and 'dob_cells' in post_miss_for(field['field']):
             from packages.extraction_recovery.field_cascade import load_route_engines, CascadeResult, CascadeStepResult
             engines = load_route_engines('patient_dob')
             cell_box = (int(cell['x0']), int(cell['y0']), int(cell['x1']), int(cell['y1']))
@@ -497,7 +498,7 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     cascade_trace=list(cascaded.cascade_trace),
                     accepted=True,
                     accept_reason=accept_reason,
-                    strategy_id='field-cascade-v5',
+                    strategy_id=cascade.strategy_id,
                 )
         rows.append({
             'field': field['field'],
