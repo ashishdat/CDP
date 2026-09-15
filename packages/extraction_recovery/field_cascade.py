@@ -76,7 +76,7 @@ class CascadeResult:
     cascade_trace: list[CascadeStepResult] = field(default_factory=list)
     accepted: bool = False
     accept_reason: str = "EXHAUSTED"
-    strategy_id: str = "field-cascade-v3"
+    strategy_id: str = "field-cascade-v4"
 
 
 RecognizeFn = Callable[
@@ -255,7 +255,7 @@ class FieldCascade:
         self,
         *,
         route_path: Path | None = None,
-        strategy_id: str = "field-cascade-v3",
+        strategy_id: str = "field-cascade-v4",
     ) -> None:
         self._route_path = route_path
         self.strategy_id = strategy_id

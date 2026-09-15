@@ -157,3 +157,35 @@ JJJM.014). Residual HITL is real ink/calibration gaps, not missing route authori
 Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v3/`.
 Metrics: `docs/metrics/sample_b_cascade_v3_metrics.json`.
 
+## Phase 4: residual gap closure
+
+### Identified gaps (post Phase 3)
+
+1. **Cascade span skip** — DOB digit-band values like `12 26l 108` were never assembled because cascade only spanned empty OCR.
+2. **Member-id near-miss** — IJN2.005 had full deterministic + E6 relationship evidence at calibrated ~0.97 vs C3 0.98 gate.
+3. **Hard HITL remainders** — IJN2.022 ambiguous DOB ink; HJHK.005 empty DOB + no line charges.
+
+### Fixes shipped
+
+- Always span-select before semantic accept
+- DOB trailing-letter / 3-digit-year recovery + calendar validation
+- Identity-corroborated C3 threshold relief (0.95) with `IDENTITY_CORROBORATED_THRESHOLD_RELIEF`
+
+### Sample B after Phase 4
+
+| Metric | Phase 3 | Phase 4 |
+|--------|---------|---------|
+| True STP | 2 / 6 | **4 / 6** |
+| `patient_dob` auto | 3 / 6 | **4 / 6** |
+| `insured_id_number` auto | 5 / 6 | **6 / 6** |
+| Dominant blockers | DOB 3, id 1, total 1 | **DOB 2**, total **1** |
+
+Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v4/`.
+Metrics: `docs/metrics/sample_b_cascade_v4_metrics.json`.
+
+### Next honest levers (not policy waivers)
+
+- Retarget DOB ROI / handwriting specialist OCR for fragmented digit cells
+- Service-line geometry for scans with blank box-28 and missed line table
+- Do **not** invent DOBs or totals when ink is absent/ambiguous
+

@@ -1,0 +1,37 @@
+{
+  "phase": "cascade-v4",
+  "sample": "sample_b",
+  "n_claims": 6,
+  "completed": "6/6",
+  "true_stp": "4/6",
+  "patient_dob_auto": "4/6",
+  "total_charge_auto": "5/6",
+  "patient_name_auto": "6/6",
+  "insured_id_auto": "6/6",
+  "insured_name_auto": "6/6",
+  "blockers": {
+    "patient_dob": 2,
+    "total_charge": 1
+  },
+  "vs_phase3": {
+    "true_stp": "2/6 -> 4/6",
+    "patient_dob_auto": "3/6 -> 4/6",
+    "insured_id_auto": "5/6 -> 6/6"
+  },
+  "remaining_gaps": [
+    {
+      "claim": "Group A__M048IJN2.022",
+      "gap": "patient_dob",
+      "class": "INK_FRAGMENT_AMBIGUOUS",
+      "evidence": "OCR streams like MM DD 1 1 3 1 9 3 a 1 / 3 1 9 1 98 1 1 do not form a unique calendar-valid date without inventing digits",
+      "action": "Keep HITL; optional next: alternate DOB crop geometry or handwriting model \u2014 not policy waiver"
+    },
+    {
+      "claim": "Group B__M048HJHK.005",
+      "gap": "patient_dob + total_charge",
+      "class": "EMPTY_INK",
+      "evidence": "DOB OCR is header-only (Mly DD); box-28 empty and zero observed service lines \u2014 no LINE_TOTALS_RECONCILED path",
+      "action": "Keep HITL; needs better ROI/scan quality or human entry \u2014 cannot invent amount or DOB"
+    }
+  ]
+}

@@ -123,3 +123,35 @@ Unlock STP on claims that already clear critical fields once `insured_name` is
 route-authorized; raise DOB auto without inventing dates.
 
 Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v3/`.
+
+## Phase 4 — residual gap closure (v4) — current
+
+### Gap inventory after Phase 3 (4 HITL claims)
+
+| Claim | Blocker | Gap class | Recoverable? |
+|-------|---------|-----------|--------------|
+| IJMP.002 | `patient_dob` | Digit-band OCR present (`12 26l 108`) but span never ran on non-empty OCR; trailing `l` / 3-digit year | **Yes** |
+| IJN2.005 | `insured_id_number` | FORMAT+HARD+MEMBER_RELATIONSHIP; calibrated ~0.97 under C3 0.98 | **Yes** (corroboration-backed) |
+| IJN2.022 | `patient_dob` | Ambiguous digit fragments; no unique calendar-valid date | No — HITL |
+| HJHK.005 | DOB + total | Empty DOB ink; empty box-28; **0** service lines | No — HITL |
+
+### Architecture changes
+
+1. **Cascade always span-selects** before semantic accept (fixes silent skip when OCR non-empty).
+2. **DOB assembly**: strip trailing letter bleed (`26l`→`26`); 3-digit year leading-1 (`108`→`08`); calendar-valid dates only.
+3. **Identity threshold relief**: C3 floor 0.95 when `HARD_VALIDATION_PASSED` + `MEMBER_RELATIONSHIP_CONFIRMED` (no invented IDs).
+
+### Sample B Phase 4 result
+
+| Metric | Phase 3 | Phase 4 |
+|--------|---------|---------|
+| True STP | 2/6 | **4/6** |
+| `patient_dob` auto | 3/6 | **4/6** |
+| `insured_id_number` auto | 5/6 | **6/6** |
+| `insured_name` auto | 6/6 | 6/6 |
+| `total_charge` auto | 5/6 | 5/6 |
+
+Remaining 2/6 are honest ink gaps (ambiguous DOB fragments; empty DOB + empty financials).
+
+Metrics: `docs/metrics/sample_b_cascade_v4_metrics.json`.
+
