@@ -10,8 +10,54 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, allow_nan=False)+'\n', encoding='utf-8')
 
 
+def _registration_confidence_from_document(document: dict) -> float | None:
+    from packages.recovery.registration_recovery import evidence_grade_alignment_confidence
+
+    registration = document.get('registration') or {}
+    evidence = registration.get('evidence') or {}
+    accepted = registration.get('accepted') is True
+    raw = registration.get('evidence_grade_alignment_confidence')
+    if raw is None:
+        raw = evidence.get('alignment_confidence')
+    if raw is not None:
+        return evidence_grade_alignment_confidence(float(raw), accepted=accepted)
+    if accepted:
+        # Accepted registration without a recorded score still clears the
+        # low-confidence gate once remapped from the acceptance floor.
+        return evidence_grade_alignment_confidence(0.40, accepted=True)
+    return None
+
+
+def _registration_confidence_from_report(report: dict) -> float | None:
+    """Ops app.py emits registration_report.json (not document.json)."""
+    from packages.recovery.registration_recovery import evidence_grade_alignment_confidence
+
+    for attempt in report.get('attempts') or []:
+        acceptance = attempt.get('acceptance') or {}
+        if acceptance.get('accepted') is not True:
+            continue
+        raw_evidence = attempt.get('raw_evidence') or {}
+        raw = (
+            acceptance.get('score')
+            if acceptance.get('score') is not None
+            else raw_evidence.get('alignment_confidence')
+        )
+        if raw is None:
+            raw = raw_evidence.get('homography_quality')
+        if raw is not None:
+            return evidence_grade_alignment_confidence(float(raw), accepted=True)
+        return evidence_grade_alignment_confidence(0.40, accepted=True)
+    return None
+
+
 def _load_registration_context(extraction):
-    """Load sibling registration/geometry artifacts for E3 without re-acquiring evidence."""
+    """Load sibling registration/geometry artifacts for E3 without re-acquiring evidence.
+
+    Acceptance order (first hit wins):
+    1. document.json registration blob (legacy / in-proc path)
+    2. registration_report.json next to GeometryResult (ops app.py path)
+    3. per-field result.registration.accepted on GeometryResult (last resort)
+    """
     from packages.evidence.models import (
         StructuralLocalizationEvidence,
         StructuralLocalizationType,
@@ -24,32 +70,44 @@ def _load_registration_context(extraction):
     registration_confidence = None
     localizations = {}
     warnings = []
+    confidence_source = None
 
-    document = None
     if geometry_path and geometry_path.is_file():
+        geometry = json.loads(geometry_path.read_text(encoding='utf-8'))
         document_path = geometry_path.parent / 'document.json'
         if document_path.is_file():
             document = json.loads(document_path.read_text(encoding='utf-8'))
-        geometry = json.loads(geometry_path.read_text(encoding='utf-8'))
+            registration_confidence = _registration_confidence_from_document(document)
+            if registration_confidence is not None:
+                confidence_source = 'document.json'
+        if registration_confidence is None:
+            report_path = geometry_path.parent / 'registration_report.json'
+            if report_path.is_file():
+                report = json.loads(report_path.read_text(encoding='utf-8'))
+                registration_confidence = _registration_confidence_from_report(report)
+                if registration_confidence is not None:
+                    confidence_source = 'registration_report.json'
+        if registration_confidence is None:
+            # GeometryResult rows already carry per-field accepted registration.
+            for row in geometry.get('fields') or []:
+                result = row.get('result') or {}
+                reg = result.get('registration') or {}
+                if reg.get('accepted') is True:
+                    registration_confidence = evidence_grade_alignment_confidence(
+                        0.40, accepted=True,
+                    )
+                    confidence_source = 'geometry_field_registration'
+                    break
+        if registration_confidence is None:
+            warnings.append({
+                'reason': (
+                    'Accepted registration confidence unavailable beside GeometryResult; '
+                    'E3 structural localization omitted.'
+                ),
+            })
     else:
         geometry = None
         warnings.append({'reason': 'Geometry artifact unavailable; E3 structural localization omitted.'})
-
-    if document:
-        registration = document.get('registration') or {}
-        evidence = registration.get('evidence') or {}
-        accepted = registration.get('accepted') is True
-        raw = registration.get('evidence_grade_alignment_confidence')
-        if raw is None:
-            raw = evidence.get('alignment_confidence')
-        if raw is not None:
-            registration_confidence = evidence_grade_alignment_confidence(
-                float(raw), accepted=accepted,
-            )
-        elif accepted:
-            # Accepted registration without a recorded score still clears the
-            # low-confidence gate once remapped from the acceptance floor.
-            registration_confidence = evidence_grade_alignment_confidence(0.40, accepted=True)
 
     if geometry and geometry.get('status') == 'SUCCESS' and registration_confidence is not None:
         confidence = float(registration_confidence)
@@ -72,6 +130,7 @@ def _load_registration_context(extraction):
                 reason_codes=(
                     'ACCEPTED_REGISTRATION_RECTIFIED_FRAME',
                     'TEMPLATE_FIELD_ROI_BOUNDED',
+                    f'E3_SOURCE:{confidence_source}',
                 ),
                 source='geometry',
                 field_name=name,

@@ -64,12 +64,14 @@ def _summarize_claim(claim_dir: Path) -> dict:
     ]
     gaps = []
     for blocker in decision.get("critical_blockers") or []:
-        observed_text = str(((fields.get(blocker) or {}).get("value")) or "")
+        field_info = fields.get(blocker) or {}
+        observed_text = str(field_info.get("value") or "")
         gap = classify_field_gap(
             blocker,
             observed_text=observed_text,
             accepted=False,
             service_line_charges=len(observed),
+            reason_codes=field_info.get("reasons") or [],
         )
         if gap is not None:
             gaps.append(
@@ -109,7 +111,7 @@ def main() -> int:
         default=ROOT
         / "evaluation_results/operational_e2e_100_v1_std_sample_a_cascade_v6",
     )
-    parser.add_argument("--strategy-label", default="field-cascade-v6")
+    parser.add_argument("--strategy-label", default="field-cascade-v7")
     args = parser.parse_args()
 
     src = args.src if args.src.is_absolute() else ROOT / args.src

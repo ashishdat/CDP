@@ -1,15 +1,21 @@
 # Field-cascade OCR strategy — operational CMS-1500 STP
 #
-# Version field-cascade-v6 consolidates Sample B cascade-v5 learnings into one
-# declared architecture. YAML is the source of truth for strategy id, crop
-# ladders, post-miss stages, and honesty rules. Crop bbox math stays in code.
+# Version field-cascade-v7 redesigns the ops pipeline around evidence contracts.
+# Crop ladders remain, but STP is gated on E3 registration evidence being
+# plumbed from RegistrationReport/GeometryResult into completion — not on
+# softer identity policy.
 #
-version: field-cascade-v6
+version: field-cascade-v7
 status: ACTIVE
-phase: 6
+phase: 7
+supersedes: field-cascade-v6
 
 # Pipeline stages (ops path). Later stages must not invent ink.
 stages:
+  - id: register
+    role: Emit RegistrationReport / RegistrationEvidence (E3 source of truth).
+  - id: geometry
+    role: Bind template ROIs; embed registration_ref + acceptance on GeometryResult.
   - id: roi_inset
     role: Shrink DOB/charge windows inside the safe cell (no re-registration).
   - id: crop_ladder
@@ -24,8 +30,16 @@ stages:
     role: Declared fallbacks after cascade miss (e.g. DOB cell OCR) — still observed ink only.
   - id: service_lines
     role: Probe service-line charges; skip header rows; currency can prove liveness.
+  - id: assemble
+    role: ExtractionResult must reference registration + geometry + ocr artifacts.
+  - id: complete_e3
+    role: Attach TEMPLATE_REGISTRATION_CONFIRMED (E3) from RegistrationReport/Geometry.
   - id: completion_e6
     role: LINE_TOTALS_RECONCILED when box-28 empty + observed line charges (not invented).
+  - id: decide
+    role: True STP only when critical evidence classes are complete; else Track-B HITL.
+  - id: gap_taxonomy
+    role: Classify residual ink gaps only after evidence-complete decision.
 
 honesty:
   - Never invent DOBs or amounts; empty / unreadable ink → HITL.
@@ -33,12 +47,18 @@ honesty:
   - Glyph repair only on observed confusables (e.g. I/00 → 100.00, 983 → 1983).
   - True STP = FinalClaim completed AND review_required=false.
   - Residual handwriting with header-only OCR stays HITL (scan/ROI / handwriting model / human).
+  - Missing E3 is an evidence-plumbing failure, never HANDWRITING_UNREADABLE.
+  - Report registration HITL and field-ink HITL as separate tracks.
 
 defaults:
   engine_source: config/ocr_field_routes.yaml
   stop_on: semantic_accept
   exhaust_action: keep_best_nonempty_or_empty
   always_span_select: true
+  e3_sources:
+    - registration_report.json
+    - document.json
+    - geometry_field_registration
 
 # Maps strategy ladder ids → CropVariant.variant_id produced by crop_variants().
 crop_id_aliases:
@@ -81,6 +101,10 @@ fields:
 
 # Residual HITL taxonomy (honest classification — not auto-accept paths).
 gap_classes:
+  EVIDENCE_PLUMBING_GAP:
+    action: Fix artifact contracts (attach E3/E6); do not treat as ink failure.
+  REGISTRATION_HITL:
+    action: Registration recovery ladder or human registration; field cascade not applicable.
   HANDWRITING_UNREADABLE:
     action: Keep HITL; needs scan/ROI quality, handwriting model, or human entry.
   AMBIGUOUS_DIGIT_FRAGMENTS:

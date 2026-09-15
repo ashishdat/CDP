@@ -1,0 +1,46 @@
+{
+  "run": "hackathon_1000_cascade_v6",
+  "stopped": true,
+  "stopped_reason": "Systemic HITL: MISSING_E3_REGISTRATION_EVIDENCE on all critical fields; redesign to v7",
+  "generated_at": "2026-09-15T15:30:18.001911+00:00",
+  "partial_n": 74,
+  "disposition_counts": {
+    "REGISTRATION_FAILED": 24,
+    "HITL": 50
+  },
+  "registration_ok": 50,
+  "registration_ok_rate": 0.6757,
+  "completed": 50,
+  "true_stp": 0,
+  "true_stp_rate_of_completed": 0.0,
+  "critical_blockers": {
+    "insured_id_number": 50,
+    "patient_name": 50,
+    "patient_dob": 50,
+    "total_charge": 50
+  },
+  "gap_classes_pre_v7": {
+    "HANDWRITING_UNREADABLE": 115,
+    "EMPTY_FINANCIAL_INK": 50,
+    "AMBIGUOUS_DIGIT_FRAGMENTS": 35
+  },
+  "root_cause": {
+    "primary": "MISSING_E3_REGISTRATION_EVIDENCE \u2014 complete_from_extraction only read document.json; ops emits registration_report.json",
+    "secondary": [
+      "registration failures ~32%",
+      "residual DOB/charge ink gaps after E3 fix"
+    ],
+    "dishonest_taxonomy": "HANDWRITING_UNREADABLE / EMPTY_FINANCIAL_INK applied while values existed"
+  },
+  "e3_fix_recomplete": {
+    "n": 8,
+    "true_stp": 5,
+    "true_stp_rate": 0.625,
+    "blockers": {
+      "patient_dob": 1,
+      "total_charge": 2
+    },
+    "note": "Same ExtractionResults re-completed after E3 source fix; no OCR re-run."
+  },
+  "architecture": "field-cascade-v7 / docs/STP_PIPELINE_ARCHITECTURE_V7.md"
+}

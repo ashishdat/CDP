@@ -133,6 +133,7 @@ def _summarize_final(claim_out: Path) -> dict[str, Any]:
             fields[name] = {
                 "disp": fd.get("disposition"),
                 "value": fd.get("selected_value"),
+                "reasons": list(fd.get("reason_codes") or [])[:12],
             }
     ocr_path = claim_out / "ocr" / "OCRCandidates.json"
     service_line_charges = 0
@@ -146,12 +147,14 @@ def _summarize_final(claim_out: Path) -> dict[str, Any]:
     blockers = list(decision.get("critical_blockers") or [])
     gaps = []
     for blocker in blockers:
-        observed_text = str(((fields.get(blocker) or {}).get("value")) or "")
+        field_info = fields.get(blocker) or {}
+        observed_text = str(field_info.get("value") or "")
         gap = classify_field_gap(
             blocker,
             observed_text=observed_text,
             accepted=False,
             service_line_charges=service_line_charges,
+            reason_codes=field_info.get("reasons") or [],
         )
         if gap is not None:
             gaps.append(

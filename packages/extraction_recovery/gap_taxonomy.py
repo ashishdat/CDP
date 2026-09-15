@@ -6,6 +6,14 @@ from dataclasses import dataclass
 
 from .strategy import load_cascade_strategy
 
+_E3_PLUMBING_REASONS = frozenset(
+    {
+        "MISSING_E3_REGISTRATION_EVIDENCE",
+        "ACQUIRE_E3",
+        "MISSING_E3",
+    }
+)
+
 
 @dataclass(frozen=True)
 class GapClassification:
@@ -21,12 +29,17 @@ def classify_field_gap(
     observed_text: str = "",
     accepted: bool = False,
     service_line_charges: int = 0,
+    reason_codes: list[str] | tuple[str, ...] | None = None,
 ) -> GapClassification | None:
-    """Classify why a critical field remains HITL after cascade exhaustion."""
+    """Classify why a critical field remains HITL after cascade exhaustion.
+
+    Plumbing failures (missing E3) must not be labeled as handwriting / empty ink.
+    """
     if accepted:
         return None
     name = (field_name or "").casefold()
     text = (observed_text or "").strip()
+    reasons = {str(r) for r in (reason_codes or [])}
     strategy = load_cascade_strategy()
     catalog = strategy.gap_classes
 
@@ -37,6 +50,12 @@ def classify_field_gap(
             action=str(meta.get("action") or "Keep HITL"),
             field_name=field_name,
             evidence=evidence,
+        )
+
+    if reasons & _E3_PLUMBING_REASONS:
+        return _pack(
+            "EVIDENCE_PLUMBING_GAP",
+            f"decision missing E3 registration evidence ({sorted(reasons & _E3_PLUMBING_REASONS)})",
         )
 
     if name in {"patient_dob", "date_of_birth"}:
