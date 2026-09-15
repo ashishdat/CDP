@@ -71,3 +71,40 @@ Currency preprocess is limited to charge fields — full-page bbox OCR is kept f
 | `total_charge` blockers | 6 | **1** |
 
 Metrics: `docs/metrics/sample_b_cascade_v2_metrics.json`.
+
+## Phase 3 — evidence completeness (v3) — current
+
+Phase 2 cleared the financial wall (`total_charge` 5/6) but **true STP stayed 0/6**.
+Root cause was not OCR engine capacity: `insured_name` had OBSERVED, NAME_SHAPED
+candidates that decision stripped as `CANDIDATE_ROUTE_AUTHORITY_MISSING` because
+the field was absent from `config/ocr_field_routes.yaml`. Residual DOB misses
+were fragmented digit streams (`04 1 了 .9 9 1 1`) aborted before compact assembly.
+
+### Strategy / architecture (reframed)
+
+| Change | Why |
+|--------|-----|
+| **`insured_name` route authority** | Parity with `patient_name` so OBSERVED OCR can enter evidence / STP |
+| **Name span: strip headers first** | Prefer ink below CMS parenthetical; reject `NATE, MIDALE` boilerplate |
+| **DOB compact recovery** | CJK confusables (`了→7`); do not abort on 1-digit year mid-stream; repair leading-`1` loss on `19xx` years from observed digits only |
+| **Cascade id `field-cascade-v3`** | Marks evidence-completeness phase (not a new OCR stack) |
+
+### Tech-stack decision
+
+**Keep Python + RapidOCR (Paddle primary in routes, Rapid runtime).** Bottleneck was
+evidence-architecture completeness (missing routes, span assembly, claim blockers),
+not Python vs cloud DocVQA. Defer Donut/LayoutLM/Textract until residual ink cannot
+be recovered by crop/span/route completeness.
+
+### Honesty / STP rules (unchanged)
+
+- No invented amounts or DOBs
+- No waiving identity gates
+- `insured_name` still blocks STP when unresolved; route authority lets real ink count
+
+## Sample B Phase 3 target
+
+Unlock STP on claims that already clear critical fields once `insured_name` is
+route-authorized; raise DOB auto without inventing dates.
+
+Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v3/`.

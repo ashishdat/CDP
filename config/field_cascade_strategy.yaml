@@ -1,7 +1,7 @@
 # Field-cascade OCR strategy (operational CMS-1500 STP)
-version: field-cascade-v2
+version: field-cascade-v3
 status: ACTIVE
-phase: 2
+phase: 3
 
 
 # Order of work for every critical field:
@@ -15,6 +15,8 @@ phase: 2
 #   - Claim-total E6: crop total ∩ Σ lines (CLAIM_TOTAL_CONFIRMED)
 #   - Phase 2: empty box-28 + observed line charges → LINE_TOTALS_RECONCILED (no invented amounts)
 #   - Phase 2: DATE_DELIMITER_V2 / CURRENCY_DECIMAL_V2 preprocess on cascade crops
+#   - Phase 3: insured_name must have route authority (parity with patient_name)
+#   - Phase 3: DOB compact stream recovers CJK/confusable digit fragments; no invented dates
 #   - Cascade maximizes recovery of real ink; it does not invent amounts or DOBs
 
 defaults:
@@ -31,6 +33,9 @@ fields:
     accept: CURRENCY_SHAPED
     reject: [CURRENCY_LEADING_MINUS, CURRENCY_SUSPICIOUS_TINY, EMPTY]
   patient_name:
+    crop_ladder: [primary, name_value_band]
+    accept: NAME_SHAPED
+  insured_name:
     crop_ladder: [primary, name_value_band]
     accept: NAME_SHAPED
   insured_id_number:

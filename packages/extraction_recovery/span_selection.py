@@ -49,7 +49,7 @@ _CMS_BOX_HEADER = re.compile(
     \b\d{1,2}[A-Z]?\.?\s*
     (?:
         PATIENT'?S?|PATENTS|PATT'?S?|PATTENT'?S?|
-        INSURED'?S?|INSUREO'?S?|INSUREO|INSUAED'?S?
+        INSURED'?S?|INSUREO'?S?|INSUREO|INSUAED'?S?|INSURFO'?S?|INSURF0'?S?
     )?\s*
     (?:
         NAME|
@@ -88,6 +88,11 @@ _OCR_CONFUSABLES = str.maketrans({
     "S": "5",
     "B": "8",
     "G": "6",
+    # Common CJK OCR confusions on handwritten digit bands.
+    "了": "7",
+    "專": "4",
+    "点": None,
+    "點": None,
 })
 
 
@@ -184,23 +189,24 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         # Drop a leading edge glyph on 5-digit years (e.g. "11970" → "1970").
         if len(year) == 5 and year[0] == "1" and 1900 <= int(year[1:]) <= 2100:
             year = year[1:]
-        if len(year) == 1:
-            return None
-        if len(year) == 2:
-            year = f"20{year}" if int(year) <= 36 else f"19{year}"
-        if len(month) == 1:
-            month = f"0{month}"
-        if len(day) == 1:
-            day = f"0{day}"
-        if (
-            re.fullmatch(r"\d{2}", month)
-            and re.fullmatch(r"\d{2}", day)
-            and re.fullmatch(r"\d{4}", year)
-            and 1 <= int(month) <= 12
-            and 1 <= int(day) <= 31
-            and 1900 <= int(year) <= 2100
-        ):
-            return f"{month}/{day}/{year}"
+        # Single-digit year tokens are usually mid-stream fragments; fall through
+        # to compact digit-stream assembly instead of aborting recovery.
+        if len(year) != 1:
+            if len(year) == 2:
+                year = f"20{year}" if int(year) <= 36 else f"19{year}"
+            if len(month) == 1:
+                month = f"0{month}"
+            if len(day) == 1:
+                day = f"0{day}"
+            if (
+                re.fullmatch(r"\d{2}", month)
+                and re.fullmatch(r"\d{2}", day)
+                and re.fullmatch(r"\d{4}", year)
+                and 1 <= int(month) <= 12
+                and 1 <= int(day) <= 31
+                and 1900 <= int(year) <= 2100
+            ):
+                return f"{month}/{day}/{year}"
     def _valid(month: str, day: str, year: str) -> str | None:
         if not (
             re.fullmatch(r"\d{2}", month)
@@ -213,14 +219,28 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             return None
         return f"{month}/{day}/{year}"
 
-    compact = re.sub(r"\D", "", _normalize_digit_token(re.sub(r"[^0-9A-Za-z]", "", text)))
+    # Apply confusables (including CJK) before stripping non-alnum so glyphs like
+    # 了→7 survive into the compact digit stream.
+    normalized_text = text.translate(_OCR_CONFUSABLES)
+    compact = re.sub(r"\D", "", _normalize_digit_token(re.sub(r"[^0-9A-Za-z]", "", normalized_text)))
     # Prefer digit streams that look like MM DD YY / MM DD YYYY / YYYY MM DD.
     if len(compact) == 6:
         return _valid(compact[:2], compact[2:4], f"20{compact[4:]}")
     if len(compact) == 8:
         if int(compact[:4]) > 1900:
-            return _valid(compact[4:6], compact[6:8], compact[:4])
-        return _valid(compact[:2], compact[2:4], compact[4:])
+            got = _valid(compact[4:6], compact[6:8], compact[:4])
+            if got:
+                return got
+        got = _valid(compact[:2], compact[2:4], compact[4:])
+        if got:
+            return got
+        # Leading-1 loss on 19xx years: MMDD9911 → MMDD1991 (observed ink only).
+        year = compact[4:]
+        if int(year) > 2100 and year[0] == "9":
+            repaired = "1" + year[:3]
+            got = _valid(compact[:2], compact[2:4], repaired)
+            if got:
+                return got
     # Fragmented OCR may yield 7-9 digits with an edge glyph; try dropping one edge.
     if len(compact) == 7:
         for candidate in (compact[1:], compact[:-1]):
@@ -237,41 +257,42 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
 
 def _person_name_from(text: str) -> str | None:
     upper = text.upper()
-    # Prefer an explicit Last, First pattern anywhere in the crop.
+    # Header / boilerplate OCR junk frequently appears as false Last, First pairs
+    # inside the parenthetical (e.g. "NaTe, Midale"). Strip first, then search.
     junk = {
         "LAST", "FIRST", "MIDDLE", "INITIAL", "NAME", "PATIENT", "INSURED",
-        "PROGRAM", "ITEM", "LNITIAL", "INILIAL", "MIDDLA", "NUMBER",
+        "PROGRAM", "ITEM", "LNITIAL", "INILIAL", "MIDDLA", "MIDALE", "MIDDIE",
+        "MIDDLA", "NUMBER", "NATE", "NAMO", "NAMF", "LASI", "FIRS", "INALAL",
+        "INILIAL", "IATTIAL", "INIIAL",
     }
-    for match in re.finditer(
-        r"\b([A-Z][A-Z'-]{1,30})[,.]\s*([A-Z][A-Z'-]{1,30}(?:\s+[A-Z])?)\b",
-        upper,
-    ):
-        last, first = match.group(1), match.group(2)
-        if last not in junk and first.split()[0] not in junk:
-            return f"{last}, {first}"
-    # CMS box headers must be removed before generic label phrases so
-    # "PATIENTS NAME" is not peeled out of "2. PATIENTS NAME (...)", which
-    # would leave the parenthetical LAST/FIRST boilerplate behind.
     cleaned, _ = _strip_cms_headers(upper)
     cleaned, _ = _strip_known_labels(cleaned)
     cleaned = _NAME_BOILERPLATE.sub(" ", cleaned)
-    cleaned = re.sub(r"[^A-Z0-9'. -]+", " ", cleaned)
+    # Keep commas so Last, First patterns survive cleanup.
+    cleaned = re.sub(r"[^A-Z0-9'., -]+", " ", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .'-")
-    # Drop a residual leading box number (e.g. "2. DOLIET ...").
     cleaned = re.sub(r"^\d{1,2}[A-Z]?\.?\s*", "", cleaned)
-    match = re.search(
-        r"([A-Z][A-Z'-]{1,30})[,.]\s*([A-Z][A-Z'-]{1,30}(?:\s+[A-Z])?)$",
+
+    matches: list[str] = []
+    for match in re.finditer(
+        r"\b([A-Z][A-Z'-]{1,30})[,.]\s*([A-Z][A-Z'-]{1,30}(?:\s+[A-Z])?)\b",
         cleaned,
-    )
-    if match:
-        return f"{match.group(1)}, {match.group(2)}"
+    ):
+        last, first = match.group(1), match.group(2)
+        if last not in junk and first.split()[0] not in junk:
+            matches.append(f"{last}, {first}")
+    # Prefer the last Last, First in the crop — printed headers sit above ink.
+    if matches:
+        return matches[-1]
+
     words = [w for w in cleaned.split() if w and w not in _DOB_HEADER_TOKENS]
     while words and re.fullmatch(r"\d+[A-Z]?", words[0]):
         words = words[1:]
     stop = {
         "LAST", "FIRST", "MIDDLE", "INITIAL", "NAME", "PATIENT", "INSURED",
         "FOR", "PROGRAM", "ITEM", "TEM", "LNITIAL", "INILIAL", "MIDDLA",
-        "NUMBER", "BIRTH", "DATE", "LASI", "PATT", "PATTENT", "PATENTS",
+        "MIDALE", "MIDDIE", "NUMBER", "BIRTH", "DATE", "LASI", "PATT",
+        "PATTENT", "PATENTS", "NATE", "NAMO", "NAMF",
     }
     words = [w for w in words if w not in stop]
     if len(words) >= 2 and all(re.search(r"[A-Z]", w) for w in words[:2]):

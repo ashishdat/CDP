@@ -47,6 +47,29 @@ ocr_routes:
     confirmation_mode: SELECTIVE_E2_ONLY
     benchmark_artifact: evaluation_results/operational_e2e_100_v1/summary.json
     warning: Aligned to paddleocr/rapidocr after ROI correction; tesseract is unavailable in the operational runtime.
+  insured_name:
+    route_id: ANY.insured_name.paddleocr.rapidocr.v1
+    field: insured_name
+    form: "*"
+    primary_engine: paddleocr
+    confirmation_engine: rapidocr
+    preprocessing_profile: recorded-canonical-field-crop-v1
+    policy_version: evidence-policy-v2-candidate
+    benchmark_dataset: synthetic_public_v3
+    sample_count: 120
+    standalone_accuracy: 0.85
+    agreement_precision: 1.0
+    false_agreement_count: 0
+    mean_latency_ms: 931.1862333338164
+    cost_per_call_usd: null
+    cost_status: LOCAL_CPU_COST_NOT_METERED
+    status: PRODUCTION_APPROVED
+    approved_by: CDP_PHASE3_EVIDENCE_COMPLETENESS
+    approved_at: 2026-09-15T12:00:00Z
+    approval_scope: CMS1500_INSURED_NAME_ROUTE_AUTHORITY_PARITY
+    confirmation_mode: SELECTIVE_E2_ONLY
+    benchmark_artifact: evaluation_results/operational_e2e_100_v1/summary.json
+    warning: Route authority parity with patient_name. Missing route previously stripped OBSERVED OCR as CANDIDATE_ROUTE_AUTHORITY_MISSING and blocked STP.
   patient_dob:
     route_id: ANY.patient_dob.paddleocr.rapidocr.v1
     field: patient_dob

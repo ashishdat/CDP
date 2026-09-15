@@ -111,3 +111,39 @@ force claim review even when critical blockers are clear.
 
 Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v2/`.
 
+## Phase 3: evidence completeness (route + span) — reframed
+
+### Diagnosis (after Phase 2)
+
+1. **`insured_name` false STP wall** — OCR already returned NAME_SHAPED values
+   (e.g. `DUNCANTEEANY`, `TRIPLETT .AARON E`) but decision emitted
+   `CANDIDATE_ROUTE_AUTHORITY_MISSING` because `insured_name` had no
+   `ocr_field_routes.yaml` entry (`blocks_stp: true`, C1).
+2. **DOB residual** — fragmented streams with CJK confusables aborted when a
+   1-digit year token short-circuited before compact digit-stream assembly.
+3. **Name header bleed** — span matched parenthetical `NaTe, Midale` before the
+   real ink line under the CMS header.
+
+### Tech stack
+
+**Do not rewrite the stack.** RapidOCR/Paddle routes remain; optional Paddle
+install later. DocVQA / Donut / Textract deferred — architecture completeness
+first.
+
+### Architecture changes
+
+1. Add **`insured_name` PRODUCTION_APPROVED route** (parity with `patient_name`).
+2. **Name span** strips CMS headers before Last, First search; prefers last match;
+   expands boilerplate junk (`MIDALE`, `NATE`, …); keeps commas.
+3. **DOB assembly** maps `了→7`, falls through 1-digit year to compact stream,
+   repairs `MMDD9911 → MMDD1991` when year > 2100 and starts with `9`.
+4. Cascade strategy **`field-cascade-v3`**.
+
+See `docs/STP_FIELD_CASCADE_STRATEGY.md` (Phase 3).
+
+### Sample B after Phase 3
+
+(filled after reprocess)
+
+Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v3/`.
+

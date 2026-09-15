@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reprocess sample-B claims through OCR→…→complete with Phase-2 cascade.
+"""Reprocess sample-B claims through OCR→…→complete with Phase-3 cascade.
 
 Usage:
   python3 scripts/reprocess_sample_b_cascade_v2.py
@@ -15,8 +15,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "evaluation_results/operational_e2e_100_v1_fix_sample_b"
-OUT = ROOT / "evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v2"
-CRITICAL = ("patient_dob", "total_charge", "patient_name", "insured_id_number")
+OUT = ROOT / "evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v3"
+CRITICAL = ("patient_dob", "total_charge", "patient_name", "insured_id_number", "insured_name")
 
 
 def _run(module: str, *args: str) -> None:
@@ -149,11 +149,12 @@ def main() -> int:
             "total_charge_auto": f"{auto['total_charge']}/{max(completed, 1)}",
             "patient_name_auto": f"{auto['patient_name']}/{max(completed, 1)}",
             "insured_id_auto": f"{auto['insured_id_number']}/{max(completed, 1)}",
+            "insured_name_auto": f"{auto['insured_name']}/{max(completed, 1)}",
         },
         "blockers": dict(blockers),
-        "strategy": "field-cascade-v2",
+        "strategy": "field-cascade-v3",
     }
-    (OUT / "cascade_v2_reprocess.json").write_text(json.dumps(rows, indent=2) + "\n")
+    (OUT / "cascade_v3_reprocess.json").write_text(json.dumps(rows, indent=2) + "\n")
     (OUT / "metrics_summary.json").write_text(json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary, indent=2))
     return 0 if completed == len(rows) else 1

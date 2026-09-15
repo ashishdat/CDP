@@ -180,3 +180,29 @@ def test_dob_assembles_when_year_has_trailing_period():
     from packages.extraction_recovery.span_selection import select_field_span
     selected = select_field_span("29\n1983\n10.", "DATE", "patient_dob")
     assert selected.selected_text == "10/29/1983"
+
+def test_dob_assembles_cjk_confusable_digit_stream():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("04 1 了 .9 9 1 1", "DATE", "patient_dob")
+    assert selected.selected_text == "04/17/1991"
+
+
+def test_insured_name_prefers_ink_below_header_boilerplate():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span(
+        "4. INSURED'S NAME (Last NaTe, First NaTe, Midale Inilial)\n2\nMCQUEEN, VASHONDA",
+        "PERSON_NAME",
+        "insured_name",
+    )
+    assert selected.selected_text == "MCQUEEN, VASHONDA"
+
+
+def test_insured_name_route_authority_present():
+    from pathlib import Path
+    from packages.route_registry.registry import RouteRegistry
+    route = RouteRegistry.load(Path("config/ocr_field_routes.yaml")).find(
+        "insured_name", "CMS1500", mode="runtime"
+    )
+    assert route is not None
+    assert route.status.value == "PRODUCTION_APPROVED"
+
