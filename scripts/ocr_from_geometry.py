@@ -21,6 +21,11 @@ from packages.extraction_recovery import (
     select_field_span,
     span_datatype_for_field,
 )
+from packages.extraction_recovery.field_cascade import (
+    FieldCascade,
+    charge_column_windows,
+    semantic_accept,
+)
 from packages.ocr.contracts import OCRCandidate
 from packages.ocr_router import OCRRouter, OCRRouteRequest
 from packages.templates.registry import TemplateRegistry
@@ -62,8 +67,8 @@ def _load_cms1500_template():
     return templates[0] if templates else None
 
 
-def _recognize_one(image, name, bbox, router, field_type=''):
-    routed = router.route(OCRRouteRequest(image, bbox))
+def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
+    routed = router.route(OCRRouteRequest(image, bbox, engine_order=engine_order))
     candidates = []
     attempts = []
     for attempt in routed.attempts:
@@ -111,13 +116,8 @@ def recognize_service_lines(image, router, template):
     # Alternate x-windows: primary template column plus a right-shifted band that
     # avoids diagnosis-pointer bleed on many live CMS-1500 scans.
     charge_windows = [
-        (charge_col.x0, charge_col.x1),
-        (max(charge_col.x0, 1000), min(max(charge_col.x1, 1145), 1210)),
-        (1050, 1165),
+        (x0, x1) for _, x0, x1 in charge_column_windows(charge_col.x0, charge_col.x1)
     ]
-    # De-dupe while preserving order.
-    seen = set()
-    charge_windows = [w for w in charge_windows if not (w in seen or seen.add(w))]
 
     def _currency_value(raw_text, candidates):
         import re as _re
@@ -149,11 +149,22 @@ def recognize_service_lines(image, router, template):
         if y0 >= table.table_y1:
             break
         probe_empty = True
+        import re as _re_probe
         for column in probe_cols:
             pb = _clamp_bbox((column.x0, y0, column.x1, y1), image.width, image.height)
             pcs, _, _ = _recognize_one(image, column.field_name, pb, router, column.field_type)
-            if pcs and any((c.get('value') or '').strip() for c in pcs):
-                probe_empty = False
+            for cand in pcs or []:
+                val = (cand.get('value') or cand.get('raw_value') or '').strip()
+                if not val:
+                    continue
+                # Live rows must show a date-like or CPT/HCPCS-like token — not form chrome.
+                if column.field_name in {'date_from', 'date_to'} and _re_probe.search(r'\d{1,2}.\d{1,2}.\d{2,4}|\d{6,8}', val):
+                    probe_empty = False
+                    break
+                if column.field_name in {'cpt_hcpcs', 'cpt', 'hcpcs'} and _re_probe.search(r'\b\d{5}\b|\b[A-Z]\d{4}\b', val.upper()):
+                    probe_empty = False
+                    break
+            if not probe_empty:
                 break
         if probe_empty:
             break
@@ -195,17 +206,33 @@ def recognize_service_lines(image, router, template):
         assert best is not None
         best.pop('_score', None)
         lines.append(best)
+        # Stop once a live block ends — trailing empty rows are form rules, not lines.
+        if best.get('status') != 'OBSERVED' and any(l.get('status') == 'OBSERVED' for l in lines[:-1]):
+            # Keep the empty sentinel out of emitted service lines.
+            lines.pop()
+            break
     return lines
 
 
 def recognize_regions(image, geometry, router, emit=lambda rows: None, template=None):
+    """OCR field regions via the field-semantic cascade strategy.
+
+    For each field the cascade walks typed crop variants and governed route
+    engines, stopping when span-selected text is field-shaped. Empty /
+    contaminated financial crops remain empty (no invented amounts).
+    """
     if geometry.get('status') != 'SUCCESS' or geometry.get('coordinate_frame') != 'rectified_template_pixels':
         raise ValueError('Successful canonical GeometryResult required')
     template_fields = {}
     if template is not None:
         for region in template.field_regions:
             template_fields[region.field_name] = (region.x0, region.y0, region.x1, region.y1)
+    cascade = FieldCascade()
     rows = []
+
+    def _recognize_with_engines(field_name, bbox, field_type, engines):
+        return _recognize_one(image, field_name, bbox, router, field_type, engine_order=engines)
+
     for field in geometry['fields']:
         result = field['result']
         box = result.get('aligned_roi')
@@ -216,62 +243,40 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
         if not (cell['x0'] <= aligned[0] < aligned[2] <= cell['x1'] and
                 cell['y0'] <= aligned[1] < aligned[3] <= cell['y1']):
             raise ValueError('Canonical region exceeds recorded safe cell')
-        bbox = _ocr_bbox(field['field'], aligned, cell, (image.width, image.height), template_fields)
-        candidates, attempts, reason = _recognize_one(image, field['field'], bbox, router)
-        if field['field'] == 'patient_dob':
-            import re as _re
-            def _date_shaped(val: str) -> bool:
-                return bool(_re.fullmatch(r'\d{1,2}[/\-]\d{1,2}[/\-]\d{2,4}', (val or '').strip()))
-            has_date = any(_date_shaped(c.get('value') or '') for c in candidates)
-            if not has_date:
-                # Prefer the lower digit band; printed MM/DD/YY headers sit above the ink.
-                cell_h = cell['y1'] - cell['y0']
-                lower = (
-                    max(aligned[0], cell['x0'] + 2),
-                    max(aligned[1], cell['y0'] + int(0.45 * cell_h)),
-                    min(aligned[2], cell['x1'] - int(0.08 * (cell['x1'] - cell['x0']))),
-                    min(aligned[3], cell['y1'] - 1),
-                )
-                lower = _clamp_bbox(lower, image.width, image.height)
-                if lower != bbox:
-                    alt_c, alt_a, alt_r = _recognize_one(image, field['field'], lower, router)
-                    if any(_date_shaped(c.get('value') or '') for c in alt_c):
-                        candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, lower
-                    elif not any((c.get('value') or '').strip() for c in candidates) and any(
-                        (c.get('value') or '').strip() for c in alt_c
-                    ):
-                        candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, lower
-                if not any(_date_shaped(c.get('value') or '') for c in candidates):
-                    # Loosen the top inset if the tight digit band is still empty/unassemblable.
-                    loose = (
-                        max(aligned[0], cell['x0'] + 2),
-                        max(aligned[1], cell['y0'] + int(0.22 * cell_h)),
-                        min(aligned[2], cell['x1'] - int(0.08 * (cell['x1'] - cell['x0']))),
-                        min(aligned[3], cell['y1'] - 2),
-                    )
-                    loose = _clamp_bbox(loose, image.width, image.height)
-                    if loose != bbox:
-                        alt_c, alt_a, alt_r = _recognize_one(image, field['field'], loose, router)
-                        if any(_date_shaped(c.get('value') or '') for c in alt_c):
-                            candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, loose
-        if field['field'] == 'total_charge' and not any((c.get('value') or '').strip() for c in candidates):
-            # Retry a slightly taller window still clamped to the safe cell.
-            taller = (
-                max(aligned[0], cell['x0'] + int(0.24 * (cell['x1'] - cell['x0']))),
-                max(aligned[1], cell['y0'] + 2),
-                min(aligned[2], cell['x1'] - 2),
-                min(aligned[3], cell['y1'] - 2),
-            )
-            taller = _clamp_bbox(taller, image.width, image.height)
-            if taller != bbox:
-                alt_c, alt_a, alt_r = _recognize_one(image, field['field'], taller, router)
-                if any((c.get('value') or '').strip() for c in alt_c):
-                    candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, taller
-        rows.append({'field': field['field'], 'canonical_region': list(aligned),
-                     'ocr_region': list(bbox),
-                     'candidates': candidates, 'attempts': attempts,
-                     'router_reason': reason,
-                     'status': 'OBSERVED' if candidates else 'NO_OBSERVATION'})
+        primary = _ocr_bbox(field['field'], aligned, cell, (image.width, image.height), template_fields)
+        cascaded = cascade.recognize(
+            field_name=field['field'],
+            primary_bbox=primary,
+            cell=cell,
+            image_size=(image.width, image.height),
+            recognize_fn=_recognize_with_engines,
+        )
+        rows.append({
+            'field': field['field'],
+            'canonical_region': list(aligned),
+            'ocr_region': list(cascaded.bbox),
+            'candidates': cascaded.candidates,
+            'attempts': cascaded.attempts,
+            'router_reason': cascaded.router_reason,
+            'cascade': {
+                'strategy_id': cascaded.strategy_id,
+                'accepted': cascaded.accepted,
+                'accept_reason': cascaded.accept_reason,
+                'steps': [
+                    {
+                        'variant_id': step.variant_id,
+                        'bbox': list(step.bbox),
+                        'engines': list(step.engines),
+                        'selected_value': step.selected_value,
+                        'accepted': step.accepted,
+                        'accept_reason': step.accept_reason,
+                        'router_reason': step.router_reason,
+                    }
+                    for step in cascaded.cascade_trace
+                ],
+            },
+            'status': cascaded.status,
+        })
         emit(rows)
     return rows
 
@@ -306,7 +311,7 @@ def run(directory, output):
               'coordinate_frame': 'rectified_template_pixels', 'stop_after': 'ocr',
               'registration_executed': False, 'geometry_estimated': False,
               'ranking_executed': False, 'validators_executed': False,
-              'policy': 'Existing router order; stop escalation on first usable observation; no confidence threshold or ranking',
+              'policy': 'Field-cascade v1: crop variants × governed route engines; stop on semantic field accept; no invented amounts',
               'confidence_basis': 'Arithmetic mean of raw line confidences; raw lines preserved',
               'fields': [], 'service_lines': [], 'status': 'RUNNING'}
     def save(rows):

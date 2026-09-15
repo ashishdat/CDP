@@ -43,3 +43,26 @@ Still not an identity-policy waiver. Empty/contaminated crops remain HITL.
 | `total_charge` auto-accepted | **0 / 6** |
 
 Tight charge crops clear NPI bleed; empty box-28 digit bands and pointer-bleed line charges stay HITL (no invented amounts).
+
+## Strategy redesign: field-cascade OCR (v1)
+
+Replaced RapidOCR-first + bolted crop retries with a governed cascade:
+
+1. Typed crop ladder (DOB digit band, NPI-cleared charge, name/id value bands, charge x-windows)
+2. Route engines from `config/ocr_field_routes.yaml` (Paddle → Rapid → Tesseract)
+3. Span selection (observed characters only)
+4. Semantic accept (`DATE_SHAPED` / `CURRENCY_SHAPED` / …) before stopping
+
+Honesty unchanged: empty/contaminated box-28 stays HITL; E6 only when crop total matches Σ line charges.
+See `docs/STP_FIELD_CASCADE_STRATEGY.md`.
+
+### Sample B after cascade redesign
+
+| Metric | Prior (crop bolts) | Cascade v1 |
+|--------|--------------------|------------|
+| True STP | 0 / 6 | _(reprocess)_ |
+| `patient_dob` auto | 1–2 / 6 | _(reprocess)_ |
+| `total_charge` auto | 0 / 6 | 0 / 6 expected unless real ink |
+| `patient_name` auto | ~6 / 6 | keep |
+| `insured_id_number` auto | ~5 / 6 | keep |
+

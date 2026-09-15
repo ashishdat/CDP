@@ -174,3 +174,9 @@ def test_member_id_repairs_ocr_zero_and_equals():
         "insured_id_number",
     )
     assert selected2.selected_text == "P32-84957"
+
+
+def test_dob_assembles_when_year_has_trailing_period():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("29\n1983\n10.", "DATE", "patient_dob")
+    assert selected.selected_text == "10/29/1983"

@@ -137,8 +137,8 @@
       "postprocessor": null,
       "x0": 672,
       "x1": 871,
-      "y0": 435,
-      "y1": 458
+      "y0": 424,
+      "y1": 457
     },
     {
       "field_name": "patient_sex",

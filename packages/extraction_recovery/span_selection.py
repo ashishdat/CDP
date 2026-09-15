@@ -146,6 +146,10 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
     tokens = [tok for tok in re.split(r"[\s,|/\\-]+", text.upper()) if tok]
     digits: list[str] = []
     for tok in tokens:
+        # OCR often appends a period/comma to the year token ("1983.").
+        tok = tok.strip(".,;:'\"`")
+        if not tok:
+            continue
         if tok in _DOB_HEADER_TOKENS:
             continue
         if tok in {"M", "F", "X"} and digits:

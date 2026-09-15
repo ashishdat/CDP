@@ -19,6 +19,9 @@ class OCRRouteRequest:
     image: Image.Image
     bbox: tuple[int, int, int, int]
     allow_handwriting: bool = False
+    # Optional per-call engine ladder (e.g. governed field-route primary→confirm).
+    # When omitted, ENGINE_ORDER is used. Unknown names are rejected.
+    engine_order: tuple[str, ...] | None = None
 
     def __post_init__(self):
         box = tuple(self.bbox)
@@ -30,6 +33,14 @@ class OCRRouteRequest:
         if type(self.allow_handwriting) is not bool:
             raise ValueError("Handwriting eligibility must be explicit")
         object.__setattr__(self, "bbox", box)
+        if self.engine_order is not None:
+            order = tuple(self.engine_order)
+            if not order or any(type(name) is not str for name in order):
+                raise ValueError("engine_order must be a non-empty tuple of engine names")
+            unknown = set(order) - set(ENGINE_ORDER)
+            if unknown:
+                raise ValueError(f"Unknown engines in engine_order: {sorted(unknown)}")
+            object.__setattr__(self, "engine_order", order)
 
 
 @dataclass(frozen=True)
@@ -147,10 +158,16 @@ class OCRRouter:
 
     def route(self, request: OCRRouteRequest) -> OCRRoutingResult:
         # The caller may have resized the mutable image after request creation.
-        OCRRouteRequest(request.image, request.bbox, request.allow_handwriting)
+        OCRRouteRequest(
+            request.image,
+            request.bbox,
+            request.allow_handwriting,
+            request.engine_order,
+        )
+        order = request.engine_order or ENGINE_ORDER
         with self._lock:
             attempts = []
-            for engine in ENGINE_ORDER:
+            for engine in order:
                 if engine == "trocr" and not request.allow_handwriting:
                     continue
                 started = self._clock()

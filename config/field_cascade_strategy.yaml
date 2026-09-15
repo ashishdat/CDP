@@ -1,0 +1,37 @@
+# Field-cascade OCR strategy (operational CMS-1500 STP)
+version: field-cascade-v1
+status: ACTIVE
+
+# Order of work for every critical field:
+#   1. Build typed crop variants (primary → specialty bands)
+#   2. Run governed route engines (primary → confirmation → fallback)
+#   3. Span-select observed text (never invent characters)
+#   4. Semantically accept field-shaped values; else continue / HITL
+#
+# Honesty constraints:
+#   - Empty or NPI-contaminated total_charge crops stay empty
+#   - Claim-total E6 fires only when crop total matches Σ service-line charges
+#   - Cascade maximizes recovery of real ink; it does not invent amounts or DOBs
+
+defaults:
+  engine_source: config/ocr_field_routes.yaml
+  stop_on: semantic_accept
+  exhaust_action: keep_best_nonempty_or_empty
+
+fields:
+  patient_dob:
+    crop_ladder: [primary, dob_digit_band, dob_loose]
+    accept: DATE_SHAPED
+  total_charge:
+    crop_ladder: [primary, charge_npi_cleared, charge_taller]
+    accept: CURRENCY_SHAPED
+    reject: [CURRENCY_LEADING_MINUS, CURRENCY_SUSPICIOUS_TINY, EMPTY]
+  patient_name:
+    crop_ladder: [primary, name_value_band]
+    accept: NAME_SHAPED
+  insured_id_number:
+    crop_ladder: [primary, id_value_band]
+    accept: ID_SHAPED
+  charges:
+    crop_ladder: [charges_primary, charges_mid, charges_right]
+    accept: CURRENCY_SHAPED
