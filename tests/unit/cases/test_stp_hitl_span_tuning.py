@@ -248,3 +248,15 @@ def test_dob_does_not_merge_day_when_year_already_four_digits():
     from packages.extraction_recovery.span_selection import select_field_span
     selected = select_field_span("12 2 1983 6", "DATE", "patient_dob")
     assert selected.selected_text == "12/02/1983"
+
+
+def test_dob_repairs_trailing_edge_on_ten_xx_year():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("12 26l 1083", "DATE", "patient_dob")
+    assert selected.selected_text == "12/26/2008"
+
+
+def test_dob_locates_century_clipped_year_after_day_fragments():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("03 9 1 983 1 1", "DATE", "patient_dob")
+    assert selected.selected_text == "03/19/1983"

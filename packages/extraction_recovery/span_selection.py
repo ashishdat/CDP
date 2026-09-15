@@ -172,7 +172,42 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
                 return True
             if re.fullmatch(r"\d{5}", tok) and tok[0] == "1" and 1900 <= int(tok[1:]) <= 2100:
                 return True
+            # Century-clipped years observed on digit-band crops (983 → 1983).
+            if re.fullmatch(r"\d{3}", tok) and tok[0] in "89" and 1900 <= int("1" + tok) <= 2100:
+                return True
             return False
+
+        # Digit-band OCR often inserts fragments between DD and YYYY
+        # (e.g. "03 9 1 983 1 1"). Pull the yearish token forward.
+        year_indexes = [i for i, tok in enumerate(digits) if _yearish(tok)]
+        if year_indexes and year_indexes[0] >= 2:
+            yi = year_indexes[0]
+            left, year_tok, right = digits[:yi], digits[yi], digits[yi + 1 :]
+            if len(left) >= 2:
+                month_tok = left[0]
+                day_tokens = left[1:]
+                # Century-clipped years: two single day fragments may be swapped
+                # ("9 1 983" → day 19, not 9).
+                if (
+                    len(year_tok) == 3
+                    and year_tok[0] in "89"
+                    and len(day_tokens) >= 2
+                    and all(re.fullmatch(r"\d", t) for t in day_tokens[:2])
+                ):
+                    a, b = day_tokens[0], day_tokens[1]
+                    day_tok = next(
+                        (cand for cand in (a + b, b + a) if 10 <= int(cand) <= 31),
+                        day_tokens[0],
+                    )
+                    rest = day_tokens[2:] if day_tok in {a + b, b + a} else day_tokens[1:]
+                    # When we consumed both fragments, drop them from rest.
+                    if day_tok == a + b:
+                        rest = day_tokens[2:]
+                    elif day_tok == b + a:
+                        rest = day_tokens[2:]
+                    digits = [month_tok, day_tok, year_tok, *rest, *right]
+                else:
+                    digits = [month_tok, day_tokens[0], year_tok, *day_tokens[1:], *right]
 
         first, second, third = digits[0], digits[1], digits[2]
         # OCR sometimes emits MM / YYYY / DD instead of MM / DD / YYYY.
@@ -195,6 +230,9 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         # 3-digit years with a leading edge 1 (e.g. "108" → "08").
         if len(year) == 3 and year[0] == "1" and 0 <= int(year[1:]) <= 99:
             year = year[1:]
+        # 4-digit "10xx" with a trailing edge glyph (e.g. "1083" → "08" → 2008).
+        if len(year) == 4 and year.startswith("10") and re.fullmatch(r"\d{2}", year[1:3]):
+            year = year[1:3]
         # 3-digit years missing a leading century 1 (e.g. "983" → "1983").
         # Only repair when the observed digits already form a plausible 19xx/20xx year.
         year_repaired_from_3 = False

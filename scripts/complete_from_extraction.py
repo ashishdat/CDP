@@ -159,37 +159,26 @@ def decide(extraction, family):
             candidate['validation_results'] = tuple(validation['reason'])
             candidates.append(TypeAdapter(OCRCandidate).validate_python(candidate))
         if derived and not any((c.value or '').strip() for c in candidates):
-            from dataclasses import replace as _replace_candidate
             from packages.domain.common import BoundingBox
+            # Always mint a clean derived candidate. Reusing an empty/invalid OCR
+            # shell (e.g. tesseract "ipo") keeps INVALID validation and blocks E1.
+            base_box = None
             if candidates:
-                # Reuse an authorized OCR engine shell so route allowlisting keeps the
-                # derived amount; provenance records line-sum derivation explicitly.
-                base = candidates[0]
-                candidates = [_replace_candidate(
-                    base,
-                    value=derived,
-                    raw_value=derived,
-                    preprocessing_variant='DERIVED_FROM_OBSERVED_LINE_CHARGES',
-                    raw_confidence=1.0,
-                    calibrated_confidence=1.0,
-                    evidence_reference='LINE_TOTALS_RECONCILED',
-                    preprocessing_version='phase2-line-sum',
-                )]
-            else:
-                candidates = [OCRCandidate(
-                    value=derived,
-                    raw_value=derived,
-                    engine='rapidocr',
-                    model_name='claim_evidence',
-                    model_version='phase2-line-sum',
-                    preprocessing_variant='DERIVED_FROM_OBSERVED_LINE_CHARGES',
-                    raw_confidence=1.0,
-                    calibrated_confidence=1.0,
-                    bounding_box=BoundingBox(x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1),
-                    latency_ms=0.0,
-                    evidence_reference='LINE_TOTALS_RECONCILED',
-                    preprocessing_version='phase2-line-sum',
-                )]
+                base_box = candidates[0].bounding_box
+            candidates = [OCRCandidate(
+                value=derived,
+                raw_value=derived,
+                engine='rapidocr',
+                model_name='claim_evidence',
+                model_version='phase2-line-sum',
+                preprocessing_variant='DERIVED_FROM_OBSERVED_LINE_CHARGES',
+                raw_confidence=1.0,
+                calibrated_confidence=1.0,
+                bounding_box=base_box or BoundingBox(x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1),
+                latency_ms=0.0,
+                evidence_reference='LINE_TOTALS_RECONCILED',
+                preprocessing_version='phase2-line-sum',
+            )]
             check = deterministic.evaluate(name, derived, claim_values=values)
             checks[name] = check.model_dump(mode='json')
         localization = localizations.get(name)

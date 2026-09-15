@@ -377,7 +377,17 @@ def _recognize_dob_cells(image, band, router, engines):
         except Exception:
             pass
         parts[label] = best_digits
-    joined = ' '.join(parts.get(k, '') for k in ('MM', 'DD', 'YY')).strip()
+    mm, dd, yy = parts.get('MM', ''), parts.get('DD', ''), parts.get('YY', '')
+    # Reject weak cell reads — garbage like "1'4QR2" can span-shape into a false date.
+    if not (re.fullmatch(r'\d{1,2}', mm) and 1 <= int(mm) <= 12):
+        return [], attempts, 'DOB_CELLS_EMPTY'
+    if not (re.fullmatch(r'\d{1,2}', dd) and 1 <= int(dd) <= 31):
+        return [], attempts, 'DOB_CELLS_EMPTY'
+    if not (re.fullmatch(r'\d{2,4}', yy) and (
+        (len(yy) == 2) or (len(yy) == 3 and yy[0] in '189') or (len(yy) == 4 and 1900 <= int(yy) <= 2100)
+    )):
+        return [], attempts, 'DOB_CELLS_EMPTY'
+    joined = f'{mm} {dd} {yy}'
     span = select_field_span(joined, 'DATE', 'patient_dob')
     selected = span.selected_text
     # Only emit when span produced a calendar-shaped date (not the raw join).
