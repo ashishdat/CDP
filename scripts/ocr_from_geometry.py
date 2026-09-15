@@ -154,14 +154,16 @@ def recognize_service_lines(image, router, template):
             pb = _clamp_bbox((column.x0, y0, column.x1, y1), image.width, image.height)
             pcs, _, _ = _recognize_one(image, column.field_name, pb, router, column.field_type)
             for cand in pcs or []:
-                val = (cand.get('value') or cand.get('raw_value') or '').strip()
+                # Prefer raw ink for liveness; span may empty a noisy but real cell.
+                val = ((cand.get('raw_value') or '') + ' ' + (cand.get('value') or '')).strip()
                 if not val:
                     continue
-                # Live rows must show a date-like or CPT/HCPCS-like token — not form chrome.
-                if column.field_name in {'date_from', 'date_to'} and _re_probe.search(r'\d{1,2}.\d{1,2}.\d{2,4}|\d{6,8}', val):
+                if column.field_name in {'date_from', 'date_to'} and _re_probe.search(r'\d', val):
                     probe_empty = False
                     break
-                if column.field_name in {'cpt_hcpcs', 'cpt', 'hcpcs'} and _re_probe.search(r'\b\d{5}\b|\b[A-Z]\d{4}\b', val.upper()):
+                if column.field_name in {'cpt_hcpcs', 'cpt', 'hcpcs'} and _re_probe.search(
+                    r'\d{4,5}|[A-Z]\d{3,4}', val.upper()
+                ):
                     probe_empty = False
                     break
             if not probe_empty:

@@ -60,9 +60,12 @@ See `docs/STP_FIELD_CASCADE_STRATEGY.md`.
 
 | Metric | Prior (crop bolts) | Cascade v1 |
 |--------|--------------------|------------|
-| True STP | 0 / 6 | _(reprocess)_ |
-| `patient_dob` auto | 1–2 / 6 | _(reprocess)_ |
-| `total_charge` auto | 0 / 6 | 0 / 6 expected unless real ink |
-| `patient_name` auto | ~6 / 6 | keep |
-| `insured_id_number` auto | ~5 / 6 | keep |
+| True STP | 0 / 6 | **0 / 6** |
+| `patient_dob` auto | 1–2 / 6 | **2 / 6** (digit-band accept on IJN2.008) |
+| `total_charge` auto | 0 / 6 | **0 / 6** (empty/NPI box-28 stays HITL by design) |
+| `patient_name` auto | ~6 / 6 | **6 / 6** |
+| `insured_id_number` auto | ~5 / 6 | **5 / 6** |
+| Dominant blockers | DOB + total | `total_charge` 6/6, `patient_dob` 4/6 |
+
+Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v1/`.
 
