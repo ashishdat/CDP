@@ -1,0 +1,205 @@
+{
+  "generated_at": "2026-09-15T08:26:00Z",
+  "frozen_baseline": {
+    "completion_rate": 0.39,
+    "true_stp_rate": 0.0,
+    "status": "NOT_QUALIFIED"
+  },
+  "overlap_documents": [],
+  "cohort_a": {
+    "label": "COHORT_A_first5",
+    "attempted": 5,
+    "completed": 4,
+    "true_stp": 0,
+    "completion_rate": 0.8,
+    "true_stp_rate": 0.0,
+    "top_blockers": [
+      [
+        "patient_dob",
+        8
+      ],
+      [
+        "total_charge",
+        8
+      ],
+      [
+        "insured_id_number",
+        4
+      ],
+      [
+        "patient_name",
+        4
+      ]
+    ],
+    "missing_fields": [
+      [
+        "patient_dob",
+        4
+      ],
+      [
+        "total_charge",
+        1
+      ]
+    ],
+    "selection": null,
+    "rows": [
+      {
+        "doc": "Group A__M048DJJF.005",
+        "completed": false,
+        "review": null,
+        "claim_status": null,
+        "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+      },
+      {
+        "doc": "Group A__M048DJJM.012",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      },
+      {
+        "doc": "Group A__M048DJJM.022",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      },
+      {
+        "doc": "Group A__M048DJJM.042",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      },
+      {
+        "doc": "Group A__M048DJKH.008",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      }
+    ]
+  },
+  "cohort_b": {
+    "label": "COHORT_B_seed20260915_n10",
+    "attempted": 10,
+    "completed": 6,
+    "true_stp": 0,
+    "completion_rate": 0.6,
+    "true_stp_rate": 0.0,
+    "top_blockers": [
+      [
+        "patient_dob",
+        12
+      ],
+      [
+        "total_charge",
+        11
+      ],
+      [
+        "patient_name",
+        8
+      ],
+      [
+        "insured_id_number",
+        7
+      ]
+    ],
+    "missing_fields": [
+      [
+        "patient_dob",
+        6
+      ],
+      [
+        "total_charge",
+        3
+      ]
+    ],
+    "selection": {
+      "total_paired": 100,
+      "offset": 0,
+      "limit": 10,
+      "seed": 20260915,
+      "mode": "seeded_shuffle",
+      "documents": [
+        "Group A/M048IJMP.002",
+        "Group A/M048IJN2.022",
+        "Group A/M048IJPD.003",
+        "Group A/M048IJN2.005",
+        "Group A/M048EJGE.019",
+        "Group B/M048JJJM.014",
+        "Group A/M048EJI2.037",
+        "Group A/M048IJN2.008",
+        "Group B/M048HJHK.005",
+        "Group C/M048IJL7.003"
+      ]
+    },
+    "rows": [
+      {
+        "doc": "Group A__M048IJMP.002",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      },
+      {
+        "doc": "Group A__M048IJN2.022",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      },
+      {
+        "doc": "Group A__M048IJPD.003",
+        "completed": false,
+        "review": null,
+        "claim_status": null,
+        "reason": "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+      },
+      {
+        "doc": "Group A__M048IJN2.005",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      },
+      {
+        "doc": "Group A__M048EJGE.019",
+        "completed": false,
+        "review": null,
+        "claim_status": null,
+        "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+      },
+      {
+        "doc": "Group B__M048JJJM.014",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      },
+      {
+        "doc": "Group A__M048EJI2.037",
+        "completed": false,
+        "review": null,
+        "claim_status": null,
+        "reason": "unsafe_perspective_distortion"
+      },
+      {
+        "doc": "Group A__M048IJN2.008",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      },
+      {
+        "doc": "Group B__M048HJHK.005",
+        "completed": true,
+        "review": true,
+        "claim_status": "FIELD_REVIEW_REQUIRED"
+      },
+      {
+        "doc": "Group C__M048IJL7.003",
+        "completed": false,
+        "review": null,
+        "claim_status": null,
+        "reason": "template_lineage_mismatch"
+      }
+    ]
+  },
+  "comparison": {
+    "completion_delta_b_minus_a": -0.20000000000000007,
+    "true_stp_both": 0.0,
+    "note": "No document overlap; both cohorts true STP 0%; completion above frozen 39% baseline on these samples."
+  }
+}

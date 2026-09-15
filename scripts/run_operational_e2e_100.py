@@ -30,6 +30,18 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+
+def _display_path(path: Path) -> str:
+    """Return a workspace-relative path string for reports."""
+    resolved = path if path.is_absolute() else (ROOT / path)
+    resolved = resolved.resolve()
+    try:
+        return str(resolved.relative_to(ROOT))
+    except ValueError:
+        return str(resolved)
+
+
 DEFAULT_OPS_REPORT = ROOT / "AnchorNormalizationDeltaReport.json"
 DEFAULT_OUT = ROOT / "evaluation_results" / "operational_e2e_100_v1"
 STAGE_SCRIPTS = {
@@ -558,7 +570,7 @@ def main() -> int:
         "recovery_human_queue_plans": report["recovery_integration"]["human_queue_plans"],
         "recovery_executable_plans": report["recovery_integration"]["executable_plans"],
         "production_qualification_status": report["production_qualification"]["status"],
-        "source": str(out_path if out_path.is_absolute() else out_path.relative_to(ROOT)),
+        "source": _display_path(out_path),
     }
     if report.get("live_execution", {}).get("claims_attempted"):
         live = report["live_execution"]
@@ -591,8 +603,7 @@ def main() -> int:
             f"true_stp_rate={100.0 * float(live.get('live_true_stp_rate') or 0):.1f}%",
             f"selection={live.get('selection', {}).get('mode')}",
         )
-    out_display = out_path if out_path.is_absolute() else out_path.relative_to(ROOT)
-    print(f"Wrote {out_display}")
+    print(f"Wrote {_display_path(out_path)}")
     return 0
 
 
