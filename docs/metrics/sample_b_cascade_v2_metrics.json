@@ -1,0 +1,16 @@
+{
+  "summary": {
+    "completed": "6/6",
+    "true_stp": "0/6",
+    "patient_dob_auto": "2/6",
+    "total_charge_auto": "5/6",
+    "patient_name_auto": "6/6",
+    "insured_id_auto": "5/6"
+  },
+  "blockers": {
+    "patient_dob": 4,
+    "insured_id_number": 1,
+    "total_charge": 1
+  },
+  "strategy": "field-cascade-v2"
+}

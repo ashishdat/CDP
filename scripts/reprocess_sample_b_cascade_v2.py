@@ -68,9 +68,14 @@ def main() -> int:
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
+    # Keep the independent sample-B six used for cascade v1 metrics.
+    seed = ROOT / "evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v1/live"
+    claim_names = sorted(p.name for p in seed.iterdir() if p.is_dir()) if seed.is_dir() else []
     rows = []
-    for claim_src in sorted((SRC / "live").iterdir()):
+    for name in claim_names:
+        claim_src = SRC / "live" / name
         if not claim_src.is_dir():
+            rows.append({"claim": name, "ok": False, "error": "source claim missing"})
             continue
         claim_out = OUT / "live" / claim_src.name
         geom = _geometry_dir(claim_src)

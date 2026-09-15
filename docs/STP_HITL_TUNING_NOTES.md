@@ -85,8 +85,9 @@ and often emitted **zero service lines** (header-row probe aborted the table).
    not drop the derived amount; provenance records line-sum derivation.
 3. **Service-line liveness** — skip leading header/blank rows; charge-column
    currency can prove a row is live when date/CPT probes fail.
-4. **Cascade preprocess** — Phase 8.10 `DATE_DELIMITER_V2` /
-   `CURRENCY_DECIMAL_V2` applied to field crops before route engines.
+4. **Cascade preprocess** — Phase 8.10 `CURRENCY_DECIMAL_V2` on charge
+   crops only (full-page bbox OCR kept for DOB/name/ID after crop-OCR
+   shifted DOB digits on sample B).
 5. **C3 gate** — `LINE_TOTALS_RECONCILED` counts as financial authority for the
    independent-evidence requirement (no invented amounts; no identity waiver).
 
@@ -94,6 +95,19 @@ See `docs/STP_FIELD_CASCADE_STRATEGY.md` (Phase 2).
 
 ### Sample B after Phase 2
 
-Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v2/`
-(filled after reprocess).
+| Metric | Cascade v1 | Cascade v2 (Phase 2) |
+|--------|------------|----------------------|
+| True STP | 0 / 6 | **0 / 6** |
+| `patient_dob` auto | 2 / 6 | **2 / 6** |
+| `total_charge` auto | 0 / 6 | **5 / 6** (line-sum E6) |
+| `patient_name` auto | 6 / 6 | **6 / 6** |
+| `insured_id_number` auto | 5 / 6 | **5 / 6** |
+| Dominant blockers | total 6 + DOB 4 | **DOB 4**, total **1**, id 1 |
+
+`total_charge` is no longer the wall: five claims auto-accept via
+`LINE_TOTALS_RECONCILED` from observed service-line charges. Residual HITL is
+mostly DOB plus non-critical blockers (e.g. empty `insured_name`) that still
+force claim review even when critical blockers are clear.
+
+Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v2/`.
 

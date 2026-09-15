@@ -34,7 +34,7 @@ printed header row before any charge ink was read.
 |--------|-----|
 | **Line-sum financial path** | When box-28 OCR is empty but ≥1 currency-shaped **observed** line charges exist, emit `LINE_TOTALS_RECONCILED` (Σ lines) and inject that amount as the `total_charge` candidate. Provenance: `DERIVED_FROM_OBSERVED_LINE_CHARGES`. Not the same as crop∩Σ `CLAIM_TOTAL_CONFIRMED`. |
 | **Service-line probe** | Skip leading header/blank rows; stop only after a live charge block ends. Charge-column currency can prove liveness when date/CPT probes fail. |
-| **Field preprocess in cascade** | Wire Phase 8.10 profiles (`DATE_DELIMITER_V2`, `CURRENCY_DECIMAL_V2`) onto cascade crops before route engines run. |
+| **Field preprocess in cascade** | Apply Phase 8.10 `CURRENCY_DECIMAL_V2` to charge crops only; DOB/name/ID keep full-page bbox OCR. |
 | **C3 financial authority** | `LINE_TOTALS_RECONCILED` satisfies the C3 independent-evidence gate when `allow_authoritative_financial_e6` is on (already true in the operational decision profile). |
 
 ### Honesty / STP rules (unchanged intent)
@@ -60,3 +60,14 @@ Cascade + Phase 2 raise recovery; they do not waive identity gates or invent ink
 - `config/field_cascade_strategy.yaml` — declared ladder / Phase 2 notes
 - `config/ocr_preprocessing_phase8_10.yaml` — DOB/currency/charges profiles
 Currency preprocess is limited to charge fields — full-page bbox OCR is kept for DOB/name/ID (crop-then-OCR shifted DOB digits on sample B).
+
+## Sample B Phase 2 result
+
+| Metric | Cascade v1 | Phase 2 |
+|--------|------------|---------|
+| True STP | 0/6 | 0/6 |
+| `total_charge` auto | 0/6 | **5/6** |
+| `patient_dob` auto | 2/6 | 2/6 |
+| `total_charge` blockers | 6 | **1** |
+
+Metrics: `docs/metrics/sample_b_cascade_v2_metrics.json`.

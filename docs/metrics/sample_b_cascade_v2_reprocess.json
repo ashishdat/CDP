@@ -1,0 +1,306 @@
+[
+  {
+    "claim": "Group A__M048IJMP.002",
+    "ok": true,
+    "review_required": true,
+    "claim_status": "FIELD_REVIEW_REQUIRED",
+    "critical_blockers": [
+      "patient_dob"
+    ],
+    "stp_eligible": false,
+    "fields": {
+      "insured_id_number": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "OSC75491075",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "DOLIET MARGARET M",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_dob": {
+        "disp": "ESCALATE",
+        "value": null,
+        "reasons": [
+          "NO_NONEMPTY_CANDIDATE",
+          "EMPTY_CROP",
+          "MISSING_E2_INDEPENDENT_CONFIRMATION",
+          "MISSING_E4_DETERMINISTIC_VALIDATION"
+        ]
+      },
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "225.00",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "LINE_TOTALS_RECONCILED"
+        ]
+      }
+    },
+    "service_lines_observed": 1,
+    "service_line_charges": [
+      "225.00"
+    ]
+  },
+  {
+    "claim": "Group A__M048IJN2.005",
+    "ok": true,
+    "review_required": true,
+    "claim_status": "FIELD_REVIEW_REQUIRED",
+    "critical_blockers": [
+      "insured_id_number",
+      "patient_dob"
+    ],
+    "stp_eligible": false,
+    "fields": {
+      "insured_id_number": {
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "value": "135353652",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD",
+          "CALIBRATION_OR_AMBIGUITY_REQUIRES_REVIEW"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "MCQUEEN VASHONDA",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_dob": {
+        "disp": "ESCALATE",
+        "value": null,
+        "reasons": [
+          "NO_NONEMPTY_CANDIDATE",
+          "EMPTY_CROP",
+          "MISSING_E2_INDEPENDENT_CONFIRMATION",
+          "MISSING_E4_DETERMINISTIC_VALIDATION"
+        ]
+      },
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "200.00",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "LINE_TOTALS_RECONCILED"
+        ]
+      }
+    },
+    "service_lines_observed": 1,
+    "service_line_charges": [
+      "200.00"
+    ]
+  },
+  {
+    "claim": "Group A__M048IJN2.008",
+    "ok": true,
+    "review_required": true,
+    "claim_status": "FIELD_REVIEW_REQUIRED",
+    "critical_blockers": [],
+    "stp_eligible": false,
+    "fields": {
+      "insured_id_number": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "127175026",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "DUNCAN TIEEANY",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_dob": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "1983-10-29",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "DATE_VALID",
+          "FORMAT_VALID"
+        ]
+      },
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "200.00",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "LINE_TOTALS_RECONCILED"
+        ]
+      }
+    },
+    "service_lines_observed": 1,
+    "service_line_charges": [
+      "200.00"
+    ]
+  },
+  {
+    "claim": "Group A__M048IJN2.022",
+    "ok": true,
+    "review_required": true,
+    "claim_status": "FIELD_REVIEW_REQUIRED",
+    "critical_blockers": [
+      "patient_dob"
+    ],
+    "stp_eligible": false,
+    "fields": {
+      "insured_id_number": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "120849275",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "MORRTS MTCHAEL",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_dob": {
+        "disp": "ESCALATE",
+        "value": null,
+        "reasons": [
+          "NO_NONEMPTY_CANDIDATE",
+          "EMPTY_CROP",
+          "MISSING_E2_INDEPENDENT_CONFIRMATION",
+          "MISSING_E4_DETERMINISTIC_VALIDATION"
+        ]
+      },
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "130.00",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "LINE_TOTALS_RECONCILED"
+        ]
+      }
+    },
+    "service_lines_observed": 1,
+    "service_line_charges": [
+      "130.00"
+    ]
+  },
+  {
+    "claim": "Group B__M048HJHK.005",
+    "ok": true,
+    "review_required": true,
+    "claim_status": "FIELD_REVIEW_REQUIRED",
+    "critical_blockers": [
+      "patient_dob",
+      "total_charge"
+    ],
+    "stp_eligible": false,
+    "fields": {
+      "insured_id_number": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "P32-84957",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "MARK",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_dob": {
+        "disp": "ESCALATE",
+        "value": null,
+        "reasons": [
+          "NO_NONEMPTY_CANDIDATE",
+          "EMPTY_CROP",
+          "MISSING_E2_INDEPENDENT_CONFIRMATION",
+          "MISSING_E4_DETERMINISTIC_VALIDATION"
+        ]
+      },
+      "total_charge": {
+        "disp": "ESCALATE",
+        "value": null,
+        "reasons": [
+          "NO_NONEMPTY_CANDIDATE",
+          "EMPTY_CROP",
+          "MISSING_E2_INDEPENDENT_CONFIRMATION",
+          "MISSING_E4_DETERMINISTIC_VALIDATION",
+          "CANDIDATE_ENGINE_NOT_AUTHORIZED:CMS1500.total_charge.paddleocr.rapidocr.v2"
+        ]
+      }
+    },
+    "service_lines_observed": 0,
+    "service_line_charges": []
+  },
+  {
+    "claim": "Group B__M048JJJM.014",
+    "ok": true,
+    "review_required": true,
+    "claim_status": "FIELD_REVIEW_REQUIRED",
+    "critical_blockers": [],
+    "stp_eligible": false,
+    "fields": {
+      "insured_id_number": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "OSC74765420",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "TRIPLETT AARON",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID"
+        ]
+      },
+      "patient_dob": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "1970-12-05",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "DATE_VALID",
+          "FORMAT_VALID"
+        ]
+      },
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "311.00",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "LINE_TOTALS_RECONCILED"
+        ]
+      }
+    },
+    "service_lines_observed": 1,
+    "service_line_charges": [
+      "311.00"
+    ]
+  }
+]
