@@ -260,3 +260,59 @@ def test_dob_locates_century_clipped_year_after_day_fragments():
     from packages.extraction_recovery.span_selection import select_field_span
     selected = select_field_span("03 9 1 983 1 1", "DATE", "patient_dob")
     assert selected.selected_text == "03/19/1983"
+
+
+def test_dob_u7_confusable_and_glued_year_assembles():
+    """Handwritten 0→U and day||year glue (11990) must assemble observed DOB."""
+    from packages.extraction_recovery.span_selection import select_field_span
+
+    span = select_field_span("U7 11 11990 M", "DATE", "patient_dob")
+    assert span.selected_text == "07/11/1990"
+
+
+def test_dob_split_day_fragments_before_full_year():
+    """Single-digit day fragments merge only when uniquely calendar-valid."""
+    from packages.extraction_recovery.span_selection import select_field_span
+
+    span = select_field_span("6 4 1 1974", "DATE", "patient_dob")
+    assert span.selected_text == "06/14/1974"
+    ambiguous = select_field_span("12 2 1 1983", "DATE", "patient_dob")
+    assert ambiguous.selected_text in {"12/02/1983", "12/2/1983", ""}
+
+
+def test_cross_variant_span_fusion_recovers_dob():
+    from packages.extraction_recovery.field_cascade import FieldCascade
+
+    calls = []
+
+    def recognize_fn(field_name, bbox, field_type, engines):
+        calls.append(bbox)
+        if len(calls) == 1:
+            return (
+                [{"value": "6 4 1 g 7", "raw_value": "6\n4\n1\ng\n7"}],
+                [{"engine": engines[0], "reason": "OBSERVED"}],
+                "POLICY_SATISFIED",
+            )
+        if len(calls) == 2:
+            return (
+                [{"value": "ign i 1974", "raw_value": "ign\ni\n1974"}],
+                [{"engine": engines[0], "reason": "OBSERVED"}],
+                "POLICY_SATISFIED",
+            )
+        return (
+            [{"value": "", "raw_value": ""}],
+            [{"engine": engines[0], "reason": "EMPTY"}],
+            "EMPTY",
+        )
+
+    result = FieldCascade().recognize(
+        field_name="patient_dob",
+        primary_bbox=(672, 424, 871, 457),
+        cell={"x0": 667, "y0": 402, "x1": 886, "y1": 459},
+        image_size=(1700, 2200),
+        recognize_fn=recognize_fn,
+    )
+    assert result.accepted is True
+    assert result.candidates
+    assert result.candidates[0]["value"] == "06/14/1974"
+    assert any(s.variant_id == "cross_variant_span" for s in result.cascade_trace)

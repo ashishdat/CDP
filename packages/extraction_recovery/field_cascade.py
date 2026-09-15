@@ -355,6 +355,62 @@ class FieldCascade:
                     strategy_id=self.strategy_id,
                 )
 
+        # Cross-variant fusion: DOB digit-band may hold the year while primary
+        # holds MM/DD (or vice versa). Span-select over observed ink only —
+        # never invent characters that no crop produced.
+        fused_bits: list[str] = []
+        for step in trace:
+            if step.selected_value:
+                fused_bits.append(step.selected_value)
+            if step.raw_value:
+                fused_bits.append(step.raw_value)
+            for cand in step.candidates:
+                val = (cand.get("value") or cand.get("raw_value") or "").strip()
+                if val:
+                    fused_bits.append(val)
+        fused = " ".join(fused_bits).strip()
+        if fused:
+            span = select_field_span(
+                fused,
+                span_datatype_for_field(field_name, field_type),
+                field_name,
+            )
+            fused_selected = span.selected_text or ""
+            ok, accept_reason = semantic_accept(field_name, fused_selected)
+            if ok and fused_selected:
+                fusion_step = CascadeStepResult(
+                    variant_id="cross_variant_span",
+                    bbox=(best.bbox if best is not None else primary_bbox),
+                    engines=engines,
+                    selected_value=fused_selected,
+                    raw_value=fused,
+                    accepted=True,
+                    accept_reason=f"CROSS_VARIANT_SPAN_FUSION:{accept_reason}",
+                    candidates=(
+                        {
+                            "value": fused_selected,
+                            "raw_value": fused,
+                            "engine": "cross_variant_span",
+                            "reason_code": "CROSS_VARIANT_SPAN_FUSION",
+                        },
+                    ),
+                    attempts=(),
+                    router_reason="CROSS_VARIANT_SPAN_FUSION",
+                )
+                trace.append(fusion_step)
+                return CascadeResult(
+                    field_name=field_name,
+                    bbox=fusion_step.bbox,
+                    candidates=list(fusion_step.candidates),
+                    attempts=[],
+                    router_reason="CROSS_VARIANT_SPAN_FUSION",
+                    status="OBSERVED",
+                    cascade_trace=trace,
+                    accepted=True,
+                    accept_reason=fusion_step.accept_reason,
+                    strategy_id=self.strategy_id,
+                )
+
         if best is not None and best.candidates:
             return CascadeResult(
                 field_name=field_name,

@@ -82,7 +82,7 @@ _DOB_HEADER_TOKENS = frozenset({"MM", "DD", "YY", "YYYY", "YYY", "SEX"})
 
 
 _OCR_CONFUSABLES = str.maketrans({
-    "O": "0", "Q": "0", "D": "0",
+    "O": "0", "Q": "0", "D": "0", "U": "0",
     "I": "1", "L": "1", "|": "1",
     "Z": "2",
     "S": "5",
@@ -152,7 +152,7 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
     digits: list[str] = []
     for tok in tokens:
         # OCR often appends a period/comma to the year token ("1983.").
-        tok = tok.strip(".,;:'\"`")
+        tok = tok.strip(".,;:'\"`!?·•")
         if not tok:
             continue
         if tok in _DOB_HEADER_TOKENS:
@@ -186,26 +186,31 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             if len(left) >= 2:
                 month_tok = left[0]
                 day_tokens = left[1:]
-                # Century-clipped years: two single day fragments may be swapped
-                # ("9 1 983" → day 19, not 9).
+                # Two single day fragments may be split digits of DD
+                # ("9 1 983" → 19; "6 4 1 1974" → 14 when 41 is invalid).
+                # Only merge when exactly one ordering is a valid day (10–31)
+                # so ambiguous pairs like 2+1 (12 vs 21) stay HITL-safe.
                 if (
-                    len(year_tok) == 3
-                    and year_tok[0] in "89"
-                    and len(day_tokens) >= 2
+                    len(day_tokens) >= 2
                     and all(re.fullmatch(r"\d", t) for t in day_tokens[:2])
+                    and (
+                        (len(year_tok) == 3 and year_tok[0] in "89")
+                        or (len(year_tok) == 4 and 1900 <= int(year_tok) <= 2100)
+                        or (
+                            len(year_tok) == 5
+                            and year_tok[0] == "1"
+                            and 1900 <= int(year_tok[1:]) <= 2100
+                        )
+                    )
                 ):
                     a, b = day_tokens[0], day_tokens[1]
-                    day_tok = next(
-                        (cand for cand in (a + b, b + a) if 10 <= int(cand) <= 31),
-                        day_tokens[0],
-                    )
-                    rest = day_tokens[2:] if day_tok in {a + b, b + a} else day_tokens[1:]
-                    # When we consumed both fragments, drop them from rest.
-                    if day_tok == a + b:
+                    valid = [cand for cand in (a + b, b + a) if 10 <= int(cand) <= 31]
+                    if len(valid) == 1:
+                        day_tok = valid[0]
                         rest = day_tokens[2:]
-                    elif day_tok == b + a:
-                        rest = day_tokens[2:]
-                    digits = [month_tok, day_tok, year_tok, *rest, *right]
+                        digits = [month_tok, day_tok, year_tok, *rest, *right]
+                    else:
+                        digits = [month_tok, day_tokens[0], year_tok, *day_tokens[1:], *right]
                 else:
                     digits = [month_tok, day_tokens[0], year_tok, *day_tokens[1:], *right]
 
