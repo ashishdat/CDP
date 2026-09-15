@@ -159,6 +159,9 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             continue
         if tok in {"M", "F", "X"} and digits:
             continue
+        # Trailing stem/letter bleed on day tokens ("26l", "26I") before digit map.
+        if re.fullmatch(r"\d{1,2}[LIli|]", tok):
+            tok = tok[:-1]
         norm = _normalize_digit_token(tok)
         # Allow 5-digit year tokens with a leading edge glyph (e.g. "11970").
         if re.fullmatch(r"\d{1,5}", norm):
@@ -189,6 +192,9 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         # Drop a leading edge glyph on 5-digit years (e.g. "11970" → "1970").
         if len(year) == 5 and year[0] == "1" and 1900 <= int(year[1:]) <= 2100:
             year = year[1:]
+        # 3-digit years with a leading edge 1 (e.g. "108" → "08").
+        if len(year) == 3 and year[0] == "1" and 0 <= int(year[1:]) <= 99:
+            year = year[1:]
         # Single-digit year tokens are usually mid-stream fragments; fall through
         # to compact digit-stream assembly instead of aborting recovery.
         if len(year) != 1:
@@ -206,7 +212,13 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
                 and 1 <= int(day) <= 31
                 and 1900 <= int(year) <= 2100
             ):
-                return f"{month}/{day}/{year}"
+                try:
+                    from datetime import date as _date
+                    _date(int(year), int(month), int(day))
+                except ValueError:
+                    pass
+                else:
+                    return f"{month}/{day}/{year}"
     def _valid(month: str, day: str, year: str) -> str | None:
         if not (
             re.fullmatch(r"\d{2}", month)
@@ -216,6 +228,11 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             and 1 <= int(day) <= 31
             and 1900 <= int(year) <= 2100
         ):
+            return None
+        try:
+            from datetime import date as _date
+            _date(int(year), int(month), int(day))
+        except ValueError:
             return None
         return f"{month}/{day}/{year}"
 

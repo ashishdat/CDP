@@ -143,3 +143,53 @@ def test_line_totals_e6_can_authorize_total_charge_without_second_engine():
     assert result.decision == Decision.ACCEPT
     assert result.selected_value == "400.00"
     assert "LINE_TOTALS_RECONCILED" in result.rationale_codes
+
+
+def test_identity_corroborated_threshold_relief_for_insured_id():
+    """Member ID near C3 floor accepts when hard validation + relationship E6."""
+    registry = CalibrationRegistry(
+        {
+            ("rapidocr", "insured_id_number"): IsotonicCalibration(
+                (0.0, 1.0), (0.97, 0.97), "id-near-miss-v1"
+            )
+        }
+    )
+    reconciler = EvidenceReconciler(
+        registry,
+        accept_thresholds={
+            CriticalityLevel.C0: 0.70,
+            CriticalityLevel.C1: 0.80,
+            CriticalityLevel.C2: 0.92,
+            CriticalityLevel.C3: 0.98,
+        },
+    )
+    # Without identity relief, calibrated 0.97 under C3 0.98 escalates.
+    blocked = reconciler.reconcile(
+        "insured_id_number",
+        [_candidate("135353652", "rapidocr", 0.99)],
+        CriticalityLevel.C3,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert blocked.decision == Decision.ESCALATE
+    assert "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD" in blocked.rationale_codes
+
+    # With member-relationship E6, near-miss confidence is corroboration-backed.
+    result = reconciler.reconcile(
+        "insured_id_number",
+        [_candidate("135353652", "rapidocr", 0.99)],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "135353652"
+    assert "IDENTITY_CORROBORATED_THRESHOLD_RELIEF" in result.rationale_codes
+    assert "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD" not in result.rationale_codes
+

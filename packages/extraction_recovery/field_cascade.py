@@ -287,9 +287,17 @@ class FieldCascade:
                 "",
             )
             raw = (candidates[0].get("raw_value") if candidates else "") or ""
-            if not selected and raw:
-                span = select_field_span(raw, span_datatype_for_field(field_name, field_type), field_name)
-                selected = span.selected_text
+            # Always span-select observed text before semantic accept so DOB
+            # token assembly / name cleanup run even when OCR returned non-empty.
+            span_source = selected or raw
+            if span_source:
+                span = select_field_span(
+                    span_source,
+                    span_datatype_for_field(field_name, field_type),
+                    field_name,
+                )
+                if span.selected_text:
+                    selected = span.selected_text
             ok, accept_reason = semantic_accept(field_name, selected)
             step = CascadeStepResult(
                 variant_id=variant.variant_id,

@@ -223,7 +223,25 @@ class EvidenceReconciler:
         rule = self.evidence_policies.rule_for(document_family, field_name, criticality)
         policy_ok, missing_alternatives = rule.evaluate(signals)
         threshold = rule.threshold if rule.threshold is not None else self.thresholds[criticality]
-        threshold_ok = confidence >= threshold
+        # Identity fields with hard validation + member-relationship E6 are
+        # corroboration-backed: allow a slightly lower calibrated floor (0.95)
+        # instead of inventing values or waiving evidence. Closes near-miss
+        # STP blocks where calibrated OCR is ~0.97 under a 0.98 C3 gate.
+        identity_corroborated = (
+            field_name in {"insured_id_number", "member_id", "subscriber_id"}
+            and "HARD_VALIDATION_PASSED" in deterministic
+            and bool(
+                deterministic
+                & {
+                    "MEMBER_RELATIONSHIP_CONFIRMED",
+                    "MEMBER_IDENTITY_CONSISTENT",
+                }
+            )
+        )
+        effective_threshold = 0.95 if identity_corroborated else threshold
+        threshold_ok = confidence >= effective_threshold
+        if identity_corroborated and confidence >= effective_threshold and confidence < threshold:
+            reasons.append("IDENTITY_CORROBORATED_THRESHOLD_RELIEF")
         # C3 always needs deterministic/authoritative evidence or two truly
         # independent engine families. Confidence is never sufficient alone.
         independent_evidence_ok = has_independent_agreement or deterministic_ok or financial_authority

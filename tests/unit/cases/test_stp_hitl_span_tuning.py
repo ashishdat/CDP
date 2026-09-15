@@ -206,3 +206,15 @@ def test_insured_name_route_authority_present():
     assert route is not None
     assert route.status.value == "PRODUCTION_APPROVED"
 
+def test_dob_assembles_trailing_letter_bleed_and_three_digit_year():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("12 26l 108", "DATE", "patient_dob")
+    assert selected.selected_text == "12/26/2008"
+
+
+def test_dob_rejects_impossible_calendar_day():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("11 31 93", "DATE", "patient_dob")
+    assert selected.selected_text != "11/31/1993"
+    assert "11/31" not in selected.selected_text
+
