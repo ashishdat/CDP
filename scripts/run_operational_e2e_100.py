@@ -446,6 +446,19 @@ def main() -> int:
         help="Attempt live app-path execution (requires Hackathon ZIP + tesseract).",
     )
     parser.add_argument("--live-limit", type=int, default=0, help="Max live claims to run (0=all).")
+    parser.add_argument(
+        "--live-offset",
+        type=int,
+        default=0,
+        help="Skip the first N paired claims before applying --live-limit (independent cohort).",
+    )
+    parser.add_argument(
+        "--live-seed",
+        type=int,
+        default=None,
+        help="If set, sample --live-limit claims without replacement from the paired set "
+        "(ignores --live-offset order; records seed in the live report).",
+    )
     args = parser.parse_args()
 
     if not args.ops_report.exists():
@@ -480,8 +493,31 @@ def main() -> int:
             live_root = args.output / "live"
             live_root.mkdir(parents=True, exist_ok=True)
             docs = [row["document"] for row in ops_report.get("paired_claims") or []]
-            if args.live_limit > 0:
-                docs = docs[: args.live_limit]
+            selection = {
+                "total_paired": len(docs),
+                "offset": args.live_offset,
+                "limit": args.live_limit,
+                "seed": args.live_seed,
+            }
+            if args.live_seed is not None:
+                import random
+
+                rng = random.Random(args.live_seed)
+                pool = list(docs)
+                rng.shuffle(pool)
+                if args.live_limit > 0:
+                    docs = pool[: args.live_limit]
+                else:
+                    docs = pool
+                selection["mode"] = "seeded_shuffle"
+            else:
+                if args.live_offset:
+                    docs = docs[args.live_offset :]
+                if args.live_limit > 0:
+                    docs = docs[: args.live_limit]
+                selection["mode"] = "offset_slice"
+            selection["documents"] = list(docs)
+            report["live_execution"]["selection"] = selection
             live_results = []
             for document in docs:
                 claim_dir = live_root / document.replace("/", "__")
@@ -495,6 +531,13 @@ def main() -> int:
             )
             report["live_execution"]["claims_true_stp"] = sum(
                 1 for row in live_results if row.get("true_stp")
+            )
+            attempted = len(live_results) or 1
+            report["live_execution"]["live_completion_rate"] = (
+                report["live_execution"]["claims_completed"] / attempted
+            )
+            report["live_execution"]["live_true_stp_rate"] = (
+                report["live_execution"]["claims_true_stp"] / attempted
             )
 
     args.output.mkdir(parents=True, exist_ok=True)
@@ -515,8 +558,16 @@ def main() -> int:
         "recovery_human_queue_plans": report["recovery_integration"]["human_queue_plans"],
         "recovery_executable_plans": report["recovery_integration"]["executable_plans"],
         "production_qualification_status": report["production_qualification"]["status"],
-        "source": str(out_path.relative_to(ROOT)),
+        "source": str(out_path if out_path.is_absolute() else out_path.relative_to(ROOT)),
     }
+    if report.get("live_execution", {}).get("claims_attempted"):
+        live = report["live_execution"]
+        summary["live_claims_attempted"] = live.get("claims_attempted")
+        summary["live_claims_completed"] = live.get("claims_completed")
+        summary["live_claims_true_stp"] = live.get("claims_true_stp")
+        summary["live_completion_rate"] = live.get("live_completion_rate")
+        summary["live_true_stp_rate"] = live.get("live_true_stp_rate")
+        summary["live_selection"] = live.get("selection")
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 
     metrics = report["metrics"]
@@ -529,7 +580,19 @@ def main() -> int:
         f"recovery_human_queue={report['recovery_integration']['human_queue_plans']}",
         f"status={report['production_qualification']['status']}",
     )
-    print(f"Wrote {out_path.relative_to(ROOT)}")
+    live = report.get("live_execution") or {}
+    if live.get("claims_attempted"):
+        print(
+            "LIVE_SAMPLE:",
+            f"attempted={live['claims_attempted']}",
+            f"completed={live.get('claims_completed')}",
+            f"true_stp={live.get('claims_true_stp')}",
+            f"completion_rate={100.0 * float(live.get('live_completion_rate') or 0):.1f}%",
+            f"true_stp_rate={100.0 * float(live.get('live_true_stp_rate') or 0):.1f}%",
+            f"selection={live.get('selection', {}).get('mode')}",
+        )
+    out_display = out_path if out_path.is_absolute() else out_path.relative_to(ROOT)
+    print(f"Wrote {out_display}")
     return 0
 
 
