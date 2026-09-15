@@ -218,3 +218,14 @@ Recovered without policy softening:
 - **HJHK.005** line charge `I/00`→`100.00` → `LINE_TOTALS_RECONCILED` for box-28
 
 Residual HITL: **HJHK.005** handwritten DOB (header-only OCR) — human entry / better scan.
+
+## Cascade v6 independent Sample A
+
+Architecture redesign (`field-cascade-v6`) evaluated on held-out Sample A (no
+overlap with Sample B tuning). True STP **2/4** (was 0/5 pre-cascade). Charge
+auto **4/4**. Remaining HITL is DOB-only with classified gaps
+(`AMBIGUOUS_DIGIT_FRAGMENTS`, `HANDWRITING_UNREADABLE`) — not policy waivers.
+
+See `docs/STP_FIELD_CASCADE_ARCHITECTURE_V6.md` and
+`docs/metrics/cascade_v6_independent_eval.json`.
+

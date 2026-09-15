@@ -57,3 +57,39 @@ GeometryResult (rectified)
   STP proxy (extraction harness; identity forced verified).
 
 Do not treat Sample B re-scores as independent generalization evidence.
+
+## Independent evaluation (cascade-v6)
+
+### Ops Sample A (held out from Sample B tuning)
+
+Source: `evaluation_results/operational_e2e_100_v1_fix_sample`  
+Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_a_cascade_v6/`  
+Metrics: `docs/metrics/cascade_v6_independent_eval.json`
+
+| Metric | Pre-cascade docs | Cascade v6 |
+|--------|------------------|------------|
+| Completed (with geometry) | 4/5 selected | **4/4** |
+| True STP | **0/5** | **2/4** |
+| `total_charge` auto | ~0 historically | **4/4** |
+| `patient_dob` auto | low | **2/4** |
+| Other criticals | mixed | **4/4** each |
+
+Residual HITL (honest gaps):
+- `AMBIGUOUS_DIGIT_FRAGMENTS` — DOB OCR assembled a non-unique / invalid calendar date
+- `HANDWRITING_UNREADABLE` — no DOB ink recoverable from crop ladder / cells
+
+### Golden Pack V3 (independent accuracy harness)
+
+Output: `evaluation_results/accuracy_100_sample_v3_independent_cascade_v6/`
+
+| Metric | Prior independent | This run |
+|--------|-------------------|----------|
+| Exact accuracy | 0.999 | 0.998 |
+| Claim STP proxy | 0.99 | 0.98 |
+| Claim hard HITL | 0.01 | 0.02 |
+| False accepts | 0 | **0** |
+
+Scope note: Golden harness forces verified identity/template and does not run the
+ops field-cascade path end-to-end. It remains the independent **extraction
+accuracy** yardstick; ops Sample A is the independent **STP/HITL** yardstick.
+

@@ -1,0 +1,70 @@
+{
+  "dataset_id": "CDP_GOLDEN_ENGINEERING_PACK_V3",
+  "sample_size": 100,
+  "cms_docs": 50,
+  "ub_docs": 50,
+  "field_count": 1000,
+  "exact_accuracy": 0.998,
+  "critical_exact_accuracy": 0.9971428571428571,
+  "field_hard_hitl": 0.002,
+  "field_raw_disposition_hitl": 1.0,
+  "correct_but_reviewed_rate": 0.998,
+  "claim_hard_hitl": 0.02,
+  "claim_stp_proxy": 0.98,
+  "claim_raw_disposition_hitl": 1.0,
+  "perfect_claim_exact": 0.98,
+  "false_accepts": 0,
+  "validation_status_counts": {
+    "PENDING": 1000
+  },
+  "by_family": {
+    "CMS1500": {
+      "documents": 50,
+      "fields": 550,
+      "exact_accuracy": 0.9981818181818182,
+      "field_hard_hitl": 0.0018181818181818182,
+      "field_raw_disposition_hitl": 1.0,
+      "claim_hard_hitl": 0.02,
+      "claim_stp_proxy": 0.98,
+      "perfect_claim_exact": 0.98
+    },
+    "UB04": {
+      "documents": 50,
+      "fields": 450,
+      "exact_accuracy": 0.9977777777777778,
+      "field_hard_hitl": 0.0022222222222222222,
+      "field_raw_disposition_hitl": 1.0,
+      "claim_hard_hitl": 0.02,
+      "claim_stp_proxy": 0.98,
+      "perfect_claim_exact": 0.98
+    }
+  },
+  "top_exact_failures": [
+    [
+      "patient_dob",
+      1
+    ],
+    [
+      "patient_name",
+      1
+    ]
+  ],
+  "latency_ms": {
+    "p50": 1383.1092830077978,
+    "mean": 1473.4600784798386,
+    "max": 2874.535716997343
+  },
+  "elapsed_s": 148.8380116599874,
+  "measurement_scope": "EXTRACTION_HARNESS",
+  "identity_supplied_by_harness": true,
+  "metric_name_stp": "golden_pack_claim_stp_proxy",
+  "independent_source_documents": 100,
+  "gaps_resolved": [
+    "normalize_date accepts ISO YYYY-MM-DD (Exact date false-misses)",
+    "normalize_icd repairs leading I/O OCR swaps (I10 <- 110)",
+    "ICD_CODE extractor maps to icd normalizer",
+    "HITL reported as hard_hitl + correct_but_reviewed (PENDING is not auto-accept)"
+  ],
+  "note": "measurement_scope=EXTRACTION_HARNESS. Form identity is forced to VERIFIED and the matching template is selected by the harness \u2014 this is extraction accuracy conditional on a correct identity/template path, NOT end-to-end operational completion or production STP. hard_hitl = Exact miss OR INVALID/MISSING/empty. raw_disposition_hitl counts PENDING as HITL because EvidenceDecisionService is not applied on this extraction-only path; claim STP remains gated there. claim_stp_proxy is a Golden Pack Claim STP Proxy, not production STP.",
+  "dataset_path": "evaluation_data/phase8_7_golden_pack/CDP_GOLDEN_ENGINEERING_PACK_V3"
+}

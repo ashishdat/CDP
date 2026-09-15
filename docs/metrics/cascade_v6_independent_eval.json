@@ -1,0 +1,128 @@
+{
+  "phase": "cascade-v6",
+  "architecture": "field-cascade-v6",
+  "generated_at": "2026-09-15T13:46:24.087228+00:00",
+  "independent_ops_sample_a": {
+    "cohort": "evaluation_results/operational_e2e_100_v1_fix_sample",
+    "independent_of_sample_b_tuning": true,
+    "summary": {
+      "attempted": 5,
+      "with_geometry": 4,
+      "completed": "4/4",
+      "true_stp": "2/4",
+      "patient_dob_auto": "2/4",
+      "total_charge_auto": "4/4",
+      "patient_name_auto": "4/4",
+      "insured_id_auto": "4/4",
+      "insured_name_auto": "4/4"
+    },
+    "blockers": {
+      "patient_dob": 2
+    },
+    "gap_classes": {
+      "AMBIGUOUS_DIGIT_FRAGMENTS": 1,
+      "HANDWRITING_UNREADABLE": 1
+    },
+    "strategy": "field-cascade-v6",
+    "vs_pre_cascade_docs": {
+      "completed": "4/5 selection \u2192 4/4 with geometry completed",
+      "true_stp": "0/5 \u2192 2/4",
+      "total_charge_auto": "0/10 mixed cohort historical \u2192 4/4 on Sample A geometry set"
+    },
+    "claims": [
+      {
+        "claim": "Group A__M048DJJF.005",
+        "ok": false,
+        "skipped": true,
+        "review_required": null,
+        "critical_blockers": null,
+        "gap_classes": null,
+        "error": "No GeometryResult under /workspace/evaluation_results/operational_e2e_100_v1_fix_sample/live/Group A__M048DJJF.005"
+      },
+      {
+        "claim": "Group A__M048DJJM.012",
+        "ok": true,
+        "skipped": false,
+        "review_required": false,
+        "critical_blockers": [],
+        "gap_classes": [],
+        "error": null
+      },
+      {
+        "claim": "Group A__M048DJJM.022",
+        "ok": true,
+        "skipped": false,
+        "review_required": true,
+        "critical_blockers": [
+          "patient_dob"
+        ],
+        "gap_classes": [
+          {
+            "field": "patient_dob",
+            "gap_class": "AMBIGUOUS_DIGIT_FRAGMENTS",
+            "action": "Prefer crop/span repair; HITL if no unique calendar-valid date.",
+            "evidence": "digit fragments present but not calendar-unique ('4210-01-01')"
+          }
+        ],
+        "error": null
+      },
+      {
+        "claim": "Group A__M048DJJM.042",
+        "ok": true,
+        "skipped": false,
+        "review_required": true,
+        "critical_blockers": [
+          "patient_dob"
+        ],
+        "gap_classes": [
+          {
+            "field": "patient_dob",
+            "gap_class": "HANDWRITING_UNREADABLE",
+            "action": "Keep HITL; needs scan/ROI quality, handwriting model, or human entry.",
+            "evidence": "no DOB OCR ink in crop ladder / cells"
+          }
+        ],
+        "error": null
+      },
+      {
+        "claim": "Group A__M048DJKH.008",
+        "ok": true,
+        "skipped": false,
+        "review_required": false,
+        "critical_blockers": [],
+        "gap_classes": [],
+        "error": null
+      }
+    ]
+  },
+  "independent_golden_v3_accuracy": {
+    "dataset": "CDP_GOLDEN_ENGINEERING_PACK_V3",
+    "measurement_scope": "EXTRACTION_HARNESS",
+    "note": "Harness forces verified identity/template; not end-to-end ops STP. Cascade redesign primarily affects ops OCR path.",
+    "metrics": {
+      "exact_accuracy": 0.998,
+      "critical_exact_accuracy": 0.9971428571428571,
+      "field_hard_hitl": 0.002,
+      "claim_hard_hitl": 0.02,
+      "claim_stp_proxy": 0.98,
+      "perfect_claim_exact": 0.98,
+      "false_accepts": 0
+    },
+    "vs_prior_independent_baseline": {
+      "exact_accuracy": "0.999 \u2192 0.998",
+      "claim_stp_proxy": "0.99 \u2192 0.98",
+      "claim_hard_hitl": "0.01 \u2192 0.02",
+      "false_accepts": "0 \u2192 0"
+    },
+    "top_exact_failures": [
+      [
+        "patient_dob",
+        1
+      ],
+      [
+        "patient_name",
+        1
+      ]
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "cohort": "evaluation_results/operational_e2e_100_v1_fix_sample",
+  "independent_of_sample_b_tuning": true,
+  "summary": {
+    "attempted": 5,
+    "with_geometry": 4,
+    "completed": "4/4",
+    "true_stp": "2/4",
+    "patient_dob_auto": "2/4",
+    "total_charge_auto": "4/4",
+    "patient_name_auto": "4/4",
+    "insured_id_auto": "4/4",
+    "insured_name_auto": "4/4"
+  },
+  "blockers": {
+    "patient_dob": 2
+  },
+  "gap_classes": {
+    "AMBIGUOUS_DIGIT_FRAGMENTS": 1,
+    "HANDWRITING_UNREADABLE": 1
+  },
+  "strategy": "field-cascade-v6"
+}
