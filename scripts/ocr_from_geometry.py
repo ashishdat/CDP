@@ -458,15 +458,28 @@ def _recognize_dob_cells(image, band, router, engines):
     # Only emit when span produced a calendar-shaped date (not the raw join).
     if not selected or not re.fullmatch(r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}', selected):
         return [], attempts, 'DOB_CELLS_EMPTY'
+    # Attribute to a route-authorized producing engine so evidence decision does
+    # not strip the assembled candidate as CANDIDATE_ENGINE_NOT_AUTHORIZED.
+    # Cell segmentation stays in preprocessing_variant + span reason codes.
+    producing_engine = engines[0] if engines else 'rapidocr'
+    for attempt in reversed(attempts):
+        eng = str(attempt.get('engine') or '')
+        if not eng or eng == 'tesseract_digits':
+            continue
+        obs = attempt.get('observation')
+        if obs is None:
+            continue
+        producing_engine = eng
+        break
     box = BoundingBox(
         x0=band[0], y0=band[1], x1=band[2], y1=band[3],
         image_width=image.width, image_height=image.height,
     )
     candidate = OCRCandidate(
-        value=selected, raw_value=' | '.join(raw_bits), engine='dob_cells',
+        value=selected, raw_value=' | '.join(raw_bits), engine=producing_engine,
         model_name='unknown', model_version='unknown',
         preprocessing_variant='dob_cell_upscale',
-        preprocessing_version='cascade-v5',
+        preprocessing_version='cascade-v8',
         raw_confidence=0.8,
         calibrated_confidence=None, bounding_box=box,
         latency_ms=0.0,
@@ -478,6 +491,8 @@ def _recognize_dob_cells(image, band, router, engines):
         'confidence': span.confidence,
         'reason_codes': list(span.reason_codes) + ['DOB_CELL_SEGMENT'],
         'cell_parts': parts,
+        'assembly_engine': 'dob_cells',
+        'producing_engine': producing_engine,
     }
     return [payload], attempts, 'DOB_CELLS_ASSEMBLED'
 

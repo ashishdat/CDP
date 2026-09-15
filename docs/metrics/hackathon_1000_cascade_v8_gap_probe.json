@@ -1,0 +1,44 @@
+{
+  "run": "hackathon_1000_cascade_v8_gap_probe",
+  "generated_at": "2026-09-15T20:45:00+00:00",
+  "architecture": "field-cascade-v8 / docs/STP_PIPELINE_ARCHITECTURE_V8.md",
+  "prior_v7_freeze": {
+    "n": 521,
+    "registration_ok_rate": 0.614,
+    "true_stp_rate_of_completed": 0.628,
+    "true_stp_rate_of_all": 0.386,
+    "patient_dob_hitl": 105
+  },
+  "gaps_closed": [
+    "dob_cells attributed to producing route engine (no CANDIDATE_ENGINE_NOT_AUTHORIZED strip)",
+    "DOB trailing-1 MM/DD peel + header-safe compact + MMDD1YY century",
+    "DATE_CORROBORATED_THRESHOLD_RELIEF (floor 0.80) when DATE_VALID",
+    "Registration contrast-stretch second preprocess for multi-gate failures"
+  ],
+  "probe_claims": [
+    {
+      "document": "Group A/M048DJJM.013",
+      "prior": "dob_cells assembled 05/09/2011 but engine unauthorized → empty DOB HITL",
+      "after": "patient_dob AUTO_ACCEPTED 2011-05-09; residual insured_id HITL"
+    },
+    {
+      "document": "Group A/M048DJJM.009",
+      "prior": "MM DD 0 9 2 9 L 9 6 → no unique span",
+      "after": "true STP; patient_dob 1996-09-29"
+    },
+    {
+      "document": "Group A/M048HJCX.016",
+      "prior": "calendar-valid DOB held for calibrated confidence",
+      "after": "true STP; DATE_CORROBORATED_THRESHOLD_RELIEF"
+    },
+    {
+      "document": "Group A/M048DJJM.026",
+      "prior": "calendar-valid DOB calibration HITL",
+      "after": "true STP; DATE_CORROBORATED_THRESHOLD_RELIEF"
+    }
+  ],
+  "completed": 4,
+  "true_stp": 3,
+  "true_stp_rate_of_completed": 0.75,
+  "note": "Operational completion / true-STP / HITL only — no field-level GT."
+}

@@ -36,6 +36,8 @@ def register_classified_document(images, routing, registry, selection=None):
         decide_registration_recovery,
         enhance_for_registration,
         enhance_for_registration_strong,
+        enhance_for_registration_contrast_stretch,
+        should_attempt_second_preprocess,
         evidence_grade_alignment_confidence,
     )
     from packages.recovery.planner import Strategy
@@ -177,6 +179,34 @@ def register_classified_document(images, routing, registry, selection=None):
                 attempts.append(meta)
             finally:
                 enhanced.close()
+
+        # Second distinct preprocess when cause-specific enhance still fails.
+        if not accepted and recovery_decision is not None and recovery_decision.attempt:
+            failure_reasons = [
+                value for value in (
+                    meta.get("reason"),
+                    evidence.rejection_reason if evidence else None,
+                ) if value
+            ]
+            expanded = []
+            for value in failure_reasons:
+                expanded.extend(part.strip() for part in str(value).split(",") if part.strip())
+            if should_attempt_second_preprocess(
+                failure_reasons=expanded or failure_reasons,
+                first_recovery_attempted=True,
+            ):
+                if aligned is not None and aligned.warped is not None:
+                    aligned.warped.close()
+                    aligned = None
+                recovery_strategies.append("CONTRAST_STRETCH_SECOND_PREPROCESS")
+                enhanced = enhance_for_registration_contrast_stretch(source)
+                try:
+                    aligned, evidence, accepted, meta, content_ok, content_reason = _attempt(
+                        enhanced, "enhanced_contrast_stretch"
+                    )
+                    attempts.append(meta)
+                finally:
+                    enhanced.close()
 
         raw_confidence = (
             evidence.alignment_confidence if evidence is not None else (

@@ -1,4 +1,4 @@
-"""Unit tests for field-cascade-v7 strategy loading, E3 honesty, crop ladders."""
+"""Unit tests for field-cascade-v8 strategy loading, E3 honesty, crop ladders."""
 
 from __future__ import annotations
 
@@ -15,14 +15,16 @@ from packages.extraction_recovery.strategy import (
 from scripts.complete_from_extraction import _load_registration_context
 
 
-def test_strategy_is_v7():
+def test_strategy_is_v8():
     load_cascade_strategy.cache_clear()
     strategy = load_cascade_strategy()
-    assert strategy.strategy_id == "field-cascade-v7"
+    assert strategy.strategy_id == "field-cascade-v8"
     assert strategy.status == "ACTIVE"
-    assert strategy.phase == 7
+    assert strategy.phase == 8
     assert "EVIDENCE_PLUMBING_GAP" in strategy.gap_classes
+    assert "CALIBRATION_HITL" in strategy.gap_classes
     assert any(s.get("id") == "complete_e3" for s in strategy.stages)
+    assert any(s.get("id") == "register_recovery" for s in strategy.stages)
 
 
 def test_dob_ladder_includes_year_wide_and_post_miss_cells():
@@ -52,7 +54,7 @@ def test_crop_variants_follow_strategy_order():
 
 
 def test_field_cascade_defaults_to_v7():
-    assert FieldCascade().strategy_id == "field-cascade-v7"
+    assert FieldCascade().strategy_id == "field-cascade-v8"
 
 
 def test_gap_taxonomy_marks_header_only_dob_as_handwriting():
@@ -78,6 +80,35 @@ def test_gap_taxonomy_marks_missing_e3_as_plumbing_not_handwriting():
     )
     assert gap is not None
     assert gap.gap_class == "EVIDENCE_PLUMBING_GAP"
+
+
+def test_gap_taxonomy_marks_engine_authority_strip_as_plumbing():
+    gap = classify_field_gap(
+        "patient_dob",
+        observed_text="",
+        accepted=False,
+        reason_codes=[
+            "NO_NONEMPTY_CANDIDATE",
+            "CANDIDATE_ENGINE_NOT_AUTHORIZED:ANY.patient_dob.paddleocr.rapidocr.v1",
+        ],
+    )
+    assert gap is not None
+    assert gap.gap_class == "EVIDENCE_PLUMBING_GAP"
+
+
+def test_gap_taxonomy_marks_calibration_hold_honestly():
+    gap = classify_field_gap(
+        "patient_dob",
+        observed_text="1993-03-31",
+        accepted=False,
+        reason_codes=[
+            "HARD_VALIDATION_PASSED",
+            "DATE_VALID",
+            "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD",
+        ],
+    )
+    assert gap is not None
+    assert gap.gap_class == "CALIBRATION_HITL"
 
 
 def test_complete_loads_e3_from_registration_report(tmp_path: Path):

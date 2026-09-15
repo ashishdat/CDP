@@ -238,10 +238,29 @@ class EvidenceReconciler:
                 }
             )
         )
-        effective_threshold = 0.95 if identity_corroborated else threshold
+        # DOB with calendar/format hard validation: deterministic DATE_VALID is
+        # corroboration, not invented ink. Floor at C1 (0.80) so near-miss
+        # calibrated probs (~0.88–0.91) can STP without softening E3/identity.
+        date_corroborated = (
+            field_name in {"patient_dob", "date_of_birth", "dob"}
+            and "HARD_VALIDATION_PASSED" in deterministic
+            and "DATE_VALID" in deterministic
+        )
+        effective_threshold = threshold
+        relief_reason: str | None = None
+        if identity_corroborated:
+            effective_threshold = min(effective_threshold, 0.95)
+            relief_reason = "IDENTITY_CORROBORATED_THRESHOLD_RELIEF"
+        if date_corroborated:
+            effective_threshold = min(effective_threshold, 0.80)
+            relief_reason = "DATE_CORROBORATED_THRESHOLD_RELIEF"
         threshold_ok = confidence >= effective_threshold
-        if identity_corroborated and confidence >= effective_threshold and confidence < threshold:
-            reasons.append("IDENTITY_CORROBORATED_THRESHOLD_RELIEF")
+        if (
+            relief_reason
+            and confidence >= effective_threshold
+            and confidence < threshold
+        ):
+            reasons.append(relief_reason)
         # C3 always needs deterministic/authoritative evidence or two truly
         # independent engine families. Confidence is never sufficient alone.
         independent_evidence_ok = has_independent_agreement or deterministic_ok or financial_authority

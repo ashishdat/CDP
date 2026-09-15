@@ -99,10 +99,37 @@ _OCR_CONFUSABLES = str.maketrans({
 def _normalize_digit_token(tok: str) -> str:
     """Map common OCR letter/digit confusions inside otherwise-numeric tokens."""
     upper = tok.upper()
-    # Keep pure alpha headers out of digit normalization.
+    # Single-char digit confusables (L→1, O→0) belong in DOB digit streams.
+    # Multi-letter pure-alpha headers (MM/DD/YY) stay untouched via caller skips
+    # and the pure-alpha guard below.
+    if len(upper) == 1:
+        mapped = upper.translate(_OCR_CONFUSABLES)
+        if mapped and mapped.isdigit():
+            return mapped
+    # Keep pure alpha headers / words out of digit normalization.
     if re.fullmatch(r"[A-Z]+", upper):
         return tok
     return upper.translate(_OCR_CONFUSABLES)
+
+
+def _peel_trailing_edge_one(tok: str, lo: int, hi: int) -> str:
+    """Peel trailing edge-1 on 3-digit MM/DD when remnant is in range (051→05)."""
+    if len(tok) == 3 and tok.endswith("1") and re.fullmatch(r"\d{3}", tok):
+        peeled = tok[:2]
+        if lo <= int(peeled) <= hi:
+            return peeled
+    return tok
+
+
+def _dob_header_safe_text(text: str) -> str:
+    """Drop MM/DD/YY cell headers before compact digit assembly.
+
+    Confusable map turns D→0; leaving header letters in the compact stream
+    invents leading zeros (``MM DD 09…`` → ``0009…``) and poisons recovery.
+    """
+    tokens = [tok for tok in re.split(r"[\s,|/\\-]+", text.upper()) if tok]
+    kept = [tok for tok in tokens if tok not in _DOB_HEADER_TOKENS]
+    return " ".join(kept)
 
 
 def _matches(pattern: str, text: str) -> list[str]:
@@ -252,6 +279,10 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             month = month[1:]
         if len(day) == 3 and day[0] == "1" and 1 <= int(day[1:]) <= 31:
             day = day[1:]
+        # Trailing edge-1 on 3-digit MM/DD (e.g. "051 291 196" → 05/29/1996).
+        # Applied after leading peel so "112" stays leading-edge, not trailing.
+        month = _peel_trailing_edge_one(month, 1, 12)
+        day = _peel_trailing_edge_one(day, 1, 31)
         # Drop a leading edge glyph on 5-digit years (e.g. "11970" → "1970").
         if len(year) == 5 and year[0] == "1" and 1900 <= int(year[1:]) <= 2100:
             year = year[1:]
@@ -322,8 +353,10 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         return f"{month}/{day}/{year}"
 
     # Apply confusables (including CJK) before stripping non-alnum so glyphs like
-    # 了→7 survive into the compact digit stream.
-    normalized_text = text.translate(_OCR_CONFUSABLES)
+    # 了→7 survive into the compact digit stream. Strip MM/DD/YY headers first so
+    # D→0 cannot invent zeros from cell labels.
+    header_safe = _dob_header_safe_text(text)
+    normalized_text = header_safe.translate(_OCR_CONFUSABLES)
     compact = re.sub(r"\D", "", _normalize_digit_token(re.sub(r"[^0-9A-Za-z]", "", normalized_text)))
     def _yy_to_yyyy(yy: str) -> str:
         return f"20{yy}" if int(yy) <= 36 else f"19{yy}"
@@ -346,8 +379,19 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             got = _valid(compact[:2], compact[2:4], repaired)
             if got:
                 return got
-    # Seven digits: often MMDDYYY with a missing century leading-1 (0319983 → 03/19/1983).
+    # Seven digits: prefer MMDDYYY century repair (0319983 → 03/19/1983), then
+    # MMDD1YY edge-on-year (0929196 → 09/29/1996), then mid-stream insert / peels.
     if len(compact) == 7:
+        yyy = compact[4:]
+        if yyy[0] in "89" and 1900 <= int("1" + yyy) <= 2100:
+            got = _valid(compact[:2], compact[2:4], "1" + yyy)
+            if got:
+                return got
+        # Leading edge-1 on a 2-digit year (…196 → 96 → 1996), matching token path.
+        if compact[4] == "1":
+            got = _valid(compact[:2], compact[2:4], _yy_to_yyyy(compact[5:7]))
+            if got:
+                return got
         inserted = compact[:4] + "1" + compact[4:]
         got = _valid(inserted[:2], inserted[2:4], inserted[4:])
         if got:
@@ -361,6 +405,9 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         got = _valid(compact[1:3], compact[3:5], compact[5:9])
         if got:
             return got
+    # Nine digits from trailing-edge MM/DD peels: 051291196 → 05|29|1196 invalid,
+    # but after peeling trailing ones on heads → handled in token path; compact
+    # may still see 05291196 (8) via token peels first.
     # Ten digits: leading-edge day + leading-edge year + trailing month
     # (e.g. "1161194607" → 1|16|1|1946|07 → 07/16/1946). Observed ink only.
     if (

@@ -58,6 +58,19 @@ def classify_field_gap(
             f"decision missing E3 registration evidence ({sorted(reasons & _E3_PLUMBING_REASONS)})",
         )
 
+    auth_reasons = {r for r in reasons if r.startswith("CANDIDATE_ENGINE_NOT_AUTHORIZED")}
+    if auth_reasons:
+        return _pack(
+            "EVIDENCE_PLUMBING_GAP",
+            f"assembled candidate stripped by route engine authority ({sorted(auth_reasons)})",
+        )
+
+    if "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD" in reasons and text:
+        return _pack(
+            "CALIBRATION_HITL",
+            f"calendar/format-valid value held for calibrated confidence ({text!r})",
+        )
+
     if name in {"patient_dob", "date_of_birth"}:
         if not text:
             return _pack("HANDWRITING_UNREADABLE", "no DOB OCR ink in crop ladder / cells")

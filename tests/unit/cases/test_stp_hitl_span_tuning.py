@@ -287,6 +287,24 @@ def test_dob_split_day_fragments_before_full_year():
     assert ambiguous.selected_text in {"12/02/1983", "12/2/1983", ""}
 
 
+def test_dob_trailing_edge_one_peel_on_month_day():
+    """3-digit MM/DD ending in edge-1 peel before century-clipped year."""
+    from packages.extraction_recovery.span_selection import select_field_span
+
+    assert select_field_span("051 291 196", "DATE", "patient_dob").selected_text == "05/29/1996"
+    assert select_field_span("051 031 1982", "DATE", "patient_dob").selected_text == "05/03/1982"
+    assert select_field_span("021 241 196", "DATE", "patient_dob").selected_text == "02/24/1996"
+
+
+def test_dob_header_safe_compact_and_single_l_confusable():
+    """MM/DD headers must not D→0-poison compact; standalone L→1."""
+    from packages.extraction_recovery.span_selection import select_field_span
+
+    span = select_field_span("MM DD 0 9 2 9 L 9 6", "DATE", "patient_dob")
+    assert span.selected_text == "09/29/1996"
+    assert select_field_span("09 29 196", "DATE", "patient_dob").selected_text == "09/29/1996"
+
+
 def test_cross_variant_span_fusion_recovers_dob():
     from packages.extraction_recovery.field_cascade import FieldCascade
 

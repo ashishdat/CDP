@@ -111,7 +111,7 @@ def main() -> int:
         default=ROOT
         / "evaluation_results/operational_e2e_100_v1_std_sample_a_cascade_v6",
     )
-    parser.add_argument("--strategy-label", default="field-cascade-v7")
+    parser.add_argument("--strategy-label", default="field-cascade-v8")
     args = parser.parse_args()
 
     src = args.src if args.src.is_absolute() else ROOT / args.src

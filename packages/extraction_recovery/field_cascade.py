@@ -14,7 +14,7 @@ Principles
 4. Empty / contaminated financial crops stay empty — cascade never invents
    amounts. Claim-total E6 remains crop-total ∩ Σ line charges.
 5. Strategy id, crop ladders, and post-miss stages come from
-   ``config/field_cascade_strategy.yaml`` (field-cascade-v7).
+   ``config/field_cascade_strategy.yaml`` (field-cascade-v8).
 """
 
 from __future__ import annotations
@@ -79,7 +79,7 @@ class CascadeResult:
     cascade_trace: list[CascadeStepResult] = field(default_factory=list)
     accepted: bool = False
     accept_reason: str = "EXHAUSTED"
-    strategy_id: str = "field-cascade-v7"
+    strategy_id: str = "field-cascade-v8"
 
 
 RecognizeFn = Callable[

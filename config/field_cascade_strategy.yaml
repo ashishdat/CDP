@@ -1,19 +1,21 @@
 # Field-cascade OCR strategy — operational CMS-1500 STP
 #
-# Version field-cascade-v7 redesigns the ops pipeline around evidence contracts.
-# Crop ladders remain, but STP is gated on E3 registration evidence being
-# plumbed from RegistrationReport/GeometryResult into completion — not on
-# softer identity policy.
+# Version field-cascade-v8 closes residual STP/HITL gaps found on the stopped
+# Hackathon-1000 v7 freeze (n=521): DOB assembly (trailing-1 / header-safe
+# compact), dob_cells route-engine attribution, date-corroborated confidence
+# floor, and a second registration preprocess for multi-gate failures.
 #
-version: field-cascade-v7
+version: field-cascade-v8
 status: ACTIVE
-phase: 7
-supersedes: field-cascade-v6
+phase: 8
+supersedes: field-cascade-v7
 
 # Pipeline stages (ops path). Later stages must not invent ink.
 stages:
   - id: register
     role: Emit RegistrationReport / RegistrationEvidence (E3 source of truth).
+  - id: register_recovery
+    role: Cause-specific enhance then optional contrast-stretch second preprocess; same template/gates.
   - id: geometry
     role: Bind template ROIs; embed registration_ref + acceptance on GeometryResult.
   - id: roi_inset
@@ -47,7 +49,8 @@ honesty:
   - Glyph repair only on observed confusables (e.g. I/00 → 100.00, 983 → 1983).
   - True STP = FinalClaim completed AND review_required=false.
   - Residual handwriting with header-only OCR stays HITL (scan/ROI / handwriting model / human).
-  - Missing E3 is an evidence-plumbing failure, never HANDWRITING_UNREADABLE.
+  - Missing E3 / engine-authority strip is evidence-plumbing, never HANDWRITING_UNREADABLE.
+  - DATE_VALID + HARD_VALIDATION may relieve calibrated floor; never waive E3.
   - Report registration HITL and field-ink HITL as separate tracks.
 
 defaults:
@@ -80,7 +83,9 @@ fields:
     crop_ladder: [primary, dob_digit_band, dob_loose, dob_year_wide]
     accept: DATE_SHAPED
     post_miss: [dob_cells]
-    notes: Year-wide crop + century-clip / split-day span repair; gated cell OCR after miss.
+    notes: >
+      Trailing-1 MM/DD peel; header-safe compact (no D→0 poison); MMDDYYY
+      century repair; dob_cells attributed to producing route engine.
   total_charge:
     crop_ladder: [primary, charge_npi_cleared, charge_taller]
     accept: CURRENCY_SHAPED
@@ -103,13 +108,15 @@ fields:
 # Residual HITL taxonomy (honest classification — not auto-accept paths).
 gap_classes:
   EVIDENCE_PLUMBING_GAP:
-    action: Fix artifact contracts (attach E3/E6); do not treat as ink failure.
+    action: Fix artifact contracts (attach E3/E6 / engine authority); do not treat as ink failure.
   REGISTRATION_HITL:
     action: Registration recovery ladder or human registration; field cascade not applicable.
   HANDWRITING_UNREADABLE:
     action: Keep HITL; needs scan/ROI quality, handwriting model, or human entry.
   AMBIGUOUS_DIGIT_FRAGMENTS:
     action: Prefer crop/span repair; HITL if no unique calendar-valid date.
+  CALIBRATION_HITL:
+    action: Calendar-valid value held for calibrated confidence; corroboration relief or HITL.
   EMPTY_FINANCIAL_INK:
     action: Prefer service-line sum when charges observed; else HITL.
   NPI_CONTAMINATED_CHARGE:

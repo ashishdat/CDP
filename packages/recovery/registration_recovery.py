@@ -1,10 +1,12 @@
 """Bounded registration recovery for failed or content-invalid alignments.
 
-Ladder (at most one automated retry on the ops path):
+Ladder (ops path; same accepted template; no threshold softening):
 1. Primary alignment (caller)
-2. Cause-specific enhancement retry against the same accepted template
+2. Cause-specific enhancement retry
    - IMAGE_ENHANCEMENT: CLAHE + light denoise (poor-scan / low-inlier)
-   - ALTERNATIVE_REGISTRATION: stronger adaptive enhance (perspective/rotation gates)
+   - ALTERNATIVE_REGISTRATION: stronger adaptive enhance (perspective/rotation)
+3. Optional second preprocess (contrast-stretch) when step 2 still fails on
+   geometric / multi-gate / poor-scan tokens — still same gates.
 
 No alternate template inventing; no threshold softening.
 """
@@ -141,6 +143,49 @@ def enhance_for_registration_strong(image: Image.Image) -> Image.Image:
     blur = cv2.GaussianBlur(enhanced, (0, 0), sigmaX=1.0)
     sharpened = cv2.addWeighted(enhanced, 1.35, blur, -0.35, 0)
     return Image.fromarray(sharpened)
+
+
+def enhance_for_registration_contrast_stretch(image: Image.Image) -> Image.Image:
+    """Second-preprocess path: percentile stretch + wide-tile CLAHE + bilateral.
+
+    Distinct from mild/strong CLAHE so multi-gate failures get one more
+    ink-preserving chance against the same template and acceptance gates.
+    """
+    gray = np.asarray(image.convert("L"), dtype=np.uint8)
+    lo, hi = np.percentile(gray, (2, 98))
+    if float(hi) <= float(lo) + 1.0:
+        stretched = gray
+    else:
+        stretched = np.clip(
+            (gray.astype(np.float32) - float(lo)) * (255.0 / (float(hi) - float(lo))),
+            0,
+            255,
+        ).astype(np.uint8)
+    clahe = cv2.createCLAHE(clipLimit=2.5, tileGridSize=(16, 16))
+    enhanced = clahe.apply(stretched)
+    enhanced = cv2.bilateralFilter(enhanced, d=5, sigmaColor=50, sigmaSpace=50)
+    return Image.fromarray(enhanced)
+
+
+def should_attempt_second_preprocess(
+    *,
+    failure_reasons: list[str],
+    first_recovery_attempted: bool,
+) -> bool:
+    """Authorize one contrast-stretch retry after the cause-specific enhance fails.
+
+    Limited to geometric / multi-gate / low-inlier failures — never softens gates.
+    """
+    if not first_recovery_attempted:
+        return False
+    blob = _blob(failure_reasons)
+    return any(
+        token in blob
+        for token in (
+            *_POOR_SCAN_TOKENS,
+            *_GEOMETRIC_CAPTURE_TOKENS,
+        )
+    )
 
 
 def evidence_grade_alignment_confidence(raw_confidence: float, *, accepted: bool) -> float:

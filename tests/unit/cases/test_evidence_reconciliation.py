@@ -193,3 +193,50 @@ def test_identity_corroborated_threshold_relief_for_insured_id():
     assert "IDENTITY_CORROBORATED_THRESHOLD_RELIEF" in result.rationale_codes
     assert "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD" not in result.rationale_codes
 
+
+def test_date_corroborated_threshold_relief_for_patient_dob():
+    """Calendar-valid DOB near C2 floor accepts with DATE_VALID corroboration."""
+    registry = CalibrationRegistry(
+        {
+            ("rapidocr", "patient_dob"): IsotonicCalibration(
+                (0.0, 1.0), (0.88, 0.88), "dob-near-miss-v1"
+            )
+        }
+    )
+    reconciler = EvidenceReconciler(
+        registry,
+        accept_thresholds={
+            CriticalityLevel.C0: 0.70,
+            CriticalityLevel.C1: 0.80,
+            CriticalityLevel.C2: 0.92,
+            CriticalityLevel.C3: 0.98,
+        },
+    )
+    blocked = reconciler.reconcile(
+        "patient_dob",
+        [_candidate("1993-03-31", "rapidocr", 0.75)],
+        CriticalityLevel.C2,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert blocked.decision == Decision.ESCALATE
+    assert "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD" in blocked.rationale_codes
+
+    result = reconciler.reconcile(
+        "patient_dob",
+        [_candidate("1993-03-31", "rapidocr", 0.75)],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "1993-03-31"
+    assert "DATE_CORROBORATED_THRESHOLD_RELIEF" in result.rationale_codes
+    assert "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD" not in result.rationale_codes
+

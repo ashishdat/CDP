@@ -8,6 +8,8 @@ from packages.recovery.registration_recovery import (
     decide_registration_recovery,
     enhance_for_registration,
     enhance_for_registration_strong,
+    enhance_for_registration_contrast_stretch,
+    should_attempt_second_preprocess,
 )
 
 
@@ -53,13 +55,27 @@ def test_diagnose_still_fails_closed_on_bare_perspective_token():
     assert plan.strategy is Strategy.HUMAN_QUEUE
 
 
+def test_second_preprocess_authorized_after_first_recovery_fails():
+    assert should_attempt_second_preprocess(
+        failure_reasons=["low_inlier_ratio", "unsafe_perspective_distortion"],
+        first_recovery_attempted=True,
+    )
+    assert not should_attempt_second_preprocess(
+        failure_reasons=["low_inlier_ratio"],
+        first_recovery_attempted=False,
+    )
+
+
 def test_enhancement_variants_preserve_size(tmp_path):
     from PIL import Image
 
     img = Image.new("L", (64, 48), color=128)
     mild = enhance_for_registration(img)
     strong = enhance_for_registration_strong(img)
+    stretch = enhance_for_registration_contrast_stretch(img)
     assert mild.size == img.size
     assert strong.size == img.size
+    assert stretch.size == img.size
     assert mild.mode == "L"
     assert strong.mode == "L"
+    assert stretch.mode == "L"
