@@ -102,6 +102,21 @@ be recovered by crop/span/route completeness.
 - No waiving identity gates
 - `insured_name` still blocks STP when unresolved; route authority lets real ink count
 
+## Sample B Phase 3 result
+
+| Metric | Phase 2 | Phase 3 |
+|--------|---------|---------|
+| True STP | 0/6 | **2/6** |
+| `insured_name` auto | 0/6 | **6/6** |
+| `patient_dob` auto | 2/6 | **3/6** |
+| `total_charge` auto | 5/6 | 5/6 |
+
+Unlocked STP on IJN2.008 and JJJM.014 once `insured_name` gained route authority.
+DOB gain: IJN2.005 (`04 1 了 .9 9 1 1` → `04/17/1991`). Remaining HITL: DOB ink loss (3),
+member-id calibration (1), empty total+lines (1).
+
+Metrics: `docs/metrics/sample_b_cascade_v3_metrics.json`.
+
 ## Sample B Phase 3 target
 
 Unlock STP on claims that already clear critical fields once `insured_name` is

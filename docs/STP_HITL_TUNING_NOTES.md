@@ -143,7 +143,17 @@ See `docs/STP_FIELD_CASCADE_STRATEGY.md` (Phase 3).
 
 ### Sample B after Phase 3
 
-(filled after reprocess)
+| Metric | Phase 2 | Phase 3 |
+|--------|---------|---------|
+| True STP | 0 / 6 | **2 / 6** |
+| `insured_name` auto | 0 / 6 | **6 / 6** |
+| `patient_dob` auto | 2 / 6 | **3 / 6** |
+| `total_charge` auto | 5 / 6 | **5 / 6** |
+| Dominant blockers | DOB 4, total 1, id 1 | **DOB 3**, id 1, total 1 |
+
+`insured_name` is no longer a false STP wall. Two claims reach true STP (IJN2.008,
+JJJM.014). Residual HITL is real ink/calibration gaps, not missing route authority.
 
 Artifacts: `evaluation_results/operational_e2e_100_v1_std_sample_b_cascade_v3/`.
+Metrics: `docs/metrics/sample_b_cascade_v3_metrics.json`.
 
