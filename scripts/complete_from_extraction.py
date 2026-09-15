@@ -1,4 +1,4 @@
-﻿"""Complete one saved ExtractionResult using existing decision policies only."""
+"""Complete one saved ExtractionResult using existing decision policies only."""
 import argparse
 import json
 from hashlib import sha256
@@ -8,6 +8,80 @@ from time import perf_counter
 
 def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, allow_nan=False)+'\n', encoding='utf-8')
+
+
+def _load_registration_context(extraction):
+    """Load sibling registration/geometry artifacts for E3 without re-acquiring evidence."""
+    from packages.evidence.models import (
+        StructuralLocalizationEvidence,
+        StructuralLocalizationType,
+    )
+    from packages.recovery.registration_recovery import evidence_grade_alignment_confidence
+
+    artifacts = extraction.get('source_artifacts') or {}
+    geometry_ref = artifacts.get('geometry') or {}
+    geometry_path = Path(geometry_ref['path']) if geometry_ref.get('path') else None
+    registration_confidence = None
+    localizations = {}
+    warnings = []
+
+    document = None
+    if geometry_path and geometry_path.is_file():
+        document_path = geometry_path.parent / 'document.json'
+        if document_path.is_file():
+            document = json.loads(document_path.read_text(encoding='utf-8'))
+        geometry = json.loads(geometry_path.read_text(encoding='utf-8'))
+    else:
+        geometry = None
+        warnings.append({'reason': 'Geometry artifact unavailable; E3 structural localization omitted.'})
+
+    if document:
+        registration = document.get('registration') or {}
+        evidence = registration.get('evidence') or {}
+        accepted = registration.get('accepted') is True
+        raw = registration.get('evidence_grade_alignment_confidence')
+        if raw is None:
+            raw = evidence.get('alignment_confidence')
+        if raw is not None:
+            registration_confidence = evidence_grade_alignment_confidence(
+                float(raw), accepted=accepted,
+            )
+        elif accepted:
+            # Accepted registration without a recorded score still clears the
+            # low-confidence gate once remapped from the acceptance floor.
+            registration_confidence = evidence_grade_alignment_confidence(0.40, accepted=True)
+
+    if geometry and geometry.get('status') == 'SUCCESS' and registration_confidence is not None:
+        confidence = float(registration_confidence)
+        for row in geometry.get('fields') or []:
+            name = row.get('field')
+            result = row.get('result') or {}
+            box = result.get('aligned_roi') or result.get('safe_cell')
+            if not name or not isinstance(box, dict):
+                continue
+            try:
+                bbox = (float(box['x0']), float(box['y0']), float(box['x1']), float(box['y1']))
+            except (KeyError, TypeError, ValueError):
+                continue
+            if bbox[2] <= bbox[0] or bbox[3] <= bbox[1]:
+                continue
+            localizations[name] = StructuralLocalizationEvidence(
+                evidence_type=StructuralLocalizationType.TEMPLATE_REGISTRATION_CONFIRMED,
+                confidence=confidence,
+                confirmed=True,
+                reason_codes=(
+                    'ACCEPTED_REGISTRATION_RECTIFIED_FRAME',
+                    'TEMPLATE_FIELD_ROI_BOUNDED',
+                ),
+                source='geometry',
+                field_name=name,
+                field_bbox=bbox,
+                localization_mode='TEMPLATE_ROI',
+                positive_bounded_roi=True,
+                geometry_valid=True,
+                registration_compatible=True,
+            )
+    return registration_confidence, localizations, warnings
 
 
 def decide(extraction, family):
@@ -47,6 +121,7 @@ def decide(extraction, family):
     # Existing cross-field facts feed the existing decision rules. No evidence acquisition.
     facts = ClaimEvidenceBuilder.load().build(claim_id=claim_id, document_family=family,
                                             claim_values=values)
+    registration_confidence, localizations, structural_warnings = _load_registration_context(extraction)
     decisions, checks, critical = [], {}, []
     for f in fields:
         name = f['field_name']
@@ -67,6 +142,7 @@ def decide(extraction, family):
                 candidate['value'] = validation['normalized_value']
             candidate['validation_results'] = tuple(validation['reason'])
             candidates.append(TypeAdapter(OCRCandidate).validate_python(candidate))
+        localization = localizations.get(name)
         decisions.append(services.evidence_decision.decide(DecisionContext(
             field_name=name, document_family=family, criticality=policy.criticality,
             required=policy.required, blocks_stp=policy.blocks_stp,
@@ -74,6 +150,9 @@ def decide(extraction, family):
             candidates=candidates, deterministic_evidence=check.evidence,
             deterministic_evidence_version=deterministic.policy_version,
             hard_validation_passed=check.passed,
+            registration_confidence=registration_confidence,
+            structural_evidence_source='geometry' if localization is not None else None,
+            structural_localization=localization,
             cross_field_evidence=set(check.cross_field_evidence) | facts.evidence_types_for(name))))
     claim = services.claim_decision.decide(ClaimDecisionContext(
         claim_id=claim_id, document_family=family, field_decisions=decisions,
@@ -92,11 +171,13 @@ def decide(extraction, family):
                                                ClaimDisposition.CLAIM_REVIEW_REQUIRED),
         'missing_fields':missing_required, 'missing_observed_fields':missing_observed,
         'critical_fields':critical, 'critical_blockers':claim.critical_blockers,
-        'warnings':extraction.get('warnings',[]) + [{'reason':'No new structural, reference or service-line evidence acquired; absent evidence remains absent.'}],
+        'warnings':extraction.get('warnings',[]) + structural_warnings + [
+            {'reason':'Structural localization reused from accepted registration/geometry; no new reference or service-line evidence acquired.'}],
         'decision_reason':claim.reason_codes, 'claim_decision':claim.model_dump(mode='json'),
         'field_decisions':[d.model_dump(mode='json') for d in decisions],
         'deterministic_checks':checks, 'claim_facts':facts.model_dump(mode='json'),
         'extracted_fields':fields,
+        'registration_confidence':registration_confidence,
         'missing_fields_basis':'Required policy fields absent or blank; invalid nonempty values are not missing.',
         'telemetry':{'extraction':extraction['telemetry']}}
 

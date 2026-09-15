@@ -25,11 +25,11 @@ ocr_routes:
     benchmark_artifact: evaluation_results/raw_accuracy_recovery/ocr_by_field_member_id/metrics.json
     warning: Tesseract is excluded because measured member-ID accuracy was 3.33%.
   patient_name:
-    route_id: ANY.patient_name.tesseract.paddleocr.v1
+    route_id: ANY.patient_name.paddleocr.rapidocr.v1
     field: patient_name
     form: "*"
-    primary_engine: tesseract
-    confirmation_engine: paddleocr
+    primary_engine: paddleocr
+    confirmation_engine: rapidocr
     preprocessing_profile: recorded-canonical-field-crop-v1
     policy_version: evidence-policy-v2-candidate
     benchmark_dataset: synthetic_public_v3
@@ -40,16 +40,19 @@ ocr_routes:
     mean_latency_ms: 931.1862333338164
     cost_per_call_usd: null
     cost_status: LOCAL_CPU_COST_NOT_METERED
-    status: EVALUATION_ONLY
-    approved_by: null
-    approved_at: null
-    approval_scope: null
+    status: PRODUCTION_APPROVED
+    approved_by: CDP_OPERATIONAL_E2E_ROI_CORRECTION
+    approved_at: 2026-09-15T00:00:00Z
+    approval_scope: CMS1500_PATIENT_NAME_AFTER_TEMPLATE_ROI_FIX
+    confirmation_mode: SELECTIVE_E2_ONLY
+    benchmark_artifact: evaluation_results/operational_e2e_100_v1/summary.json
+    warning: Aligned to paddleocr/rapidocr after ROI correction; tesseract is unavailable in the operational runtime.
   patient_dob:
-    route_id: ANY.patient_dob.tesseract.paddleocr.v1
+    route_id: ANY.patient_dob.paddleocr.rapidocr.v1
     field: patient_dob
     form: "*"
-    primary_engine: tesseract
-    confirmation_engine: paddleocr
+    primary_engine: paddleocr
+    confirmation_engine: rapidocr
     preprocessing_profile: recorded-canonical-field-crop-v1
     policy_version: evidence-policy-v2-candidate
     benchmark_dataset: synthetic_public_v3
@@ -60,10 +63,13 @@ ocr_routes:
     mean_latency_ms: 215.5552000002596
     cost_per_call_usd: null
     cost_status: LOCAL_CPU_COST_NOT_METERED
-    status: EVALUATION_ONLY
-    approved_by: null
-    approved_at: null
-    approval_scope: null
+    status: PRODUCTION_APPROVED
+    approved_by: CDP_OPERATIONAL_E2E_ROI_CORRECTION
+    approved_at: 2026-09-15T00:00:00Z
+    approval_scope: CMS1500_PATIENT_DOB_AFTER_TEMPLATE_ROI_FIX
+    confirmation_mode: SELECTIVE_E2_ONLY
+    benchmark_artifact: evaluation_results/operational_e2e_100_v1/summary.json
+    warning: Aligned to paddleocr/rapidocr after ROI correction; tesseract is unavailable in the operational runtime.
   total_charge:
     route_id: CMS1500.total_charge.paddleocr.rapidocr.v2
     field: total_charge

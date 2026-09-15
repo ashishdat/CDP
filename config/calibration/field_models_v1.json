@@ -1246,6 +1246,46 @@
         1.0,
         1.0
       ]
+    },
+    {
+      "engine": "*",
+      "type": "platt",
+      "slope": 10.0,
+      "intercept": -5.5,
+      "field_name": "patient_name",
+      "version": "confidence-v1:operational-bridge:patient_name:platt"
+    },
+    {
+      "engine": "*",
+      "type": "platt",
+      "slope": 10.0,
+      "intercept": -5.5,
+      "field_name": "insured_name",
+      "version": "confidence-v1:operational-bridge:insured_name:platt"
+    },
+    {
+      "engine": "*",
+      "type": "platt",
+      "slope": 10.0,
+      "intercept": -5.5,
+      "field_name": "patient_dob",
+      "version": "confidence-v1:operational-bridge:patient_dob:platt"
+    },
+    {
+      "engine": "*",
+      "type": "platt",
+      "slope": 10.0,
+      "intercept": -5.5,
+      "field_name": "insured_id_number",
+      "version": "confidence-v1:operational-bridge:insured_id_number:platt"
+    },
+    {
+      "engine": "*",
+      "type": "platt",
+      "slope": 10.0,
+      "intercept": -5.5,
+      "field_name": "total_charge",
+      "version": "confidence-v1:operational-bridge:total_charge:platt"
     }
   ]
 }

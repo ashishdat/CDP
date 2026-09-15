@@ -5,90 +5,90 @@
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": "person_name_last",
-      "x0": 55,
-      "x1": 625,
-      "y0": 350,
-      "y1": 390
+      "x0": 30,
+      "x1": 667,
+      "y0": 402,
+      "y1": 459
     },
     {
       "field_name": "patient_first",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": "person_name_first",
-      "x0": 55,
-      "x1": 620,
-      "y0": 350,
-      "y1": 390
+      "x0": 30,
+      "x1": 667,
+      "y0": 402,
+      "y1": 459
     },
     {
       "field_name": "patient_addr1",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 55,
-      "x1": 625,
-      "y0": 410,
-      "y1": 448
+      "x0": 30,
+      "x1": 667,
+      "y0": 459,
+      "y1": 523
     },
     {
       "field_name": "patient_city",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 55,
-      "x1": 555,
-      "y0": 475,
-      "y1": 512
+      "x0": 30,
+      "x1": 500,
+      "y0": 523,
+      "y1": 584
     },
     {
       "field_name": "patient_state",
       "field_type": "code",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 555,
-      "x1": 635,
-      "y0": 475,
-      "y1": 512
+      "x0": 500,
+      "x1": 667,
+      "y0": 523,
+      "y1": 584
     },
     {
       "field_name": "patient_zip",
       "field_type": "code",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 55,
-      "x1": 325,
-      "y0": 538,
-      "y1": 582
+      "x0": 30,
+      "x1": 350,
+      "y0": 584,
+      "y1": 648
     },
     {
       "field_name": "rel_code",
       "field_type": "checkbox",
       "padding_px": 4,
       "postprocessor": "cms_relationship",
-      "x0": 635,
-      "x1": 1015,
-      "y0": 400,
-      "y1": 448
+      "x0": 667,
+      "x1": 1004,
+      "y0": 459,
+      "y1": 523
     },
     {
       "field_name": "insured_addr1",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1030,
-      "x1": 1695,
-      "y0": 410,
-      "y1": 448
+      "x0": 1004,
+      "x1": 1690,
+      "y0": 459,
+      "y1": 523
     },
     {
       "field_name": "insured_city",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1030,
+      "x0": 1004,
       "x1": 1495,
-      "y0": 475,
-      "y1": 512
+      "y0": 523,
+      "y1": 584
     },
     {
       "field_name": "insured_state",
@@ -97,118 +97,118 @@
       "postprocessor": null,
       "x0": 1495,
       "x1": 1630,
-      "y0": 475,
-      "y1": 512
+      "y0": 523,
+      "y1": 584
     },
     {
       "field_name": "insured_zip",
       "field_type": "code",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1030,
+      "x0": 1004,
       "x1": 1290,
-      "y0": 538,
-      "y1": 582
+      "y0": 584,
+      "y1": 648
     },
     {
       "field_name": "insured_id_number",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1015,
-      "x1": 1310,
-      "y0": 255,
-      "y1": 325
+      "x0": 1028,
+      "x1": 1570,
+      "y0": 337,
+      "y1": 402
     },
     {
       "field_name": "patient_name",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 20,
-      "x1": 465,
-      "y0": 320,
-      "y1": 375
+      "x0": 30,
+      "x1": 667,
+      "y0": 402,
+      "y1": 459
     },
     {
       "field_name": "patient_dob",
       "field_type": "date",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 475,
-      "x1": 720,
-      "y0": 320,
-      "y1": 375
+      "x0": 667,
+      "x1": 886,
+      "y0": 402,
+      "y1": 459
     },
     {
       "field_name": "patient_sex",
       "field_type": "checkbox",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 730,
-      "x1": 780,
-      "y0": 320,
-      "y1": 375
+      "x0": 886,
+      "x1": 1004,
+      "y0": 402,
+      "y1": 459
     },
     {
       "field_name": "insured_name",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1015,
-      "x1": 1710,
-      "y0": 320,
-      "y1": 375
+      "x0": 1004,
+      "x1": 1690,
+      "y0": 402,
+      "y1": 459
     },
     {
       "field_name": "patient_address",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 20,
-      "x1": 900,
-      "y0": 385,
-      "y1": 545
+      "x0": 30,
+      "x1": 1004,
+      "y0": 459,
+      "y1": 648
     },
     {
       "field_name": "insured_address",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1015,
-      "x1": 1710,
-      "y0": 385,
-      "y1": 545
+      "x0": 1004,
+      "x1": 1690,
+      "y0": 459,
+      "y1": 648
     },
     {
       "field_name": "insured_policy_group",
       "field_type": "text",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1015,
-      "x1": 1710,
-      "y0": 580,
-      "y1": 635
+      "x0": 1004,
+      "x1": 1690,
+      "y0": 648,
+      "y1": 710
     },
     {
       "field_name": "diagnosis_codes",
       "field_type": "code",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 20,
+      "x0": 30,
       "x1": 1000,
-      "y0": 1320,
-      "y1": 1445
+      "y0": 1260,
+      "y1": 1321
     },
     {
       "field_name": "federal_tax_id",
       "field_type": "tax_id",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 20,
+      "x0": 30,
       "x1": 290,
-      "y0": 1775,
-      "y1": 1830
+      "y0": 1750,
+      "y1": 1811
     },
     {
       "field_name": "patient_account_no",
@@ -217,28 +217,28 @@
       "postprocessor": null,
       "x0": 300,
       "x1": 555,
-      "y0": 1775,
-      "y1": 1830
+      "y0": 1750,
+      "y1": 1811
     },
     {
       "field_name": "total_charge",
       "field_type": "currency",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1305,
-      "x1": 1475,
-      "y0": 1775,
-      "y1": 1830
+      "x0": 1280,
+      "x1": 1470,
+      "y0": 1750,
+      "y1": 1811
     },
     {
       "field_name": "amount_paid",
       "field_type": "currency",
       "padding_px": 4,
       "postprocessor": null,
-      "x0": 1485,
+      "x0": 1470,
       "x1": 1630,
-      "y0": 1775,
-      "y1": 1830
+      "y0": 1750,
+      "y1": 1811
     },
     {
       "field_name": "billing_provider_info",
@@ -247,7 +247,7 @@
       "postprocessor": null,
       "x0": 1015,
       "x1": 1710,
-      "y0": 1830,
+      "y0": 1811,
       "y1": 2025
     }
   ],

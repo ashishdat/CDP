@@ -25,7 +25,18 @@ def register_classified_document(images, routing, registry, selection=None):
 
     Registration acceptance does not authorize extraction or establish form identity.
     No page-corner correspondences or substitute template are manufactured.
+
+    CMS-1500 path: when geometric registration is accepted but patient-identity ROIs
+    OCR insurance-type text (wrong-ROI / misalignment failure mode), reject and allow
+    one bounded CLAHE/denoise enhancement retry against the same template.
     """
+    from packages.domain.enums import ClaimFormType
+    from packages.recovery.registration_content import validate_cms1500_registration_content
+    from packages.recovery.registration_recovery import (
+        decide_registration_recovery,
+        enhance_for_registration,
+        evidence_grade_alignment_confidence,
+    )
     from workers.page_detection.registration_telemetry import registration_context
     from workers.page_detection.template_alignment import align_to_reference
 
@@ -55,33 +66,134 @@ def register_classified_document(images, routing, registry, selection=None):
     if reference is None:
         result["reason"] = "REFERENCE_TEMPLATE_IMAGE_UNAVAILABLE"
         return result
-    aligned = None
-    try:
-        size = (template.reference_dimensions.width_px, template.reference_dimensions.height_px)
-        if reference.size != size:
-            resized = reference.resize(size)
-            reference.close()
-            reference = resized
+
+    def _identity_boxes():
+        name = template.field_region("patient_name")
+        dob = template.field_region("patient_dob")
+        if name is None or dob is None:
+            return None
+        return (
+            (name.x0, name.y0, name.x1, name.y1),
+            (dob.x0, dob.y0, dob.x1, dob.y1),
+        )
+
+    def _attempt(image, attempt_name):
         with registration_context(template_id=template.template_id, page_number=page_number):
             aligned = align_to_reference(
-                images[page_number - 1], reference, family=template.form_type.value,
+                image, reference, family=template.form_type.value,
                 enforce_compatibility_precheck=True,
             )
         evidence = aligned.evidence
         accepted = (aligned.success and aligned.accepted and aligned.warped is not None
                     and evidence is not None and evidence.accepted
                     and evidence.corner_validity is True)
+        meta = {
+            "attempt": attempt_name,
+            "accepted": accepted,
+            "alignment_confidence": (
+                evidence.alignment_confidence if evidence is not None else aligned.alignment_score
+            ),
+            "reason": (
+                "REGISTRATION_ACCEPTED" if accepted else (
+                    evidence.rejection_reason if evidence and evidence.rejection_reason
+                    else "REGISTRATION_NOT_ACCEPTED"
+                )
+            ),
+        }
+        content_ok = True
+        content_reason = None
+        if (
+            accepted
+            and template.form_type == ClaimFormType.CMS1500
+            and aligned.warped is not None
+        ):
+            boxes = _identity_boxes()
+            if boxes is not None:
+                content = validate_cms1500_registration_content(
+                    aligned.warped,
+                    patient_name_box=boxes[0],
+                    patient_dob_box=boxes[1],
+                )
+                content_ok = content.accepted
+                content_reason = content.reason
+                meta["content_ok"] = content.accepted
+                meta["content_reason"] = content.reason
+                if not content.accepted:
+                    accepted = False
+                    meta["accepted"] = False
+                    meta["reason"] = "REGISTRATION_CONTENT_MISMATCH"
+        return aligned, evidence, accepted, meta, content_ok, content_reason
+
+    aligned = None
+    attempts = []
+    recovery_strategies = []
+    try:
+        size = (template.reference_dimensions.width_px, template.reference_dimensions.height_px)
+        if reference.size != size:
+            resized = reference.resize(size)
+            reference.close()
+            reference = resized
+
+        source = images[page_number - 1]
+        aligned, evidence, accepted, meta, content_ok, content_reason = _attempt(source, "primary")
+        attempts.append(meta)
+
+        should_recover = False
+        if not accepted:
+            failure_reasons = [
+                value for value in (
+                    meta.get("reason"),
+                    evidence.rejection_reason if evidence else None,
+                ) if value
+            ]
+            decision = decide_registration_recovery(
+                failure_reasons=failure_reasons,
+                content_invalid=not content_ok,
+                strategy_available=True,
+            )
+            should_recover = decision.attempt
+            if should_recover:
+                recovery_strategies.append(decision.strategy.value)
+
+        if should_recover:
+            if aligned is not None and aligned.warped is not None:
+                aligned.warped.close()
+                aligned = None
+            enhanced = enhance_for_registration(source)
+            try:
+                aligned, evidence, accepted, meta, content_ok, content_reason = _attempt(
+                    enhanced, "enhanced"
+                )
+                attempts.append(meta)
+            finally:
+                enhanced.close()
+
+        raw_confidence = (
+            evidence.alignment_confidence if evidence is not None else (
+                aligned.alignment_score if aligned is not None else 0.0
+            )
+        )
+        evidence_confidence = evidence_grade_alignment_confidence(
+            raw_confidence, accepted=accepted
+        )
         result.update(
             status="SUCCESS" if accepted else "FAILED", accepted=accepted,
-            reason="REGISTRATION_ACCEPTED" if accepted else (
-                evidence.rejection_reason if evidence and evidence.rejection_reason
-                else "REGISTRATION_NOT_ACCEPTED"),
+            reason=(
+                "REGISTRATION_ACCEPTED" if accepted else (
+                    attempts[-1]["reason"] if attempts else "REGISTRATION_NOT_ACCEPTED"
+                )
+            ),
             evidence=evidence.model_dump(mode="json") if evidence else None,
             compatibility=(aligned.compatibility.model_dump(mode="json")
-                           if aligned.compatibility else None),
-            transform_matrix=aligned.homography.tolist() if accepted else None,
-            method=aligned.method,
+                           if aligned and aligned.compatibility else None),
+            transform_matrix=aligned.homography.tolist() if accepted and aligned else None,
+            method=aligned.method if aligned else None,
+            evidence_grade_alignment_confidence=evidence_confidence,
+            registration_attempts=attempts,
+            registration_recovery_strategies=recovery_strategies,
         )
+        if content_reason and not content_ok:
+            result["content_validation_reason"] = content_reason
         return result
     finally:
         reference.close()

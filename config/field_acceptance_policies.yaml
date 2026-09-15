@@ -18,21 +18,21 @@ forms:
     patient_first:
       criticality: C2
       required: false
-      blocks_stp: true
-      requires_review_when_unresolved: true
+      blocks_stp: false
+      requires_review_when_unresolved: false
       business_impact: patient identity component
       identity_impact: high
       downstream_consumers: [member_matching]
-      reason: Explicit compatibility policy for governed split-name document families.
+      reason: Split-name helper only; CMS1500 STP is gated by required patient_name, not first/last fragments.
     patient_last:
       criticality: C2
       required: false
-      blocks_stp: true
-      requires_review_when_unresolved: true
+      blocks_stp: false
+      requires_review_when_unresolved: false
       business_impact: patient identity component
       identity_impact: high
       downstream_consumers: [member_matching]
-      reason: Explicit compatibility policy for governed split-name document families.
+      reason: Split-name helper only; CMS1500 STP is gated by required patient_name, not first/last fragments.
   CMS1500:
     patient_name:
       criticality: C2

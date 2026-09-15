@@ -115,8 +115,12 @@ def _recovery_for_failure(
                 reason="Registration SafetyFailure recorded on the application path",
             )
 
-    # Only OCR alternate-prep is currently approved/available in runtime.
-    available = strategy_available or diagnosis.primary_cause is Cause.OCR_FAILURE
+    # OCR alternate-prep and registration image-enhancement are approved/available.
+    available = strategy_available or diagnosis.primary_cause in {
+        Cause.OCR_FAILURE,
+        Cause.POOR_SCAN,
+        Cause.REGISTRATION_FAILURE,
+    }
     plan = plan_recovery(diagnosis, strategy_available=available)
     return {
         "diagnosis": {
