@@ -106,9 +106,13 @@ def recognize_service_lines(image, router, template):
     if charge_col is None:
         return []
     lines = []
+    # Skip the printed column-header band at table_y0.
+    header_offset = table.row_height_px
     for row_index in range(table.max_rows):
-        y0 = table.table_y0 + row_index * table.row_height_px
+        y0 = table.table_y0 + header_offset + row_index * table.row_height_px
         y1 = min(y0 + table.row_height_px, table.table_y1)
+        if y0 >= table.table_y1:
+            break
         probe_empty = True
         for column in probe_cols:
             pb = _clamp_bbox((column.x0, y0, column.x1, y1), image.width, image.height)
@@ -123,6 +127,13 @@ def recognize_service_lines(image, router, template):
             image, 'charges', bbox, router, charge_col.field_type)
         value = next((c.get('value') for c in candidates if (c.get('value') or '').strip()), None)
         raw = candidates[0].get('raw_value') if candidates else ''
+        import re as _re
+        if value and not _re.search(r'\d', value):
+            value = None
+        if value and not _re.search(r'\d[\d,]*\.\d{2}|\d{2,}', value):
+            # Keep incomplete numeric charges for E6 sum attempts; drop labels.
+            if _re.search(r'[A-Za-z]', value):
+                value = None
         lines.append({
             'line_number': row_index + 1,
             'charges': value,
@@ -157,6 +168,20 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             raise ValueError('Canonical region exceeds recorded safe cell')
         bbox = _ocr_bbox(field['field'], aligned, cell, (image.width, image.height), template_fields)
         candidates, attempts, reason = _recognize_one(image, field['field'], bbox, router)
+        # If total_charge is empty after the tight crop, retry a slightly taller window
+        # still clamped to the safe cell (crop-backed; does not invent amounts).
+        if field['field'] == 'total_charge' and not any((c.get('value') or '').strip() for c in candidates):
+            taller = (
+                max(aligned[0], cell['x0'] + int(0.24 * (cell['x1'] - cell['x0']))),
+                max(aligned[1], cell['y0'] + 2),
+                min(aligned[2], cell['x1'] - 2),
+                min(aligned[3], cell['y1'] - 2),
+            )
+            taller = _clamp_bbox(taller, image.width, image.height)
+            if taller != bbox:
+                alt_c, alt_a, alt_r = _recognize_one(image, field['field'], taller, router)
+                if any((c.get('value') or '').strip() for c in alt_c):
+                    candidates, attempts, reason, bbox = alt_c, alt_a, alt_r, taller
         rows.append({'field': field['field'], 'canonical_region': list(aligned),
                      'ocr_region': list(bbox),
                      'candidates': candidates, 'attempts': attempts,

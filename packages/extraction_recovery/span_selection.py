@@ -126,10 +126,23 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             continue
         if tok in {"M", "F", "X"} and digits:
             continue
-        if re.fullmatch(r"\d{1,4}", tok):
+        # Allow 5-digit year tokens with a leading edge glyph (e.g. "11970").
+        if re.fullmatch(r"\d{1,5}", tok):
             digits.append(tok)
     if len(digits) >= 3:
-        month, day, year = digits[0], digits[1], digits[2]
+        def _yearish(tok: str) -> bool:
+            if re.fullmatch(r"\d{4}", tok) and 1900 <= int(tok) <= 2100:
+                return True
+            if re.fullmatch(r"\d{5}", tok) and tok[0] == "1" and 1900 <= int(tok[1:]) <= 2100:
+                return True
+            return False
+
+        first, second, third = digits[0], digits[1], digits[2]
+        # OCR sometimes emits MM / YYYY / DD instead of MM / DD / YYYY.
+        if _yearish(second) and not _yearish(third) and len(third) <= 2:
+            month, day, year = first, third, second
+        else:
+            month, day, year = first, second, third
         # Drop a leading edge glyph on month/day (e.g. "112" → "12").
         if len(month) == 3 and month[0] == "1" and 1 <= int(month[1:]) <= 12:
             month = month[1:]
@@ -270,6 +283,12 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
             or all(re.fullmatch(r"\$?[0-9]\.\d{2}", amount) for amount in amounts)
         ):
             return _result(raw, "", "span-v1-currency-npi-bleed", [], 0.2, "NPI_LABEL_BLEED")
+        # Reject non-currency glyph crops (e.g. CJK dash "一") with no digit amount.
+        if not amounts and not re.search(r"\d", search_space):
+            return _result(raw, "", "span-v1-currency-empty", [], 0.2, "CURRENCY_EMPTY_CROP")
+        # Lone digit clusters without decimals are not claim totals.
+        if not amounts and re.fullmatch(r"[\d\s]+", search_space or ""):
+            return _result(raw, "", "span-v1-currency-incomplete", [], 0.2, "CURRENCY_INCOMPLETE")
         patterns = [("currency", r"\$?\d[\d,]*\.\d{2}", "last")]
     elif datatype == "TYPE_OF_BILL":
         # A bounded TOB crop occasionally includes one non-zero edge glyph

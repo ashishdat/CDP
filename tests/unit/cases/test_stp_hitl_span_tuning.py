@@ -111,3 +111,15 @@ def test_claim_total_e6_from_service_lines():
         service_lines=[{"charges": "20.00"}, {"charges": "10.00"}],
     )
     assert "CLAIM_TOTAL_CONFIRMED" in {i.evidence_type for i in result.evidence_items}
+
+
+def test_dob_assembles_when_year_token_is_middle():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("112\n11970\n05", "DATE", "patient_dob")
+    assert selected.selected_text == "12/05/1970"
+
+
+def test_currency_rejects_non_digit_glyph_crop():
+    from packages.extraction_recovery.span_selection import select_field_span
+    selected = select_field_span("一", "CURRENCY", "total_charge")
+    assert selected.selected_text == ""

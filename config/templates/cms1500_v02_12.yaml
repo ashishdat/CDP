@@ -171,9 +171,9 @@ field_regions:
     field_type: text
   - field_name: total_charge
     x0: 1335
-    y0: 1760
+    y0: 1755
     x1: 1465
-    y1: 1805
+    y1: 1810
     field_type: currency
   - field_name: amount_paid
     x0: 1470

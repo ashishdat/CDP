@@ -16,7 +16,7 @@ ROI_INSETS: Mapping[str, Mapping[str, float]] = {
     # Drop the printed header band; keep clear of patient_sex at x1=886.
     "patient_dob": {"top": 0.38, "right": 0.10, "bottom": 0.04, "left": 0.02},
     # Pull away from the NPI column bleed on the left/bottom of box 28.
-    "total_charge": {"top": 0.18, "right": 0.04, "bottom": 0.18, "left": 0.22},
+    "total_charge": {"top": 0.12, "right": 0.04, "bottom": 0.06, "left": 0.24},
 }
 
 

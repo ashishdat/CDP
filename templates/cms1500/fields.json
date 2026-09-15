@@ -227,8 +227,8 @@
       "postprocessor": null,
       "x0": 1335,
       "x1": 1465,
-      "y0": 1760,
-      "y1": 1805
+      "y0": 1755,
+      "y1": 1810
     },
     {
       "field_name": "amount_paid",
