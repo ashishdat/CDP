@@ -311,33 +311,78 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
 
         stage = "classification"
         started = perf_counter()
-        from packages.domain.enums import ClaimFormType
+        from packages.domain.enums import (
+            BundleType,
+            ClaimFormType,
+            ClassificationMethod,
+            PageRole,
+        )
         from packages.templates.registry import TemplateRegistry
-        from workers.cascade.tesseract_adapter import TesseractTextExtractor
-        from workers.page_detection.router import PageRoutingService
+        from workers.page_detection.router import PageCandidateScore, PageRoutingResult
         from workers.page_detection.template_selector import TemplateSelector
 
         observed_lines = {}
-
-        class ClassificationTextExtractor(TesseractTextExtractor):
-            def extract(self, image):
-                lines = super().extract(image)
-                observed_lines[id(image)] = lines
-                return lines
-
         registry = TemplateRegistry.load_from_directory()
         cms = registry.latest_for_form_type(ClaimFormType.CMS1500)
         ub = registry.latest_for_form_type(ClaimFormType.UB04)
-        router = PageRoutingService(
-            cms_template=cms, ub_template=ub, text_extractor=ClassificationTextExtractor(psm=11),
-            cms_reference_image=registry.load_reference_image(cms),
-            ub_reference_image=registry.load_reference_image(ub),
-        )
-        routing = router.route(images)
-        state["classification"] = asdict(routing)
-        state["stages"][stage] = "SUCCESS"
-        state["latency_ms"][stage] = (perf_counter() - started) * 1000
-        LOGGER.info("classification SUCCESS")
+
+        # Operator-supplied document type: skip full-page PSM-11 OCR used only
+        # for form classification. TemplateSelector already honors document_type;
+        # registration still runs geometric gates unchanged.
+        if document_type in {"CMS1500", "UB04"} and len(images) == 1:
+            template = cms if document_type == "CMS1500" else ub
+            role = (
+                PageRole.CMS1500_CLAIM_PAGE
+                if document_type == "CMS1500"
+                else PageRole.UB_CLAIM_PAGE
+            )
+            bundle = (
+                BundleType.A_CMS1500_SINGLE
+                if document_type == "CMS1500"
+                else BundleType.C_UB_SINGLE
+            )
+            routing = PageRoutingResult(
+                bundle_type=bundle,
+                selected_page_number=1,
+                template=template,
+                page_roles={1: role},
+                page_scores={
+                    1: PageCandidateScore(
+                        page_number=1,
+                        method=ClassificationMethod.TRUSTED_ANCHOR_SKIP,
+                        confidence=1.0,
+                        reason_codes=["OPERATOR_SUPPLIED_DOCUMENT_TYPE"],
+                    )
+                },
+                needs_review=False,
+                reason_codes=["OPERATOR_SUPPLIED_DOCUMENT_TYPE", "SKIPPED_FULL_PAGE_OCR"],
+            )
+            state["classification"] = asdict(routing)
+            state["stages"][stage] = "SUCCESS"
+            state["latency_ms"][stage] = (perf_counter() - started) * 1000
+            LOGGER.info("classification SUCCESS (operator document_type=%s; OCR skipped)", document_type)
+        else:
+            from workers.cascade.tesseract_adapter import TesseractTextExtractor
+            from workers.page_detection.router import PageRoutingService
+
+            class ClassificationTextExtractor(TesseractTextExtractor):
+                def extract(self, image):
+                    lines = super().extract(image)
+                    observed_lines[id(image)] = lines
+                    return lines
+
+            router = PageRoutingService(
+                cms,
+                ub,
+                text_extractor=ClassificationTextExtractor(psm=11),
+                cms_reference_image=registry.load_reference_image(cms),
+                ub_reference_image=registry.load_reference_image(ub),
+            )
+            routing = router.route(images)
+            state["classification"] = asdict(routing)
+            state["stages"][stage] = "SUCCESS"
+            state["latency_ms"][stage] = (perf_counter() - started) * 1000
+            LOGGER.info("classification SUCCESS")
         stage = "template_selection"
         started = perf_counter()
         selection = TemplateSelector(registry).select(
