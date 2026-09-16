@@ -35,6 +35,8 @@ dist/
 # Keep only the data-handling documentation in source control.
 /evaluation_data/*
 !/evaluation_data/README.md
+!/evaluation_data/hackathon_agent_gt/
+!/evaluation_data/hackathon_agent_gt/**
 
 # Generated/local bundle executions and scratch reports
 /bundle_runs/
