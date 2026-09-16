@@ -1,0 +1,30 @@
+{
+  "engines": {
+    "tesseract": {
+      "binary": "/usr/bin/tesseract",
+      "version": "5.3.4",
+      "pytesseract": "0.3.13",
+      "router_status": "OBSERVED",
+      "adapter": "workers.cascade.tesseract_adapter.TesseractTextExtractor"
+    },
+    "paddleocr": {
+      "paddlepaddle": "2.6.2",
+      "paddleocr": "2.10.0",
+      "models": "PP-OCRv3 det + PP-OCRv4 rec (en)",
+      "router_status": "OBSERVED",
+      "adapter": "workers.page_detection.text_extraction.PaddleOCRTextExtractor"
+    },
+    "rapidocr": {
+      "package": "rapidocr-onnxruntime 1.4.4",
+      "router_status": "OBSERVED"
+    }
+  },
+  "smoke_test": {
+    "paddleocr": "54818203401",
+    "tesseract": "OBSERVED",
+    "rapidocr": "54818203401",
+    "ladder_selects": "paddleocr (primary)"
+  },
+  "install": "pip install 'pytesseract>=0.3.10' 'paddlepaddle==2.6.2' 'paddleocr>=2.7,<3'",
+  "note": "Matches pyproject.toml [project.optional-dependencies].ocr pins (paddle <3)."
+}
