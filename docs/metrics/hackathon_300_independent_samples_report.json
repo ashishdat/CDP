@@ -1,6 +1,6 @@
 {
-  "title": "Independent Samples \u2014 300 (v11.4 name/ID relief)",
-  "run": "hackathon_300_cascade_v11 + decision_reprocess_v11_4",
+  "title": "Independent Samples \u2014 300 (v11.5 residual field batch)",
+  "run": "hackathon_300_cascade_v11 + decision_reprocess_v11_5",
   "n": 300,
   "baseline": {
     "true_stp": 118,
@@ -8,64 +8,22 @@
     "registration_hitl": 75,
     "combined_hitl": 182
   },
-  "prior_v11_3": {
-    "true_stp": 153,
-    "field_hitl": 72,
-    "combined_hitl": 147,
-    "flipped_to_true_stp": 35
+  "prior_v11_4": {
+    "true_stp": 161,
+    "field_hitl": 64,
+    "combined_hitl": 139
   },
-  "flipped_to_true_stp": 43,
-  "new_flips_vs_v11_3": 11,
-  "corrected_prior_false_stp": 3,
-  "net_vs_v11_3": 8,
+  "flipped_to_true_stp": 47,
+  "new_flips_vs_v11_4": 4,
   "metrics": {
-    "true_stp": {
-      "count": 161,
-      "rate": 0.5367
-    },
-    "field_hitl": {
-      "count": 64,
-      "rate": 0.2133
-    },
-    "registration_hitl": {
-      "count": 75,
-      "rate": 0.25
-    },
-    "combined_hitl": {
-      "count": 139,
-      "rate": 0.4633
-    },
-    "stage_failure": {
-      "count": 0,
-      "rate": null
-    },
-    "exact_accuracy_agent_gt": {
-      "exact": 822,
-      "n": 824,
-      "rate": 0.997573
-    },
-    "perfect_claim_exact": {
-      "exact": 222,
-      "n": 224,
-      "rate": 0.991071
-    },
-    "false_accepts": {
-      "count": 2,
-      "rate": 0.002427
-    }
+    "true_stp": {"count": 165, "rate": 0.55},
+    "field_hitl": {"count": 60, "rate": 0.2},
+    "registration_hitl": {"count": 75, "rate": 0.25},
+    "combined_hitl": {"count": 135, "rate": 0.45},
+    "stage_failure": {"count": 0, "rate": null},
+    "exact_accuracy_agent_gt": {"exact": 822, "n": 824, "rate": 0.997573},
+    "perfect_claim_exact": {"exact": 222, "n": 224, "rate": 0.991071},
+    "false_accepts": {"count": 2, "rate": 0.002427}
   },
-  "remaining_field_blockers": {
-    "patient_dob": 31,
-    "insured_id_number": 18,
-    "total_charge": 30,
-    "patient_name": 13
-  },
-  "remaining_gap_classes": {
-    "EMPTY_FINANCIAL_INK": 29,
-    "HANDWRITING_UNREADABLE": 26,
-    "CALIBRATION_HITL": 22,
-    "AMBIGUOUS_DIGIT_FRAGMENTS": 12,
-    "EVIDENCE_PLUMBING_GAP": 3
-  },
-  "generated_at": "2026-09-16T14:24:00+00:00"
+  "generated_at": "2026-09-16T14:48:00+00:00"
 }

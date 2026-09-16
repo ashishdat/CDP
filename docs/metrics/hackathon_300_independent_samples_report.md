@@ -1,18 +1,18 @@
 # Metrics
 
-## Independent Samples — 300 (revised v11.4)
+## Independent Samples — 300 (revised v11.5)
 
 | Track | Count | Rate |
 |---|---:|---:|
-| True STP | 161 | 53.7% |
-| Field HITL | 64 | 21.3% |
+| **True STP** | 165 | **55.0%** |
+| Field HITL | 60 | 20.0% |
 | Registration HITL | 75 | 25.0% |
-| Combined HITL | 139 | 46.3% |
+| **Combined HITL** | 135 | **45.0%** |
 | Stage failure | 0 | — |
-| Exact accuracy (agent GT) | 822/824 | 99.8% |
-| Perfect-claim exact | 222/224 | 99.1% |
-| False accepts | 2 | 0.2% |
+| **Exact accuracy (agent GT)** | 822/824 | **99.8%** |
+| **Perfect-claim exact** | 222/224 | **99.1%** |
+| False accepts | 2 | **0.2%** |
 
-Before → after: True STP **118→161**, Field HITL **107→64**, Combined **182→139** (flipped 43; **+8 net vs v11.3** via name confusable/title + ID format/multi-engine floor; 3 prior name-on-ID/DOB false STPs corrected back to HITL).
+Before → after: True STP **118→165**, Field HITL **107→60**, Combined **182→135** (flipped 47; **+4 vs v11.4**).
 
-v11.4 reliefs: E↔F/V↔Y/T↔Y/G↔C name confusables, MRS peel, SAME/Z junk, glued names, ID E2-empty multi-engine + 0.92 FORMAT_VALID floor, APU↔APLU L-insertion, future DOB reject.
+v11.5 batch-of-15 field audit: **15/15 PASS** (7 targeted fixes + 8 honest HITL controls). Rules covered by independent use-case tests in `tests/unit/cases/test_residual_field_batch_v11_5.py`.
