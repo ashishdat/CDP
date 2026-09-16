@@ -1,0 +1,44 @@
+{
+  "title": "Independent Samples \u2014 300 (v11.5 residual field batch)",
+  "run": "hackathon_300_cascade_v11 + decision_reprocess_v11_5",
+  "n": 300,
+  "batch_of_15": {
+    "passed": 15,
+    "targeted_fixes": 7,
+    "honest_hitl_controls": 8,
+    "new_true_stp_from_batch": 4,
+    "independent_unit_tests": "tests/unit/cases/test_residual_field_batch_v11_5.py"
+  },
+  "baseline": {
+    "true_stp": 118,
+    "field_hitl": 107,
+    "registration_hitl": 75,
+    "combined_hitl": 182
+  },
+  "prior_v11_4": {
+    "true_stp": 161,
+    "field_hitl": 64,
+    "combined_hitl": 139
+  },
+  "flipped_to_true_stp": 47,
+  "new_flips_vs_v11_4": 4,
+  "metrics": {
+    "true_stp": {"count": 165, "rate": 0.55},
+    "field_hitl": {"count": 60, "rate": 0.2},
+    "registration_hitl": {"count": 75, "rate": 0.25},
+    "combined_hitl": {"count": 135, "rate": 0.45},
+    "stage_failure": {"count": 0, "rate": null},
+    "exact_accuracy_agent_gt": {"exact": 822, "n": 824, "rate": 0.997573},
+    "perfect_claim_exact": {"exact": 222, "n": 224, "rate": 0.991071},
+    "false_accepts": {"count": 2, "rate": 0.002427}
+  },
+  "generalizable_rules": [
+    "Single-line box-28 vs line charge contradiction (>50%) → LINE_TOTALS_RECONCILED",
+    "DOB January dash artifact (same day+year, MM=01 vs other)",
+    "DOB year single-digit confusable when month+day match (6↔9, …)",
+    "Member-ID single confusable sub (U/O/Q↔0|O, …)",
+    "Unique shaped member ID (≥5 digits) vs OCR junk",
+    "Name confusable edit: one vowel delete + ≤1 confusable sub (PATRICIA/FATRCIA)"
+  ],
+  "generated_at": "2026-09-16T14:48:00+00:00"
+}
