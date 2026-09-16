@@ -1,0 +1,21 @@
+{
+  "run": "hackathon_50_cascade_v11",
+  "status": "RUNNING",
+  "n_requested": 50,
+  "n_finished": 0,
+  "strategy_id": "field-cascade-v10 + registration-recovery-v11",
+  "registration_recovery": [
+    "NEAR_MISS_SIFT_BOOST_MULTISCALE",
+    "PERSPECTIVE_EDGE_DESKEW_AFFINE",
+    "ORIENTATION_ROTATE_RETRY",
+    "content corroboration"
+  ],
+  "prior_retest_accept_rate": "5/7 known Track A fails",
+  "supersedes": [
+    "evaluation_results/hackathon_50_cascade_v10",
+    "evaluation_results/hackathon_50_cascade_v10b",
+    "evaluation_results/hackathon_50_cascade_v10c"
+  ],
+  "out_dir": "evaluation_results/hackathon_50_cascade_v11",
+  "note": "Clean restart after perspective + near-miss registration recovery shipped."
+}
