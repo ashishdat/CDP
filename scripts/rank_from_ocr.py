@@ -68,11 +68,16 @@ def rank_saved(source, output):
                 observation = CandidateObservation(
                     candidate_id=cid, raw_text=candidate['raw_value'],
                     selected_text=selected, normalized_value=selected or None,
-                    engine=candidate['engine'], preprocessing_profile=candidate['preprocessing_variant'],
-                    ocr_confidence=candidate['raw_confidence'], localization_confidence=0,
+                    engine=candidate['engine'],
+                    preprocessing_profile=candidate.get('preprocessing_variant') or 'unknown',
+                    ocr_confidence=float(candidate.get('raw_confidence') or 0), localization_confidence=0,
                     semantic_confidence=semantic, deterministic_valid=bool(semantic),
                     engine_reliability=policy.reliability(policy.engine_reliability,name,candidate['engine']),
-                    preprocessing_reliability=policy.reliability(policy.preprocessing_reliability,name,candidate['preprocessing_variant']))
+                    preprocessing_reliability=policy.reliability(
+                        policy.preprocessing_reliability,
+                        name,
+                        candidate.get('preprocessing_variant') or 'unknown',
+                    ))
                 observations.append(observation)
                 originals[cid] = candidate
             ranked = service.rank(observations)

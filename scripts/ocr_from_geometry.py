@@ -307,23 +307,12 @@ def _recognize_charge_digits_only(image, bbox):
             if not raw:
                 continue
             span = select_field_span(raw, span_datatype_for_field('charges', 'currency'), 'charges')
-            if not span.selected_text:
-                # Keep raw so _currency_value can still parse whole dollars.
-                box = BoundingBox(
-                    x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
-                    image_width=image.width, image_height=image.height,
-                )
-                candidates.append({
-                    'value': '', 'raw_value': raw, 'engine': 'tesseract_digits',
-                    'bounding_box': box.model_dump(mode='json'),
-                })
-                break
             box = BoundingBox(
                 x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
                 image_width=image.width, image_height=image.height,
             )
             candidate = OCRCandidate(
-                value=span.selected_text, raw_value=raw, engine='tesseract_digits',
+                value=span.selected_text or '', raw_value=raw, engine='tesseract_digits',
                 model_name='unknown', model_version='unknown',
                 preprocessing_variant='charge_digit_whitelist_fast',
                 preprocessing_version='cascade-v11-fast',
@@ -332,7 +321,7 @@ def _recognize_charge_digits_only(image, bbox):
             )
             payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
             payload['span_selection'] = {
-                'selected_text': span.selected_text,
+                'selected_text': span.selected_text or '',
                 'rule_id': span.rule_id,
                 'confidence': span.confidence,
                 'reason_codes': list(span.reason_codes) + ['CHARGE_DIGIT_FAST'],
@@ -657,8 +646,6 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
         return _recognize_one(image, field_name, bbox, router, field_type, engine_order=engines)
 
     for field in geometry['fields']:
-        if not _field_in_scope(field.get('field') or ''):
-            continue
         result = field['result']
         box = result.get('aligned_roi')
         cell = result.get('safe_cell')
@@ -669,6 +656,26 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 cell['y0'] <= aligned[1] < aligned[3] <= cell['y1']):
             raise ValueError('Canonical region exceeds recorded safe cell')
         primary = _ocr_bbox(field['field'], aligned, cell, (image.width, image.height), template_fields)
+        # Ranking requires every geometry field in the OCR artifact. Out-of-scope
+        # fields get empty stubs (no OCR engines) so STP-critical stays fast.
+        if not _field_in_scope(field.get('field') or ''):
+            rows.append({
+                'field': field['field'],
+                'canonical_region': list(aligned),
+                'ocr_region': list(primary),
+                'candidates': [],
+                'attempts': [],
+                'router_reason': 'OUT_OF_SCOPE',
+                'cascade': {
+                    'strategy_id': cascade.strategy_id,
+                    'accepted': False,
+                    'accept_reason': 'OUT_OF_SCOPE',
+                    'steps': [],
+                },
+                'status': 'SKIPPED',
+            })
+            emit(rows)
+            continue
         # DOB alternate strategy (v10): cells-FIRST. Whole-band OCR reads the
         # MM|DD|YY dashed vertical rules as digit "1" (01→11, 09→19), which
         # then fights a second engine under CONFLICT_MARGIN and forces HITL.
