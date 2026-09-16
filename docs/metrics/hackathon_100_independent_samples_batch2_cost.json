@@ -1,0 +1,40 @@
+{
+  "batch": "Independent Samples \u2014 100 batch 2 (docs[100:200], v12)",
+  "n_documents": 100,
+  "pages_assumed": 100,
+  "disposition": {
+    "true_stp": 38,
+    "field_hitl": 30,
+    "registration_hitl": 32,
+    "combined_hitl": 62
+  },
+  "measured_compute": {
+    "cascade_wall_sec_total": 14191.8,
+    "cascade_wall_sec_mean": 141.92,
+    "decision_reprocess_wall_sec_total": 191.6,
+    "decision_reprocess_claims": 47,
+    "cpu_hours_cascade_equiv": 3.942,
+    "cloud_ocr_api_usd": 0.0,
+    "note": "OCR is local paddle/rapid/tesseract \u2014 no billed cloud vision calls"
+  },
+  "model_A_pareto_reviewed_page": {
+    "assumptions": "$1.00 labor per reviewed page; infra $0.00270/page (routing+compute+storage); cloud OCR $0",
+    "hitl_labor_usd": 62.0,
+    "infra_usd": 0.27,
+    "total_batch_usd": 62.27,
+    "per_page_usd": 0.6227,
+    "per_stp_claim_usd": 1.6387
+  },
+  "model_B_phase8_7_claim_hitl": {
+    "assumptions": "$25/hr labor; 30 min/claim HITL amortized across 3 pages; machine $0.00059 + shared $0.0001 /page; cloud $0",
+    "hitl_rate": 0.62,
+    "fully_loaded_per_page_usd": 0.0437,
+    "total_batch_usd": 4.3746,
+    "per_stp_claim_usd": 0.1151
+  },
+  "illustrative_vm_compute_only_usd": {
+    "assumptions": "$0.5/CPU-hr \u00d7 cascade wall-clock equivalent (not part of governed model)",
+    "cpu_hours": 3.942,
+    "usd": 1.97
+  }
+}
