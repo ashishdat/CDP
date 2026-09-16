@@ -38,3 +38,39 @@ def test_docling_runs_only_for_failed_tables_or_table_heavy_unstructured():
     assert not should_run_docling(DoclingRouteInput(True, False, False, True))
     assert should_run_docling(DoclingRouteInput(True, True, False, True))
     assert should_run_docling(DoclingRouteInput(False, False, True, False))
+    assert should_run_docling(
+        DoclingRouteInput(
+            False,
+            False,
+            False,
+            True,
+            empty_financial_ink=True,
+            service_line_rows_missing=True,
+        )
+    )
+
+
+def test_tool_escalation_maps_gaps_to_stack():
+    from packages.tool_escalation import EscalationTool, plan_field_escalation
+
+    empty = plan_field_escalation(
+        gap_class="EMPTY_FINANCIAL_INK",
+        field_name="total_charge",
+        regional_ocr_attempted=True,
+        service_line_rows_missing=True,
+        empty_financial_ink=True,
+    )
+    assert empty.tool == EscalationTool.DOCLING
+
+    dob = plan_field_escalation(
+        gap_class="HANDWRITING_UNREADABLE",
+        field_name="patient_dob",
+    )
+    assert dob.tool == EscalationTool.AZURE_GPT4O
+    assert dob.review_only is True
+
+    reg = plan_field_escalation(
+        gap_class="REGISTRATION_FAILED",
+        field_name="*",
+    )
+    assert reg.tool == EscalationTool.OPENCV_REGISTRATION_HITL

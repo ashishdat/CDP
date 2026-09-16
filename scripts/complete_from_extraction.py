@@ -179,6 +179,14 @@ def decide(extraction, family):
     values = {f['field_name']: f['normalized_value'] for f in fields}
     # Existing cross-field facts feed the existing decision rules. No evidence acquisition.
     service_lines = extraction.get('service_lines') or []
+    # Prefer observed service-line Σ when box-28 is empty, suspicious-tiny, or
+    # strongly contradicts multi-line charges (uncalibrated OCR soup).
+    from packages.claim_evidence.line_sum_authority import should_defer_box28_to_line_sum
+    for charge_field in ('total_charge', 'total_charges'):
+        if charge_field in values and should_defer_box28_to_line_sum(
+            values.get(charge_field), service_lines
+        ):
+            values[charge_field] = None
     facts = ClaimEvidenceBuilder.load().build(claim_id=claim_id, document_family=family,
                                             claim_values=values, service_lines=service_lines)
     # Phase 2: when box-28 is empty but LINE_TOTALS_RECONCILED fired from observed
@@ -248,7 +256,18 @@ def decide(extraction, family):
                     candidate['value'] = check_value
             candidate['validation_results'] = tuple(validation['reason'])
             candidates.append(TypeAdapter(OCRCandidate).validate_python(candidate))
-        if derived and not any((c.value or '').strip() for c in candidates):
+        # Prefer LINE_TOTALS derived amount over empty / invalid / deferred box-28 OCR.
+        prefer_derived = bool(derived) and (
+            not check.passed
+            or f.get('status') == 'NO_VALUE'
+            or not (f.get('normalized_value') or '').strip()
+            or not any((c.value or '').strip() for c in candidates)
+            or (
+                name in {'total_charge', 'total_charges'}
+                and values.get(name) == derived
+            )
+        )
+        if prefer_derived:
             from packages.domain.common import BoundingBox
             # Always mint a clean derived candidate. Reusing an empty/invalid OCR
             # shell (e.g. tesseract "ipo") keeps INVALID validation and blocks E1.
@@ -270,6 +289,10 @@ def decide(extraction, family):
                 preprocessing_version='phase2-line-sum',
             )]
             check = deterministic.evaluate(name, derived, claim_values=values)
+            # Financial E6 is the deterministic authority for the derived total.
+            check.evidence = set(check.evidence) | {'LINE_TOTALS_RECONCILED', 'HARD_VALIDATION_PASSED'}
+            check.cross_field_evidence = set(check.cross_field_evidence) | {'LINE_TOTALS_RECONCILED'}
+            check.passed = True
             checks[name] = check.model_dump(mode='json')
         localization = localizations.get(name)
         decisions.append(services.evidence_decision.decide(DecisionContext(

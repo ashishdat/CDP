@@ -58,3 +58,76 @@ def test_evidence_rejects_wrong_document(tmp_path):
     path=tmp_path/'out/DecisionResult.json';value=json.loads(path.read_text())
     value['document']['document_id']='different';path.write_text(json.dumps(value))
     with pytest.raises(ValueError,match='identity'):evidence_from_decision(path)
+
+
+def test_line_sum_replaces_invalid_box28_ocr_candidate():
+    """Garbage box-28 OCR must not block LINE_TOTALS derived candidate injection."""
+    payload = extraction()
+    payload["service_lines"] = [
+        {"line_number": 1, "charges": "498.00", "charge_amount": "498.00"},
+        {"line_number": 2, "charges": "66.00", "charge_amount": "66.00"},
+    ]
+    ocr_candidate = {
+        "value": "2.22",
+        "raw_value": ".2.22.",
+        "engine": "tesseract_digits",
+        "model_name": "unknown",
+        "model_version": "unknown",
+        "preprocessing_variant": "charge_digit_whitelist_fast",
+        "raw_confidence": 0.7,
+        "calibrated_confidence": None,
+        "bounding_box": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 10,
+            "y1": 10,
+            "image_width": 100,
+            "image_height": 100,
+        },
+        "latency_ms": 0.0,
+        "validation_results": [],
+        "evidence_reference": None,
+        "estimated_cost_usd": 0.0,
+        "actual_cost_usd": None,
+        "preprocessing_version": "test",
+        "registration_confidence": None,
+        "image_quality_score": None,
+        "provenance": None,
+    }
+    validation = {
+        "field_id": "total_charge",
+        "candidate_id": "total_charge:0",
+        "status": "NO_VALUE",
+        "reason": ["NO_RAW_VALUE", "confidence 0.70 below required 0.95"],
+        "normalized_value": None,
+        "validator": ["test"],
+        "telemetry_reference": "t",
+    }
+    payload["field_results"] = [
+        {
+            "field_name": "total_charge",
+            "ocr": {"candidates": [ocr_candidate]},
+            "ranked_candidate": {
+                "field_id": "total_charge",
+                "candidate_id": "total_charge:0",
+                "winner": "total_charge:0",
+                "is_winner": True,
+                "alternatives": [],
+                "confidence": 0.7,
+                "ranking_score": 0.1,
+                "ranking_reason": ["WINNER_REQUIRES_REVIEW_DETERMINISTIC_INVALID"],
+                "provider": "tesseract_digits",
+                "telemetry_reference": "t",
+                "ocr_candidate": ocr_candidate,
+            },
+            "alternatives": [],
+            "candidate_validations": [validation],
+            "validation": validation,
+            "normalized_value": None,
+            "status": "NO_VALUE",
+        }
+    ]
+    result = decide(payload, "CMS1500")
+    charge = next(d for d in result["field_decisions"] if d["field_name"] == "total_charge")
+    assert charge["selected_value"] == "564.00"
+    assert "LINE_TOTALS_RECONCILED" in charge["reason_codes"]
