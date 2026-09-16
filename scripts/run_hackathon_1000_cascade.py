@@ -249,9 +249,10 @@ def _stage_env() -> dict[str, str]:
     # Paddle warm inference is ~50× faster than Rapid on CPU; use as STP-eval
     # primary while Rapid remains confirmation when primary is unshaped.
     env.setdefault("CDP_OCR_PRIMARY_OVERRIDE", "paddleocr")
-    # Serialize OCR inference (Paddle/Rapid) across workers; prep overlaps.
+    # Serialize OCR across workers (process scope). Inference-only scope allows
+    # parallel Paddle/Rapid subprocesses that thrash and inflate STP wall-clock.
     env.setdefault("CDP_OCR_LOCK", "1")
-    env.setdefault("CDP_OCR_LOCK_SCOPE", "inference")
+    env.setdefault("CDP_OCR_LOCK_SCOPE", "process")
     return env
 
 

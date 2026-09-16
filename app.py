@@ -404,11 +404,14 @@ def register_classified_document(images, routing, registry, selection=None):
                     with registration_context(
                         template_id=template.template_id, page_number=page_number
                     ):
+                        # Same already-selected template; rotation must not be
+                        # blocked by lineage precheck (rotated pages often trip
+                        # template_lineage_mismatch before SIFT can recover).
                         oriented = align_to_reference(
                             rotated,
                             reference,
                             family=template.form_type.value,
-                            enforce_compatibility_precheck=True,
+                            enforce_compatibility_precheck=False,
                         )
                     ev = oriented.evidence
                     key = (
