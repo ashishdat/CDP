@@ -2,11 +2,11 @@
   "run": "hackathon_50_cascade_v11",
   "status": "RUNNING",
   "n_requested": 50,
-  "n_finished": 4,
-  "true_stp": 3,
-  "true_stp_rate": 0.75,
+  "n_finished": 10,
+  "true_stp": 9,
+  "true_stp_rate": 0.9,
   "disposition_counts": {
-    "TRUE_STP": 3,
+    "TRUE_STP": 9,
     "HITL": 1
   },
   "registration_failures": [],
@@ -14,13 +14,20 @@
     1216.914,
     1333.736,
     1349.357,
-    1768.643
+    1768.643,
+    236.005,
+    241.144,
+    170.06,
+    181.865,
+    258.605,
+    271.941
   ],
   "speed_fix": {
     "ocr_hard_exit_after_completed": true,
     "blas_threads_pinned_to_1": true,
-    "workers": 2,
-    "note": "Prior ~22min/claim was OCR atexit hang + 4-worker thread thrash on 4 CPUs. Resumed with hang fix + 2 workers."
+    "workers": 2
   },
-  "generated_at": "2026-09-16T05:20:37.172720+00:00"
+  "generated_at": "2026-09-16T05:30:18.670720+00:00",
+  "claims_in_flight": 2,
+  "claim_dirs": 12
 }
