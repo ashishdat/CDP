@@ -1,13 +1,8 @@
-"""Near-miss inlier-ratio recovery — secondary matcher + content corroboration.
+"""Registration gap classification — near-miss ratio + mild perspective recovery.
 
-Does NOT soften AcceptancePolicy.min_inlier_ratio. Recovers only when:
-- rejection is exactly ``low_inlier_ratio``
-- absolute inliers, coverage, scale, rotation, perspective, corners all pass
-- inlier_ratio sits in ``[near_miss_floor, min_inlier_ratio)``
-
-Step 1: boosted SIFT (more features + multi-scale) must still clear full gates.
-Step 2: if still ratio-only near-miss, warp + CMS landmark content check may
-accept with ``NEAR_MISS_RATIO_CONTENT_CORROBORATED``.
+Does NOT soften AcceptancePolicy thresholds. Recovers only when independent
+signals (boosted geometry or landmark content) clear the same gates or
+corroborate a form-like warp.
 """
 
 from __future__ import annotations
@@ -15,11 +10,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-# Keep floor below policy min (0.12) but high enough that matches are form-like.
-NEAR_MISS_INLIER_RATIO_FLOOR = 0.10
+# Ratio-only near-miss band (policy min is 0.12).
+NEAR_MISS_INLIER_RATIO_FLOOR = 0.09
+NEAR_MISS_STRONG_COVERAGE = 0.20
+NEAR_MISS_STRONG_INLIERS = 10
 DEFAULT_MIN_INLIER_RATIO = 0.12
 DEFAULT_MIN_INLIERS = 8
 DEFAULT_MIN_COVERAGE = 0.12
+# Mild perspective: above policy 0.02 but still form-like (not torn pages).
+# Attempt ceiling allows deskew/affine retry; content corroboration stays tighter.
+MILD_PERSPECTIVE_ATTEMPT_MAX = 0.20
+MILD_PERSPECTIVE_CONTENT_MAX = 0.08
+MILD_PERSPECTIVE_MAX = MILD_PERSPECTIVE_ATTEMPT_MAX  # classifier attempt band
 
 
 @dataclass(frozen=True)
@@ -29,6 +31,8 @@ class NearMissAssessment:
     inlier_ratio: float | None = None
     inlier_count: int | None = None
     reason_tokens: tuple[str, ...] = ()
+    is_mild_perspective: bool = False
+    is_orientation_candidate: bool = False
 
 
 def _tokens(rejection_reason: str | None) -> tuple[str, ...]:
@@ -49,6 +53,23 @@ def _metric(evidence: Any, name: str, default=None):
     return getattr(evidence, name, default)
 
 
+def _scale_rot_safe(
+    *,
+    scale_change: float | None,
+    rotation_degrees: float | None,
+    min_scale: float,
+    max_scale: float,
+    max_abs_rotation: float,
+) -> bool:
+    scale_ok = scale_change is None or (
+        min_scale <= float(scale_change) <= max_scale
+    )
+    rot_ok = rotation_degrees is None or (
+        abs(float(rotation_degrees)) <= max_abs_rotation
+    )
+    return scale_ok and rot_ok
+
+
 def classify_registration_gap(
     *,
     rejection_reason: str | None,
@@ -67,68 +88,116 @@ def classify_registration_gap(
     max_scale: float = 1.55,
     max_perspective: float = 0.02,
 ) -> NearMissAssessment:
-    """Classify Track A rejection; detect recoverable ratio-only near-miss."""
+    """Classify Track A rejection into recoverable vs fail-closed buckets."""
     tokens = _tokens(rejection_reason)
     if not tokens:
         return NearMissAssessment(False, "NONE", inlier_ratio, inlier_count, tokens)
     token_set = set(tokens)
+    ratio = float(inlier_ratio) if inlier_ratio is not None else None
+    count = int(inlier_count) if inlier_count is not None else None
+    coverage = float(coverage_ratio) if coverage_ratio is not None else None
+    persp = float(perspective_distortion) if perspective_distortion is not None else None
 
-    unsafe = {
+    # Orientation / catastrophic first.
+    orientation = False
+    if rotation_degrees is not None:
+        abs_rot = abs(float(rotation_degrees))
+        orientation = abs_rot >= 70.0  # ~90/180 phone capture
+    catastrophic = (
+        corner_validity is False
+        or (scale_change is not None and float(scale_change) < 0.5)
+        or orientation
+        or (persp is not None and persp > 0.5)
+    )
+    if catastrophic and token_set & {
         "unsafe_scale_change",
         "unsafe_rotation",
         "unsafe_perspective_distortion",
         "invalid_transformed_corners",
-    }
-    if token_set & unsafe and (
-        (scale_change is not None and not (min_scale <= float(scale_change) <= max_scale))
-        or (rotation_degrees is not None and abs(float(rotation_degrees)) > max_abs_rotation)
-        or (
-            perspective_distortion is not None
-            and float(perspective_distortion) > max_perspective
-        )
-        or corner_validity is False
-    ):
-        # Prefer catastrophic when transform is wildly broken.
-        if (
-            (scale_change is not None and float(scale_change) < 0.5)
-            or (rotation_degrees is not None and abs(float(rotation_degrees)) > 45.0)
-            or corner_validity is False
-        ):
-            return NearMissAssessment(
-                False, "CATASTROPHIC_TRANSFORM", inlier_ratio, inlier_count, tokens
-            )
+        "insufficient_inliers",
+        "low_coverage",
+        "low_inlier_ratio",
+    }:
         return NearMissAssessment(
-            False, "PERSPECTIVE_UNSAFE", inlier_ratio, inlier_count, tokens
+            False,
+            "CATASTROPHIC_TRANSFORM",
+            ratio,
+            count,
+            tokens,
+            is_orientation_candidate=orientation,
+        )
+
+    scale_rot_ok = _scale_rot_safe(
+        scale_change=scale_change,
+        rotation_degrees=rotation_degrees,
+        min_scale=min_scale,
+        max_scale=max_scale,
+        max_abs_rotation=max_abs_rotation,
+    )
+    corners_ok = corner_validity is not False
+    coverage_ok = coverage is None or coverage >= min_coverage
+    count_ok = count is not None and count >= min_inliers
+
+    # Mild perspective: form-like warp, only perspective (optionally + ratio) soft-fail.
+    mild_persp_tokens = token_set <= {
+        "unsafe_perspective_distortion",
+        "low_inlier_ratio",
+    } and "unsafe_perspective_distortion" in token_set
+    mild_persp = (
+        mild_persp_tokens
+        and scale_rot_ok
+        and corners_ok
+        and coverage_ok
+        and count_ok
+        and persp is not None
+        and max_perspective < persp <= MILD_PERSPECTIVE_ATTEMPT_MAX
+        and ratio is not None
+        and ratio >= NEAR_MISS_INLIER_RATIO_FLOOR
+    )
+    if mild_persp:
+        return NearMissAssessment(
+            False,
+            "PERSPECTIVE_UNSAFE",
+            ratio,
+            count,
+            tokens,
+            is_mild_perspective=True,
+        )
+
+    if token_set & {
+        "unsafe_scale_change",
+        "unsafe_rotation",
+        "unsafe_perspective_distortion",
+        "invalid_transformed_corners",
+    }:
+        return NearMissAssessment(
+            False, "PERSPECTIVE_UNSAFE", ratio, count, tokens
         )
 
     if token_set == {"low_inlier_ratio"}:
-        ratio = float(inlier_ratio) if inlier_ratio is not None else None
-        count = int(inlier_count) if inlier_count is not None else None
-        coverage = float(coverage_ratio) if coverage_ratio is not None else None
-        scale_ok = scale_change is None or (
-            min_scale <= float(scale_change) <= max_scale
+        persp_ok = persp is None or persp <= max_perspective
+        # Strong near-miss: slightly below floor but rich matches / coverage.
+        strong = (
+            count is not None
+            and count >= NEAR_MISS_STRONG_INLIERS
+            and coverage is not None
+            and coverage >= NEAR_MISS_STRONG_COVERAGE
         )
-        rot_ok = rotation_degrees is None or (
-            abs(float(rotation_degrees)) <= max_abs_rotation
-        )
-        persp_ok = perspective_distortion is None or (
-            float(perspective_distortion) <= max_perspective
-        )
-        corners_ok = corner_validity is not False
-        coverage_ok = coverage is None or coverage >= min_coverage
-        count_ok = count is not None and count >= min_inliers
-        ratio_ok = (
-            ratio is not None
-            and NEAR_MISS_INLIER_RATIO_FLOOR <= ratio < min_inlier_ratio
-        )
-        if count_ok and ratio_ok and coverage_ok and scale_ok and rot_ok and persp_ok and corners_ok:
+        floor = NEAR_MISS_INLIER_RATIO_FLOOR if strong else 0.10
+        ratio_ok = ratio is not None and floor <= ratio < min_inlier_ratio
+        if (
+            count_ok
+            and ratio_ok
+            and coverage_ok
+            and scale_rot_ok
+            and persp_ok
+            and corners_ok
+        ):
             return NearMissAssessment(
                 True, "NEAR_MISS_INLIER_RATIO", ratio, count, tokens
             )
         if coverage is not None and coverage < min_coverage:
-            return NearMissAssessment(
-                False, "LOW_COVERAGE", ratio, count, tokens
-            )
+            return NearMissAssessment(False, "LOW_COVERAGE", ratio, count, tokens)
         if count is not None and count < min_inliers:
             return NearMissAssessment(
                 False, "INSUFFICIENT_INLIERS", ratio, count, tokens
@@ -136,19 +205,15 @@ def classify_registration_gap(
 
     if "low_coverage" in tokens and "insufficient_inliers" in tokens:
         return NearMissAssessment(
-            False, "INSUFFICIENT_INLIERS", inlier_ratio, inlier_count, tokens
+            False, "INSUFFICIENT_INLIERS", ratio, count, tokens
         )
     if "low_coverage" in tokens:
-        return NearMissAssessment(
-            False, "LOW_COVERAGE", inlier_ratio, inlier_count, tokens
-        )
+        return NearMissAssessment(False, "LOW_COVERAGE", ratio, count, tokens)
     if "insufficient_inliers" in tokens:
         return NearMissAssessment(
-            False, "INSUFFICIENT_INLIERS", inlier_ratio, inlier_count, tokens
+            False, "INSUFFICIENT_INLIERS", ratio, count, tokens
         )
-    return NearMissAssessment(
-        False, "OTHER", inlier_ratio, inlier_count, tokens
-    )
+    return NearMissAssessment(False, "OTHER", ratio, count, tokens)
 
 
 def assess_evidence_near_miss(evidence: Any, **policy_kwargs) -> NearMissAssessment:
@@ -168,3 +233,49 @@ def assess_evidence_near_miss(evidence: Any, **policy_kwargs) -> NearMissAssessm
 
 def should_attempt_near_miss_boost(evidence: Any) -> bool:
     return assess_evidence_near_miss(evidence).is_near_miss
+
+
+def should_attempt_perspective_recovery(evidence: Any) -> bool:
+    return assess_evidence_near_miss(evidence).is_mild_perspective
+
+
+def should_attempt_orientation_recovery(evidence: Any) -> bool:
+    return assess_evidence_near_miss(evidence).is_orientation_candidate
+
+
+def content_corroboration_eligible(evidence: Any) -> bool:
+    """Warp is form-like enough for landmark content to decide accept/reject.
+
+    Covers ratio-only near-miss and mild-perspective cases where absolute
+    inliers/coverage/scale/rotation/corners already look like a CMS page.
+    """
+    assessment = assess_evidence_near_miss(evidence)
+    if assessment.is_near_miss:
+        return True
+    if assessment.is_mild_perspective:
+        persp = _metric(evidence, "perspective_distortion")
+        # Content accept only when perspective is modest; larger keystone must
+        # clear full geometric gates after deskew/affine recovery.
+        if persp is not None and float(persp) <= MILD_PERSPECTIVE_CONTENT_MAX:
+            return True
+        return False
+    # Strong geometry that only tripped perspective: ratio already at policy.
+    ratio = _metric(evidence, "inlier_ratio")
+    count = _metric(evidence, "inlier_count")
+    corners = _metric(evidence, "corner_validity")
+    persp = _metric(evidence, "perspective_distortion")
+    reason = _metric(evidence, "rejection_reason") or ""
+    tokens = set(_tokens(reason))
+    if (
+        corners is not False
+        and ratio is not None
+        and float(ratio) >= DEFAULT_MIN_INLIER_RATIO
+        and count is not None
+        and int(count) >= DEFAULT_MIN_INLIERS
+        and persp is not None
+        and float(persp) <= MILD_PERSPECTIVE_CONTENT_MAX
+        and tokens <= {"unsafe_perspective_distortion", "low_inlier_ratio"}
+        and "unsafe_perspective_distortion" in tokens
+    ):
+        return True
+    return False

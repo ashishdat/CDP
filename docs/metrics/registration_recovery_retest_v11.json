@@ -1,0 +1,82 @@
+{
+  "accepted": 5,
+  "total": 7,
+  "rate": 0.7142857142857143,
+  "claims": [
+    {
+      "document": "Group A/M048DJJF.001",
+      "accepted": true,
+      "reason": "REGISTRATION_ACCEPTED",
+      "strategies": [
+        "ALTERNATIVE_REGISTRATION",
+        "CONTRAST_STRETCH_SECOND_PREPROCESS",
+        "NEAR_MISS_SIFT_BOOST_MULTISCALE"
+      ]
+    },
+    {
+      "document": "Group A/M048DJJF.005",
+      "accepted": true,
+      "reason": "REGISTRATION_ACCEPTED",
+      "strategies": [
+        "ALTERNATIVE_REGISTRATION",
+        "CONTRAST_STRETCH_SECOND_PREPROCESS",
+        "PERSPECTIVE_EDGE_DESKEW_AFFINE"
+      ]
+    },
+    {
+      "document": "Group A/M048DJJF.007",
+      "accepted": true,
+      "reason": "REGISTRATION_ACCEPTED",
+      "strategies": [
+        "IMAGE_ENHANCEMENT",
+        "CONTRAST_STRETCH_SECOND_PREPROCESS",
+        "NEAR_MISS_SIFT_BOOST_MULTISCALE"
+      ]
+    },
+    {
+      "document": "Group A/M048DJJM.001",
+      "accepted": false,
+      "reason": "low_inlier_ratio,unsafe_rotation",
+      "strategies": [
+        "ALTERNATIVE_REGISTRATION",
+        "CONTRAST_STRETCH_SECOND_PREPROCESS",
+        "ORIENTATION_ROTATE_RETRY"
+      ]
+    },
+    {
+      "document": "Group A/M048DJJM.005",
+      "accepted": true,
+      "reason": "REGISTRATION_ACCEPTED",
+      "strategies": [
+        "IMAGE_ENHANCEMENT",
+        "CONTRAST_STRETCH_SECOND_PREPROCESS",
+        "NEAR_MISS_SIFT_BOOST_MULTISCALE"
+      ]
+    },
+    {
+      "document": "Group A/M048DJJM.006",
+      "accepted": true,
+      "reason": "REGISTRATION_ACCEPTED",
+      "strategies": [
+        "ALTERNATIVE_REGISTRATION",
+        "CONTRAST_STRETCH_SECOND_PREPROCESS",
+        "PERSPECTIVE_EDGE_DESKEW_AFFINE"
+      ]
+    },
+    {
+      "document": "Group A/M048DJJM.008",
+      "accepted": false,
+      "reason": "low_inlier_ratio,unsafe_rotation",
+      "strategies": [
+        "ALTERNATIVE_REGISTRATION",
+        "CONTRAST_STRETCH_SECOND_PREPROCESS",
+        "ORIENTATION_ROTATE_RETRY"
+      ]
+    }
+  ],
+  "remaining_failures": [
+    "Group A/M048DJJM.001",
+    "Group A/M048DJJM.008"
+  ],
+  "note": "Near-miss boost + perspective deskew/affine + orientation retry. Residual DJJM.001/.008 are orientation/catastrophic."
+}

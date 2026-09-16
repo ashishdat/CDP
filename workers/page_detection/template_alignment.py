@@ -496,7 +496,6 @@ def align_near_miss_boosted(
     candidate_arr, reference_arr = _gray(candidate), _gray(reference)
     compatibility = assess_template_compatibility(candidate, reference, family=family)
     sift = _sift_alignment_multiscale(candidate_arr, reference_arr, boosted)
-    # Prefer algorithm label that marks the boosted path in telemetry/reports.
     evidence = sift.evidence
     if evidence is not None:
         evidence = evidence.model_copy(
@@ -515,6 +514,167 @@ def align_near_miss_boosted(
         evidence,
         compatibility,
         sift.cheap_evidence,
+        True,
+    )
+
+
+def _affine_then_homography(
+    candidate: np.ndarray, reference: np.ndarray, policy: RegistrationPolicy
+) -> AlignmentResult:
+    """Affine-first coarse align, then full homography on the rectified crop.
+
+    Targets mild phone keystone where direct projective fit overshoots the
+    perspective gate. Final acceptance still uses unchanged homography gates.
+    """
+    started = perf_counter()
+    # First get SIFT matches for affine.
+    sift = cv2.SIFT_create(nfeatures=max(policy.sift_features, 4000))
+    source_features = preprocess_registration(candidate)
+    template_features = preprocess_registration(reference)
+    kp_source, desc_source = sift.detectAndCompute(source_features.image, None)
+    kp_template, desc_template = sift.detectAndCompute(template_features.image, None)
+    kp_source = source_features.restore_keypoints(kp_source)
+    kp_template = template_features.restore_keypoints(kp_template)
+    if desc_source is None or desc_template is None or len(kp_source) < 4:
+        return _failure(
+            "affine_then_homography",
+            "insufficient_keypoints",
+            (perf_counter() - started) * 1000,
+        )
+    matcher = cv2.FlannBasedMatcher({"algorithm": 1, "trees": 5}, {"checks": 64})
+    pairs = matcher.knnMatch(desc_source, desc_template, k=2)
+    good = [
+        pair[0]
+        for pair in pairs
+        if len(pair) == 2 and pair[0].distance < policy.lowe_ratio * pair[1].distance
+    ]
+    good = _unique_template_matches(good)
+    if len(good) < policy.min_good_matches:
+        return _failure(
+            "affine_then_homography",
+            "insufficient_good_matches",
+            (perf_counter() - started) * 1000,
+            good_matches=len(good),
+        )
+    src = np.float32([kp_source[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+    dst = np.float32([kp_template[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    affine, inlier_mask = cv2.estimateAffinePartial2D(
+        src, dst, method=cv2.RANSAC, ransacReprojThreshold=policy.ransac_reprojection_threshold
+    )
+    if affine is None:
+        return _failure(
+            "affine_then_homography",
+            "affine_not_found",
+            (perf_counter() - started) * 1000,
+            good_matches=len(good),
+        )
+    # Warp candidate by affine into reference-sized canvas, then full SIFT H.
+    approx = cv2.warpAffine(
+        candidate, affine, (reference.shape[1], reference.shape[0]), borderValue=255
+    )
+    # Identity-ish second stage: matches on already-affine-aligned page.
+    second = _sift_alignment(approx, reference, policy)
+    if second.homography is None:
+        return second
+    # Compose: x_ref = H2 * Affine * x_orig  (Affine as 3x3).
+    affine_h = np.vstack([affine, np.array([0.0, 0.0, 1.0])])
+    composed = second.homography @ affine_h
+    warped = cv2.warpPerspective(
+        candidate, composed, (reference.shape[1], reference.shape[0]), borderValue=255
+    )
+    evidence = second.evidence
+    if evidence is not None:
+        evidence = evidence.model_copy(
+            update={
+                "algorithm": "affine_then_homography",
+                "transform_matrix": composed.tolist(),
+                "processing_time_ms": (perf_counter() - started) * 1000,
+            }
+        )
+    if second.warped is not None:
+        second.warped.close()
+    return AlignmentResult(
+        second.success,
+        second.alignment_score,
+        second.good_match_count,
+        composed,
+        Image.fromarray(warped),
+        "affine_then_homography",
+        second.inlier_ratio,
+        second.reprojection_error,
+        second.accepted,
+        evidence,
+        second.compatibility,
+        second.cheap_evidence,
+        True,
+    )
+
+
+def align_perspective_recovery(
+    candidate: Image.Image,
+    reference: Image.Image,
+    *,
+    family: str | None = None,
+    base_policy: RegistrationPolicy | None = None,
+) -> AlignmentResult:
+    """Mild-perspective recovery: boosted multi-scale SIFT, then affine-first."""
+    base = base_policy or DEFAULT_REGISTRATION_POLICY
+    boosted = RegistrationPolicy(
+        lowe_ratio=base.lowe_ratio,
+        ransac_reprojection_threshold=base.ransac_reprojection_threshold,
+        min_good_matches=base.min_good_matches,
+        min_inliers=base.min_inliers,
+        min_inlier_ratio=base.min_inlier_ratio,
+        max_reprojection_error=base.max_reprojection_error,
+        min_coverage_ratio=base.min_coverage_ratio,
+        cheap_min_confidence=base.cheap_min_confidence,
+        cheap_max_aspect_delta=base.cheap_max_aspect_delta,
+        sift_features=max(base.sift_features, 5000),
+        min_scale=base.min_scale,
+        max_scale=base.max_scale,
+        max_abs_rotation_degrees=base.max_abs_rotation_degrees,
+        max_perspective_distortion=base.max_perspective_distortion,
+    )
+    candidate_arr, reference_arr = _gray(candidate), _gray(reference)
+    compatibility = assess_template_compatibility(candidate, reference, family=family)
+    multi = _sift_alignment_multiscale(candidate_arr, reference_arr, boosted)
+    if multi.accepted:
+        evidence = multi.evidence
+        if evidence is not None:
+            evidence = evidence.model_copy(
+                update={"algorithm": "sift_perspective_recovery_boost"}
+            )
+        return AlignmentResult(
+            multi.success,
+            multi.alignment_score,
+            multi.good_match_count,
+            multi.homography,
+            multi.warped,
+            "sift_perspective_recovery_boost",
+            multi.inlier_ratio,
+            multi.reprojection_error,
+            multi.accepted,
+            evidence,
+            compatibility,
+            multi.cheap_evidence,
+            True,
+        )
+    affine = _affine_then_homography(candidate_arr, reference_arr, boosted)
+    if multi.warped is not None and multi.warped is not affine.warped:
+        multi.warped.close()
+    return AlignmentResult(
+        affine.success,
+        affine.alignment_score,
+        affine.good_match_count,
+        affine.homography,
+        affine.warped,
+        affine.method,
+        affine.inlier_ratio,
+        affine.reprojection_error,
+        affine.accepted,
+        affine.evidence,
+        compatibility,
+        affine.cheap_evidence,
         True,
     )
 

@@ -37,17 +37,23 @@ def register_classified_document(images, routing, registry, selection=None):
         enhance_for_registration,
         enhance_for_registration_strong,
         enhance_for_registration_contrast_stretch,
+        enhance_for_registration_edge_deskew,
+        rotate_page_for_orientation,
         should_attempt_second_preprocess,
         evidence_grade_alignment_confidence,
     )
     from packages.recovery.registration_near_miss import (
         assess_evidence_near_miss,
+        content_corroboration_eligible,
         should_attempt_near_miss_boost,
+        should_attempt_orientation_recovery,
+        should_attempt_perspective_recovery,
     )
     from packages.recovery.planner import Strategy
     from workers.page_detection.registration_telemetry import registration_context
     from workers.page_detection.template_alignment import (
         align_near_miss_boosted,
+        align_perspective_recovery,
         align_to_reference,
     )
 
@@ -216,9 +222,97 @@ def register_classified_document(images, routing, registry, selection=None):
                     enhanced.close()
 
         # Near-miss Step 1: boosted SIFT + multi-scale (same Acceptance gates).
-        near_miss = assess_evidence_near_miss(evidence) if evidence is not None else None
-        best_near_miss_aligned = None
-        best_near_miss_evidence = None
+        gap = assess_evidence_near_miss(evidence) if evidence is not None else None
+        best_corroboration_aligned = None
+        best_corroboration_evidence = None
+
+        def _preserve_corroboration_candidate(current_aligned, current_evidence):
+            nonlocal best_corroboration_aligned, best_corroboration_evidence
+            if current_evidence is None or current_aligned is None:
+                return
+            if not content_corroboration_eligible(current_evidence):
+                return
+            if current_aligned.warped is None or current_aligned.homography is None:
+                return
+            prev = (
+                best_corroboration_evidence.inlier_count
+                if best_corroboration_evidence is not None
+                else -1
+            )
+            if current_evidence.inlier_count >= prev:
+                if (
+                    best_corroboration_aligned is not None
+                    and best_corroboration_aligned is not current_aligned
+                    and best_corroboration_aligned.warped is not None
+                ):
+                    best_corroboration_aligned.warped.close()
+                best_corroboration_aligned = current_aligned
+                best_corroboration_evidence = current_evidence
+
+        def _apply_alignment_result(aligned_result, attempt_name, strategy_name):
+            nonlocal aligned, evidence, accepted, meta, content_ok, content_reason, gap
+            evidence = aligned_result.evidence
+            accepted_geom = (
+                aligned_result.success
+                and aligned_result.accepted
+                and aligned_result.warped is not None
+                and evidence is not None
+                and evidence.accepted
+                and evidence.corner_validity is True
+            )
+            meta = {
+                "attempt": attempt_name,
+                "accepted": accepted_geom,
+                "alignment_confidence": (
+                    evidence.alignment_confidence
+                    if evidence is not None
+                    else aligned_result.alignment_score
+                ),
+                "reason": (
+                    "REGISTRATION_ACCEPTED"
+                    if accepted_geom
+                    else (
+                        evidence.rejection_reason
+                        if evidence and evidence.rejection_reason
+                        else "REGISTRATION_NOT_ACCEPTED"
+                    )
+                ),
+                "registration_gap_class": (
+                    assess_evidence_near_miss(evidence).gap_class
+                    if evidence is not None
+                    else None
+                ),
+            }
+            content_ok = True
+            content_reason = None
+            if (
+                accepted_geom
+                and template.form_type == ClaimFormType.CMS1500
+                and aligned_result.warped is not None
+            ):
+                boxes = _identity_boxes()
+                if boxes is not None:
+                    content = validate_cms1500_registration_content(
+                        aligned_result.warped,
+                        patient_name_box=boxes[0],
+                        patient_dob_box=boxes[1],
+                    )
+                    content_ok = content.accepted
+                    content_reason = content.reason
+                    meta["content_ok"] = content.accepted
+                    meta["content_reason"] = content.reason
+                    if not content.accepted:
+                        accepted_geom = False
+                        meta["accepted"] = False
+                        meta["reason"] = "REGISTRATION_CONTENT_MISMATCH"
+            accepted = accepted_geom
+            aligned = aligned_result
+            attempts.append(meta)
+            recovery_strategies.append(strategy_name)
+            gap = assess_evidence_near_miss(evidence) if evidence is not None else None
+            if not accepted:
+                _preserve_corroboration_candidate(aligned, evidence)
+
         if (
             not accepted
             and evidence is not None
@@ -227,11 +321,8 @@ def register_classified_document(images, routing, registry, selection=None):
             and aligned.warped is not None
             and aligned.homography is not None
         ):
-            # Preserve ratio-only near-miss warp for Step 2 if boost does not accept.
-            best_near_miss_aligned = aligned
-            best_near_miss_evidence = evidence
-            aligned = None  # ownership transferred; do not close
-            recovery_strategies.append("NEAR_MISS_SIFT_BOOST_MULTISCALE")
+            _preserve_corroboration_candidate(aligned, evidence)
+            aligned = None  # ownership transferred to corroboration preserve
             boost_source = enhance_for_registration_strong(source)
             try:
                 with registration_context(
@@ -242,170 +333,163 @@ def register_classified_document(images, routing, registry, selection=None):
                         reference,
                         family=template.form_type.value,
                     )
-                evidence = boosted.evidence
-                accepted_geom = (
-                    boosted.success
-                    and boosted.accepted
-                    and boosted.warped is not None
-                    and evidence is not None
-                    and evidence.accepted
-                    and evidence.corner_validity is True
-                )
-                meta = {
-                    "attempt": "near_miss_boost",
-                    "accepted": accepted_geom,
-                    "alignment_confidence": (
-                        evidence.alignment_confidence
-                        if evidence is not None
-                        else boosted.alignment_score
-                    ),
-                    "reason": (
-                        "REGISTRATION_ACCEPTED"
-                        if accepted_geom
-                        else (
-                            evidence.rejection_reason
-                            if evidence and evidence.rejection_reason
-                            else "REGISTRATION_NOT_ACCEPTED"
-                        )
-                    ),
-                    "registration_gap_class": (
-                        assess_evidence_near_miss(evidence).gap_class
-                        if evidence is not None
-                        else None
-                    ),
-                }
-                content_ok = True
-                content_reason = None
-                if (
-                    accepted_geom
-                    and template.form_type == ClaimFormType.CMS1500
-                    and boosted.warped is not None
-                ):
-                    boxes = _identity_boxes()
-                    if boxes is not None:
-                        content = validate_cms1500_registration_content(
-                            boosted.warped,
-                            patient_name_box=boxes[0],
-                            patient_dob_box=boxes[1],
-                        )
-                        content_ok = content.accepted
-                        content_reason = content.reason
-                        meta["content_ok"] = content.accepted
-                        meta["content_reason"] = content.reason
-                        if not content.accepted:
-                            accepted_geom = False
-                            meta["accepted"] = False
-                            meta["reason"] = "REGISTRATION_CONTENT_MISMATCH"
-                accepted = accepted_geom
-                aligned = boosted
-                attempts.append(meta)
-                if (
-                    not accepted
-                    and evidence is not None
-                    and should_attempt_near_miss_boost(evidence)
-                ):
-                    # Boosted result is also a usable near-miss — prefer higher inliers.
-                    prev_count = (
-                        best_near_miss_evidence.inlier_count
-                        if best_near_miss_evidence is not None
-                        else -1
-                    )
-                    if evidence.inlier_count >= prev_count:
-                        if (
-                            best_near_miss_aligned is not None
-                            and best_near_miss_aligned is not aligned
-                            and best_near_miss_aligned.warped is not None
-                        ):
-                            best_near_miss_aligned.warped.close()
-                        best_near_miss_aligned = aligned
-                        best_near_miss_evidence = evidence
-                near_miss = (
-                    assess_evidence_near_miss(evidence) if evidence is not None else None
+                _apply_alignment_result(
+                    boosted, "near_miss_boost", "NEAR_MISS_SIFT_BOOST_MULTISCALE"
                 )
             finally:
                 boost_source.close()
 
-        # Near-miss Step 2: content corroboration on best ratio-only near-miss warp.
-        # Independent landmark E3 check — does not soften min_inlier_ratio.
-        corroboration_source = None
-        corroboration_evidence = None
-        if not accepted:
-            if (
-                best_near_miss_aligned is not None
-                and best_near_miss_evidence is not None
-                and should_attempt_near_miss_boost(best_near_miss_evidence)
-            ):
-                corroboration_source = best_near_miss_aligned
-                corroboration_evidence = best_near_miss_evidence
-            elif (
-                evidence is not None
-                and aligned is not None
-                and should_attempt_near_miss_boost(evidence)
-            ):
-                corroboration_source = aligned
-                corroboration_evidence = evidence
+        # Perspective Step 3: edge-deskew preprocess + affine-first / boosted SIFT.
+        if (
+            not accepted
+            and evidence is not None
+            and should_attempt_perspective_recovery(evidence)
+        ):
+            if aligned is not None:
+                _preserve_corroboration_candidate(aligned, evidence)
+                if (
+                    best_corroboration_aligned is not aligned
+                    and aligned.warped is not None
+                ):
+                    aligned.warped.close()
+                aligned = None
+            deskewed = enhance_for_registration_edge_deskew(source)
+            try:
+                with registration_context(
+                    template_id=template.template_id, page_number=page_number
+                ):
+                    recovered = align_perspective_recovery(
+                        deskewed,
+                        reference,
+                        family=template.form_type.value,
+                    )
+                _apply_alignment_result(
+                    recovered,
+                    "perspective_recovery",
+                    "PERSPECTIVE_EDGE_DESKEW_AFFINE",
+                )
+            finally:
+                deskewed.close()
+
+        # Orientation Step 4: try 180/90/270 when rotation looks catastrophic.
+        if (
+            not accepted
+            and evidence is not None
+            and should_attempt_orientation_recovery(evidence)
+        ):
+            if aligned is not None and aligned.warped is not None:
+                if best_corroboration_aligned is not aligned:
+                    aligned.warped.close()
+                aligned = None
+            best_orient = None
+            best_orient_key = (-1, -1.0)
+            for degrees in (180, 90, 270):
+                rotated = rotate_page_for_orientation(source, degrees)
+                try:
+                    with registration_context(
+                        template_id=template.template_id, page_number=page_number
+                    ):
+                        oriented = align_to_reference(
+                            rotated,
+                            reference,
+                            family=template.form_type.value,
+                            enforce_compatibility_precheck=True,
+                        )
+                    ev = oriented.evidence
+                    key = (
+                        1 if oriented.accepted else 0,
+                        float(ev.inlier_ratio) if ev is not None else 0.0,
+                    )
+                    if key > best_orient_key:
+                        if best_orient is not None and best_orient.warped is not None:
+                            best_orient.warped.close()
+                        best_orient = oriented
+                        best_orient_key = key
+                    elif oriented.warped is not None:
+                        oriented.warped.close()
+                    if oriented.accepted:
+                        break
+                finally:
+                    rotated.close()
+            if best_orient is not None:
+                _apply_alignment_result(
+                    best_orient,
+                    "orientation_recovery",
+                    "ORIENTATION_ROTATE_RETRY",
+                )
+
+        # Content corroboration (near-miss ratio or mild perspective).
+        # Independent landmark E3 check — does not soften geometric thresholds.
+        if not accepted and evidence is not None and aligned is not None:
+            _preserve_corroboration_candidate(aligned, evidence)
 
         if (
             not accepted
-            and corroboration_source is not None
-            and corroboration_evidence is not None
-            and corroboration_source.warped is not None
-            and corroboration_source.homography is not None
+            and best_corroboration_aligned is not None
+            and best_corroboration_evidence is not None
+            and best_corroboration_aligned.warped is not None
+            and best_corroboration_aligned.homography is not None
             and template.form_type == ClaimFormType.CMS1500
         ):
             boxes = _identity_boxes()
             if boxes is not None:
                 content = validate_cms1500_registration_content(
-                    corroboration_source.warped,
+                    best_corroboration_aligned.warped,
                     patient_name_box=boxes[0],
                     patient_dob_box=boxes[1],
                 )
                 content_ok = content.accepted
                 content_reason = content.reason
+                gap_now = assess_evidence_near_miss(best_corroboration_evidence)
+                accept_reason = (
+                    "MILD_PERSPECTIVE_CONTENT_CORROBORATED"
+                    if gap_now.is_mild_perspective
+                    else "NEAR_MISS_RATIO_CONTENT_CORROBORATED"
+                )
                 if content.accepted:
-                    recovery_strategies.append("NEAR_MISS_RATIO_CONTENT_CORROBORATED")
-                    evidence = corroboration_evidence.model_copy(
+                    recovery_strategies.append(accept_reason)
+                    evidence = best_corroboration_evidence.model_copy(
                         update={
                             "accepted": True,
                             "rejection_reason": None,
                         }
                     )
-                    aligned = corroboration_source
+                    aligned = best_corroboration_aligned
                     accepted = True
                     meta = {
-                        "attempt": "near_miss_content_corroboration",
+                        "attempt": "content_corroboration",
                         "accepted": True,
                         "alignment_confidence": evidence.alignment_confidence,
-                        "reason": "NEAR_MISS_RATIO_CONTENT_CORROBORATED",
+                        "reason": accept_reason,
                         "content_ok": True,
                         "content_reason": content.reason,
-                        "registration_gap_class": "NEAR_MISS_INLIER_RATIO",
+                        "registration_gap_class": gap_now.gap_class,
                         "geometric_near_miss_ratio": evidence.inlier_ratio,
                         "geometric_inlier_count": evidence.inlier_count,
+                        "geometric_perspective": evidence.perspective_distortion,
                     }
                     attempts.append(meta)
                 else:
                     attempts.append(
                         {
-                            "attempt": "near_miss_content_corroboration",
+                            "attempt": "content_corroboration",
                             "accepted": False,
-                            "alignment_confidence": corroboration_evidence.alignment_confidence,
-                            "reason": "NEAR_MISS_CONTENT_REJECTED",
+                            "alignment_confidence": (
+                                best_corroboration_evidence.alignment_confidence
+                            ),
+                            "reason": "CONTENT_CORROBORATION_REJECTED",
                             "content_ok": False,
                             "content_reason": content.reason,
-                            "registration_gap_class": (
-                                near_miss.gap_class if near_miss else "NEAR_MISS_INLIER_RATIO"
-                            ),
+                            "registration_gap_class": gap_now.gap_class,
                         }
                     )
 
-        # Drop unused preserved near-miss warp when a different aligned won.
         if (
-            best_near_miss_aligned is not None
-            and best_near_miss_aligned is not aligned
-            and best_near_miss_aligned.warped is not None
+            best_corroboration_aligned is not None
+            and best_corroboration_aligned is not aligned
+            and best_corroboration_aligned.warped is not None
         ):
-            best_near_miss_aligned.warped.close()
+            best_corroboration_aligned.warped.close()
 
         if not accepted and evidence is not None:
             gap = assess_evidence_near_miss(evidence)

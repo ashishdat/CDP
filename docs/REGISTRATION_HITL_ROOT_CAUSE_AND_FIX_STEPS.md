@@ -48,7 +48,7 @@ Enhancement improves some metrics but **does not push ratio across 0.12** on the
 
 ## Fix steps (ordered by leverage / invasiveness)
 
-### Step 1 — Near-miss secondary matcher (high leverage, safe)
+### Step 1 — Near-miss secondary matcher (**shipped**)
 
 For attempts that fail **only** `low_inlier_ratio` with:
 - `inlier_count >= min_inliers` (8+)
@@ -65,7 +65,7 @@ Run a **bounded second geometric pass** (same template, same gates):
 
 Accept **only if** the retry passes the **unchanged** full Acceptance policy.
 
-### Step 2 — Landmark content corroboration (conditional accept)
+### Step 2 — Landmark content corroboration (**shipped**)
 
 When Step 1 still fails ratio-only near-miss, warp with best H and run
 `validate_cms1500_registration_content` on patient name/DOB boxes:
@@ -76,7 +76,7 @@ When Step 1 still fails ratio-only near-miss, warp with best H and run
 
 This is **not** threshold softening; it is an independent content E3 check.
 
-### Step 3 — Perspective / skew path
+### Step 3 — Perspective / skew path (**shipped** in v11)
 
 For `unsafe_perspective_distortion` + low ratio:
 
@@ -84,7 +84,7 @@ For `unsafe_perspective_distortion` + low ratio:
 2. Stronger `enhance_for_registration_strong` already used — add **edge-emphasizing** preprocess  
 3. Try affine-first (partial) then full homography if affine inliers look form-like
 
-### Step 4 — Catastrophic / wrong-page (DJJM.008)
+### Step 4 — Catastrophic / wrong-page (DJJM.008) (orientation retry shipped; residual HITL OK)
 
 1. Page orientation classifier (0/90/180/270) before registration  
 2. Form-present detector (CMS header “HEALTH INSURANCE CLAIM FORM”)  

@@ -167,6 +167,64 @@ def enhance_for_registration_contrast_stretch(image: Image.Image) -> Image.Image
     return Image.fromarray(enhanced)
 
 
+def enhance_for_registration_edge_deskew(image: Image.Image) -> Image.Image:
+    """Perspective/skew recovery preprocess: border trim + deskew + edge emphasis.
+
+    Ink-preserving; does not invent landmarks. Aimed at mild perspective
+    gate failures where SIFT already finds form-like matches.
+    """
+    gray = np.asarray(image.convert("L"), dtype=np.uint8)
+    # Trim low-ink borders that inflate projective distortion.
+    ink = gray < 240
+    coords = cv2.findNonZero(ink.astype(np.uint8) * 255)
+    if coords is not None:
+        x, y, w, h = cv2.boundingRect(coords)
+        pad = max(8, min(w, h) // 40)
+        x0 = max(0, x - pad)
+        y0 = max(0, y - pad)
+        x1 = min(gray.shape[1], x + w + pad)
+        y1 = min(gray.shape[0], y + h + pad)
+        if (x1 - x0) > gray.shape[1] * 0.5 and (y1 - y0) > gray.shape[0] * 0.5:
+            gray = gray[y0:y1, x0:x1]
+    # Light deskew from long Hough lines.
+    edges = cv2.Canny(gray, 50, 150)
+    lines = cv2.HoughLinesP(
+        edges,
+        1,
+        np.pi / 180,
+        threshold=80,
+        minLineLength=max(40, gray.shape[1] // 10),
+        maxLineGap=12,
+    )
+    angles: list[float] = []
+    if lines is not None:
+        for x1, y1, x2, y2 in lines.reshape(-1, 4):
+            angle = float(np.degrees(np.arctan2(y2 - y1, x2 - x1)))
+            angle = (angle + 45.0) % 90.0 - 45.0
+            if abs(angle) <= 12.0:
+                angles.append(angle)
+    if angles:
+        skew = float(np.median(angles))
+        h, w = gray.shape
+        matrix = cv2.getRotationMatrix2D((w / 2.0, h / 2.0), skew, 1.0)
+        gray = cv2.warpAffine(gray, matrix, (w, h), borderValue=255)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    enhanced = clahe.apply(gray)
+    # Edge emphasis stabilizes SIFT under phone keystone without fabricating ink.
+    blur = cv2.GaussianBlur(enhanced, (0, 0), sigmaX=1.2)
+    sharpened = cv2.addWeighted(enhanced, 1.45, blur, -0.45, 0)
+    return Image.fromarray(sharpened)
+
+
+def rotate_page_for_orientation(image: Image.Image, degrees: int) -> Image.Image:
+    """Rotate page by 90/180/270 for catastrophic orientation recovery."""
+    gray = image.convert("L")
+    if degrees % 360 == 0:
+        return gray.copy()
+    # PIL rotate is counter-clockwise; expand keeps full page.
+    return gray.rotate(degrees, expand=True, fillcolor=255)
+
+
 def should_attempt_second_preprocess(
     *,
     failure_reasons: list[str],
