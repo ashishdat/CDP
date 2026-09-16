@@ -54,12 +54,23 @@ def rank_saved(source, output):
             originals = {}
             for index, candidate in enumerate(field['candidates']):
                 cid = f'{name}:{index}'
+                selected = (candidate.get('value') or candidate.get('raw_value') or '') or ''
+                # Boost field-shaped OCR (DATE/NAME/ID/CURRENCY) so ranking does not
+                # crown header labels like DOB "MM" over calendar-valid alternatives.
+                semantic = 0.0
+                try:
+                    from packages.extraction_recovery.field_cascade import semantic_accept
+                    ok, _ = semantic_accept(name, selected)
+                    if ok:
+                        semantic = 0.95
+                except Exception:
+                    semantic = 0.0
                 observation = CandidateObservation(
                     candidate_id=cid, raw_text=candidate['raw_value'],
-                    selected_text=candidate['raw_value'], normalized_value=None,
+                    selected_text=selected, normalized_value=selected or None,
                     engine=candidate['engine'], preprocessing_profile=candidate['preprocessing_variant'],
                     ocr_confidence=candidate['raw_confidence'], localization_confidence=0,
-                    semantic_confidence=0, deterministic_valid=False,
+                    semantic_confidence=semantic, deterministic_valid=bool(semantic),
                     engine_reliability=policy.reliability(policy.engine_reliability,name,candidate['engine']),
                     preprocessing_reliability=policy.reliability(policy.preprocessing_reliability,name,candidate['preprocessing_variant']))
                 observations.append(observation)

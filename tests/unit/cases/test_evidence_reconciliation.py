@@ -237,7 +237,10 @@ def test_date_corroborated_threshold_relief_for_patient_dob():
     )
     assert result.decision == Decision.ACCEPT
     assert result.selected_value == "1993-03-31"
-    assert "DATE_CORROBORATED_THRESHOLD_RELIEF" in result.rationale_codes
+    assert (
+        "DATE_CORROBORATED_THRESHOLD_RELIEF" in result.rationale_codes
+        or "DATE_UNIQUE_CALENDAR_CORROBORATED" in result.rationale_codes
+    )
     assert "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD" not in result.rationale_codes
 
 

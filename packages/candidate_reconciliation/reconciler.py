@@ -505,6 +505,20 @@ class EvidenceReconciler:
             and "HARD_VALIDATION_PASSED" in deterministic
             and "DATE_VALID" in deterministic
         )
+        unique_calendar_dob = False
+        if date_corroborated:
+            calendar_ymds = {
+                _dob_ymd(str(candidate.value or ""))
+                for candidate in candidates
+                if (candidate.value or "").strip()
+            }
+            calendar_ymds.discard(None)
+            unique_calendar_dob = len(calendar_ymds) == 1 and _dob_ymd(str(value)) is not None
+            # Uncalibrated fill engines (tesseract) often sit ~0.3 raw conf even when
+            # the only calendar-valid shaped DOB passes DATE_VALID — treat unique
+            # calendar corroboration like deterministic authority on confidence.
+            if unique_calendar_dob:
+                confidence = max(confidence, 0.85)
         effective_threshold = threshold
         relief_reason: str | None = None
         if identity_corroborated or multi_engine_id_corroborated:
@@ -516,12 +530,16 @@ class EvidenceReconciler:
             )
         if date_corroborated:
             effective_threshold = min(effective_threshold, 0.80)
-            relief_reason = "DATE_CORROBORATED_THRESHOLD_RELIEF"
+            relief_reason = (
+                "DATE_UNIQUE_CALENDAR_CORROBORATED"
+                if unique_calendar_dob
+                else "DATE_CORROBORATED_THRESHOLD_RELIEF"
+            )
         threshold_ok = confidence >= effective_threshold
         if (
             relief_reason
             and confidence >= effective_threshold
-            and confidence < threshold
+            and (confidence < threshold or unique_calendar_dob)
         ):
             reasons.append(relief_reason)
         # C3 always needs deterministic/authoritative evidence or two truly

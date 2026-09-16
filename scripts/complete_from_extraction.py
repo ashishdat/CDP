@@ -205,16 +205,47 @@ def decide(extraction, family):
         winner = f['ranked_candidate']
         raw = winner['ocr_candidate']['raw_value'] if winner else ''
         derived = derived_totals.get(name)
-        check = deterministic.evaluate(
-            name, f['normalized_value'] or raw or derived or '', claim_values=values)
+        check_value = f['normalized_value'] or raw or derived or ''
+        check = deterministic.evaluate(name, check_value, claim_values=values)
+        # Ranking may crown header junk (e.g. DOB "MM") while a shaped alternative
+        # is calendar/format-valid. E4 must evaluate the validating candidate, not
+        # only the rank winner — otherwise reconciler ACCEPT still ESCALATEs.
+        if not check.passed:
+            for row in (f.get('alternatives') or []):
+                alt = (row.get('ocr_candidate') or {}).get('value') or ''
+                if not str(alt).strip():
+                    continue
+                alt_check = deterministic.evaluate(name, alt, claim_values=values)
+                if alt_check.passed:
+                    check = alt_check
+                    check_value = alt
+                    break
         checks[name] = check.model_dump(mode='json')
         candidates = []
         validations = {v['candidate_id']: v for v in f['candidate_validations']}
-        for row in ([winner] if winner else []) + f['alternatives']:
+        rows = ([winner] if winner else []) + list(f.get('alternatives') or [])
+        # Prefer shaped / validating OCR shells first so reconciler + route authority
+        # see calendar-valid DOB / name ink ahead of header fragments.
+        try:
+            from packages.extraction_recovery.field_cascade import semantic_accept as _semantic_accept
+
+            def _row_priority(row):
+                value = (row.get('ocr_candidate') or {}).get('value') or ''
+                ok, _ = _semantic_accept(name, value) if value else (False, '')
+                return (0 if ok else 1, 0 if row.get('is_winner') else 1)
+
+            rows = sorted(rows, key=_row_priority)
+        except Exception:
+            pass
+        for row in rows:
             candidate = dict(row['ocr_candidate'])
             validation = validations[row['candidate_id']]
             if row['is_winner']:
-                candidate['value'] = validation['normalized_value']
+                candidate['value'] = validation['normalized_value'] or candidate.get('value')
+            # If winner normalized to junk but check_value is a shaped alternative, keep OCR value.
+            if candidate.get('value') in (None, '', 'MM') and check.passed and check_value:
+                if (row.get('ocr_candidate') or {}).get('value') == check_value:
+                    candidate['value'] = check_value
             candidate['validation_results'] = tuple(validation['reason'])
             candidates.append(TypeAdapter(OCRCandidate).validate_python(candidate))
         if derived and not any((c.value or '').strip() for c in candidates):

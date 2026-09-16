@@ -109,6 +109,10 @@ class EvidenceDecisionService:
                 engine_family(route.primary_engine),
                 engine_family(route.confirmation_engine),
             }
+            # Governed tesseract fill (cascade miss / digit whitelist) is observed
+            # ink — allow it so shaped fill dates are not stripped before reconcile.
+            if context.field_name in {"patient_dob", "date_of_birth", "dob"}:
+                allowed_families.add(engine_family("tesseract"))
             eligible = [
                 candidate
                 for candidate in candidates
