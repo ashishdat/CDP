@@ -284,3 +284,68 @@ def test_conflict_margin_relieved_for_date_fragments_when_date_valid():
     )
     assert result.decision == Decision.ACCEPT
     assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_dob_separator_artifact_relieved_even_with_large_margin():
+    """CMS dashed rules → 01↔11; peel even when confidences are far apart."""
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("11/08/2018", "paddleocr", 0.99),
+            _candidate("01/08/2018", "rapidocr", 0.80),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "01/08/2018"
+    assert "DOB_SEPARATOR_ARTIFACT_RELIEVED" in result.rationale_codes
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_dob_separator_artifact_prefers_clean_day():
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("01/19/1960", "paddleocr", 0.94),
+            _candidate("01/09/1960", "rapidocr", 0.93),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "01/09/1960"
+    assert "DOB_SEPARATOR_ARTIFACT_RELIEVED" in result.rationale_codes
+
+
+def test_dob_prefers_calendar_valid_over_header_label():
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("MM", "paddleocr", 0.99),
+            _candidate("01/03/2006", "rapidocr", 0.88),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "01/03/2006"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes

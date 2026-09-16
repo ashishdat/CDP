@@ -14,7 +14,7 @@ Principles
 4. Empty / contaminated financial crops stay empty — cascade never invents
    amounts. Claim-total E6 remains crop-total ∩ Σ line charges.
 5. Strategy id, crop ladders, and post-miss stages come from
-   ``config/field_cascade_strategy.yaml`` (field-cascade-v9).
+   ``config/field_cascade_strategy.yaml`` (field-cascade-v10).
 6. Dual-engine confirmation (primary + confirmation OBSERVED) before
    short-circuit; among engine candidates prefer multi-engine agreement
    after span-select, else first field-shaped value in route order.
@@ -82,7 +82,7 @@ class CascadeResult:
     cascade_trace: list[CascadeStepResult] = field(default_factory=list)
     accepted: bool = False
     accept_reason: str = "EXHAUSTED"
-    strategy_id: str = "field-cascade-v9"
+    strategy_id: str = "field-cascade-v10"
 
 
 RecognizeFn = Callable[

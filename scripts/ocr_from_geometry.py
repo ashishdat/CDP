@@ -360,13 +360,22 @@ def recognize_service_lines(image, router, template):
 
 
 def _dob_cell_bboxes(band):
-    """Split a DOB digit band into MM / DD / YY cells (CMS-1500 box 3)."""
+    """Split a DOB digit band into MM / DD / YY cells (CMS-1500 box 3).
+
+    Inset each cell away from the dashed vertical rules — those glyphs OCR as
+    digit ``1`` and are the dominant source of 01↔11 / 09↔19 CONFLICT_MARGIN HITL.
+    """
     x0, y0, x1, y1 = (int(v) for v in band)
     width = max(1, x1 - x0)
+    inset = max(2, int(0.04 * width))
+    mm_x1 = x0 + int(0.30 * width)
+    dd_x0 = x0 + int(0.30 * width)
+    dd_x1 = x0 + int(0.56 * width)
+    yy_x0 = x0 + int(0.52 * width)
     return {
-        'MM': (x0, y0, x0 + int(0.30 * width), y1),
-        'DD': (x0 + int(0.30 * width), y0, x0 + int(0.56 * width), y1),
-        'YY': (x0 + int(0.52 * width), y0, x1, y1),
+        'MM': (x0 + inset, y0, max(x0 + inset + 1, mm_x1 - inset), y1),
+        'DD': (dd_x0 + inset, y0, max(dd_x0 + inset + 1, dd_x1 - inset), y1),
+        'YY': (yy_x0 + inset, y0, max(yy_x0 + inset + 1, x1 - inset), y1),
     }
 
 
@@ -395,7 +404,16 @@ def _recognize_dob_cells(image, band, router, engines):
         if label in {'MM', 'DD'}:
             # Keep last 1-2 digits (leading edge glyphs happen).
             trimmed = digits[-2:] if len(digits) >= 2 else digits
-            if 1 <= len(trimmed) <= 2 and len(trimmed) >= len(best_digits):
+            if not (1 <= len(trimmed) <= 2):
+                return best_digits
+            # Prefer 0X over 1X when both are calendar-plausible — dashed
+            # rule bleed into the cell still produces a leading 1.
+            if best_digits and len(best_digits) == 2 and len(trimmed) == 2:
+                if best_digits[0] == '0' and trimmed[0] == '1' and best_digits[1] == trimmed[1]:
+                    return best_digits
+                if trimmed[0] == '0' and best_digits[0] == '1' and best_digits[1] == trimmed[1]:
+                    return trimmed
+            if len(trimmed) >= len(best_digits):
                 return trimmed
         elif label == 'YY':
             # Prefer 4-digit years; allow 2-3 (span repairs 983→1983).
@@ -527,13 +545,72 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 cell['y0'] <= aligned[1] < aligned[3] <= cell['y1']):
             raise ValueError('Canonical region exceeds recorded safe cell')
         primary = _ocr_bbox(field['field'], aligned, cell, (image.width, image.height), template_fields)
-        cascaded = cascade.recognize(
-            field_name=field['field'],
-            primary_bbox=primary,
-            cell=cell,
-            image_size=(image.width, image.height),
-            recognize_fn=_recognize_with_engines,
-        )
+        # DOB alternate strategy (v10): cells-FIRST. Whole-band OCR reads the
+        # MM|DD|YY dashed vertical rules as digit "1" (01→11, 09→19), which
+        # then fights a second engine under CONFLICT_MARGIN and forces HITL.
+        # Independent MM/DD/YY cell OCR + digit-whitelist tesseract avoids rules.
+        cascaded = None
+        if (
+            field['field'].casefold() == 'patient_dob'
+            and 'dob_cells' in post_miss_for(field['field'])
+        ):
+            from packages.extraction_recovery.field_cascade import (
+                CascadeResult,
+                CascadeStepResult,
+                load_route_engines,
+            )
+            engines = load_route_engines('patient_dob')
+            cell_box = (int(cell['x0']), int(cell['y0']), int(cell['x1']), int(cell['y1']))
+            cell_h = cell_box[3] - cell_box[1]
+            default_band = (
+                max(primary[0], cell_box[0] + 2),
+                max(primary[1], cell_box[3] - max(22, int(0.40 * cell_h))),
+                min(cell_box[2] - 1, image.width),
+                min(primary[3], cell_box[3] - 1),
+            )
+            band = _clamp_bbox(default_band, image.width, image.height)
+            cell_cands, cell_attempts, cell_reason = _recognize_dob_cells(
+                image, band, router, engines,
+            )
+            selected = next(
+                (c.get('value') or '' for c in cell_cands if (c.get('value') or '').strip()),
+                '',
+            )
+            ok, accept_reason = semantic_accept('patient_dob', selected)
+            if ok:
+                cascaded = CascadeResult(
+                    field_name='patient_dob',
+                    bbox=band,
+                    candidates=list(cell_cands),
+                    attempts=list(cell_attempts),
+                    router_reason=cell_reason,
+                    status='OBSERVED',
+                    cascade_trace=[
+                        CascadeStepResult(
+                            variant_id='dob_cells_first',
+                            bbox=band,
+                            engines=engines,
+                            selected_value=selected,
+                            raw_value=(cell_cands[0].get('raw_value') if cell_cands else '') or '',
+                            accepted=True,
+                            accept_reason=f'CELLS_FIRST:{accept_reason}',
+                            candidates=tuple(cell_cands),
+                            attempts=tuple(cell_attempts),
+                            router_reason=cell_reason,
+                        )
+                    ],
+                    accepted=True,
+                    accept_reason=f'CELLS_FIRST:{accept_reason}',
+                    strategy_id=FieldCascade().strategy_id,
+                )
+        if cascaded is None:
+            cascaded = cascade.recognize(
+                field_name=field['field'],
+                primary_bbox=primary,
+                cell=cell,
+                image_size=(image.width, image.height),
+                recognize_fn=_recognize_with_engines,
+            )
         # IJN2.022 / handwriting DOB: whole-band OCR fragments MM/DD/YY; cell
         # segmentation recovers calendar-valid dates from observed digit ink only.
         # Try the reconstructed digit band plus any cascade crop that already
@@ -604,6 +681,55 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                         strategy_id=cascade.strategy_id,
                     )
                     break
+        # When whole-band accepted but engines disagree on separator-1 dates,
+        # still attach dob_cells as a corroborating / preferred candidate.
+        elif (
+            cascaded.accepted
+            and field['field'].casefold() == 'patient_dob'
+            and 'dob_cells' in post_miss_for(field['field'])
+            and not any(
+                str(getattr(step, 'variant_id', '')).startswith('dob_cells')
+                for step in cascaded.cascade_trace
+            )
+        ):
+            from packages.extraction_recovery.field_cascade import (
+                CascadeResult,
+                load_route_engines,
+            )
+            engines = load_route_engines('patient_dob')
+            cell_box = (int(cell['x0']), int(cell['y0']), int(cell['x1']), int(cell['y1']))
+            cell_h = cell_box[3] - cell_box[1]
+            band = _clamp_bbox(
+                (
+                    max(primary[0], cell_box[0] + 2),
+                    max(primary[1], cell_box[3] - max(22, int(0.40 * cell_h))),
+                    min(cell_box[2] - 1, image.width),
+                    min(primary[3], cell_box[3] - 1),
+                ),
+                image.width,
+                image.height,
+            )
+            cell_cands, cell_attempts, _cell_reason = _recognize_dob_cells(
+                image, band, router, engines,
+            )
+            selected = next(
+                (c.get('value') or '' for c in cell_cands if (c.get('value') or '').strip()),
+                '',
+            )
+            ok, accept_reason = semantic_accept('patient_dob', selected)
+            if ok and cell_cands:
+                cascaded = CascadeResult(
+                    field_name=cascaded.field_name,
+                    bbox=band,
+                    candidates=list(cell_cands) + list(cascaded.candidates),
+                    attempts=list(cell_attempts) + list(cascaded.attempts),
+                    router_reason=cascaded.router_reason,
+                    status=cascaded.status,
+                    cascade_trace=list(cascaded.cascade_trace),
+                    accepted=True,
+                    accept_reason=f'CELLS_PREFERRED:{accept_reason}',
+                    strategy_id=cascaded.strategy_id,
+                )
         rows.append({
             'field': field['field'],
             'canonical_region': list(aligned),

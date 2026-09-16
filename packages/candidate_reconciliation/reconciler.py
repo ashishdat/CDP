@@ -35,6 +35,86 @@ def _canonical_date_digits(value: str) -> str:
     return digits
 
 
+def _dob_ymd(value: str) -> tuple[str, str, str] | None:
+    digits = _canonical_date_digits(value)
+    if len(digits) != 8:
+        return None
+    year, month, day = digits[0:4], digits[4:6], digits[6:8]
+    try:
+        from datetime import date as _date
+
+        _date(int(year), int(month), int(day))
+    except ValueError:
+        return None
+    return year, month, day
+
+
+def prefer_dob_without_separator_one(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """CMS DOB boxes use dashed vertical rules that OCR reads as leading ``1``.
+
+    When two calendar-valid dates differ only by that artifact on MM or DD
+    (11 vs 01, 19 vs 09), prefer the copy without the extra leading 1.
+    Returns the observed clean display string when available, else ISO
+    ``YYYY-MM-DD``.
+    """
+    observed: list[tuple[tuple[str, str, str], str]] = []
+    for value in [primary, *competitors]:
+        ymd = _dob_ymd(value)
+        if ymd is not None:
+            observed.append((ymd, value))
+    if len(observed) < 2:
+        return None
+    parts = [ymd for ymd, _ in observed]
+
+    def peel(component: str) -> str | None:
+        if len(component) == 2 and component[0] == "1" and component[1] != "0":
+            return f"0{component[1]}"
+        return None
+
+    cleaned: set[tuple[str, str, str]] = set()
+    for year, month, day in parts:
+        month_opts = {month}
+        day_opts = {day}
+        peeled_m = peel(month)
+        peeled_d = peel(day)
+        if peeled_m:
+            month_opts.add(peeled_m)
+        if peeled_d:
+            day_opts.add(peeled_d)
+        for mm in month_opts:
+            for dd in day_opts:
+                try:
+                    from datetime import date as _date
+
+                    _date(int(year), int(mm), int(dd))
+                except ValueError:
+                    continue
+                cleaned.add((year, mm, dd))
+
+    # A clean date is a separator-relief if some observed date is the +1 form.
+    for year, month, day in sorted(cleaned):
+        sep_month = f"1{month[1]}" if month[0] == "0" else None
+        sep_day = f"1{day[1]}" if day[0] == "0" else None
+        observed_sep = False
+        observed_clean = (year, month, day) in parts
+        for oy, om, od in parts:
+            if oy != year:
+                continue
+            if sep_month and om == sep_month and od == day:
+                observed_sep = True
+            if sep_day and od == sep_day and om == month:
+                observed_sep = True
+        if observed_sep and (observed_clean or (year, month, day) not in parts):
+            # Prefer an observed OCR string for the clean YMD (keeps evidence match).
+            for ymd, display in observed:
+                if ymd == (year, month, day):
+                    return display
+            return f"{year}-{month}-{day}"
+    return None
+
+
 def _canonical_member_id(value: str) -> str:
     compact = re.sub(r"[^A-Z0-9]", "", (value or "").strip().upper())
     if compact.isdigit():
@@ -150,16 +230,40 @@ class EvidenceReconciler:
                 return normalized_value in qualified_independent_values
             return len({independence_group(c.engine) for c, _, _ in items}) >= 2
 
+        is_dob_field = field_name in {"patient_dob", "date_of_birth", "dob"}
+
+        def _group_calendar_valid(items) -> bool:
+            # Prefer calendar-valid DOB groups over header labels / digit junk
+            # so paddle "MM" or "671161946" cannot outrank a shaped date.
+            for candidate, _, _ in items:
+                if _dob_ymd(str(candidate.value or "")) is not None:
+                    return True
+            return False
+
         ranked = sorted(
             groups.items(),
             key=lambda item: (
                 independent_agreement(item[0], item[1]),
+                _group_calendar_valid(item[1]) if is_dob_field else True,
                 max(score for _, score, _ in item[1]),
             ),
             reverse=True,
         )
         _normalized_value, supporting = ranked[0]
         value = max(supporting, key=lambda item: item[1])[0].value
+        early_separator_relief = False
+        # CMS box-3 dashed rules OCR as leading "1" (01↔11, 09↔19). Apply
+        # separator relief against ALL competing groups, not only when the
+        # confidence margin is tiny — high-confidence separator-1 otherwise STP-wrong.
+        if is_dob_field and len(ranked) > 1:
+            competing = [
+                str(max(items, key=lambda row: row[1])[0].value)
+                for _, items in ranked[1:]
+            ]
+            separator_clean = prefer_dob_without_separator_one(str(value), competing)
+            if separator_clean:
+                value = separator_clean
+                early_separator_relief = True
         has_independent_agreement = independent_agreement(_normalized_value, supporting)
         calibrated = max(score for _, score, _ in supporting)
         agreement_bonus = 0.04 if has_independent_agreement else 0.0
@@ -345,28 +449,53 @@ class EvidenceReconciler:
                 for other in competing_values
                 if not values_conflict_equivalent(field_name, value, other)
             ]
-            if not genuine:
+            if early_separator_relief:
+                # Competing values were separator-1 twins of the cleaned date.
+                decision = (
+                    Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
+                )
+                reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
+            elif not genuine:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
                 )
                 reasons.append("EQUIVALENT_VALUE_CONFLICT_RELIEVED")
-            elif date_corroborated and not any(
-                len(_canonical_date_digits(other)) in {6, 8}
-                and _canonical_date_digits(other) != _canonical_date_digits(str(value))
-                for other in genuine
-            ):
-                # Calendar-valid top date vs fragment competitors — not ambiguous.
-                decision = (
-                    Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
-                )
-                reasons.append("DATE_CONFLICT_FRAGMENTS_RELIEVED")
             else:
-                decision = Decision.REVIEW
-                reasons.append("CONFLICT_MARGIN_TOO_SMALL")
+                separator_clean = None
+                if date_corroborated or is_dob_field:
+                    separator_clean = prefer_dob_without_separator_one(
+                        str(value), genuine
+                    )
+                if separator_clean:
+                    value = separator_clean
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
+                elif date_corroborated and not any(
+                    _dob_ymd(other) is not None
+                    and _dob_ymd(other) != _dob_ymd(str(value))
+                    and prefer_dob_without_separator_one(str(value), [other]) is None
+                    for other in genuine
+                ):
+                    # Calendar-valid top date vs fragment / separator twins — not ambiguous.
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("DATE_CONFLICT_FRAGMENTS_RELIEVED")
+                else:
+                    decision = Decision.REVIEW
+                    reasons.append("CONFLICT_MARGIN_TOO_SMALL")
         else:
             decision = (
                 Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
             )
+            if early_separator_relief:
+                reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
         versions = (
             [f"authoritative-reference:{authoritative_version or 'version-not-provided'}"]
             if reference_match

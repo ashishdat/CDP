@@ -1,4 +1,4 @@
-"""Unit tests for field-cascade-v9 strategy loading, E3 honesty, crop ladders."""
+"""Unit tests for field-cascade-v10 strategy loading, E3 honesty, crop ladders."""
 
 from __future__ import annotations
 
@@ -19,17 +19,20 @@ from packages.extraction_recovery.strategy import (
 from scripts.complete_from_extraction import _load_registration_context
 
 
-def test_strategy_is_v9():
+def test_strategy_is_v10():
     load_cascade_strategy.cache_clear()
     strategy = load_cascade_strategy()
-    assert strategy.strategy_id == "field-cascade-v9"
+    assert strategy.strategy_id == "field-cascade-v10"
     assert strategy.status == "ACTIVE"
-    assert strategy.phase == 9
+    assert strategy.phase == 10
     assert "EVIDENCE_PLUMBING_GAP" in strategy.gap_classes
     assert "CALIBRATION_HITL" in strategy.gap_classes
+    assert "DOB_SEPARATOR_ARTIFACT" in strategy.gap_classes
     assert any(s.get("id") == "complete_e3" for s in strategy.stages)
     assert any(s.get("id") == "register_recovery" for s in strategy.stages)
     assert any(s.get("id") == "engine_agreement" for s in strategy.stages)
+    assert any(s.get("id") == "dob_cells_first" for s in strategy.stages)
+    assert any(s.get("id") == "dob_separator_relief" for s in strategy.stages)
     assert strategy.defaults.get("confirmation_required_usable") == 2
 
 
@@ -61,7 +64,7 @@ def test_crop_variants_follow_strategy_order():
 
 def test_field_cascade_defaults_to_v9():
     load_cascade_strategy.cache_clear()
-    assert FieldCascade().strategy_id == "field-cascade-v9"
+    assert FieldCascade().strategy_id == "field-cascade-v10"
 
 
 def test_pick_prefers_confirmation_when_primary_is_header_bleed():

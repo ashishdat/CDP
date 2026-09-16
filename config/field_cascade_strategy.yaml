@@ -1,15 +1,16 @@
 # Field-cascade OCR strategy — operational CMS-1500 STP
 #
-# Version field-cascade-v9 consolidates past learning into one architecture:
-# dual-engine confirmation (paddle+rapid), agreement-aware candidate pick,
-# Track A/B HITL separation, and honest accuracy (unavailable without GT).
-# Closes residual v8 Track-B walls: confirmation text ignored when primary
-# is header bleed; insured_id calibration near-misses with multi-engine agree.
+# Version field-cascade-v10: DOB cells-FIRST + separator-1 conflict relief.
+# Root cause of Track-B DOB HITL: CMS box-3 dashed vertical rules OCR as
+# digit "1" (01↔11, 09↔19), dual engines disagree, CONFLICT_MARGIN → HITL.
+# Fix: OCR MM/DD/YY cells independently (inset away from rules) before
+# whole-band; reconciler prefers calendar-valid groups and peels separator-1
+# even when confidence margin is large.
 #
-version: field-cascade-v9
+version: field-cascade-v10
 status: ACTIVE
-phase: 9
-supersedes: field-cascade-v8
+phase: 10
+supersedes: field-cascade-v9
 
 # Pipeline stages (ops path). Later stages must not invent ink.
 stages:
@@ -21,6 +22,10 @@ stages:
     role: Bind template ROIs; embed registration_ref + acceptance on GeometryResult.
   - id: roi_inset
     role: Shrink DOB/charge windows inside the safe cell (no re-registration).
+  - id: dob_cells_first
+    role: >
+      For patient_dob, OCR inset MM/DD/YY cells with digit-whitelist tesseract
+      before whole-band cascade — avoids dashed-rule "1" artifact at the source.
   - id: crop_ladder
     role: Typed crop variants ordered per field (digit-band, year-wide, NPI-cleared).
   - id: route_engines
@@ -42,6 +47,10 @@ stages:
     role: Stop only on field-shaped values (DATE / CURRENCY / NAME / ID).
   - id: post_miss
     role: Declared fallbacks after cascade miss (e.g. DOB cell OCR) — still observed ink only.
+  - id: dob_separator_relief
+    role: >
+      When two calendar-valid DOBs differ only by leading-1 on MM/DD (rule artifact),
+      prefer the copy without the extra 1 — even if confidence margin is large.
   - id: service_lines
     role: Probe service-line charges; skip header rows; currency can prove liveness.
   - id: assemble
@@ -68,6 +77,7 @@ honesty:
   - Missing E3 / engine-authority strip is evidence-plumbing, never HANDWRITING_UNREADABLE.
   - DATE_VALID + HARD_VALIDATION may relieve calibrated floor; never waive E3.
   - Multi-engine ID agreement + HARD_VALIDATION may relieve C3 floor to 0.95 (corroboration).
+  - DOB separator-1 peel only when both readings are calendar-valid and differ by that artifact.
   - Report registration HITL and field-ink HITL as separate tracks.
   - Hackathon 1000 has no field GT — accuracy status UNAVAILABLE_NO_GROUND_TRUTH.
 
@@ -103,8 +113,10 @@ fields:
     crop_ladder: [primary, dob_digit_band, dob_loose, dob_year_wide]
     accept: DATE_SHAPED
     post_miss: [dob_cells]
+    prefer: cells_first
     notes: >
-      Trailing-1 MM/DD peel; header-safe compact; MMDDYYY century repair;
+      v10 cells-FIRST with inset MM/DD/YY (avoid dashed-rule "1"); trailing-1
+      MM/DD peel in reconciler; header-safe compact; MMDDYYY century repair;
       dob_cells attributed to producing route engine; prefer paddle∩rapid agree.
   total_charge:
     crop_ladder: [primary, charge_npi_cleared, charge_taller]
@@ -136,6 +148,8 @@ gap_classes:
     action: Keep HITL; needs scan/ROI quality, handwriting model, or human entry.
   AMBIGUOUS_DIGIT_FRAGMENTS:
     action: Prefer crop/span repair; HITL if no unique calendar-valid date.
+  DOB_SEPARATOR_ARTIFACT:
+    action: Cells-first OCR + separator-1 peel; HITL only if both readings stay ambiguous.
   CALIBRATION_HITL:
     action: Calendar-valid / format-valid value held for calibrated confidence; corroboration relief or HITL.
   EMPTY_FINANCIAL_INK:
