@@ -1,20 +1,27 @@
 # Metrics
 
-## Independent Samples — 300 (revised v11.6)
+## Independent Samples — 300 (revised v12)
 
 | Track | Count | Rate |
 |---|---:|---:|
-| **True STP** | 167 | **55.7%** |
-| Field HITL | 58 | 19.3% |
+| **True STP** | 170 | **56.7%** |
+| Field HITL | 55 | 18.3% |
 | Registration HITL | 75 | 25.0% |
-| **Combined HITL** | 133 | **44.3%** |
+| **Combined HITL** | 130 | **43.3%** |
 | Stage failure | 0 | — |
 | **Exact accuracy (agent GT)** | 822/824 | **99.8%** |
 | **Perfect-claim exact** | 222/224 | **99.1%** |
 | False accepts | 2 | **0.2%** |
 
-Before → after: True STP **118→167**, Field HITL **107→58**, Combined **182→133** (flipped 49; **+2 vs v11.5**).
+Before → after: True STP **118→170**, Field HITL **107→55**, Combined **182→130** (flipped 52; **+3 vs v11.6**).
 
-v11.6 batch-of-15 field audit: **15/15 PASS** (7 targeted fixes + 8 honest HITL controls). Rules covered by independent use-case tests in `tests/unit/cases/test_residual_field_batch_v11_6.py`.
+## Independent Samples — 100 (v12 slice)
 
-New True STP from this batch: `EJG7.032` (spaced member ID compact), `EJGE.001` (punctuated ID + tesseract-only conflict filter). Additional ID/name auto-accepts landed on multi-blocker claims still held by empty finance / handwriting DOB.
+| Track | Count | Rate |
+|---|---:|---:|
+| **True STP** | 74 | **74.0%** |
+| Field HITL | 10 | 10.0% |
+| Registration HITL | 16 | 16.0% |
+| **Combined HITL** | 26 | **26.0%** |
+
+v12 Field Value Authority: short-fragment / vowel-skeleton / truncated-given name reliefs + strong-name calibration floor. Architecture: `docs/STP_PIPELINE_ARCHITECTURE_V12.md`.
