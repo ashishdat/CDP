@@ -1,0 +1,354 @@
+{
+  "run": "hackathon_100_new_cascade_v12",
+  "cohort": "hackathon docs[350:450]",
+  "n": 100,
+  "counts": {
+    "catastrophic_registration_warps": 37,
+    "empty_box28_no_line_ink": 1,
+    "genuine_dual_engine_id_digit_conflicts": 0,
+    "genuine_dual_engine_dob_calendar_conflicts": 0,
+    "other_honest_field_hitl": 14,
+    "true_stp": 48
+  },
+  "catastrophic_registration_warps": [
+    {
+      "claim_id": "Group A__M048HJDF.024",
+      "document": "Group A/M048HJDF.024",
+      "reason": "low_inlier_ratio,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.023",
+      "document": "Group A/M048HJDF.023",
+      "reason": "low_inlier_ratio,low_coverage,unsafe_perspective_distortion"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.025",
+      "document": "Group A/M048HJDF.025",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.027",
+      "document": "Group A/M048HJDF.027",
+      "reason": "low_inlier_ratio,unsafe_rotation"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.028",
+      "document": "Group A/M048HJDF.028",
+      "reason": "low_coverage,unsafe_perspective_distortion"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.029",
+      "document": "Group A/M048HJDF.029",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.030",
+      "document": "Group A/M048HJDF.030",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.031",
+      "document": "Group A/M048HJDF.031",
+      "reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.033",
+      "document": "Group A/M048HJDF.033",
+      "reason": "low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.036",
+      "document": "Group A/M048HJDF.036",
+      "reason": "low_inlier_ratio,unsafe_rotation,unsafe_perspective_distortion"
+    },
+    {
+      "claim_id": "Group A__M048HJDF.037",
+      "document": "Group A/M048HJDF.037",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.003",
+      "document": "Group A/M048HJE5.003",
+      "reason": "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.007",
+      "document": "Group A/M048HJE5.007",
+      "reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.013",
+      "document": "Group A/M048HJE5.013",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.019",
+      "document": "Group A/M048HJE5.019",
+      "reason": "insufficient_inliers,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.021",
+      "document": "Group A/M048HJE5.021",
+      "reason": "insufficient_good_matches"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.020",
+      "document": "Group A/M048HJE5.020",
+      "reason": "insufficient_inliers,low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.027",
+      "document": "Group A/M048HJE5.027",
+      "reason": "template_lineage_mismatch"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.001",
+      "document": "Group A/M048HJHO.001",
+      "reason": "low_inlier_ratio,low_coverage,unsafe_perspective_distortion"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.011",
+      "document": "Group A/M048HJHO.011",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.014",
+      "document": "Group A/M048HJHO.014",
+      "reason": "template_lineage_mismatch"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.015",
+      "document": "Group A/M048HJHO.015",
+      "reason": "template_lineage_mismatch"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.017",
+      "document": "Group A/M048HJHO.017",
+      "reason": "template_lineage_mismatch"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.016",
+      "document": "Group A/M048HJHO.016",
+      "reason": "insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.018",
+      "document": "Group A/M048HJHO.018",
+      "reason": "insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.019",
+      "document": "Group A/M048HJHO.019",
+      "reason": "insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.021",
+      "document": "Group A/M048HJHO.021",
+      "reason": "template_lineage_mismatch"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.020",
+      "document": "Group A/M048HJHO.020",
+      "reason": "insufficient_inliers,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.022",
+      "document": "Group A/M048HJHO.022",
+      "reason": "insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.027",
+      "document": "Group A/M048HJHO.027",
+      "reason": "low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.029",
+      "document": "Group A/M048HJHO.029",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.032",
+      "document": "Group A/M048HJHO.032",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.033",
+      "document": "Group A/M048HJHO.033",
+      "reason": "insufficient_inliers,low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.034",
+      "document": "Group A/M048HJHO.034",
+      "reason": "low_inlier_ratio,unsafe_rotation,unsafe_perspective_distortion"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.035",
+      "document": "Group A/M048HJHO.035",
+      "reason": "low_inlier_ratio,unsafe_rotation,unsafe_perspective_distortion"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.039",
+      "document": "Group A/M048HJHO.039",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048HJHO.040",
+      "document": "Group A/M048HJHO.040",
+      "reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    }
+  ],
+  "empty_box28_no_line_ink": [
+    {
+      "claim_id": "Group A__M048HJHO.025",
+      "document": "Group A/M048HJHO.025",
+      "blockers": [
+        "insured_id_number",
+        "patient_dob",
+        "total_charge"
+      ],
+      "gaps": {
+        "insured_id_number": "HANDWRITING_UNREADABLE",
+        "patient_dob": "HANDWRITING_UNREADABLE",
+        "total_charge": "EMPTY_FINANCIAL_INK"
+      }
+    }
+  ],
+  "genuine_dual_engine_id_digit_conflicts": [],
+  "genuine_dual_engine_dob_calendar_conflicts": [],
+  "other_honest_field_hitl": [
+    {
+      "claim_id": "Group A__M048HJDF.041",
+      "document": "Group A/M048HJDF.041",
+      "blockers": [
+        "patient_dob"
+      ],
+      "gaps": {
+        "patient_dob": "AMBIGUOUS_DIGIT_FRAGMENTS"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJDF.044",
+      "document": "Group A/M048HJDF.044",
+      "blockers": [
+        "patient_dob"
+      ],
+      "gaps": {
+        "patient_dob": "AMBIGUOUS_DIGIT_FRAGMENTS"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJE5.015",
+      "document": "Group A/M048HJE5.015",
+      "blockers": [
+        "insured_id_number"
+      ],
+      "gaps": {
+        "insured_id_number": "CALIBRATION_HITL"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJE5.016",
+      "document": "Group A/M048HJE5.016",
+      "blockers": [
+        "patient_dob"
+      ],
+      "gaps": {
+        "patient_dob": "AMBIGUOUS_DIGIT_FRAGMENTS"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJE5.018",
+      "document": "Group A/M048HJE5.018",
+      "blockers": [
+        "patient_dob"
+      ],
+      "gaps": {
+        "patient_dob": "CALIBRATION_HITL"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJE5.023",
+      "document": "Group A/M048HJE5.023",
+      "blockers": [
+        "insured_id_number",
+        "patient_name",
+        "patient_dob"
+      ],
+      "gaps": {
+        "insured_id_number": "CALIBRATION_HITL",
+        "patient_name": "HANDWRITING_UNREADABLE",
+        "patient_dob": "HANDWRITING_UNREADABLE"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJHO.002",
+      "document": "Group A/M048HJHO.002",
+      "blockers": [],
+      "gaps": {}
+    },
+    {
+      "claim_id": "Group A__M048HJHO.003",
+      "document": "Group A/M048HJHO.003",
+      "blockers": [
+        "patient_dob"
+      ],
+      "gaps": {
+        "patient_dob": "CALIBRATION_HITL"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJHO.005",
+      "document": "Group A/M048HJHO.005",
+      "blockers": [
+        "patient_dob"
+      ],
+      "gaps": {
+        "patient_dob": "CALIBRATION_HITL"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJHO.008",
+      "document": "Group A/M048HJHO.008",
+      "blockers": [
+        "patient_dob"
+      ],
+      "gaps": {
+        "patient_dob": "AMBIGUOUS_DIGIT_FRAGMENTS"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJHO.010",
+      "document": "Group A/M048HJHO.010",
+      "blockers": [
+        "insured_id_number"
+      ],
+      "gaps": {
+        "insured_id_number": "CALIBRATION_HITL"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJHO.012",
+      "document": "Group A/M048HJHO.012",
+      "blockers": [],
+      "gaps": {}
+    },
+    {
+      "claim_id": "Group A__M048HJHO.024",
+      "document": "Group A/M048HJHO.024",
+      "blockers": [
+        "insured_id_number",
+        "patient_dob"
+      ],
+      "gaps": {
+        "insured_id_number": "HANDWRITING_UNREADABLE",
+        "patient_dob": "AMBIGUOUS_DIGIT_FRAGMENTS"
+      }
+    },
+    {
+      "claim_id": "Group A__M048HJHO.028",
+      "document": "Group A/M048HJHO.028",
+      "blockers": [],
+      "gaps": {}
+    }
+  ]
+}
