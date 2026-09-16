@@ -1,0 +1,16 @@
+{
+  "run": "hackathon_1000_cascade_v9",
+  "status": "RUNNING",
+  "n_ledger": 2,
+  "registration_ok": 0,
+  "completed": 0,
+  "true_stp": 0,
+  "hitl": 0,
+  "registration_hitl": 2,
+  "accuracy": {"status": "UNAVAILABLE_NO_GROUND_TRUTH"},
+  "by_bundle": {"Group A/M048DJJF": {"n": 2, "registration_ok": 0, "true_stp": 0, "registration_hitl": 2}},
+  "engines_probe": {"paddleocr": "OBSERVED", "rapidocr": "OBSERVED", "tesseract": "OBSERVED", "all_observed": true},
+  "live_ocr_attempts_in_flight": {"paddleocr_OBSERVED": 106, "rapidocr_OBSERVED": 106, "tesseract_OBSERVED": 12},
+  "note": "Dual-engine + tesseract-fill OCR in flight; ledger waiting on long OCR stage.",
+  "updated_at": "2026-09-16T02:42:00+00:00"
+}
