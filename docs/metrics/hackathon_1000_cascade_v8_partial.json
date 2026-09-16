@@ -1,0 +1,48 @@
+{
+  "run": "hackathon_1000_cascade_v8",
+  "stopped": true,
+  "stopped_reason": "User requested stop; push code",
+  "n": 309,
+  "registration_ok": 208,
+  "registration_ok_rate": 0.673139,
+  "completed": 208,
+  "true_stp": 161,
+  "true_stp_rate_of_completed": 0.774038,
+  "true_stp_rate_of_all": 0.521036,
+  "dispositions": {
+    "REGISTRATION_FAILED": 101,
+    "TRUE_STP": 161,
+    "HITL": 47
+  },
+  "critical_blockers": {
+    "insured_id_number": 16,
+    "patient_dob": 40,
+    "patient_name": 6,
+    "total_charge": 3
+  },
+  "gap_classes": {
+    "insured_id_number:CALIBRATION_HITL": 11,
+    "patient_dob:HANDWRITING_UNREADABLE": 38,
+    "patient_name:HANDWRITING_UNREADABLE": 1,
+    "patient_name:CALIBRATION_HITL": 5,
+    "total_charge:EVIDENCE_PLUMBING_GAP": 2,
+    "patient_dob:AMBIGUOUS_DIGIT_FRAGMENTS": 1,
+    "total_charge:EMPTY_FINANCIAL_INK": 1,
+    "insured_id_number:HANDWRITING_UNREADABLE": 5,
+    "patient_dob:CALIBRATION_HITL": 1
+  },
+  "registration_buckets": {
+    "low_inlier_only": 15,
+    "catastrophic_multi_gate": 79,
+    "perspective_only": 5,
+    "inlier+perspective": 1,
+    "other": 1
+  },
+  "vs_v7_freeze_n521": {
+    "v7_reg_ok_rate": 0.614,
+    "v7_true_stp_of_completed": 0.628,
+    "v7_true_stp_of_all": 0.386,
+    "v7_patient_dob_hitl": 105
+  },
+  "updated_at": "2026-09-16T01:24:23.709996+00:00"
+}
