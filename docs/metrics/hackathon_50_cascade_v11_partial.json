@@ -3,19 +3,37 @@
   "status": "RUNNING",
   "n_requested": 50,
   "n_finished": 0,
-  "strategy_id": "field-cascade-v10 + registration-recovery-v11",
-  "registration_recovery": [
-    "NEAR_MISS_SIFT_BOOST_MULTISCALE",
-    "PERSPECTIVE_EDGE_DESKEW_AFFINE",
-    "ORIENTATION_ROTATE_RETRY",
-    "content corroboration"
+  "true_stp": 0,
+  "disposition_counts": {},
+  "registration_failures": [],
+  "claims_in_flight": 4,
+  "with_geometry": 4,
+  "registration_probe": [
+    {
+      "claim": "Group A__M048DJJF.001",
+      "geometry": true,
+      "geom_status": "SUCCESS",
+      "algorithm": "sift_flann_ransac_homography_near_miss_boost"
+    },
+    {
+      "claim": "Group A__M048DJJF.002",
+      "geometry": true,
+      "geom_status": "SUCCESS",
+      "algorithm": "sift_flann_ransac_homography"
+    },
+    {
+      "claim": "Group A__M048DJJF.003",
+      "geometry": true,
+      "geom_status": "SUCCESS",
+      "algorithm": "sift_flann_ransac_homography"
+    },
+    {
+      "claim": "Group A__M048DJJF.004",
+      "geometry": true,
+      "geom_status": "SUCCESS",
+      "algorithm": "sift_flann_ransac_homography"
+    }
   ],
-  "prior_retest_accept_rate": "5/7 known Track A fails",
-  "supersedes": [
-    "evaluation_results/hackathon_50_cascade_v10",
-    "evaluation_results/hackathon_50_cascade_v10b",
-    "evaluation_results/hackathon_50_cascade_v10c"
-  ],
-  "out_dir": "evaluation_results/hackathon_50_cascade_v11",
-  "note": "Clean restart after perspective + near-miss registration recovery shipped."
+  "note": "First wave OCR in flight. All 4 started claims have geometry SUCCESS including DJJF.001 via near_miss_boost.",
+  "generated_at": "2026-09-16T04:57:23.471329+00:00"
 }

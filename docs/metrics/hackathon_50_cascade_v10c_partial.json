@@ -1,0 +1,8 @@
+{
+  "run": "hackathon_50_cascade_v10c",
+  "status": "STOPPED_SUPERSEDED",
+  "n_finished": 0,
+  "superseded_by": "evaluation_results/hackathon_50_cascade_v11",
+  "note": "Superseded by clean v11 restart after registration recovery expansion.",
+  "generated_at": "2026-09-16T04:57:23.481780+00:00"
+}
