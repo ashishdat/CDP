@@ -2,65 +2,65 @@
   "run": "hackathon_300_cascade_v11",
   "strategy_id": "field-cascade-v11.1",
   "status": "RUNNING",
-  "updated_at": "2026-09-16T12:13:25.306277+00:00",
+  "updated_at": "2026-09-16T12:17:22.486398+00:00",
   "selected": 300,
   "offset": 50,
-  "finished": 266,
-  "pending": 34,
+  "finished": 270,
+  "pending": 30,
   "workers": 3,
   "rates": {
-    "true_stp": 0.3684,
-    "field_hitl": 0.3797,
+    "true_stp": 0.3704,
+    "field_hitl": 0.3778,
     "registration_hitl": 0.2519,
-    "combined_hitl": 0.6316,
+    "combined_hitl": 0.6296,
     "stage_failure": 0.0,
-    "exact_accuracy_vs_agent_gt": 0.998597,
-    "perfect_claim_exact_rate": 0.994949,
-    "false_accept_rate": 0.001403
+    "exact_accuracy_vs_agent_gt": 0.997245,
+    "perfect_claim_exact_rate": 0.99005,
+    "false_accept_rate": 0.002755
   },
   "counts": {
-    "true_stp": 98,
-    "field_hitl": 101,
-    "registration_hitl": 67,
-    "combined_hitl": 168,
+    "true_stp": 100,
+    "field_hitl": 102,
+    "registration_hitl": 68,
+    "combined_hitl": 170,
     "stage_failure": 0,
-    "finished": 266,
-    "claims_scored_for_accuracy": 198,
-    "fields_scored_for_accuracy": 713,
-    "false_accepts": 1
+    "finished": 270,
+    "claims_scored_for_accuracy": 201,
+    "fields_scored_for_accuracy": 726,
+    "false_accepts": 2
   },
   "accuracy": {
     "source": "agent_created_gt",
-    "claims_scored": 198,
-    "field_count": 713,
-    "exact_accuracy": 0.998597,
-    "perfect_claim_exact_rate": 0.994949,
-    "false_accepts": 1,
-    "false_accept_rate": 0.001403,
+    "claims_scored": 201,
+    "field_count": 726,
+    "exact_accuracy": 0.997245,
+    "perfect_claim_exact_rate": 0.99005,
+    "false_accepts": 2,
+    "false_accept_rate": 0.002755,
     "field_exact": {
       "patient_dob": {
-        "exact": 56,
-        "n": 57,
-        "rate": 0.982456
+        "exact": 57,
+        "n": 59,
+        "rate": 0.966102
       },
       "total_charge": {
-        "exact": 160,
-        "n": 160,
+        "exact": 163,
+        "n": 163,
         "rate": 1.0
       },
       "patient_name": {
-        "exact": 164,
-        "n": 164,
+        "exact": 167,
+        "n": 167,
         "rate": 1.0
       },
       "insured_id_number": {
-        "exact": 177,
-        "n": 177,
+        "exact": 179,
+        "n": 179,
         "rate": 1.0
       },
       "insured_name": {
-        "exact": 155,
-        "n": 155,
+        "exact": 158,
+        "n": 158,
         "rate": 1.0
       }
     },
@@ -71,18 +71,24 @@
         "predicted": "1966-08-08",
         "expected": "1966-08-18",
         "gt_confidence": "SILVER"
+      },
+      {
+        "claim_id": "Group A__M048HJCX.009",
+        "field": "patient_dob",
+        "predicted": "1965-06-01",
+        "expected": "1965-06-19",
+        "gt_confidence": "SILVER"
       }
     ],
-    "caveat": "Accuracy vs agent consensus GT on labeled fields only. Scored 198/266 finished claims with \u22651 GT label."
+    "caveat": "Scored 201/270 finished claims with \u22651 GT label."
   },
   "elapsed_sec_post_speedfix": {
-    "n": 138,
-    "mean": 192.7,
+    "n": 141,
+    "mean": 195.2,
     "min": 91.0,
     "max": 834.9
   },
   "notes": [
-    "v11.1: name confusable/MI relief; tesseract charge/ID authority; service-line fallback",
-    "CDP_OCR_FIELD_SCOPE=stp_critical with out-of-scope stubs"
+    "v11.1: name confusable/MI relief; tesseract charge/ID authority; service-line fallback"
   ]
 }
