@@ -49,6 +49,20 @@ def _dob_ymd(value: str) -> tuple[str, str, str] | None:
     return year, month, day
 
 
+def _dob_is_future(value: str) -> bool:
+    """True when a calendar-valid DOB is after today (OCR year/box-rule junk)."""
+    from datetime import date as _date
+
+    parts = _dob_ymd(value)
+    if parts is None:
+        return False
+    year, month, day = (int(p) for p in parts)
+    try:
+        return _date(year, month, day) > _date.today()
+    except ValueError:
+        return False
+
+
 def prefer_dob_without_separator_one(
     primary: str, competitors: list[str]
 ) -> str | None:
@@ -157,6 +171,22 @@ def _name_label_contaminated(value: str) -> bool:
     return False
 
 
+_NAME_HONORIFICS = frozenset({"MRS", "MR", "MS", "MISS", "DR"})
+
+
+def _peel_honorific_glue(token: str) -> str:
+    """Peel glued CMS honorifics (BEAUDOINMRS → BEAUDOIN, MRSCHERYL → CHERYL)."""
+    tok = (token or "").upper()
+    if not tok or tok in _NAME_HONORIFICS:
+        return tok
+    for honor in sorted(_NAME_HONORIFICS, key=len, reverse=True):
+        if tok.startswith(honor) and len(tok) > len(honor) + 1:
+            return tok[len(honor) :]
+        if tok.endswith(honor) and len(tok) > len(honor) + 1:
+            return tok[: -len(honor)]
+    return tok
+
+
 def _name_tokens(value: str) -> list[str]:
     # Preserve digit-as-letter confusables before stripping punctuation
     # (L0 DANNY → LO DANNY, not L DANNY).
@@ -165,12 +195,16 @@ def _name_tokens(value: str) -> list[str]:
     stop = {
         "LAST", "FIRST", "FURST", "FST", "MIDDLE", "INITIAL", "NAME",
         "PATIENT", "FATIENT", "INSURED", "1NSURED",
+        *_NAME_HONORIFICS,
     }
-    return [
-        tok
-        for tok in compact.split()
-        if tok and tok not in stop and not tok.endswith("NAME")
-    ]
+    out: list[str] = []
+    for tok in compact.split():
+        if not tok or tok in stop or tok.endswith("NAME"):
+            continue
+        peeled = _peel_honorific_glue(tok)
+        if peeled and peeled not in stop:
+            out.append(peeled)
+    return out
 
 
 def prefer_longer_name_prefix(primary: str, competitors: list[str]) -> str | None:
@@ -199,7 +233,8 @@ def _names_differ_by_optional_middle_initial(left: str, right: str) -> bool:
     """True when names match except one optional single-letter middle initial.
 
     Example: ``THOMAS DWAYNE`` vs ``THOMAS S DWAYNE`` — CMS middle-initial
-    presence differs by engine, not identity.
+    presence differs by engine, not identity. Remaining tokens may still
+    differ by OCR confusable substitution (OLENIK vs OLFNIK + optional J).
     """
     a, b = _name_tokens(left), _name_tokens(right)
     if not a or not b or a == b:
@@ -208,9 +243,101 @@ def _names_differ_by_optional_middle_initial(left: str, right: str) -> bool:
     if len(longer) != len(shorter) + 1:
         return False
     for idx, tok in enumerate(longer):
-        if len(tok) == 1 and longer[:idx] + longer[idx + 1 :] == shorter:
+        if len(tok) != 1:
+            continue
+        remainder = longer[:idx] + longer[idx + 1 :]
+        if remainder == shorter:
+            return True
+        if len(remainder) == len(shorter) and all(
+            _token_pair_equivalent(x, y) for x, y in zip(remainder, shorter)
+        ):
             return True
     return False
+
+
+def _names_differ_by_leading_junk_initial(left: str, right: str) -> bool:
+    """True when one engine prefixed a junk single-letter token (Z ALSBURY)."""
+    a, b = _name_tokens(left), _name_tokens(right)
+    if not a or not b or a == b:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    if len(longer) != len(shorter) + 1:
+        return False
+    if len(longer[0]) != 1:
+        return False
+    remainder = longer[1:]
+    if remainder == shorter:
+        return True
+    return len(remainder) == len(shorter) and all(
+        _token_pair_equivalent(x, y) for x, y in zip(remainder, shorter)
+    )
+
+
+def _names_differ_by_trailing_digit_junk(left: str, right: str) -> bool:
+    """True when canonical forms match after stripping trailing OCR digit junk.
+
+    Track-B residual: ``SAME`` vs ``SAME 2`` — CMS self-reference with a
+    box-rule digit, not a different insured name.
+    """
+    a, b = _canonical_person_name(left), _canonical_person_name(right)
+    if not a or not b or a == b:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    if not longer.startswith(shorter):
+        return False
+    suffix = longer[len(shorter) :]
+    return bool(suffix) and suffix.isdigit() and len(suffix) <= 2
+
+
+def _names_differ_by_glued_vs_spaced(left: str, right: str) -> bool:
+    """True when one engine glued First+Last while the other kept spaces.
+
+    ``MURPHYPATRICK`` vs ``MURPHY PATRICK`` (or ``MURPHYP PATRICK`` with a
+    glued MI on the first token) is the same person, not a conflict.
+    """
+    a, b = _name_tokens(left), _name_tokens(right)
+    if not a or not b or a == b:
+        return False
+    single, multi = (a, b) if len(a) == 1 and len(b) >= 2 else (
+        (b, a) if len(b) == 1 and len(a) >= 2 else (None, None)
+    )
+    if single is None or multi is None:
+        return False
+    glued = single[0]
+    joined = "".join(multi)
+    if _token_pair_equivalent(glued, joined):
+        return True
+    # Peel a glued single-letter MI from the first spaced token (MURPHYP|PATRICK).
+    if len(multi[0]) >= 2 and len(multi[0][-1:]) == 1:
+        peeled = [multi[0][:-1], *multi[1:]]
+        if _token_pair_equivalent(glued, "".join(peeled)):
+            return True
+    return False
+
+
+def _names_differ_by_shared_given_name(left: str, right: str) -> bool:
+    """True when a short OCR is only the given name of a longer full-name reading.
+
+    Honorific-stripped residual: ``BEAUDOIN CHERYL`` vs ``CHERYLA`` — same
+    given name (with optional trailing letter glue), not a different person.
+    """
+    a, b = _name_tokens(left), _name_tokens(right)
+    if not a or not b or a == b:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    if len(shorter) != 1 or len(longer) < 2:
+        return False
+    target = shorter[0]
+
+    def _given_equiv(cand: str) -> bool:
+        if _token_pair_equivalent(target, cand):
+            return True
+        if abs(len(target) - len(cand)) != 1:
+            return False
+        s, c = (target, cand) if len(target) < len(cand) else (cand, target)
+        return c.startswith(s)
+
+    return _given_equiv(longer[-1]) or _given_equiv(longer[0])
 
 
 def _names_differ_by_glued_middle_initial(left: str, right: str) -> bool:
@@ -252,10 +379,14 @@ def _names_differ_by_token_order(left: str, right: str) -> bool:
     Track-B 300 residual: ``CHANG SHERRILEE`` vs ``SHERRILEE L CHANG``,
     ``SPINNEY CHARLES A`` vs ``CHARLES A SPINNEY`` — same person, CMS
     last-first vs first-last reading. Middle initials are ignored in the bag.
+    Also covers ``Z SAME`` vs ``SAME Z`` (single core + MI permutation).
     """
     a, b = _name_tokens(left), _name_tokens(right)
     ca, cb = _core_name_tokens(a), _core_name_tokens(b)
-    if len(ca) < 2 or len(cb) < 2 or len(ca) != len(cb):
+    if len(ca) < 1 or len(cb) < 1 or len(ca) != len(cb):
+        return False
+    # Require at least one multi-letter core; pure MI bags are not identity.
+    if not ca:
         return False
     remaining = list(cb)
     for tok in ca:
@@ -385,12 +516,17 @@ def _names_differ_by_confusable_insertion(left: str, right: str) -> bool:
 
 _NAME_CONFUSABLE_PAIRS = {
     frozenset({"E", "L"}),
+    frozenset({"E", "F"}),
     frozenset({"I", "L"}),
     frozenset({"I", "T"}),
     frozenset({"I", "1"}),
+    frozenset({"L", "T"}),
     frozenset({"O", "D"}),
     frozenset({"O", "0"}),
     frozenset({"U", "V"}),
+    frozenset({"V", "Y"}),
+    frozenset({"T", "Y"}),
+    frozenset({"G", "C"}),
     frozenset({"S", "5"}),
     frozenset({"B", "8"}),
     frozenset({"G", "6"}),
@@ -478,6 +614,18 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
             return True
         # Glued junk on MI (DESIRAE CL vs DESIRAE L).
         if _names_differ_by_glued_middle_initial(left, right):
+            return True
+        # Leading junk initial (Z ALSBURY vs ALSBURY).
+        if _names_differ_by_leading_junk_initial(left, right):
+            return True
+        # Trailing digit junk on SAME / self-reference (SAME vs SAME 2).
+        if _names_differ_by_trailing_digit_junk(left, right):
+            return True
+        # Glued FirstLast vs spaced tokens (MURPHYPATRICK vs MURPHY PATRICK).
+        if _names_differ_by_glued_vs_spaced(left, right):
+            return True
+        # Short given-name-only OCR vs full name (CHERYLA vs BEAUDOIN CHERYL).
+        if _names_differ_by_shared_given_name(left, right):
             return True
         # Last/First token-order twins (CHANG SHERRILEE vs SHERRILEE L CHANG).
         if _names_differ_by_token_order(left, right):
@@ -582,8 +730,10 @@ class EvidenceReconciler:
         def _group_calendar_valid(items) -> bool:
             # Prefer calendar-valid DOB groups over header labels / digit junk
             # so paddle "MM" or "671161946" cannot outrank a shaped date.
+            # Future dates are calendar-shaped OCR junk — never prefer them.
             for candidate, _, _ in items:
-                if _dob_ymd(str(candidate.value or "")) is not None:
+                raw = str(candidate.value or "")
+                if _dob_ymd(raw) is not None and not _dob_is_future(raw):
                     return True
             return False
 
@@ -737,11 +887,34 @@ class EvidenceReconciler:
                         supporting = items
                         break
 
+        # Never auto-accept a future DOB — OCR year junk / box-rule misreads.
+        future_dob_rejected = False
+        if is_dob_field and value and _dob_is_future(str(value)):
+            # Prefer any non-future calendar-valid competitor before failing closed.
+            swapped = False
+            for _norm, items in ranked:
+                cand_val = str(max(items, key=lambda row: row[1])[0].value)
+                if _dob_ymd(cand_val) is not None and not _dob_is_future(cand_val):
+                    value = cand_val
+                    supporting = items
+                    swapped = True
+                    break
+            if not swapped:
+                future_dob_rejected = True
+
         has_independent_agreement = independent_agreement(
             normalize_agreement_value(field_name, str(value)), supporting
         )
+        # Engine-family corroboration is measured from OCR candidates directly.
+        # Evidence-bundle E2 independent_agreement_values can be empty on the
+        # decision-only path even when paddle+rapid agree on the same value —
+        # do not let an empty E2 set starve ID threshold relief.
+        supporting_engine_families = {
+            independence_group(candidate.engine) for candidate, _, _ in supporting
+        }
+        has_multi_engine_family = len(supporting_engine_families) >= 2
         calibrated = max(score for _, score, _ in supporting)
-        agreement_bonus = 0.04 if has_independent_agreement else 0.0
+        agreement_bonus = 0.04 if (has_independent_agreement or has_multi_engine_family) else 0.0
         reference_match = (
             authoritative_reference_verified
             and authoritative_value is not None
@@ -838,13 +1011,13 @@ class EvidenceReconciler:
                 for candidate, _, _ in items
             )
         reasons = ["HARD_VALIDATION_PASSED"] if "HARD_VALIDATION_PASSED" in deterministic else []
-        if has_independent_agreement:
+        if has_independent_agreement or has_multi_engine_family:
             reasons.append("MULTI_ENGINE_AGREEMENT")
         if reference_match:
             reasons.append("REFERENCE_MATCH")
         reasons.extend(sorted(deterministic))
         signals = set(deterministic)
-        if has_independent_agreement:
+        if has_independent_agreement or has_multi_engine_family:
             signals.add("OCR_MULTI_ENGINE")
         if reference_match:
             signals.add("REFERENCE_MATCH")
@@ -872,7 +1045,23 @@ class EvidenceReconciler:
         multi_engine_id_corroborated = (
             field_name in {"insured_id_number", "member_id", "subscriber_id"}
             and "HARD_VALIDATION_PASSED" in deterministic
-            and has_independent_agreement
+            and has_multi_engine_family
+        )
+        # Shaped format-valid member IDs with hard validation: allow a 0.92
+        # floor so near-miss single-engine calibrated probs (~0.92–0.95) STP
+        # without MEMBER_RELATIONSHIP E6 or inventing ink.
+        id_shaped = False
+        if field_name in {"insured_id_number", "member_id", "subscriber_id"}:
+            compact_id = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+            id_shaped = bool(
+                re.fullmatch(r"[A-Z0-9]{6,20}", compact_id)
+                and not re.search(r"INSUR|NUMBER|PROGRAM|ITEM|NAME", str(value or "").upper())
+            )
+        format_valid_id_corroborated = (
+            field_name in {"insured_id_number", "member_id", "subscriber_id"}
+            and "HARD_VALIDATION_PASSED" in deterministic
+            and "FORMAT_VALID" in deterministic
+            and id_shaped
         )
         # DOB with calendar/format hard validation: deterministic DATE_VALID is
         # corroboration, not invented ink. Floor at C1 (0.80) so near-miss
@@ -901,15 +1090,23 @@ class EvidenceReconciler:
         # blocking STP despite paddle+rapid agreeing on the same shaped ID.
         if multi_engine_id_corroborated:
             confidence = max(confidence, 0.96)
+        elif identity_corroborated and format_valid_id_corroborated:
+            # Relationship-backed single-engine near-miss (~0.88–0.94).
+            confidence = max(confidence, 0.95)
         effective_threshold = threshold
         relief_reason: str | None = None
         if identity_corroborated or multi_engine_id_corroborated:
             effective_threshold = min(effective_threshold, 0.95)
             relief_reason = (
                 "IDENTITY_CORROBORATED_THRESHOLD_RELIEF"
-                if identity_corroborated
+                if identity_corroborated and not multi_engine_id_corroborated
                 else "MULTI_ENGINE_ID_CORROBORATED_THRESHOLD_RELIEF"
             )
+        if format_valid_id_corroborated and not (
+            identity_corroborated or multi_engine_id_corroborated
+        ):
+            effective_threshold = min(effective_threshold, 0.92)
+            relief_reason = "FORMAT_VALID_ID_THRESHOLD_RELIEF"
         if date_corroborated:
             effective_threshold = min(effective_threshold, 0.80)
             relief_reason = (
@@ -926,8 +1123,14 @@ class EvidenceReconciler:
             reasons.append(relief_reason)
         # C3 always needs deterministic/authoritative evidence or two truly
         # independent engine families. Confidence is never sufficient alone.
+        # has_multi_engine_family feeds ID threshold relief only — C3 still
+        # requires E2-qualified independent_agreement or deterministic_ok so
+        # empty E2 sets cannot authorize non-ID critical fields.
         independent_evidence_ok = has_independent_agreement or deterministic_ok or financial_authority
-        if reference_contradiction:
+        if future_dob_rejected:
+            decision = Decision.REVIEW
+            reasons.append("FUTURE_DOB_REJECTED")
+        elif reference_contradiction:
             decision = Decision.REVIEW
             reasons.append("REFERENCE_CONTRADICTION")
         elif not threshold_ok:
