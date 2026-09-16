@@ -96,11 +96,11 @@ def register_classified_document(images, routing, registry, selection=None):
             (dob.x0, dob.y0, dob.x1, dob.y1),
         )
 
-    def _attempt(image, attempt_name):
+    def _attempt(image, attempt_name, *, enforce_compatibility_precheck=True):
         with registration_context(template_id=template.template_id, page_number=page_number):
             aligned = align_to_reference(
                 image, reference, family=template.form_type.value,
-                enforce_compatibility_precheck=True,
+                enforce_compatibility_precheck=enforce_compatibility_precheck,
             )
         evidence = aligned.evidence
         accepted = (aligned.success and aligned.accepted and aligned.warped is not None
@@ -160,6 +160,24 @@ def register_classified_document(images, routing, registry, selection=None):
         if evidence is not None:
             orientation_evidence_trail.append(evidence)
 
+        # Template already selected (ops / selector). Lineage precheck must not
+        # hard-stop before SIFT — that left Track-A HITL with zero geometric tries.
+        bypass_lineage_precheck = False
+        if not accepted and str(meta.get("reason") or "") == "template_lineage_mismatch":
+            if aligned is not None and aligned.warped is not None:
+                aligned.warped.close()
+                aligned = None
+            recovery_strategies.append("LINEAGE_PRECHECK_BYPASS")
+            bypass_lineage_precheck = True
+            aligned, evidence, accepted, meta, content_ok, content_reason = _attempt(
+                source,
+                "lineage_bypass",
+                enforce_compatibility_precheck=False,
+            )
+            attempts.append(meta)
+            if evidence is not None:
+                orientation_evidence_trail.append(evidence)
+
         recovery_decision = None
         if not accepted:
             failure_reasons = [
@@ -180,7 +198,112 @@ def register_classified_document(images, routing, registry, selection=None):
             if recovery_decision.attempt:
                 recovery_strategies.append(recovery_decision.strategy.value)
 
-        if recovery_decision is not None and recovery_decision.attempt:
+        # Early orientation: if primary/lineage already looks like a phone-rotated
+        # capture, try cardinal rotates before burning enhance/near-miss budget.
+        if (
+            not accepted
+            and should_attempt_orientation_recovery_any(orientation_evidence_trail)
+            and "ORIENTATION_ROTATE_RETRY" not in recovery_strategies
+        ):
+            if aligned is not None and aligned.warped is not None:
+                aligned.warped.close()
+                aligned = None
+            rot_hint = best_orientation_rotation_degrees(orientation_evidence_trail)
+            degree_order = ordered_orientation_attempts(
+                source, rotation_degrees=rot_hint
+            )
+            best_orient = None
+            best_orient_key = (-1, -1.0)
+            for degrees in degree_order:
+                rotated = rotate_page_for_orientation(source, degrees)
+                try:
+                    with registration_context(
+                        template_id=template.template_id, page_number=page_number
+                    ):
+                        oriented = align_to_reference(
+                            rotated,
+                            reference,
+                            family=template.form_type.value,
+                            enforce_compatibility_precheck=False,
+                        )
+                    ev = oriented.evidence
+                    key = (
+                        1 if oriented.accepted else 0,
+                        float(ev.inlier_ratio) if ev is not None else 0.0,
+                    )
+                    if key > best_orient_key:
+                        if best_orient is not None and best_orient.warped is not None:
+                            best_orient.warped.close()
+                        best_orient = oriented
+                        best_orient_key = key
+                    elif oriented.warped is not None:
+                        oriented.warped.close()
+                    if oriented.accepted:
+                        break
+                finally:
+                    rotated.close()
+            if best_orient is not None:
+                evidence = best_orient.evidence
+                accepted_geom = (
+                    best_orient.success
+                    and best_orient.accepted
+                    and best_orient.warped is not None
+                    and evidence is not None
+                    and evidence.accepted
+                    and evidence.corner_validity is True
+                )
+                meta = {
+                    "attempt": "orientation_recovery_early",
+                    "accepted": accepted_geom,
+                    "alignment_confidence": (
+                        evidence.alignment_confidence
+                        if evidence is not None
+                        else best_orient.alignment_score
+                    ),
+                    "reason": (
+                        "REGISTRATION_ACCEPTED"
+                        if accepted_geom
+                        else (
+                            evidence.rejection_reason
+                            if evidence and evidence.rejection_reason
+                            else "REGISTRATION_NOT_ACCEPTED"
+                        )
+                    ),
+                }
+                content_ok = True
+                content_reason = None
+                if (
+                    accepted_geom
+                    and template.form_type == ClaimFormType.CMS1500
+                    and best_orient.warped is not None
+                ):
+                    boxes = _identity_boxes()
+                    if boxes is not None:
+                        content = validate_cms1500_registration_content(
+                            best_orient.warped,
+                            patient_name_box=boxes[0],
+                            patient_dob_box=boxes[1],
+                        )
+                        content_ok = content.accepted
+                        content_reason = content.reason
+                        meta["content_ok"] = content.accepted
+                        meta["content_reason"] = content.reason
+                        if not content.accepted:
+                            accepted_geom = False
+                            meta["accepted"] = False
+                            meta["reason"] = "REGISTRATION_CONTENT_MISMATCH"
+                accepted = accepted_geom
+                aligned = best_orient
+                attempts.append(meta)
+                recovery_strategies.append("ORIENTATION_ROTATE_RETRY")
+                if evidence is not None:
+                    orientation_evidence_trail.append(evidence)
+
+        if (
+            not accepted
+            and recovery_decision is not None
+            and recovery_decision.attempt
+        ):
             if aligned is not None and aligned.warped is not None:
                 aligned.warped.close()
                 aligned = None
@@ -192,7 +315,9 @@ def register_classified_document(images, routing, registry, selection=None):
                 attempt_name = "enhanced"
             try:
                 aligned, evidence, accepted, meta, content_ok, content_reason = _attempt(
-                    enhanced, attempt_name
+                    enhanced,
+                    attempt_name,
+                    enforce_compatibility_precheck=not bypass_lineage_precheck,
                 )
                 attempts.append(meta)
                 if evidence is not None:
@@ -201,7 +326,11 @@ def register_classified_document(images, routing, registry, selection=None):
                 enhanced.close()
 
         # Second distinct preprocess when cause-specific enhance still fails.
-        if not accepted and recovery_decision is not None and recovery_decision.attempt:
+        if (
+            not accepted
+            and recovery_decision is not None
+            and recovery_decision.attempt
+        ):
             failure_reasons = [
                 value for value in (
                     meta.get("reason"),
@@ -222,7 +351,9 @@ def register_classified_document(images, routing, registry, selection=None):
                 enhanced = enhance_for_registration_contrast_stretch(source)
                 try:
                     aligned, evidence, accepted, meta, content_ok, content_reason = _attempt(
-                        enhanced, "enhanced_contrast_stretch"
+                        enhanced,
+                        "enhanced_contrast_stretch",
+                        enforce_compatibility_precheck=not bypass_lineage_precheck,
                     )
                     attempts.append(meta)
                     if evidence is not None:
@@ -383,10 +514,11 @@ def register_classified_document(images, routing, registry, selection=None):
                 deskewed.close()
 
         # Orientation Step 4: ranked 180/90/270 when ANY ladder attempt looked
-        # orientation-recoverable (do not let a later lineage/precheck miss erase
-        # an earlier catastrophic rotation signal before fail-closed).
-        if not accepted and should_attempt_orientation_recovery_any(
-            orientation_evidence_trail
+        # orientation-recoverable (skip if early orientation already ran).
+        if (
+            not accepted
+            and "ORIENTATION_ROTATE_RETRY" not in recovery_strategies
+            and should_attempt_orientation_recovery_any(orientation_evidence_trail)
         ):
             if aligned is not None and aligned.warped is not None:
                 if best_corroboration_aligned is not aligned:

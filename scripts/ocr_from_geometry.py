@@ -578,21 +578,30 @@ def recognize_service_lines(image, router, template):
         if fast and len(lines) >= 3:
             break
     # Fast digit path sometimes misses typed amounts (wrong x-window). One
-    # paddle/rapid pass on the primary column recovers E6 without full thrash.
+    # paddle/rapid pass across charge-column windows recovers E6 without full thrash.
     if fast and not lines and router is not None:
+        fallback_windows = charge_windows or [(charge_col.x0, charge_col.x1)]
         for row_index in range(table.max_rows):
             y0 = table.table_y0 + header_offset + row_index * table.row_height_px
             y1 = min(y0 + table.row_height_px, table.table_y1)
             if y0 >= table.table_y1:
                 break
-            x0, x1 = charge_col.x0, charge_col.x1
-            bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
-            candidates, attempts, reason = _recognize_one(
-                image, 'charges', bbox, router, charge_col.field_type,
-                engine_order=('paddleocr', 'rapidocr'),
-            )
-            raw = candidates[0].get('raw_value') if candidates else ''
-            value = _currency_value(raw, candidates)
+            value = None
+            raw = ''
+            candidates = []
+            attempts = []
+            reason = ''
+            bbox = None
+            for x0, x1 in fallback_windows:
+                bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
+                candidates, attempts, reason = _recognize_one(
+                    image, 'charges', bbox, router, charge_col.field_type,
+                    engine_order=('paddleocr', 'rapidocr'),
+                )
+                raw = candidates[0].get('raw_value') if candidates else ''
+                value = _currency_value(raw, candidates)
+                if value:
+                    break
             if not value:
                 if lines:
                     break
