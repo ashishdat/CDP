@@ -129,6 +129,14 @@ def prefer_dob_without_separator_one(
     return None
 
 
+def _canonical_member_id(value: str) -> str:
+    compact = re.sub(r"[^A-Z0-9]", "", (value or "").strip().upper())
+    if compact.isdigit():
+        stripped = compact.lstrip("0")
+        return stripped or "0"
+    return compact
+
+
 def _member_ids_differ_by_confusable_insertion(left: str, right: str) -> bool:
     """True when member IDs match after removing one inserted I/1/L glyph.
 
