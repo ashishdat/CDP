@@ -1,0 +1,53 @@
+{
+  "title": "Independent Samples \u2014 100B (v12)",
+  "run": "hackathon independent cohort slice[100:200] + decision_reprocess_v12",
+  "n": 100,
+  "slice": {
+    "start": 100,
+    "end": 200,
+    "disjoint_from": "slice[0:100]"
+  },
+  "baseline_slice": {
+    "true_stp": 21,
+    "field_hitl": 47,
+    "registration_hitl": 32
+  },
+  "metrics": {
+    "true_stp": {
+      "count": 38,
+      "rate": 0.38
+    },
+    "field_hitl": {
+      "count": 30,
+      "rate": 0.3
+    },
+    "registration_hitl": {
+      "count": 32,
+      "rate": 0.32
+    },
+    "combined_hitl": {
+      "count": 62,
+      "rate": 0.62
+    },
+    "stage_failure": {
+      "count": 0,
+      "rate": null
+    },
+    "exact_accuracy_agent_gt": {
+      "exact": 205,
+      "n": 212,
+      "rate": 0.9669811320754716
+    },
+    "perfect_claim_exact": {
+      "exact": 60,
+      "n": 67,
+      "rate": 0.8955223880597015
+    },
+    "false_accepts": {
+      "count": 7,
+      "rate": 0.0330188679245283
+    }
+  },
+  "gt_claims_scored": 67,
+  "generated_at": "2026-09-16T15:28:00+00:00"
+}
