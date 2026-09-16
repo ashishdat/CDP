@@ -259,13 +259,69 @@ _MEMBER_ID_CONFUSABLE_PAIRS = {
     frozenset({"I", "L"}),
     frozenset({"L", "1"}),
     frozenset({"S", "5"}),
+    frozenset({"J", "U"}),  # typed stem J/U swap (JSW… vs USW…)
 }
+
+
+_MEMBER_ID_PREFIX_BLEED = frozenset({"O", "S", "Q", "D", "U", "C", "0", "G"})
+
+
+def _member_ids_differ_by_prefix_bleed(left: str, right: str) -> bool:
+    """True when IDs match after peeling a 1–2 letter OCR prefix bleed.
+
+    Independent case: ``OSC75615107`` vs ``C75615107`` — leading OS from
+    adjacent form ink, not a different subscriber.
+    """
+    a, b = _canonical_member_id(left), _canonical_member_id(right)
+    if not a or not b or a == b:
+        return False
+    if abs(len(a) - len(b)) not in {1, 2}:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    prefix_len = len(longer) - len(shorter)
+    prefix = longer[:prefix_len]
+    if longer[prefix_len:] != shorter:
+        return False
+    return all(ch in _MEMBER_ID_PREFIX_BLEED for ch in prefix)
+
+
+def _member_id_is_length_fragment(left: str, right: str) -> bool:
+    """True when one shaped ID is a short fragment beside a much longer ID.
+
+    Independent case: ``981366`` vs ``98126619000`` — six-digit crop fragment
+    must not block the full member number.
+    """
+    a, b = _canonical_member_id(left), _canonical_member_id(right)
+    if not a or not b or a == b:
+        return False
+    short, long = (a, b) if len(a) < len(b) else (b, a)
+    if len(short) >= 8 or len(long) < 10:
+        return False
+    if len(long) - len(short) < 3:
+        return False
+    return True
+
+
+def prefer_member_id_longer_authority(primary: str, competitors: list[str]) -> str | None:
+    """Prefer the longer member ID under prefix-bleed or fragment twins."""
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    for left in observed:
+        for right in observed:
+            if left == right:
+                continue
+            if _member_ids_differ_by_prefix_bleed(left, right) or _member_id_is_length_fragment(
+                left, right
+            ):
+                cl, cr = _canonical_member_id(left), _canonical_member_id(right)
+                return left if len(cl) >= len(cr) else right
+    return None
 
 
 def _member_ids_differ_by_confusable_substitution(left: str, right: str) -> bool:
     """True when same-length member IDs differ by ≤1 OCR-confusable glyph.
 
-    Independent cases: ``…APU`` vs ``…AP0`` (U↔0), ``OSC…`` vs ``QSC…`` (O↔Q).
+    Independent cases: ``…APU`` vs ``…AP0`` (U↔0), ``OSC…`` vs ``QSC…`` (O↔Q),
+    ``JSW…`` vs ``USW…`` (J↔U).
     """
     a, b = _canonical_member_id(left), _canonical_member_id(right)
     if not a or not b or a == b or len(a) != len(b):
@@ -296,6 +352,9 @@ def prefer_member_id_without_confusable_insertion(
                 if left_letters != right_letters:
                     return left if left_letters > right_letters else right
                 return left if len(left) >= len(right) else right
+            longer = prefer_member_id_longer_authority(left, [right])
+            if longer:
+                return longer
     return None
 
 
@@ -684,6 +743,7 @@ _NAME_CONFUSABLE_PAIRS = {
     frozenset({"I", "T"}),
     frozenset({"I", "1"}),
     frozenset({"L", "T"}),
+    frozenset({"L", "H"}),  # MCLARTY vs MCHARTY
     frozenset({"O", "D"}),
     frozenset({"O", "0"}),
     frozenset({"U", "V"}),
@@ -814,6 +874,10 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
         if _member_ids_differ_by_confusable_insertion(left, right):
             return True
         if _member_ids_differ_by_confusable_substitution(left, right):
+            return True
+        if _member_ids_differ_by_prefix_bleed(left, right):
+            return True
+        if _member_id_is_length_fragment(left, right):
             return True
         return False
     if name in {"patient_name", "insured_name"} or "name" in name:
@@ -1117,6 +1181,12 @@ class EvidenceReconciler:
             if id_clean:
                 value = id_clean
                 early_id_relief = True
+        # Always emit compact member IDs so spaced/punctuated OCR ("4E80 VH6 HJ14")
+        # matches FORMAT_VALID and downstream identity checks.
+        if is_id_field and _member_id_is_shaped(str(value or "")):
+            compact_id = _canonical_member_id(str(value))
+            if compact_id:
+                value = compact_id
 
         # Never auto-accept a future DOB — OCR year junk / box-rule misreads.
         future_dob_rejected = False
@@ -1331,8 +1401,13 @@ class EvidenceReconciler:
             shaped_values = set()
             for candidate in candidates:
                 raw = str(candidate.value or "")
-                if _member_id_is_shaped(raw):
-                    shaped_values.add(_canonical_member_id(raw))
+                if not _member_id_is_shaped(raw):
+                    continue
+                canon = _canonical_member_id(raw)
+                # Ignore length fragments beside the selected authority ID.
+                if _member_id_is_length_fragment(str(value), raw):
+                    continue
+                shaped_values.add(canon)
             shaped_values.discard("")
             unique_shaped_id = len(shaped_values) == 1
             if unique_shaped_id:
@@ -1413,11 +1488,35 @@ class EvidenceReconciler:
                         _dob_ymd(str(other)) is not None and _dob_is_future(str(other))
                     )
                 ]
-            # Unshaped member-ID OCR soup is not a genuine identity conflict.
+            # Unshaped / fragment / fill-only member-ID OCR is not a genuine
+            # identity conflict against a primary-engine shaped authority.
             if is_id_field:
-                genuine = [
-                    other for other in genuine if _member_id_is_shaped(str(other))
-                ]
+                value_engines: dict[str, set[str]] = defaultdict(set)
+                for _norm, items in ranked:
+                    for cand, _, _ in items:
+                        canon = _canonical_member_id(str(cand.value or ""))
+                        if canon:
+                            value_engines[canon].add(independence_group(cand.engine))
+                primary_support = {
+                    independence_group(cand.engine) for cand, _, _ in supporting
+                } - {"TESSERACT_FAMILY"}
+                filtered = []
+                for other in genuine:
+                    if not _member_id_is_shaped(str(other)):
+                        continue
+                    if _member_id_is_length_fragment(str(value), str(other)):
+                        continue
+                    other_engines = value_engines.get(
+                        _canonical_member_id(str(other)), set()
+                    )
+                    if (
+                        primary_support
+                        and other_engines
+                        and other_engines <= {"TESSERACT_FAMILY"}
+                    ):
+                        continue
+                    filtered.append(other)
+                genuine = filtered
             if early_separator_relief:
                 # Competing values were separator-1 twins of the cleaned date.
                 decision = (

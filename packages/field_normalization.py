@@ -79,6 +79,14 @@ def normalize_code(raw: str) -> tuple[str, bool]:
     return cleaned, bool(cleaned)
 
 
+def normalize_member_id(raw: str) -> tuple[str | None, bool]:
+    """Compact member/subscriber IDs by stripping OCR spacing and punctuation."""
+    compact = re.sub(r"[^A-Za-z0-9]", "", raw.strip().upper())
+    if re.fullmatch(r"[A-Z0-9]{5,24}", compact):
+        return compact, True
+    return (compact or None), bool(compact)
+
+
 def normalize_icd(raw: str) -> tuple[str | None, bool]:
     """Normalize ICD-10-CM style codes and repair common OCR letter/digit swaps."""
     cleaned = re.sub(r"\s+", "", raw.strip().upper())
@@ -108,6 +116,7 @@ _PROCESSORS = {
     "npi": normalize_npi,
     "tax_id": normalize_tax_id,
     "code": normalize_code,
+    "member_id": normalize_member_id,
     "icd": normalize_icd,
     "checkbox": normalize_checkbox,
 }

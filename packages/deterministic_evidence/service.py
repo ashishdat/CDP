@@ -128,9 +128,13 @@ class DeterministicEvidenceService:
                 else failures.append("INVALID_TAX_IDENTIFIER")
             )
         elif any(token in name for token in ("member_id", "insured_id", "subscriber_id")):
+            # OCR often inserts spaces/dots/dashes between glyphs
+            # ("4E80 VH6 HJ14", "907.549 6.30 -00"). Validate the compact
+            # alphanumeric form — decoration is not an identity failure.
+            member_compact = re.sub(r"[^A-Za-z0-9]", "", raw)
             (
                 evidence.add("FORMAT_VALID")
-                if re.fullmatch(r"[A-Za-z0-9-]{5,24}", raw)
+                if re.fullmatch(r"[A-Za-z0-9]{5,24}", member_compact)
                 else failures.append("INVALID_MEMBER_IDENTIFIER")
             )
         elif name in {"provider_name", "billing_provider_name", "rendering_provider_name"}:
