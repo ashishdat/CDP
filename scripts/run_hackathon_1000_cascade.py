@@ -240,6 +240,9 @@ def _stage_env() -> dict[str, str]:
         "FLAGS_num_threads",
     ):
         env.setdefault(key, "1")
+    # Default STP eval to critical-field OCR only (~5× fewer ROIs). Override
+    # with CDP_OCR_FIELD_SCOPE=all for full-form extraction.
+    env.setdefault("CDP_OCR_FIELD_SCOPE", "stp_critical")
     return env
 
 

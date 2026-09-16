@@ -3,9 +3,10 @@
 Run: python -m scripts.ocr_from_geometry GEOMETRY_DIRECTORY OUTPUT_DIRECTORY
 """
 import argparse
-import re
 import hashlib
 import json
+import os
+import re
 from dataclasses import asdict
 from io import BytesIO
 from pathlib import Path
@@ -33,6 +34,29 @@ from packages.ocr_router import OCRRouter, OCRRouteRequest
 from packages.templates.registry import TemplateRegistry
 
 
+# STP evaluation can limit OCR to critical fields (+ service lines for E6).
+# Set CDP_OCR_FIELD_SCOPE=stp_critical to skip non-blocking ROIs (~5× less OCR).
+_STP_CRITICAL_FIELDS = frozenset({
+    "patient_dob",
+    "total_charge",
+    "total_charges",
+    "patient_name",
+    "insured_id_number",
+    "insured_name",
+    # Template required_fields that can block completion if never OCR'd.
+    "diagnosis_codes",
+    "federal_tax_id",
+})
+
+
+def _field_in_scope(field_name: str) -> bool:
+    scope = (os.environ.get("CDP_OCR_FIELD_SCOPE") or "").strip().casefold()
+    if scope in {"", "all", "*"}:
+        return True
+    if scope in {"stp_critical", "critical", "stp"}:
+        return (field_name or "").casefold() in _STP_CRITICAL_FIELDS
+    allowed = {part.strip().casefold() for part in scope.split(",") if part.strip()}
+    return (field_name or "").casefold() in allowed
 
 def _clamp_bbox(bbox, width, height):
     x0, y0, x1, y1 = (int(v) for v in bbox)
@@ -535,6 +559,8 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
         return _recognize_one(image, field_name, bbox, router, field_type, engine_order=engines)
 
     for field in geometry['fields']:
+        if not _field_in_scope(field.get('field') or ''):
+            continue
         result = field['result']
         box = result.get('aligned_roi')
         cell = result.get('safe_cell')
