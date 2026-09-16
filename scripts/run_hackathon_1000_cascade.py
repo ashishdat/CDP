@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -228,6 +229,20 @@ def _prune_trace(app_out: Path) -> None:
             pass
 
 
+def _stage_env() -> dict[str, str]:
+    """Limit nested BLAS/OpenMP threads so parallel claim workers do not thrash."""
+    env = dict(os.environ)
+    for key in (
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "FLAGS_num_threads",
+    ):
+        env.setdefault(key, "1")
+    return env
+
+
 def _run_stage(cmd: list[str], log_path: Path) -> tuple[int, str]:
     """Stream stdout/stderr to a file to avoid pipe deadlocks with verbose app.py."""
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -238,6 +253,7 @@ def _run_stage(cmd: list[str], log_path: Path) -> tuple[int, str]:
             stdout=log_handle,
             stderr=subprocess.STDOUT,
             text=True,
+            env=_stage_env(),
         )
     tail = ""
     try:

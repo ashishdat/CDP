@@ -826,3 +826,12 @@ if __name__ == '__main__':
     result = run(args.geometry_directory, args.output_directory)
     print(json.dumps({'status': result['status'], 'fields': len(result['fields']),
                       'candidates': sum(len(r['candidates']) for r in result['fields'])}))
+    # PaddleOCR / ONNX Runtime often hang in atexit finalizers after a successful
+    # run (poll forever while holding multi-GB RSS). Hard-exit once artifacts are
+    # on disk so the cascade parent can advance to rank/validate.
+    import os
+    import sys
+
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os._exit(0 if result.get('status') == 'COMPLETED' else 1)
