@@ -1,0 +1,109 @@
+{
+  "title": "Independent Samples \u2014 300",
+  "run": "hackathon_300_cascade_v11",
+  "cohort": "hackathon docs[50:350] independent of diagnostic first-50",
+  "strategy_id": "field-cascade-v11",
+  "status": "COMPLETE",
+  "n": 300,
+  "metrics": {
+    "true_stp": {
+      "count": 118,
+      "rate": 0.393333
+    },
+    "field_hitl": {
+      "count": 107,
+      "rate": 0.356667
+    },
+    "registration_hitl": {
+      "count": 75,
+      "rate": 0.25
+    },
+    "combined_hitl": {
+      "count": 182,
+      "rate": 0.606667
+    },
+    "stage_failure": {
+      "count": 0,
+      "rate": null
+    },
+    "exact_accuracy_agent_gt": {
+      "exact": 822,
+      "n": 824,
+      "rate": 0.997573
+    },
+    "perfect_claim_exact": {
+      "exact": 222,
+      "n": 224,
+      "rate": 0.991071
+    },
+    "false_accepts": {
+      "count": 2,
+      "rate": 0.002427
+    }
+  },
+  "supporting": {
+    "true_stp_of_completed": 0.524444,
+    "registration_ok": 225,
+    "completed": 225,
+    "critical_blockers": {
+      "insured_id_number": 28,
+      "patient_dob": 31,
+      "patient_name": 35,
+      "total_charge": 38
+    },
+    "gap_classes": {
+      "EVIDENCE_PLUMBING_GAP": 21,
+      "AMBIGUOUS_DIGIT_FRAGMENTS": 11,
+      "HANDWRITING_UNREADABLE": 46,
+      "CALIBRATION_HITL": 29,
+      "EMPTY_FINANCIAL_INK": 25
+    },
+    "field_exact": {
+      "patient_dob": {
+        "exact": 66,
+        "n": 68,
+        "rate": 0.970588
+      },
+      "total_charge": {
+        "exact": 184,
+        "n": 184,
+        "rate": 1.0
+      },
+      "patient_name": {
+        "exact": 190,
+        "n": 190,
+        "rate": 1.0
+      },
+      "insured_id_number": {
+        "exact": 202,
+        "n": 202,
+        "rate": 1.0
+      },
+      "insured_name": {
+        "exact": 180,
+        "n": 180,
+        "rate": 1.0
+      }
+    },
+    "false_accept_examples": [
+      {
+        "claim_id": "Group A__M048EJGE.038",
+        "field": "patient_dob",
+        "expected": "1966-08-18",
+        "predicted": "1966-08-08",
+        "gt_confidence": "SILVER",
+        "note": "day FA 08\u219418"
+      },
+      {
+        "claim_id": "Group A__M048HJCX.009",
+        "field": "patient_dob",
+        "expected": "1965-06-19",
+        "predicted": "1965-06-01",
+        "gt_confidence": "SILVER",
+        "note": "day FA"
+      }
+    ],
+    "ground_truth": "agent-created visual GT (hackathon ZIP has no vendor labels); GOLD/SILVER labeled fields only"
+  },
+  "generated_at": "2026-09-16T12:58:01.268455+00:00"
+}
