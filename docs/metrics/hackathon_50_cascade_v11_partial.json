@@ -2,13 +2,13 @@
   "run": "hackathon_50_cascade_v11",
   "status": "RUNNING",
   "n_requested": 50,
-  "n_finished": 29,
-  "true_stp": 18,
-  "true_stp_rate": 0.6206896551724138,
+  "n_finished": 36,
+  "true_stp": 20,
+  "true_stp_rate": 0.5555555555555556,
   "disposition_counts": {
-    "TRUE_STP": 18,
-    "HITL": 8,
-    "REGISTRATION_FAILED": 3
+    "TRUE_STP": 20,
+    "HITL": 11,
+    "REGISTRATION_FAILED": 5
   },
   "registration_failures": [
     {
@@ -22,15 +22,23 @@
     {
       "claim_id": "Group A__M048DJJM.011",
       "reason": "insufficient_inliers,low_inlier_ratio,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
+    },
+    {
+      "claim_id": "Group A__M048DJJM.020",
+      "reason": "low_inlier_ratio,unsafe_perspective_distortion"
+    },
+    {
+      "claim_id": "Group A__M048DJJM.021",
+      "reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
     }
   ],
-  "registration_ok_rate": 0.896551724137931,
+  "registration_ok_rate": 0.8611111111111112,
   "speed": {
     "pre_fix_n": 4,
     "pre_fix_mean_sec": 1417.1625,
-    "post_fix_n": 25,
-    "post_fix_mean_sec": 197.68284,
+    "post_fix_n": 32,
+    "post_fix_mean_sec": 192.8718125,
     "workers": 2
   },
-  "generated_at": "2026-09-16T06:02:17.013519+00:00"
+  "generated_at": "2026-09-16T06:12:40.340854+00:00"
 }
