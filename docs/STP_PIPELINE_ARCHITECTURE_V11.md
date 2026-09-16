@@ -98,15 +98,21 @@ register → register_recovery → geometry → roi_inset
 | Semantic accept | `NAME_LABEL_CONTAMINATED` / `ID_LABEL_CONTAMINATED` never stop the cascade |
 | Reconciler | Prefer clean over dirty; token-prefix expansion; E↔L substitution equivalence; shaped ID over header |
 | Reconciler v11.1 | ≤2 confusable letter subs; optional middle-initial equivalence |
+| Reconciler v11.2 | Last/First token-order bag; glued MI (CL↔L); name digit 0→O; dual-engine ID confidence lift |
 
-### OCR stack (unchanged engines, retuned use)
+### OCR stack (v11.2 tool-fit)
 
 | Engine | Role |
 |--------|------|
-| PaddleOCR | Primary printed CMS |
-| RapidOCR | Independent confirmation |
-| Tesseract (+ digits) | Fill after dual-engine miss; DOB cell whitelist; charge digits (authorized) |
-| Optional later | TrOCR / handwriting route only for residual `HANDWRITING_UNREADABLE`; VLM for Track-A orientation |
+| RapidOCR / ONNX | **Primary** printed CMS (governed routes) |
+| PaddleOCR | Selective secondary confirmation (names/orgs) |
+| Tesseract (+ digits) | Selective secondary for dates/digits/IDs |
+| Docling | Difficult tables / empty-finance residual (gated) |
+| Azure AI cascade | Handwriting / orientation residual (review-only) |
+| AWS Textract DetectDocumentText | Cloud-OCR fallback when local exhausted + blocks STP |
+| React HITL | Field-level residual queue |
+
+See `docs/STP_TOOL_FIT_ARCHITECTURE_V11_2.md`.
 
 Gates unchanged: no invented ink, no E3 waiver, True STP = `COMPLETED` ∧ ¬`review_required`.
 

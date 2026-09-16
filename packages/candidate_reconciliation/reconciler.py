@@ -158,7 +158,10 @@ def _name_label_contaminated(value: str) -> bool:
 
 
 def _name_tokens(value: str) -> list[str]:
-    compact = re.sub(r"[^A-Z\s]", " ", (value or "").upper())
+    # Preserve digit-as-letter confusables before stripping punctuation
+    # (L0 DANNY → LO DANNY, not L DANNY).
+    compact = (value or "").upper().replace("0", "O").replace("1", "I")
+    compact = re.sub(r"[^A-Z\s]", " ", compact)
     stop = {
         "LAST", "FIRST", "FURST", "FST", "MIDDLE", "INITIAL", "NAME",
         "PATIENT", "FATIENT", "INSURED", "1NSURED",
@@ -210,6 +213,63 @@ def _names_differ_by_optional_middle_initial(left: str, right: str) -> bool:
     return False
 
 
+def _names_differ_by_glued_middle_initial(left: str, right: str) -> bool:
+    """True when one engine glued an extra letter onto a 1-char middle initial.
+
+    Track-B 300 residual: ``DESIRAE CL`` vs ``DESIRAE L``, ``SHYENNE CP`` vs
+    ``SHYENNE P`` — leading OCR junk on the MI, not a different person.
+    """
+    a, b = _name_tokens(left), _name_tokens(right)
+    if not a or not b or len(a) != len(b) or a == b:
+        return False
+    diffs = [(x, y) for x, y in zip(a, b) if x != y]
+    if len(diffs) != 1:
+        return False
+    x, y = diffs[0]
+    shorter, longer = (x, y) if len(x) < len(y) else (y, x)
+    return len(shorter) == 1 and len(longer) == 2 and longer.endswith(shorter)
+
+
+def _token_pair_equivalent(left: str, right: str) -> bool:
+    """Single-token equivalence under confusable insertion/substitution."""
+    if left == right:
+        return True
+    if _names_differ_by_confusable_insertion(left, right):
+        return True
+    if _names_differ_by_confusable_substitution(left, right):
+        return True
+    return False
+
+
+def _core_name_tokens(tokens: list[str]) -> list[str]:
+    """Drop single-letter MIs and digit-only OCR junk for bag comparison."""
+    return [tok for tok in tokens if len(tok) > 1 and not tok.isdigit()]
+
+
+def _names_differ_by_token_order(left: str, right: str) -> bool:
+    """True when engines disagree only on Last/First token order.
+
+    Track-B 300 residual: ``CHANG SHERRILEE`` vs ``SHERRILEE L CHANG``,
+    ``SPINNEY CHARLES A`` vs ``CHARLES A SPINNEY`` — same person, CMS
+    last-first vs first-last reading. Middle initials are ignored in the bag.
+    """
+    a, b = _name_tokens(left), _name_tokens(right)
+    ca, cb = _core_name_tokens(a), _core_name_tokens(b)
+    if len(ca) < 2 or len(cb) < 2 or len(ca) != len(cb):
+        return False
+    remaining = list(cb)
+    for tok in ca:
+        match_idx = None
+        for idx, other in enumerate(remaining):
+            if _token_pair_equivalent(tok, other):
+                match_idx = idx
+                break
+        if match_idx is None:
+            return False
+        remaining.pop(match_idx)
+    return True
+
+
 def prefer_name_with_optional_middle_initial(
     primary: str, competitors: list[str]
 ) -> str | None:
@@ -219,11 +279,66 @@ def prefer_name_with_optional_middle_initial(
         for right in observed:
             if left == right:
                 continue
-            if not _names_differ_by_optional_middle_initial(left, right):
+            if not (
+                _names_differ_by_optional_middle_initial(left, right)
+                or _names_differ_by_glued_middle_initial(left, right)
+            ):
                 continue
+            # Prefer the cleaner single-letter MI when one side is glued (CL→L).
+            if _names_differ_by_glued_middle_initial(left, right):
+                lt, rt = _name_tokens(left), _name_tokens(right)
+                left_mi = sum(1 for t in lt if len(t) == 1)
+                right_mi = sum(1 for t in rt if len(t) == 1)
+                if left_mi != right_mi:
+                    return left if left_mi > right_mi else right
+                # Same MI count: prefer shorter MI token (L over CL).
+                left_short = sum(len(t) for t in lt if len(t) <= 2)
+                right_short = sum(len(t) for t in rt if len(t) <= 2)
+                return left if left_short <= right_short else right
             lt, rt = _name_tokens(left), _name_tokens(right)
             return left if len(lt) >= len(rt) else right
     return None
+
+
+def prefer_name_canonical_token_order(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """Among Last/First order twins, prefer First(+MI)+Last Western display."""
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    equivalents: list[str] = []
+    for left in observed:
+        for right in observed:
+            if left == right:
+                continue
+            if _names_differ_by_token_order(left, right):
+                if left not in equivalents:
+                    equivalents.append(left)
+                if right not in equivalents:
+                    equivalents.append(right)
+    if len(equivalents) < 2:
+        return None
+
+    def _score(display: str) -> tuple:
+        toks = _name_tokens(display)
+        cores = _core_name_tokens(toks)
+        has_mi = any(len(t) == 1 for t in toks)
+        # Prefer First Last (last token is a core surname-length token and first
+        # is also a core) with MI present — common auto-accept display.
+        western = (
+            len(cores) >= 2
+            and len(toks) >= 2
+            and toks[-1] in cores
+            and toks[0] in cores
+            and (len(toks) == 2 or (has_mi and any(len(t) == 1 for t in toks[1:-1])))
+        )
+        return (
+            0 if western else 1,
+            0 if has_mi else 1,
+            -len(toks),
+            -len(display or ""),
+        )
+
+    return sorted(equivalents, key=_score)[0]
 
 
 def prefer_name_without_label_contamination(
@@ -360,6 +475,12 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
             return True
         # Optional CMS middle initial (THOMAS DWAYNE vs THOMAS S DWAYNE).
         if _names_differ_by_optional_middle_initial(left, right):
+            return True
+        # Glued junk on MI (DESIRAE CL vs DESIRAE L).
+        if _names_differ_by_glued_middle_initial(left, right):
+            return True
+        # Last/First token-order twins (CHANG SHERRILEE vs SHERRILEE L CHANG).
+        if _names_differ_by_token_order(left, right):
             return True
         # Label-contaminated crop vs clean ink of the same person.
         if prefer_name_without_label_contamination(left, [right]) is not None:
@@ -555,20 +676,37 @@ class EvidenceReconciler:
                         value = mi_clean
                         early_name_relief = True
                     else:
-                        name_clean = prefer_name_without_confusable_insertion(
+                        order_clean = prefer_name_canonical_token_order(
                             str(value), competing
                         )
-                        if name_clean:
-                            value = name_clean
+                        if order_clean:
+                            value = order_clean
                             early_name_relief = True
-                        elif any(
-                            _names_differ_by_confusable_substitution(str(value), other)
-                            or _names_differ_by_optional_middle_initial(str(value), other)
-                            or values_conflict_equivalent(field_name, str(value), other)
-                            for other in competing
-                        ):
-                            # ≤2 confusable substitutions or optional middle initial.
-                            early_name_relief = True
+                        else:
+                            name_clean = prefer_name_without_confusable_insertion(
+                                str(value), competing
+                            )
+                            if name_clean:
+                                value = name_clean
+                                early_name_relief = True
+                            elif any(
+                                _names_differ_by_confusable_substitution(
+                                    str(value), other
+                                )
+                                or _names_differ_by_optional_middle_initial(
+                                    str(value), other
+                                )
+                                or _names_differ_by_glued_middle_initial(
+                                    str(value), other
+                                )
+                                or _names_differ_by_token_order(str(value), other)
+                                or values_conflict_equivalent(
+                                    field_name, str(value), other
+                                )
+                                for other in competing
+                            ):
+                                # Confusable / MI / last-first order twins.
+                                early_name_relief = True
 
         # Prefer non-contaminated name groups when ranking was poisoned by
         # high-confidence header OCR (rapid often outscores paddle on labels).
@@ -758,6 +896,11 @@ class EvidenceReconciler:
             # calendar corroboration like deterministic authority on confidence.
             if unique_calendar_dob:
                 confidence = max(confidence, 0.85)
+        # Dual-engine exact ID agreement after hard validation is independent
+        # confirmation — lift near-miss calibrated floors (~0.71–0.80) that were
+        # blocking STP despite paddle+rapid agreeing on the same shaped ID.
+        if multi_engine_id_corroborated:
+            confidence = max(confidence, 0.96)
         effective_threshold = threshold
         relief_reason: str | None = None
         if identity_corroborated or multi_engine_id_corroborated:
@@ -873,6 +1016,18 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("NAME_MIDDLE_INITIAL_RELIEVED")
+                elif (
+                    order_clean := prefer_name_canonical_token_order(
+                        str(value), genuine
+                    )
+                ):
+                    value = order_clean
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("NAME_TOKEN_ORDER_RELIEVED")
                 elif name_clean:
                     value = name_clean
                     decision = (

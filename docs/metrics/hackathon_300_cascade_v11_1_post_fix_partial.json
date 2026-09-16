@@ -1,0 +1,23 @@
+{
+  "run": "hackathon_300_field_hitl_reprocess_v11_1",
+  "status": "RUNNING",
+  "reprocess_done": 2,
+  "reprocess_target": 107,
+  "flipped_to_true_stp": 0,
+  "projected_n": 300,
+  "projected_true_stp": 118,
+  "projected_true_stp_rate": 0.3933333333333333,
+  "projected_field_hitl": 107,
+  "projected_field_hitl_rate": 0.3566666666666667,
+  "projected_registration_hitl": 75,
+  "projected_registration_hitl_rate": 0.25,
+  "projected_combined_hitl": 182,
+  "projected_combined_hitl_rate": 0.6066666666666667,
+  "baseline": {
+    "true_stp": 118,
+    "field_hitl": 107,
+    "registration_hitl": 75,
+    "combined_hitl": 182
+  },
+  "generated_at": "2026-09-16T12:59:16.437500+00:00"
+}

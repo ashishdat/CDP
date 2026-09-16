@@ -2,11 +2,11 @@ version: ocr-field-routes-v2
 status: GOVERNED_ROUTE_LIFECYCLE
 ocr_routes:
   insured_id_number:
-    route_id: CMS1500.insured_id_number.paddleocr.rapidocr.v1
+    route_id: CMS1500.insured_id_number.rapidocr.paddleocr.v1
     field: insured_id_number
     form: CMS1500
-    primary_engine: paddleocr
-    confirmation_engine: rapidocr
+    primary_engine: rapidocr
+    confirmation_engine: paddleocr
     preprocessing_profile: recorded-canonical-field-crop-v1
     policy_version: evidence-policy-v2-candidate
     benchmark_dataset: synthetic_public_v3
@@ -25,11 +25,11 @@ ocr_routes:
     benchmark_artifact: evaluation_results/raw_accuracy_recovery/ocr_by_field_member_id/metrics.json
     warning: Tesseract is excluded because measured member-ID accuracy was 3.33%.
   patient_name:
-    route_id: ANY.patient_name.paddleocr.rapidocr.v1
+    route_id: ANY.patient_name.rapidocr.paddleocr.v1
     field: patient_name
     form: "*"
-    primary_engine: paddleocr
-    confirmation_engine: rapidocr
+    primary_engine: rapidocr
+    confirmation_engine: paddleocr
     preprocessing_profile: recorded-canonical-field-crop-v1
     policy_version: evidence-policy-v2-candidate
     benchmark_dataset: synthetic_public_v3
@@ -48,11 +48,11 @@ ocr_routes:
     benchmark_artifact: evaluation_results/operational_e2e_100_v1/summary.json
     warning: Aligned to paddleocr/rapidocr after ROI correction; tesseract is unavailable in the operational runtime.
   insured_name:
-    route_id: ANY.insured_name.paddleocr.rapidocr.v1
+    route_id: ANY.insured_name.rapidocr.paddleocr.v1
     field: insured_name
     form: "*"
-    primary_engine: paddleocr
-    confirmation_engine: rapidocr
+    primary_engine: rapidocr
+    confirmation_engine: paddleocr
     preprocessing_profile: recorded-canonical-field-crop-v1
     policy_version: evidence-policy-v2-candidate
     benchmark_dataset: synthetic_public_v3
@@ -71,11 +71,11 @@ ocr_routes:
     benchmark_artifact: evaluation_results/operational_e2e_100_v1/summary.json
     warning: Route authority parity with patient_name. Missing route previously stripped OBSERVED OCR as CANDIDATE_ROUTE_AUTHORITY_MISSING and blocked STP.
   patient_dob:
-    route_id: ANY.patient_dob.paddleocr.rapidocr.v1
+    route_id: ANY.patient_dob.rapidocr.paddleocr.v1
     field: patient_dob
     form: "*"
-    primary_engine: paddleocr
-    confirmation_engine: rapidocr
+    primary_engine: rapidocr
+    confirmation_engine: paddleocr
     preprocessing_profile: recorded-canonical-field-crop-v1
     policy_version: evidence-policy-v2-candidate
     benchmark_dataset: synthetic_public_v3
@@ -94,11 +94,11 @@ ocr_routes:
     benchmark_artifact: evaluation_results/operational_e2e_100_v1/summary.json
     warning: Aligned to paddleocr/rapidocr after ROI correction; tesseract is unavailable in the operational runtime.
   total_charge:
-    route_id: CMS1500.total_charge.paddleocr.rapidocr.v2
+    route_id: CMS1500.total_charge.rapidocr.paddleocr.v2
     field: total_charge
     form: CMS1500
-    primary_engine: paddleocr
-    confirmation_engine: rapidocr
+    primary_engine: rapidocr
+    confirmation_engine: paddleocr
     preprocessing_profile: recorded-canonical-field-crop-v1
     policy_version: evidence-policy-v2-candidate
     benchmark_dataset: CDP_GOLDEN_ENGINEERING_PACK_V1
@@ -116,11 +116,11 @@ ocr_routes:
     confirmation_mode: SELECTIVE_E2_ONLY
     benchmark_artifact: evaluation_results/phase8_6/cms_local_evidence_metrics.json
   provider_npi:
-    route_id: CMS1500.provider_npi.paddleocr.rapidocr.v2
+    route_id: CMS1500.provider_npi.rapidocr.paddleocr.v2
     field: provider_npi
     form: CMS1500
-    primary_engine: paddleocr
-    confirmation_engine: rapidocr
+    primary_engine: rapidocr
+    confirmation_engine: paddleocr
     preprocessing_profile: recorded-canonical-field-crop-v1
     policy_version: evidence-policy-v2-candidate
     benchmark_dataset: CDP_GOLDEN_ENGINEERING_PACK_V1
@@ -178,11 +178,11 @@ ocr_routes:
     approved_at: null
     approval_scope: null
   federal_tax_no:
-    route_id: UB04.federal_tax_no.paddleocr.rapidocr.v2
+    route_id: UB04.federal_tax_no.rapidocr.paddleocr.v2
     field: federal_tax_no
     form: UB04
-    primary_engine: paddleocr
-    confirmation_engine: rapidocr
+    primary_engine: rapidocr
+    confirmation_engine: paddleocr
     preprocessing_profile: recorded-canonical-field-crop-v1
     policy_version: evidence-policy-v2-candidate
     benchmark_dataset: CDP_GOLDEN_ENGINEERING_PACK_V2

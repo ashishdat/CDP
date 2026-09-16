@@ -43,7 +43,7 @@ def decision_context() -> DecisionContext:
 def test_registry_enforces_explicit_route_lifecycle():
     registry = RouteRegistry.load()
 
-    assert len(registry.routes) == 8
+    assert len(registry.routes) == 9
     assert {route.status for route in registry.routes} == {
         RouteLifecycle.PRODUCTION_APPROVED,
         RouteLifecycle.EVALUATION_ONLY,
@@ -51,17 +51,21 @@ def test_registry_enforces_explicit_route_lifecycle():
     assert {route.field for route in registry.routes_for_mode("runtime")} == {
         "federal_tax_no",
         "insured_id_number",
+        "insured_name",
+        "patient_dob",
+        "patient_name",
         "provider_npi",
         "total_charge",
     }
-    assert len(registry.routes_for_mode("evaluation")) == 8
+    assert len(registry.routes_for_mode("evaluation")) == 9
     assert registry.routes_for_mode("shadow") == ()
 
 
 def test_registry_rejects_evaluation_route_in_runtime():
     registry = RouteRegistry.load()
-    route = registry.find_any("patient_name", "CMS1500")
+    route = registry.find_any("type_of_bill", "UB04")
     assert route is not None
+    assert route.status.value == "EVALUATION_ONLY"
 
     with pytest.raises(RouteNotApprovedError, match="not allowed in runtime"):
         registry.require(route.route_id, mode="runtime")
@@ -78,8 +82,18 @@ def test_missing_evidence_policy_fails_closed(tmp_path: Path):
 
 
 def test_evaluation_only_confirmation_cannot_influence_runtime_decision():
-    runtime = EvidenceDecisionService(route_mode="runtime").decide(decision_context())
-    evaluation = EvidenceDecisionService(route_mode="evaluation").decide(decision_context())
+    context = DecisionContext(
+        field_name="type_of_bill",
+        document_family="UB04",
+        criticality=CriticalityLevel.C2,
+        blocks_stp=True,
+        candidates=[candidate("tesseract"), candidate("paddleocr")],
+        deterministic_evidence={"HARD_VALIDATION_PASSED"},
+        hard_validation_passed=True,
+        registration_confidence=0.95,
+    )
+    runtime = EvidenceDecisionService(route_mode="runtime").decide(context)
+    evaluation = EvidenceDecisionService(route_mode="evaluation").decide(context)
 
     assert runtime.disposition is not FieldDisposition.AUTO_ACCEPTED
     assert any(code.startswith("ROUTE_STATUS_REJECTED:") for code in runtime.reason_codes)

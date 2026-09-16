@@ -11,6 +11,11 @@ routes:
   ADDRESS: {primary: RAPID, secondary: PADDLE, invoke_when: VALIDATION_FAILED}
   CHECKBOX: {primary: OPENCV, secondary: NONE, invoke_when: NEVER}
   TABLE: {primary: TOKEN_GEOMETRY, secondary: REGIONAL_OCR, invoke_when: ROW_UNRESOLVED}
-cloud_common_path_enabled: false
-textract_enabled: false
+cloud_common_path_enabled: false  # never on common path
+textract_enabled: true
+textract_invoke_when: LOCAL_OCR_EXHAUSTED_AND_BLOCKS_STP
+textract_api: DetectDocumentText
+azure_ai_cascade_enabled: true
+azure_invoke_when: HANDWRITING_OR_ORIENTATION_RESIDUAL
+azure_review_only_until_promoted: true
 docling_categories: [DIFFICULT_TABLE, EOB, ITEMIZED_BILL, MEDICAL_INVOICE]
