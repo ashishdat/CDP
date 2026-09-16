@@ -1,0 +1,69 @@
+#!/usr/bin/env python3
+"""Smoke-test Azure Document Intelligence prebuilt-read using Settings/.env.
+
+Exits 0 on successful analyze (even if content is empty). Never prints the API key.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+from PIL import Image
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from packages.settings import Settings  # noqa: E402
+from workers.cascade.azure_di_factory import (  # noqa: E402
+    AzureDocumentIntelligenceConfigurationError,
+    azure_document_intelligence_configured,
+    build_azure_read_engine,
+)
+from packages.domain.common import BoundingBox  # noqa: E402
+from packages.domain.enums import ClaimFormType  # noqa: E402
+from packages.ocr.contracts import OCRRequest  # noqa: E402
+
+
+def main() -> int:
+    settings = Settings()
+    print("di_enabled", settings.azure_document_intelligence_enabled)
+    print("di_endpoint_set", bool(settings.azure_document_intelligence_endpoint or settings.cloud_handwriting_endpoint))
+    print("di_key_set", bool(settings.azure_document_intelligence_api_key or settings.cloud_handwriting_credential))
+    print("di_configured", azure_document_intelligence_configured(settings))
+    if not azure_document_intelligence_configured(settings):
+        print("status", "NOT_CONFIGURED")
+        print(
+            "need",
+            "AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT + API_KEY + ENABLED + AUTHORIZED + "
+            "REGION_APPROVED + PHI_CONTRACT_APPROVED",
+        )
+        return 2
+    try:
+        engine = build_azure_read_engine(settings)
+    except AzureDocumentIntelligenceConfigurationError as exc:
+        print("status", "CONFIG_ERROR", str(exc))
+        return 2
+    img = Image.new("RGB", (120, 40), "white")
+    request = OCRRequest(
+        document_id="di-smoke",
+        page_number=1,
+        field_name="patient_dob",
+        field_type="date",
+        form_type=ClaimFormType.CMS1500,
+        image=img,
+        bounding_box=BoundingBox(x0=0, y0=0, x1=120, y1=40, image_width=120, image_height=40),
+    )
+    candidates = engine.recognize(request)
+    cand = candidates[0] if candidates else None
+    print("status", "OK")
+    print("engine", engine.engine_name)
+    print("model", engine.model_name)
+    print("value", None if cand is None else cand.value)
+    print("confidence", None if cand is None else cand.raw_confidence)
+    print("review_only", None if cand is None else ("SHADOW_REVIEW_ONLY" in (cand.validation_results or ())))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -3,11 +3,12 @@
 Maps honest HITL gap classes onto the production stack:
 
   OpenCV SIFT/FLANN/RANSAC → RapidOCR → Paddle/Tesseract selective
-    → Pydantic validators → (gated) Docling / Azure gpt-4o / Textract
+    → Pydantic validators
+    → (gated) Docling / Azure Document Intelligence Read / Azure gpt-4o / Textract
     → React field-level HITL
 
-Cloud / Docling never run on the common path. Azure stays review-only until
-an untouched holdout promotes a route.
+Cloud / Docling never run on the common path. Azure DI and gpt-4o stay
+review-only until an untouched holdout promotes a route.
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from packages.docling_policy import DoclingRouteInput, should_run_docling
 
 class EscalationTool(StrEnum):
     DOCLING = "docling"
+    AZURE_DOCUMENT_INTELLIGENCE_READ = "azure_document_intelligence_read"
     AZURE_GPT4O = "azure_gpt4o"
     TEXTRACT_DETECT_DOCUMENT_TEXT = "aws_textract_detect_document_text"
     REACT_FIELD_HITL = "react_field_hitl"
@@ -54,12 +56,17 @@ def plan_field_escalation(
     table_detected: bool = False,
     template_extraction_failed: bool = False,
     document_category: str | None = None,
+    azure_di_attempted: bool = False,
     policy: dict | None = None,
 ) -> EscalationDecision:
     """Pick the next gated tool after local Rapid→Paddle/Tesseract exhaustion."""
     policy = policy or load_secondary_policy()
     gap = (gap_class or "").upper()
     field = (field_name or "").casefold()
+    di_enabled = bool(policy.get("azure_document_intelligence_enabled", False))
+    di_review_only = bool(
+        policy.get("azure_document_intelligence_review_only_until_promoted", True)
+    )
 
     if gap in {"REGISTRATION_HITL", "REGISTRATION_FAILED"}:
         return EscalationDecision(
@@ -88,10 +95,16 @@ def plan_field_escalation(
                 "Difficult table / empty finance after regional OCR",
                 review_only=False,
             )
+        if di_enabled and regional_ocr_attempted and not azure_di_attempted:
+            return EscalationDecision(
+                EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ,
+                "Empty finance — Azure Document Intelligence prebuilt-read",
+                review_only=di_review_only,
+            )
         if policy.get("textract_enabled") and regional_ocr_attempted:
             return EscalationDecision(
                 EscalationTool.TEXTRACT_DETECT_DOCUMENT_TEXT,
-                "Local OCR exhausted and charge blocks STP",
+                "Local OCR + Azure DI exhausted and charge blocks STP",
                 review_only=False,
             )
         return EscalationDecision(
@@ -104,6 +117,12 @@ def plan_field_escalation(
         "patient_dob",
         "date_of_birth",
     }:
+        if di_enabled and not azure_di_attempted:
+            return EscalationDecision(
+                EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ,
+                "Handwriting residual — Azure Document Intelligence prebuilt-read",
+                review_only=di_review_only,
+            )
         if policy.get("azure_ai_cascade_enabled"):
             return EscalationDecision(
                 EscalationTool.AZURE_GPT4O,

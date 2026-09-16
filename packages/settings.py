@@ -48,6 +48,18 @@ class Settings(BaseSettings):
     azure_openai_api_version: str = "2024-10-21"
     azure_openai_review_only: bool = True
 
+    # Azure Document Intelligence prebuilt-read (cloud OCR residual). Distinct
+    # from Azure OpenAI — requires its own endpoint + key. Review/shadow until
+    # route promotion; PHI + region + authorization gates must all be true.
+    azure_document_intelligence_enabled: bool = False
+    azure_document_intelligence_endpoint: str | None = None
+    azure_document_intelligence_api_key: str | None = None
+    azure_document_intelligence_api_version: str = "2024-11-30"
+    azure_document_intelligence_authorized: bool = False
+    azure_document_intelligence_region_approved: bool = False
+    azure_document_intelligence_phi_contract_approved: bool = False
+    azure_document_intelligence_review_only: bool = True
+
     # Central external-AI gateway. Disabled and budget-zero by default.
     ai_gateway_enabled: bool = False
     ai_phi_external_processing_approved: bool = False

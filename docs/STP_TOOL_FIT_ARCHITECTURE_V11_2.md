@@ -13,8 +13,9 @@ Maps the production tooling stack onto residual STP/HITL bottlenecks
 | **Tesseract (+ digits)** | Selective secondary fill | DOB cells, charge digits, alphanumeric IDs | Digit whitelist; never name primary |
 | **Docling** | Difficult tables / empty finance | `EMPTY_FINANCIAL_INK` service-line structure | Off common path; only after regional OCR attempted |
 | **Pydantic healthcare validation** | Hard validation + E3/E4/E6 | Prevents false STP; formats ID/DOB/charge | Never waived |
-| **Azure OpenAI gpt-4o** | Crop-level AI cascade | `HANDWRITING_UNREADABLE`, orientation | Review-only until route promotion (`AZURE_OPENAI_REVIEW_ONLY`) |
-| **AWS Textract DetectDocumentText** | Cloud-OCR fallback | Local OCR exhausted **and** field blocks STP | Off common path; crop-scoped |
+| **Azure Document Intelligence Read** | Cloud OCR residual (`prebuilt-read`) | Handwriting DOB / empty finance after local OCR | Off common path; PHI+region+auth gates; review-only until promotion |
+| **Azure OpenAI gpt-4o** | Crop-level AI/VLM cascade | Orientation / DI-exhausted handwriting | Review-only until route promotion (`AZURE_OPENAI_REVIEW_ONLY`) |
+| **AWS Textract DetectDocumentText** | Cloud-OCR fallback | Local + Azure DI exhausted **and** field blocks STP | Off common path; crop-scoped |
 | **React field-level HITL** | Human review UI (`apps/evaluation_ui`) | Residual honest HITL queue | Field-scoped tasks only |
 
 ## Common path (cheap → expensive)
@@ -29,8 +30,9 @@ OpenCV SIFT/FLANN/RANSAC register (+ recovery)
        ↘ empty/invalid/contradictory box-28 + observed lines → LINE_TOTALS_RECONCILED (local)
   → claim decision (True STP = COMPLETED ∧ ¬review)
        ↘ residual empty finance / tables → Docling (gated)
-       ↘ residual handwriting / orientation → Azure gpt-4o (review-only)
-       ↘ local OCR exhausted + blocks STP → Textract DetectDocumentText (gated)
+       ↘ residual handwriting / empty finance OCR → Azure Document Intelligence prebuilt-read (gated)
+       ↘ DI exhausted / orientation → Azure gpt-4o (review-only)
+       ↘ local + DI exhausted + blocks STP → Textract DetectDocumentText (gated)
        ↘ else → React field HITL
 ```
 
@@ -49,13 +51,27 @@ Planner: `packages/tool_escalation.py` (`plan_field_escalation`).
 
 ## Azure credentials
 
-Set via environment / `.env` (gitignored) — never commit:
+Set via environment / `.env` (gitignored) — never commit.
+
+**Azure OpenAI (VLM cascade):**
 
 - `AZURE_AI_EVALUATION_ENABLED=true`
 - `AZURE_OPENAI_ENDPOINT`
 - `AZURE_OPENAI_API_KEY`
 - `AZURE_AI_EVALUATION_DEPLOYMENT=gpt-4o`
 - `AZURE_OPENAI_REVIEW_ONLY=true`
+
+**Azure Document Intelligence (cloud OCR — separate resource from OpenAI):**
+
+- `AZURE_DOCUMENT_INTELLIGENCE_ENABLED=true`
+- `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT` (e.g. `https://<resource>.cognitiveservices.azure.com`)
+- `AZURE_DOCUMENT_INTELLIGENCE_API_KEY`
+- `AZURE_DOCUMENT_INTELLIGENCE_AUTHORIZED=true`
+- `AZURE_DOCUMENT_INTELLIGENCE_REGION_APPROVED=true`
+- `AZURE_DOCUMENT_INTELLIGENCE_PHI_CONTRACT_APPROVED=true`
+- `AZURE_DOCUMENT_INTELLIGENCE_REVIEW_ONLY=true`
+
+Factory: `workers/cascade/azure_di_factory.py` (`build_azure_read_engine`).
 
 ## Honest residuals (do not invent ink)
 

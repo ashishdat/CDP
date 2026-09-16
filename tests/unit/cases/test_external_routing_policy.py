@@ -66,11 +66,33 @@ def test_tool_escalation_maps_gaps_to_stack():
         gap_class="HANDWRITING_UNREADABLE",
         field_name="patient_dob",
     )
-    assert dob.tool == EscalationTool.AZURE_GPT4O
+    assert dob.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
     assert dob.review_only is True
+
+    dob_after_di = plan_field_escalation(
+        gap_class="HANDWRITING_UNREADABLE",
+        field_name="patient_dob",
+        azure_di_attempted=True,
+    )
+    assert dob_after_di.tool == EscalationTool.AZURE_GPT4O
 
     reg = plan_field_escalation(
         gap_class="REGISTRATION_FAILED",
         field_name="*",
     )
     assert reg.tool == EscalationTool.OPENCV_REGISTRATION_HITL
+
+    charge_no_docling = plan_field_escalation(
+        gap_class="EMPTY_FINANCIAL_INK",
+        field_name="total_charge",
+        regional_ocr_attempted=True,
+        service_line_rows_missing=False,
+        empty_financial_ink=True,
+        table_detected=False,
+        template_extraction_failed=False,
+    )
+    # Without table-failure Docling gate, Azure DI is preferred cloud OCR.
+    assert charge_no_docling.tool in {
+        EscalationTool.DOCLING,
+        EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ,
+    }
