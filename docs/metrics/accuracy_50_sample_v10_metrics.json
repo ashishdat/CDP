@@ -1,0 +1,71 @@
+{
+  "dataset_id": "CDP_GOLDEN_ENGINEERING_PACK_V2",
+  "sample_size": 50,
+  "cms_docs": 25,
+  "ub_docs": 25,
+  "field_count": 500,
+  "exact_accuracy": 0.998,
+  "critical_exact_accuracy": 0.9971428571428571,
+  "field_hitl": 1.0,
+  "claim_hitl": 1.0,
+  "claim_stp": 0.0,
+  "perfect_claim_exact": 0.98,
+  "false_accepts": 0,
+  "validation_status_counts": {
+    "PENDING": 453,
+    "INVALID": 47
+  },
+  "by_family": {
+    "CMS1500": {
+      "documents": 25,
+      "fields": 275,
+      "exact_accuracy": 0.9963636363636363,
+      "field_hitl": 1.0,
+      "claim_hitl": 1.0,
+      "claim_stp": 0.0,
+      "perfect_claim_exact": 0.96
+    },
+    "UB04": {
+      "documents": 25,
+      "fields": 225,
+      "exact_accuracy": 1.0,
+      "field_hitl": 1.0,
+      "claim_hitl": 1.0,
+      "claim_stp": 0.0,
+      "perfect_claim_exact": 1.0
+    }
+  },
+  "top_exact_failures": [
+    [
+      "patient_dob",
+      1
+    ]
+  ],
+  "latency_ms": {
+    "p50": 1441.9529220031109,
+    "mean": 1593.7324855400948,
+    "max": 3339.505375974113
+  },
+  "elapsed_s": 80.33561490601278,
+  "note": "Golden Pack V2 standard-form extractor leaves most fields PENDING (EvidenceDecision not wired in this harness). raw_* HITL is not production STP. hard_* treats INVALID/MISSING/exact-miss as actionable HITL. provider_npi INVALID is Luhn failure on synthetic V2 NPIs (use V3 pack for Luhn-valid). claim_stp_proxy = claims with zero hard HITL fields.",
+  "hard_field_hitl": 0.096,
+  "hard_claim_hitl": 0.94,
+  "claim_stp_proxy": 0.06,
+  "raw_field_hitl": 1.0,
+  "raw_claim_hitl": 1.0,
+  "issues": {
+    "NPI_LUHN_INVALID": 47,
+    "EXACT_MISS:patient_dob": 1
+  },
+  "issue_examples": {
+    "EXACT_MISS:patient_dob": [
+      "CMS019 pred='2020-04-03' exp='04/03/2002'"
+    ]
+  },
+  "metric_definitions": {
+    "exact_accuracy": "predicted vs golden field_truth (normalized)",
+    "raw_claim_hitl": "validation_status not AUTO_ACCEPTED (PENDING counts) \u2014 NOT production STP",
+    "hard_claim_hitl": "INVALID/MISSING/exact-miss only",
+    "claim_stp_proxy": "1 - hard_claim_hitl (Golden Pack proxy, not cascade true STP)"
+  }
+}
