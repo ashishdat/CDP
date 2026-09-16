@@ -39,6 +39,23 @@ Independent cohort `docs[50:350]` under `field-cascade-v11` (+ v11.1 live for la
 
 Accuracy ≠ STP: labeled HITL claims still score; unlabeled hard ink abstains.
 
+## Golden Pack V3 (authoritative truth)
+
+Dataset: `CDP_GOLDEN_ENGINEERING_PACK_V3` (`evaluation_data/phase8_7_golden_pack/...`).
+Evaluator: `evaluation/accuracy_100_sample.py` → `evaluation_results/accuracy_100_sample_v3_independent_cascade_v11/`.
+
+| Metric | Value |
+|--------|------:|
+| n | 100 (50 CMS + 50 UB) |
+| Claim STP proxy | **98%** |
+| Claim hard HITL | **2%** |
+| Exact field accuracy | **99.8%** |
+| Critical exact accuracy | 99.71% |
+| False accepts | **0** |
+
+Scope: EXTRACTION_HARNESS (identity/template supplied). This is the engineering golden truth for accuracy + STP proxy / hard HITL — not Hackathon agent GT and not ops E2E True STP.
+
+
 ## Learning from hackathon_300_cascade_v11 (historical partial notes)
 
 | Track | Rate | Dominant cause |

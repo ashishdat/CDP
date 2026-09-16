@@ -2,7 +2,7 @@
   "report_metadata": {
     "dataset_label": "CDP_GOLDEN_ENGINEERING_PACK_V3",
     "synthetic_demo": false,
-    "generated_at": "2026-09-15T07:36:31.615761+00:00",
+    "generated_at": "2026-09-16T12:54:18.264089+00:00",
     "scope": "GOLDEN_PACK_V3_100_INDEPENDENT_EXTRACTION_HARNESS",
     "measurement_scope": "EXTRACTION_HARNESS",
     "production_generalization_claim": false,
@@ -10,7 +10,7 @@
     "hitl_optimization_policy": "hard_hitl_exact_or_invalid",
     "hitl_cohort_status": "MEASURED",
     "dataset_path": "evaluation_data/phase8_7_golden_pack/CDP_GOLDEN_ENGINEERING_PACK_V3",
-    "source_metrics": "evaluation_results/accuracy_100_sample_v3_independent/metrics.json",
+    "source_metrics": "evaluation_results/accuracy_100_sample_v3_independent_cascade_v11/metrics.json",
     "independent_source_documents": 100,
     "augmented_observation_count": 100,
     "identity_supplied_by_harness": true,
@@ -35,9 +35,9 @@
     "operational_baseline": {
       "measurement_scope": "OPERATIONAL_E2E",
       "denominator_claims": 100,
-      "final_claim_count": 43,
-      "incomplete_count": 57,
-      "operational_completion_rate": 0.43,
+      "final_claim_count": 39,
+      "incomplete_count": 61,
+      "operational_completion_rate": 0.39,
       "true_stp_rate": 0.0,
       "true_stp_count": 0,
       "end_to_end_correct_completion_rate": null,
@@ -61,28 +61,28 @@
     }
   },
   "field_count": 1000,
-  "raw_exact_match_accuracy": 0.999,
-  "normalized_field_accuracy": 0.999,
-  "ocr_deterministic_accuracy": 0.999,
+  "raw_exact_match_accuracy": 0.998,
+  "normalized_field_accuracy": 0.998,
+  "ocr_deterministic_accuracy": 0.998,
   "llm_diversion_rate": 0.0,
   "llm_diverted_fields": 0,
-  "critical_field_accuracy": 0.9985714285714286,
+  "critical_field_accuracy": 0.9971428571428571,
   "character_error_rate": 0.0,
   "missing_field_rate": 0.0,
   "false_accept_rate": 0.0,
   "critical_false_accept_rate": 0.0,
-  "false_review_rate": 0.999,
-  "perfect_claim_rate": 0.99,
-  "straight_through_processing_rate": 0.99,
-  "accuracy_before_fallback": 0.999,
-  "accuracy_after_fallback": 0.999,
+  "false_review_rate": 0.998,
+  "perfect_claim_rate": 0.98,
+  "straight_through_processing_rate": 0.98,
+  "accuracy_before_fallback": 0.998,
+  "accuracy_after_fallback": 0.998,
   "accuracy_by_field": {
     "cpt_hcpcs": 1.0,
     "diagnosis": 1.0,
     "federal_tax_no": 1.0,
     "insured_name": 1.0,
     "member_id": 1.0,
-    "patient_dob": 1.0,
+    "patient_dob": 0.99,
     "patient_name": 0.99,
     "principal_diagnosis": 1.0,
     "provider_name": 1.0,
@@ -93,14 +93,28 @@
     "type_of_bill": 1.0
   },
   "accuracy_by_form_type": {
-    "CMS1500": 1.0,
+    "CMS1500": 0.9981818181818182,
     "UB04": 0.9977777777777778
   },
   "accuracy_by_extraction_method": {
-    "RAPIDOCR": 0.999
+    "RAPIDOCR": 0.998
   },
   "accuracy_by_image_quality_bucket": {},
   "mismatches": [
+    {
+      "document_id": "CMS019",
+      "form_type": "CMS1500",
+      "field_name": "patient_dob",
+      "expected_value": "04/03/2002",
+      "extracted_value": "2020-04-03",
+      "normalized_value": "2020-04-03",
+      "ocr_confidence": null,
+      "validation_result": "HARD_HITL",
+      "extraction_method": "RAPIDOCR_V3_HARNESS",
+      "bounding_box": null,
+      "crop_reference": null,
+      "failure_category": "EXACT_MISS"
+    },
     {
       "document_id": "UB041",
       "form_type": "UB04",
@@ -119,12 +133,12 @@
   "evaluation_metrics": {
     "measurement_scope": "EXTRACTION_HARNESS",
     "metric_name_stp": "golden_pack_claim_stp_proxy",
-    "golden_pack_claim_stp_proxy": 0.99,
-    "extraction_field_accuracy": 0.999,
-    "hard_hitl_proxy_rate": 0.01,
-    "hard_hitl_proxy_documents": 1,
+    "golden_pack_claim_stp_proxy": 0.98,
+    "extraction_field_accuracy": 0.998,
+    "hard_hitl_proxy_rate": 0.02,
+    "hard_hitl_proxy_documents": 2,
     "independent_source_documents": 100,
-    "average_latency_seconds": 1.7354242415301269,
+    "average_latency_seconds": 1.7402141480203135,
     "identity_supplied_by_harness": true
   },
   "operational_metrics": {
@@ -133,7 +147,7 @@
     "processing_time_seconds": null,
     "average_latency_seconds": null,
     "pages_per_second": null,
-    "accuracy": 0.43,
+    "accuracy": 0.39,
     "precision": 0.0,
     "recall": 0.0,
     "total_documents": null,
@@ -141,16 +155,31 @@
     "document_stp_rate": null,
     "hard_hitl_documents": null,
     "claim_hard_hitl_rate": null,
-    "operational_completion_rate": 0.43,
+    "operational_completion_rate": 0.39,
     "true_stp_rate": 0.0,
     "true_stp_count": 0,
-    "final_claim_count": 43,
-    "incomplete_count": 57,
+    "final_claim_count": 39,
+    "incomplete_count": 61,
     "denominator_claims": 100,
     "end_to_end_correct_completion_status": "UNAVAILABLE_NO_GROUND_TRUTH",
     "measurement_note": "Operational completion is FinalClaim / submitted claims from the application path. True STP requires FinalClaim with review_required=false. Golden Pack extraction metrics are under evaluation_metrics."
   },
   "field_evidence": [
+    {
+      "document_id": "CMS019",
+      "form_type": "CMS1500",
+      "field_name": "patient_dob",
+      "expected_value": "04/03/2002",
+      "extracted_value": "2020-04-03",
+      "normalized_value": "2020-04-03",
+      "extraction_method": "RAPIDOCR_V3_HARNESS",
+      "confidence": 0.72,
+      "status": "MISMATCH",
+      "correct": false,
+      "original_page_url": null,
+      "row_context_url": null,
+      "crop_url": null
+    },
     {
       "document_id": "UB041",
       "form_type": "UB04",
@@ -168,7 +197,7 @@
     }
   ],
   "provenance": {
-    "primary_metrics_sha256": "61141fdddfcdd8527368521fed8cddb3e80fdedb15d2ffc1dac95870e9e28e3d",
+    "primary_metrics_sha256": "8ea3fefab05639aa3b7ed5c2fee83c40755d5980f630378b5150f0b0976c222d",
     "stress_metrics_sha256": "fa128374f52050357ec157fc45c656baa0faea9f9bd5a4307c09293a4d138dab",
     "evaluator": "evaluation/accuracy_100_sample.py"
   }

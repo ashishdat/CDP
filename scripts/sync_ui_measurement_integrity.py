@@ -19,8 +19,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PRIMARY = ROOT / "evaluation_results" / "accuracy_100_sample_v3_independent"
-FALLBACK_PRIMARY = ROOT / "evaluation_results" / "accuracy_100_sample_v3"
+PRIMARY = ROOT / "evaluation_results" / "accuracy_100_sample_v3_independent_cascade_v11"
+FALLBACK_PRIMARY = ROOT / "evaluation_results" / "accuracy_100_sample_v3_independent"
+FALLBACK_PRIMARY_V3 = ROOT / "evaluation_results" / "accuracy_100_sample_v3"
 STRESS = ROOT / "evaluation_results" / "accuracy_300_sample_v3"
 OPS_REPORT = ROOT / "AnchorNormalizationDeltaReport.json"
 REPORT_PATHS = [
