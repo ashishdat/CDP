@@ -2,67 +2,25 @@
   "run": "hackathon_50_cascade_v11",
   "status": "RUNNING",
   "n_requested": 50,
-  "n_finished": 3,
-  "true_stp": 2,
-  "true_stp_rate": 0.6666666666666666,
+  "n_finished": 4,
+  "true_stp": 3,
+  "true_stp_rate": 0.75,
   "disposition_counts": {
-    "TRUE_STP": 2,
+    "TRUE_STP": 3,
     "HITL": 1
   },
   "registration_failures": [],
-  "claims_in_flight": 4,
-  "with_geometry": 5,
-  "registration_probe": [
-    {
-      "claim": "Group A__M048DJJF.001",
-      "finished": true,
-      "geometry": true,
-      "geom_status": "SUCCESS",
-      "algorithm": "sift_flann_ransac_homography_near_miss_boost"
-    },
-    {
-      "claim": "Group A__M048DJJF.002",
-      "finished": true,
-      "geometry": true,
-      "geom_status": "SUCCESS",
-      "algorithm": "sift_flann_ransac_homography"
-    },
-    {
-      "claim": "Group A__M048DJJF.003",
-      "finished": true,
-      "geometry": true,
-      "geom_status": "SUCCESS",
-      "algorithm": "sift_flann_ransac_homography"
-    },
-    {
-      "claim": "Group A__M048DJJF.004",
-      "finished": false,
-      "geometry": true,
-      "geom_status": "SUCCESS",
-      "algorithm": "sift_flann_ransac_homography"
-    },
-    {
-      "claim": "Group A__M048DJJF.005",
-      "finished": false,
-      "geometry": true,
-      "geom_status": "SUCCESS",
-      "algorithm": "sift_perspective_recovery_boost"
-    },
-    {
-      "claim": "Group A__M048DJJF.006",
-      "finished": false,
-      "geometry": false,
-      "geom_status": null,
-      "algorithm": null
-    },
-    {
-      "claim": "Group A__M048DJJF.007",
-      "finished": false,
-      "geometry": false,
-      "geom_status": null,
-      "algorithm": null
-    }
+  "elapsed_sec_finished": [
+    1216.914,
+    1333.736,
+    1349.357,
+    1768.643
   ],
-  "generated_at": "2026-09-16T05:14:43.598269+00:00",
-  "note": "Registration recovery working: 0 REGISTRATION_FAILED so far; DJJF.001 reached field HITL (not Track A); DJJF.005 has geometry via perspective path. 2/3 TRUE_STP."
+  "speed_fix": {
+    "ocr_hard_exit_after_completed": true,
+    "blas_threads_pinned_to_1": true,
+    "workers": 2,
+    "note": "Prior ~22min/claim was OCR atexit hang + 4-worker thread thrash on 4 CPUs. Resumed with hang fix + 2 workers."
+  },
+  "generated_at": "2026-09-16T05:20:37.172720+00:00"
 }
