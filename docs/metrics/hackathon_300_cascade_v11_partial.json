@@ -2,22 +2,25 @@
   "run": "hackathon_300_cascade_v11",
   "status": "RUNNING",
   "n_requested": 300,
-  "n_finished": 42,
+  "n_finished": 50,
   "offset": 50,
   "cohort": "hackathon docs[50:350] independent of diagnostic first-50",
   "strategy_id": "field-cascade-v11",
-  "true_stp": 25,
-  "true_stp_rate": 0.5952380952380952,
-  "field_hitl": 10,
-  "field_hitl_rate": 0.23809523809523808,
+  "true_stp": 31,
+  "true_stp_rate": 0.62,
+  "field_hitl": 12,
+  "field_hitl_rate": 0.24,
   "registration_failed": 7,
-  "registration_failed_rate": 0.16666666666666666,
-  "combined_hitl": 17,
-  "combined_hitl_rate": 0.40476190476190477,
+  "registration_failed_rate": 0.14,
+  "combined_hitl": 19,
+  "combined_hitl_rate": 0.38,
   "disposition_counts": {
-    "HITL": 10,
+    "HITL": 12,
     "REGISTRATION_FAILED": 7,
-    "TRUE_STP": 25
+    "TRUE_STP": 31
   },
-  "generated_at": "2026-09-16T08:02:02.832418+00:00"
+  "mean_elapsed_sec": 214.0,
+  "eta_min_approx": 445.8,
+  "process_alive": true,
+  "generated_at": "2026-09-16T08:15:39.192625+00:00"
 }
