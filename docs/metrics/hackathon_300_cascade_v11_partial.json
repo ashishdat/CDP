@@ -1,94 +1,23 @@
 {
   "run": "hackathon_300_cascade_v11",
-  "strategy_id": "field-cascade-v11.1",
   "status": "RUNNING",
-  "updated_at": "2026-09-16T12:17:22.486398+00:00",
-  "selected": 300,
+  "n_requested": 300,
+  "n_finished": 278,
   "offset": 50,
-  "finished": 270,
-  "pending": 30,
-  "workers": 3,
-  "rates": {
-    "true_stp": 0.3704,
-    "field_hitl": 0.3778,
-    "registration_hitl": 0.2519,
-    "combined_hitl": 0.6296,
-    "stage_failure": 0.0,
-    "exact_accuracy_vs_agent_gt": 0.997245,
-    "perfect_claim_exact_rate": 0.99005,
-    "false_accept_rate": 0.002755
+  "cohort": "hackathon docs[50:350] independent of diagnostic first-50",
+  "strategy_id": "field-cascade-v11",
+  "true_stp": 106,
+  "true_stp_rate": 0.381294964028777,
+  "field_hitl": 103,
+  "field_hitl_rate": 0.37050359712230213,
+  "registration_failed": 69,
+  "registration_failed_rate": 0.24820143884892087,
+  "combined_hitl": 172,
+  "combined_hitl_rate": 0.6187050359712231,
+  "disposition_counts": {
+    "HITL": 103,
+    "REGISTRATION_FAILED": 69,
+    "TRUE_STP": 106
   },
-  "counts": {
-    "true_stp": 100,
-    "field_hitl": 102,
-    "registration_hitl": 68,
-    "combined_hitl": 170,
-    "stage_failure": 0,
-    "finished": 270,
-    "claims_scored_for_accuracy": 201,
-    "fields_scored_for_accuracy": 726,
-    "false_accepts": 2
-  },
-  "accuracy": {
-    "source": "agent_created_gt",
-    "claims_scored": 201,
-    "field_count": 726,
-    "exact_accuracy": 0.997245,
-    "perfect_claim_exact_rate": 0.99005,
-    "false_accepts": 2,
-    "false_accept_rate": 0.002755,
-    "field_exact": {
-      "patient_dob": {
-        "exact": 57,
-        "n": 59,
-        "rate": 0.966102
-      },
-      "total_charge": {
-        "exact": 163,
-        "n": 163,
-        "rate": 1.0
-      },
-      "patient_name": {
-        "exact": 167,
-        "n": 167,
-        "rate": 1.0
-      },
-      "insured_id_number": {
-        "exact": 179,
-        "n": 179,
-        "rate": 1.0
-      },
-      "insured_name": {
-        "exact": 158,
-        "n": 158,
-        "rate": 1.0
-      }
-    },
-    "false_accept_examples": [
-      {
-        "claim_id": "Group A__M048EJGE.038",
-        "field": "patient_dob",
-        "predicted": "1966-08-08",
-        "expected": "1966-08-18",
-        "gt_confidence": "SILVER"
-      },
-      {
-        "claim_id": "Group A__M048HJCX.009",
-        "field": "patient_dob",
-        "predicted": "1965-06-01",
-        "expected": "1965-06-19",
-        "gt_confidence": "SILVER"
-      }
-    ],
-    "caveat": "Scored 201/270 finished claims with \u22651 GT label."
-  },
-  "elapsed_sec_post_speedfix": {
-    "n": 141,
-    "mean": 195.2,
-    "min": 91.0,
-    "max": 834.9
-  },
-  "notes": [
-    "v11.1: name confusable/MI relief; tesseract charge/ID authority; service-line fallback"
-  ]
+  "generated_at": "2026-09-16T12:26:10.319380+00:00"
 }
