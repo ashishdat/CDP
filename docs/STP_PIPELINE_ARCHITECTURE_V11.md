@@ -23,6 +23,27 @@
 
 Near-miss / mild-perspective / orientation ladder (v11 registration recovery) recovered most ratio-only fails. Residual DJJM multipage catastrophic warps remain fail-closed.
 
+## Learning from hackathon_300_cascade_v11 (~260 partial)
+
+| Track | Rate | Dominant cause |
+|-------|------|----------------|
+| True STP | ~38% | — |
+| Field-ink HITL | ~36% | name CONFLICT (~65), empty finance (~25), calibration (~21), plumbing (~21), DOB fragments |
+| Registration HITL | ~26% | insufficient inliers / perspective / rotation (fail-closed) |
+| Combined non-STP | ~62% | Track A + Track B |
+
+### Architecture gaps (and fixes)
+
+| Gap | Why HITL | Fix (v11.1) |
+|-----|----------|-------------|
+| **Name confusable multi-sub** | paddle `DAVIIA KEVTN` vs rapid `DAVILA KEVIN` → CONFLICT | Allow ≤2 confusable substitutions (I↔L, T↔I, …) as equivalent |
+| **Optional middle initial** | `THOMAS DWAYNE` vs `THOMAS S DWAYNE` → CONFLICT | Treat single-letter MI insert as equivalent; prefer longer |
+| **Digit-engine authority** | `tesseract_digits` stripped as `CANDIDATE_ENGINE_NOT_AUTHORIZED` on charge/ID | Authorize Tesseract family for DOB/charge/ID; attribute digit fills to paddle |
+| **Empty box-28 + missed lines** | Fast digit service-line OCR returned 0 lines → EMPTY_FINANCIAL_INK | Fallback: one paddle/rapid pass on primary charge column |
+| **Honest residual** | True handwriting / empty ink / catastrophic registration | Keep HITL; VLM orientation later (deferred) |
+
+Plumbing gaps are **not** ink failures — taxonomy already says `EVIDENCE_PLUMBING_GAP`.
+
 ## v11 architecture
 
 ```
@@ -43,6 +64,7 @@ register → register_recovery → geometry → roi_inset
 | Span | Match `1NSURED` / `FATIENT` / `FURST`; glued `…NAMELASTNAME`; reject `NAME, SLOGER` false pairs |
 | Semantic accept | `NAME_LABEL_CONTAMINATED` / `ID_LABEL_CONTAMINATED` never stop the cascade |
 | Reconciler | Prefer clean over dirty; token-prefix expansion; E↔L substitution equivalence; shaped ID over header |
+| Reconciler v11.1 | ≤2 confusable letter subs; optional middle-initial equivalence |
 
 ### OCR stack (unchanged engines, retuned use)
 
@@ -50,8 +72,8 @@ register → register_recovery → geometry → roi_inset
 |--------|------|
 | PaddleOCR | Primary printed CMS |
 | RapidOCR | Independent confirmation |
-| Tesseract (+ digits) | Fill after dual-engine miss; DOB cell whitelist |
-| Optional later | TrOCR / handwriting route only for residual `HANDWRITING_UNREADABLE` |
+| Tesseract (+ digits) | Fill after dual-engine miss; DOB cell whitelist; charge digits (authorized) |
+| Optional later | TrOCR / handwriting route only for residual `HANDWRITING_UNREADABLE`; VLM for Track-A orientation |
 
 Gates unchanged: no invented ink, no E3 waiver, True STP = `COMPLETED` ∧ ¬`review_required`.
 
@@ -61,4 +83,4 @@ Report separately:
 
 - True STP / field-ink HITL / registration HITL / combined HITL
 - OCR cascade health (`engines_probe`, per-claim OBSERVED)
-- Accuracy = `UNAVAILABLE_NO_GROUND_TRUTH` on Hackathon-1000 unless agent visual GT
+- Accuracy = agent consensus GT on labeled fields (not vendor GT); HITL claims included when completed

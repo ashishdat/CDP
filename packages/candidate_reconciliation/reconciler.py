@@ -192,6 +192,40 @@ def prefer_longer_name_prefix(primary: str, competitors: list[str]) -> str | Non
     return None
 
 
+def _names_differ_by_optional_middle_initial(left: str, right: str) -> bool:
+    """True when names match except one optional single-letter middle initial.
+
+    Example: ``THOMAS DWAYNE`` vs ``THOMAS S DWAYNE`` — CMS middle-initial
+    presence differs by engine, not identity.
+    """
+    a, b = _name_tokens(left), _name_tokens(right)
+    if not a or not b or a == b:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    if len(longer) != len(shorter) + 1:
+        return False
+    for idx, tok in enumerate(longer):
+        if len(tok) == 1 and longer[:idx] + longer[idx + 1 :] == shorter:
+            return True
+    return False
+
+
+def prefer_name_with_optional_middle_initial(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """Prefer the longer display when only an optional middle initial differs."""
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    for left in observed:
+        for right in observed:
+            if left == right:
+                continue
+            if not _names_differ_by_optional_middle_initial(left, right):
+                continue
+            lt, rt = _name_tokens(left), _name_tokens(right)
+            return left if len(lt) >= len(rt) else right
+    return None
+
+
 def prefer_name_without_label_contamination(
     primary: str, competitors: list[str]
 ) -> str | None:
@@ -237,20 +271,30 @@ def _names_differ_by_confusable_insertion(left: str, right: str) -> bool:
 _NAME_CONFUSABLE_PAIRS = {
     frozenset({"E", "L"}),
     frozenset({"I", "L"}),
+    frozenset({"I", "T"}),
+    frozenset({"I", "1"}),
     frozenset({"O", "D"}),
+    frozenset({"O", "0"}),
     frozenset({"U", "V"}),
+    frozenset({"S", "5"}),
+    frozenset({"B", "8"}),
+    frozenset({"G", "6"}),
 }
 
 
 def _names_differ_by_confusable_substitution(left: str, right: str) -> bool:
-    """True when same-length names differ by one OCR-confusable letter."""
+    """True when same-length names differ by ≤2 OCR-confusable letters.
+
+    Track-B 300-run learning: paddle ``DAVIIA KEVTN`` vs rapid ``DAVILA KEVIN``
+    is two confusable substitutions (I↔L, T↔I), not a true identity conflict.
+    """
     a, b = _canonical_person_name(left), _canonical_person_name(right)
     if not a or not b or a == b or len(a) != len(b):
         return False
     diffs = [(x, y) for x, y in zip(a, b) if x != y]
-    if len(diffs) != 1:
+    if not diffs or len(diffs) > 2:
         return False
-    return frozenset(diffs[0]) in _NAME_CONFUSABLE_PAIRS
+    return all(frozenset(pair) in _NAME_CONFUSABLE_PAIRS for pair in diffs)
 
 
 def prefer_name_without_confusable_insertion(
@@ -313,6 +357,9 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
             return True
         # Token-prefix (missing middle name on one engine) is not a true conflict.
         if prefer_longer_name_prefix(left, [right]) is not None:
+            return True
+        # Optional CMS middle initial (THOMAS DWAYNE vs THOMAS S DWAYNE).
+        if _names_differ_by_optional_middle_initial(left, right):
             return True
         # Label-contaminated crop vs clean ink of the same person.
         if prefer_name_without_label_contamination(left, [right]) is not None:
@@ -501,12 +548,27 @@ class EvidenceReconciler:
                     value = prefix_clean
                     early_name_relief = True
                 else:
-                    name_clean = prefer_name_without_confusable_insertion(
+                    mi_clean = prefer_name_with_optional_middle_initial(
                         str(value), competing
                     )
-                    if name_clean:
-                        value = name_clean
+                    if mi_clean:
+                        value = mi_clean
                         early_name_relief = True
+                    else:
+                        name_clean = prefer_name_without_confusable_insertion(
+                            str(value), competing
+                        )
+                        if name_clean:
+                            value = name_clean
+                            early_name_relief = True
+                        elif any(
+                            _names_differ_by_confusable_substitution(str(value), other)
+                            or _names_differ_by_optional_middle_initial(str(value), other)
+                            or values_conflict_equivalent(field_name, str(value), other)
+                            for other in competing
+                        ):
+                            # ≤2 confusable substitutions or optional middle initial.
+                            early_name_relief = True
 
         # Prefer non-contaminated name groups when ranking was poisoned by
         # high-confidence header OCR (rapid often outscores paddle on labels).
@@ -799,6 +861,18 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("NAME_PREFIX_EXPANSION_RELIEVED")
+                elif (
+                    mi_clean := prefer_name_with_optional_middle_initial(
+                        str(value), genuine
+                    )
+                ):
+                    value = mi_clean
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("NAME_MIDDLE_INITIAL_RELIEVED")
                 elif name_clean:
                     value = name_clean
                     decision = (

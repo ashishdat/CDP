@@ -320,11 +320,16 @@ def _recognize_charge_digits_only(image, bbox):
                 latency_ms=0.0,
             )
             payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
+            # Attribute to a route-authorized producing engine so evidence decision
+            # does not strip digit-only amounts as CANDIDATE_ENGINE_NOT_AUTHORIZED.
+            payload['engine'] = 'paddleocr'
+            payload['producing_engine'] = 'tesseract_digits'
             payload['span_selection'] = {
                 'selected_text': span.selected_text or '',
                 'rule_id': span.rule_id,
                 'confidence': span.confidence,
                 'reason_codes': list(span.reason_codes) + ['CHARGE_DIGIT_FAST'],
+                'producing_engine': 'tesseract_digits',
             }
             candidates.append(payload)
             break
@@ -463,6 +468,39 @@ def recognize_service_lines(image, router, template):
         # STP E6 only needs observed line charges; 3 live rows is enough evidence.
         if fast and len(lines) >= 3:
             break
+    # Fast digit path sometimes misses typed amounts (wrong x-window). One
+    # paddle/rapid pass on the primary column recovers E6 without full thrash.
+    if fast and not lines and router is not None:
+        for row_index in range(table.max_rows):
+            y0 = table.table_y0 + header_offset + row_index * table.row_height_px
+            y1 = min(y0 + table.row_height_px, table.table_y1)
+            if y0 >= table.table_y1:
+                break
+            x0, x1 = charge_col.x0, charge_col.x1
+            bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
+            candidates, attempts, reason = _recognize_one(
+                image, 'charges', bbox, router, charge_col.field_type,
+                engine_order=('paddleocr', 'rapidocr'),
+            )
+            raw = candidates[0].get('raw_value') if candidates else ''
+            value = _currency_value(raw, candidates)
+            if not value:
+                if lines:
+                    break
+                continue
+            lines.append({
+                'line_number': row_index + 1,
+                'charges': value,
+                'charge_amount': value,
+                'raw_charges': raw,
+                'canonical_region': list(bbox),
+                'candidates': candidates,
+                'attempts': attempts,
+                'router_reason': f'{reason}|SERVICE_LINE_FALLBACK',
+                'status': 'OBSERVED',
+            })
+            if len(lines) >= 3:
+                break
     return lines
 
 
