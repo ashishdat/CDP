@@ -129,12 +129,38 @@ def prefer_dob_without_separator_one(
     return None
 
 
-def _canonical_member_id(value: str) -> str:
-    compact = re.sub(r"[^A-Z0-9]", "", (value or "").strip().upper())
-    if compact.isdigit():
-        stripped = compact.lstrip("0")
-        return stripped or "0"
-    return compact
+def _member_ids_differ_by_confusable_insertion(left: str, right: str) -> bool:
+    """True when member IDs match after removing one inserted I/1/L glyph.
+
+    Track-B residual: ``A00046372APU`` vs ``A00046372APLU`` — OCR inserted an
+    L into the alphabetic suffix, not a different subscriber id.
+    """
+    a, b = _canonical_member_id(left), _canonical_member_id(right)
+    if not a or not b or a == b:
+        return False
+    if abs(len(a) - len(b)) != 1:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    for idx, ch in enumerate(longer):
+        if ch in {"I", "1", "L"} and longer[:idx] + longer[idx + 1 :] == shorter:
+            return True
+    return False
+
+
+def prefer_member_id_without_confusable_insertion(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """Prefer the shorter member ID when OCR inserted an I/1/L confusable."""
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    for left in observed:
+        for right in observed:
+            if left == right:
+                continue
+            if not _member_ids_differ_by_confusable_insertion(left, right):
+                continue
+            cl, cr = _canonical_member_id(left), _canonical_member_id(right)
+            return left if len(cl) <= len(cr) else right
+    return None
 
 
 def _canonical_person_name(value: str) -> str:
@@ -597,7 +623,11 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
         return bool(a) and a == b
     if name in {"insured_id_number", "member_id", "subscriber_id"}:
         a, b = _canonical_member_id(left), _canonical_member_id(right)
-        return bool(a) and a == b
+        if bool(a) and a == b:
+            return True
+        if _member_ids_differ_by_confusable_insertion(left, right):
+            return True
+        return False
     if name in {"patient_name", "insured_name"} or "name" in name:
         a, b = _canonical_person_name(left), _canonical_person_name(right)
         if bool(a) and a == b:
@@ -771,6 +801,7 @@ class EvidenceReconciler:
         value = max(supporting, key=lambda item: item[1])[0].value
         early_separator_relief = False
         early_name_relief = False
+        early_id_relief = False
         # Within a multi-engine name agreement group, prefer the display that
         # already lacks JI / digit-1 confusables (JIOSEPHINE → JOSEPHINE).
         if is_name_field and len(supporting) >= 1:
@@ -886,6 +917,14 @@ class EvidenceReconciler:
                         value = cand_val
                         supporting = items
                         break
+            competing = [
+                str(max(items, key=lambda row: row[1])[0].value)
+                for _, items in ranked[1:]
+            ]
+            id_clean = prefer_member_id_without_confusable_insertion(str(value), competing)
+            if id_clean:
+                value = id_clean
+                early_id_relief = True
 
         # Never auto-accept a future DOB — OCR year junk / box-rule misreads.
         future_dob_rejected = False
@@ -1176,6 +1215,11 @@ class EvidenceReconciler:
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
                 )
                 reasons.append("NAME_CONFLICT_RELIEVED")
+            elif early_id_relief:
+                decision = (
+                    Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
+                )
+                reasons.append("MEMBER_ID_CONFUSABLE_INSERTION_RELIEVED")
             elif not genuine:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
@@ -1186,6 +1230,7 @@ class EvidenceReconciler:
                 name_clean = None
                 label_clean = None
                 prefix_clean = None
+                id_clean = None
                 if date_corroborated or is_dob_field:
                     separator_clean = prefer_dob_without_separator_one(
                         str(value), genuine
@@ -1198,6 +1243,10 @@ class EvidenceReconciler:
                     name_clean = prefer_name_without_confusable_insertion(
                         str(value), genuine
                     )
+                if is_id_field:
+                    id_clean = prefer_member_id_without_confusable_insertion(
+                        str(value), genuine
+                    )
                 if separator_clean:
                     value = separator_clean
                     decision = (
@@ -1206,6 +1255,14 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
+                elif id_clean:
+                    value = id_clean
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("MEMBER_ID_CONFUSABLE_INSERTION_RELIEVED")
                 elif label_clean:
                     value = label_clean
                     decision = (
@@ -1278,6 +1335,8 @@ class EvidenceReconciler:
                 reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
             if early_name_relief:
                 reasons.append("NAME_CONFLICT_RELIEVED")
+            if early_id_relief:
+                reasons.append("MEMBER_ID_CONFUSABLE_INSERTION_RELIEVED")
         versions = (
             [f"authoritative-reference:{authoritative_version or 'version-not-provided'}"]
             if reference_match

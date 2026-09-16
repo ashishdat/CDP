@@ -100,7 +100,51 @@ def test_viti_ilia_not_equivalent():
     assert not values_conflict_equivalent("patient_name", "VITI DAVID", "ILIA DAVID")
 
 
-def test_id_multi_engine_relief_despite_empty_e2():
+def test_member_id_confusable_l_insertion():
+    assert values_conflict_equivalent(
+        "insured_id_number", "A00046372APU", "A00046372APLU"
+    )
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("A00046372APU", "rapidocr", 0.999),
+            _candidate("A00046372APLU", "paddleocr", 0.971),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "A00046372APU"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_member_id_digit_conflict_stays_hitl():
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("909293380", "rapidocr", 0.991),
+            _candidate("909295500", "paddleocr", 0.846),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.REVIEW
+    assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
+
     result = EvidenceReconciler().reconcile(
         "insured_id_number",
         [
