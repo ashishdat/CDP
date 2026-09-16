@@ -2,12 +2,12 @@
   "run": "hackathon_50_cascade_v11",
   "status": "RUNNING",
   "n_requested": 50,
-  "n_finished": 36,
-  "true_stp": 20,
-  "true_stp_rate": 0.5555555555555556,
+  "n_finished": 38,
+  "true_stp": 21,
+  "true_stp_rate": 0.5526315789473685,
   "disposition_counts": {
-    "TRUE_STP": 20,
-    "HITL": 11,
+    "TRUE_STP": 21,
+    "HITL": 12,
     "REGISTRATION_FAILED": 5
   },
   "registration_failures": [
@@ -32,13 +32,13 @@
       "reason": "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners"
     }
   ],
-  "registration_ok_rate": 0.8611111111111112,
+  "registration_ok_rate": 0.868421052631579,
   "speed": {
     "pre_fix_n": 4,
     "pre_fix_mean_sec": 1417.1625,
-    "post_fix_n": 32,
-    "post_fix_mean_sec": 192.8718125,
+    "post_fix_n": 34,
+    "post_fix_mean_sec": 199.47029411764706,
     "workers": 2
   },
-  "generated_at": "2026-09-16T06:12:40.340854+00:00"
+  "generated_at": "2026-09-16T06:16:41.418308+00:00"
 }
