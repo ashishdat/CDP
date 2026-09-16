@@ -22,6 +22,9 @@ class OCRRouteRequest:
     # Optional per-call engine ladder (e.g. governed field-route primary→confirm).
     # When omitted, ENGINE_ORDER is used. Unknown names are rejected.
     engine_order: tuple[str, ...] | None = None
+    # Stop after this many usable observations once one is accepted.
+    # None → legacy dual-confirm (2 when order has ≥2 engines).
+    min_usable: int | None = None
 
     def __post_init__(self):
         box = tuple(self.bbox)
@@ -41,6 +44,10 @@ class OCRRouteRequest:
             if unknown:
                 raise ValueError(f"Unknown engines in engine_order: {sorted(unknown)}")
             object.__setattr__(self, "engine_order", order)
+        if self.min_usable is not None:
+            if type(self.min_usable) is not int or self.min_usable < 1:
+                raise ValueError("min_usable must be a positive int")
+
 
 
 @dataclass(frozen=True)
@@ -163,13 +170,16 @@ class OCRRouter:
             request.bbox,
             request.allow_handwriting,
             request.engine_order,
+            request.min_usable,
         )
         order = request.engine_order or ENGINE_ORDER
-        # Governed routes list primary then confirmation; require two usable
-        # observations before short-circuit so cascade is not single-engine.
-        # Selection keeps the first policy-accepted usable (primary wins once
-        # confirmation has also been observed).
-        required_usable = 2 if len(tuple(order)) >= 2 else 1
+        # Governed routes list primary then confirmation. Legacy default requires
+        # two usable observations (E2). SELECTIVE_E2_ONLY callers pass min_usable=1
+        # so a field-shaped primary can stop without invoking Paddle/Rapid twice.
+        if request.min_usable is not None:
+            required_usable = request.min_usable
+        else:
+            required_usable = 2 if len(tuple(order)) >= 2 else 1
         with self._lock:
             attempts = []
             usable_count = 0

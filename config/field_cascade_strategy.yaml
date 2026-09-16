@@ -97,7 +97,7 @@ defaults:
   stop_on: semantic_accept
   exhaust_action: keep_best_nonempty_or_empty
   always_span_select: true
-  confirmation_required_usable: 2
+  confirmation_required_usable: 1  # SELECTIVE_E2 via CDP_OCR_SELECTIVE_CONFIRM (default on)
   prefer_multi_engine_agreement: true
   e3_sources:
     - registration_report.json

@@ -103,7 +103,14 @@ def _clamp(bbox: tuple[int, int, int, int], width: int, height: int) -> tuple[in
 
 
 def load_route_engines(field_name: str, route_path: Path | None = None) -> tuple[str, ...]:
-    """Return (primary, confirmation, …) engines for a governed field route."""
+    """Return (primary, confirmation, …) engines for a governed field route.
+
+    Speed knobs (env):
+      CDP_OCR_PRIMARY_OVERRIDE=paddleocr|rapidocr — reorder primary for STP eval
+      CDP_OCR_SELECTIVE_CONFIRM=1 — callers should stop after shaped primary
+    """
+    import os
+
     path = route_path or _ROUTE_PATH
     engines: list[str] = []
     if path.exists():
@@ -119,6 +126,10 @@ def load_route_engines(field_name: str, route_path: Path | None = None) -> tuple
     for engine in ("paddleocr", "rapidocr", "tesseract"):
         if engine not in engines:
             engines.append(engine)
+    override = (os.environ.get("CDP_OCR_PRIMARY_OVERRIDE") or "").strip().casefold()
+    override = _ENGINE_ALIASES.get(override, override)
+    if override and override in engines:
+        engines = [override] + [engine for engine in engines if engine != override]
     return tuple(engines)
 
 

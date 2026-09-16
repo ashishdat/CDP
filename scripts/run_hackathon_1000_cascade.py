@@ -21,6 +21,7 @@ import time
 import zipfile
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -243,8 +244,37 @@ def _stage_env() -> dict[str, str]:
     # Default STP eval to critical-field OCR only (~5× fewer ROIs). Override
     # with CDP_OCR_FIELD_SCOPE=all for full-form extraction.
     env.setdefault("CDP_OCR_FIELD_SCOPE", "stp_critical")
+    # SELECTIVE_E2_ONLY: stop after field-shaped primary (skip dual-engine tax).
+    env.setdefault("CDP_OCR_SELECTIVE_CONFIRM", "1")
+    # Paddle warm inference is ~50× faster than Rapid on CPU; use as STP-eval
+    # primary while Rapid remains confirmation when primary is unshaped.
+    env.setdefault("CDP_OCR_PRIMARY_OVERRIDE", "paddleocr")
+    # Serialize OCR subprocesses — parallel Rapid/Paddle thrash to multi-minute claims.
+    env.setdefault("CDP_OCR_LOCK", "1")
     return env
 
+
+@contextmanager
+def _ocr_process_lock():
+    """Cross-process exclusive lock around OCR so workers do not thrash CPU."""
+    if (os.environ.get("CDP_OCR_LOCK") or "1").strip().casefold() in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }:
+        yield
+        return
+    import fcntl
+
+    lock_path = Path(os.environ.get("CDP_OCR_LOCK_PATH") or "/tmp/cdp_ocr.lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("w", encoding="utf-8") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
 
 def _run_stage(cmd: list[str], log_path: Path) -> tuple[int, str]:
     """Stream stdout/stderr to a file to avoid pipe deadlocks with verbose app.py."""
@@ -469,7 +499,11 @@ def _process_one(
         ),
     ]
     for stage_name, cmd in stages:
-        rc, tail = _run_stage(cmd, logs / f"{stage_name}.log")
+        if stage_name == "ocr":
+            with _ocr_process_lock():
+                rc, tail = _run_stage(cmd, logs / f"{stage_name}.log")
+        else:
+            rc, tail = _run_stage(cmd, logs / f"{stage_name}.log")
         if stage_name == "ocr" and not keep_heavy:
             # Trace is only required for OCR; free disk after that stage.
             _prune_trace(app_out)

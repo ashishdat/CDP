@@ -58,6 +58,12 @@ def _ocr_fast_mode() -> bool:
     return _ocr_scope() in {"stp_critical", "critical", "stp"}
 
 
+def _ocr_selective_confirm() -> bool:
+    """Stop after field-shaped primary (SELECTIVE_E2_ONLY). Default on."""
+    raw = (os.environ.get("CDP_OCR_SELECTIVE_CONFIRM") or "1").strip().casefold()
+    return raw not in {"0", "false", "no", "off"}
+
+
 def _field_in_scope(field_name: str) -> bool:
     scope = _ocr_scope()
     if scope in {"", "all", "*"}:
@@ -145,7 +151,18 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
         applied_profile, applied_version = applied.profile, applied.version
     else:
         route_image, route_bbox = image, tuple(int(v) for v in bbox)
-    routed = router.route(OCRRouteRequest(route_image, route_bbox, engine_order=engine_order))
+    order = tuple(engine_order) if engine_order else None
+    selective = _ocr_selective_confirm() and order is not None and len(order) >= 2
+    if selective:
+        routed = router.route(
+            OCRRouteRequest(
+                route_image, route_bbox, engine_order=(order[0],), min_usable=1
+            )
+        )
+    else:
+        routed = router.route(
+            OCRRouteRequest(route_image, route_bbox, engine_order=order)
+        )
     candidates = []
     attempts = []
     for attempt in routed.attempts:
@@ -178,10 +195,61 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
         }
         candidates.append(payload)
 
+    if selective:
+        shaped = any(
+            semantic_accept(name, (c.get('value') or ''))[0]
+            for c in candidates
+            if (c.get('value') or '').strip()
+        )
+        if not shaped:
+            confirm = router.route(
+                OCRRouteRequest(
+                    route_image, route_bbox, engine_order=(order[1],), min_usable=1
+                )
+            )
+            for attempt in confirm.attempts:
+                observation = attempt.observation
+                attempts.append({'engine': attempt.engine, 'reason': attempt.reason,
+                                 'latency_ms': attempt.latency_ns / 1e6,
+                                 'observation': asdict(observation) if observation else None,
+                                 'preprocessing_profile': applied_profile})
+                if observation is None or not observation.lines:
+                    continue
+                raw = chr(10).join(line.text for line in observation.lines)
+                span = select_field_span(raw, span_datatype_for_field(name, field_type), name)
+                selected = span.selected_text
+                box = BoundingBox(x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
+                                  image_width=image.width, image_height=image.height)
+                candidate = OCRCandidate(
+                    value=selected, raw_value=raw, engine=attempt.engine,
+                    model_name='unknown', model_version='unknown',
+                    preprocessing_variant=applied_profile,
+                    preprocessing_version=applied_version,
+                    raw_confidence=float(np.mean([line.confidence for line in observation.lines])),
+                    calibrated_confidence=None, bounding_box=box,
+                    latency_ms=attempt.latency_ns / 1e6)
+                payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
+                payload['span_selection'] = {
+                    'selected_text': span.selected_text,
+                    'rule_id': span.rule_id,
+                    'confidence': span.confidence,
+                    'reason_codes': list(span.reason_codes) + ['SELECTIVE_CONFIRM'],
+                }
+                candidates.append(payload)
+            routed = confirm
+
     # Handwritten charge crops sometimes regress under currency preprocess
     # (100 → I/00). If span emptied after preprocess, retry the raw crop once.
     if use_preprocess and not any((c.get('value') or '').strip() for c in candidates):
-        raw_routed = router.route(OCRRouteRequest(image, tuple(int(v) for v in bbox), engine_order=engine_order))
+        raw_engines = (order[0],) if selective and order else order
+        raw_routed = router.route(
+            OCRRouteRequest(
+                image,
+                tuple(int(v) for v in bbox),
+                engine_order=raw_engines,
+                min_usable=1 if selective else None,
+            )
+        )
         for attempt in raw_routed.attempts:
             observation = attempt.observation
             attempts.append({'engine': attempt.engine, 'reason': attempt.reason,

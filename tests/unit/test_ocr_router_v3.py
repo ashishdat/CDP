@@ -184,6 +184,22 @@ def test_factory_mapping_is_snapshotted():
     assert router.route(request()).selected.engine == "rapidocr"
 
 
+def test_min_usable_one_stops_after_shaped_primary():
+    events = []
+    outputs = {name: observation(name) for name in ENGINE_ORDER}
+    result = OCRRouter(lambda _: True, factories=factories(events, outputs)).route(
+        OCRRouteRequest(
+            Image.new("L", (30, 20), 255),
+            (5, 3, 25, 15),
+            engine_order=("rapidocr", "paddleocr"),
+            min_usable=1,
+        )
+    )
+    assert [a.engine for a in result.attempts] == ["rapidocr"]
+    assert result.selected.engine == "rapidocr"
+    assert events.count(("recognize", "paddleocr")) == 0
+
+
 def test_confirmation_keeps_primary_after_second_usable():
     events = []
     outputs = {name: observation(name) for name in ENGINE_ORDER}

@@ -34,7 +34,7 @@ def test_strategy_is_v11():
     assert any(s.get("id") == "dob_cells_first" for s in strategy.stages)
     assert any(s.get("id") == "dob_separator_relief" for s in strategy.stages)
     assert any(s.get("id") == "name_label_relief" for s in strategy.stages)
-    assert strategy.defaults.get("confirmation_required_usable") == 2
+    assert strategy.defaults.get("confirmation_required_usable") == 1
 
 
 def test_dob_ladder_includes_year_wide_and_post_miss_cells():

@@ -25,8 +25,8 @@ class AzureDocumentIntelligenceReadBackend:
         api_version: str = "2024-11-30",
         model_id: str = "prebuilt-read",
         timeout_seconds: float = 30.0,
-        poll_interval_seconds: float = 0.4,
-        max_polls: int = 40,
+    poll_interval_seconds: float = 0.2,
+    max_polls: int = 30,
         opener=None,
     ) -> None:
         self._endpoint = endpoint.rstrip("/")
