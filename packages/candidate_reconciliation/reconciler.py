@@ -139,6 +139,87 @@ def _canonical_person_name(value: str) -> str:
     return text
 
 
+def _name_label_contaminated(value: str) -> bool:
+    """True when OCR still carries CMS box-header / Last-First boilerplate."""
+    upper = (value or "").upper()
+    if not upper.strip():
+        return True
+    if re.search(
+        r"(?:[I1L]NSUR[EFO0][DO0]'?S?|[PF]AT[I1L]?E?NT'?S?|PATENTS)\s*NAME",
+        upper,
+    ):
+        return True
+    if re.search(
+        r"(?:LAST|FIRST|FURST|FST|MIDDLE)\s*NAME|MIDDLE\s*INITIAL",
+        upper,
+    ):
+        return True
+    return False
+
+
+def _name_tokens(value: str) -> list[str]:
+    compact = re.sub(r"[^A-Z\s]", " ", (value or "").upper())
+    stop = {
+        "LAST", "FIRST", "FURST", "FST", "MIDDLE", "INITIAL", "NAME",
+        "PATIENT", "FATIENT", "INSURED", "1NSURED",
+    }
+    return [
+        tok
+        for tok in compact.split()
+        if tok and tok not in stop and not tok.endswith("NAME")
+    ]
+
+
+def prefer_longer_name_prefix(primary: str, competitors: list[str]) -> str | None:
+    """Prefer the longer name when one reading is a strict token-prefix of another.
+
+    Example: ``ORR JAMES`` vs ``ORR JAMES ANTHONY`` — middle name only on one
+    engine is not a true conflict.
+    """
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    tokenized = [(_name_tokens(v), v) for v in observed]
+    tokenized = [(toks, v) for toks, v in tokenized if toks]
+    if len(tokenized) < 2:
+        return None
+    # Longest token list that has every shorter list as a prefix.
+    tokenized.sort(key=lambda item: len(item[0]), reverse=True)
+    longest_toks, longest_display = tokenized[0]
+    for toks, _display in tokenized[1:]:
+        if longest_toks[: len(toks)] != toks:
+            return None
+    if any(len(toks) < len(longest_toks) for toks, _ in tokenized):
+        return longest_display
+    return None
+
+
+def prefer_name_without_label_contamination(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """Prefer a clean person-name reading over a label-contaminated twin."""
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    clean = [v for v in observed if not _name_label_contaminated(v)]
+    dirty = [v for v in observed if _name_label_contaminated(v)]
+    if not clean or not dirty:
+        return None
+    # If any clean reading's tokens appear inside a dirty crop, prefer clean.
+    for cand in clean:
+        ct = _name_tokens(cand)
+        if len(ct) < 1:
+            continue
+        for other in dirty:
+            ot = _name_tokens(other)
+            if not ot:
+                continue
+            # Clean tokens ⊆ dirty tokens, or dirty ends with clean tokens.
+            if ot[-len(ct) :] == ct or all(t in ot for t in ct):
+                return cand
+    # Otherwise prefer the highest-token clean value when dirty exists.
+    clean_sorted = sorted(clean, key=lambda v: len(_name_tokens(v)), reverse=True)
+    if clean_sorted and _name_tokens(clean_sorted[0]):
+        return clean_sorted[0]
+    return None
+
+
 def _names_differ_by_confusable_insertion(left: str, right: str) -> bool:
     """True when names match after removing one inserted I/1/L glyph."""
     a, b = _canonical_person_name(left), _canonical_person_name(right)
@@ -151,6 +232,25 @@ def _names_differ_by_confusable_insertion(left: str, right: str) -> bool:
         if ch in {"I", "1", "L"} and longer[:idx] + longer[idx + 1 :] == shorter:
             return True
     return False
+
+
+_NAME_CONFUSABLE_PAIRS = {
+    frozenset({"E", "L"}),
+    frozenset({"I", "L"}),
+    frozenset({"O", "D"}),
+    frozenset({"U", "V"}),
+}
+
+
+def _names_differ_by_confusable_substitution(left: str, right: str) -> bool:
+    """True when same-length names differ by one OCR-confusable letter."""
+    a, b = _canonical_person_name(left), _canonical_person_name(right)
+    if not a or not b or a == b or len(a) != len(b):
+        return False
+    diffs = [(x, y) for x, y in zip(a, b) if x != y]
+    if len(diffs) != 1:
+        return False
+    return frozenset(diffs[0]) in _NAME_CONFUSABLE_PAIRS
 
 
 def prefer_name_without_confusable_insertion(
@@ -170,6 +270,8 @@ def prefer_name_without_confusable_insertion(
                 return left
             if len(cr) < len(cl):
                 return right
+    # Substitution twins are conflict-equivalent but ranking already picked the
+    # higher-confidence display — do not reshuffle them here.
     # JI-peel twins: same canonical after peel — prefer display without raw JI / 1.
     norms = [(_canonical_person_name(v), v) for v in observed]
     by_norm: dict[str, list[str]] = {}
@@ -205,7 +307,17 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
         a, b = _canonical_person_name(left), _canonical_person_name(right)
         if bool(a) and a == b:
             return True
-        return _names_differ_by_confusable_insertion(left, right)
+        if _names_differ_by_confusable_insertion(left, right):
+            return True
+        if _names_differ_by_confusable_substitution(left, right):
+            return True
+        # Token-prefix (missing middle name on one engine) is not a true conflict.
+        if prefer_longer_name_prefix(left, [right]) is not None:
+            return True
+        # Label-contaminated crop vs clean ink of the same person.
+        if prefer_name_without_label_contamination(left, [right]) is not None:
+            return True
+        return False
     return normalize_agreement_value(field_name, left) == normalize_agreement_value(
         field_name, right
     )
@@ -307,11 +419,32 @@ class EvidenceReconciler:
                     return True
             return False
 
+        def _group_name_clean(items) -> bool:
+            for candidate, _, _ in items:
+                val = str(candidate.value or "")
+                if val.strip() and not _name_label_contaminated(val) and _name_tokens(val):
+                    return True
+            return False
+
+        def _group_id_shaped(items) -> bool:
+            for candidate, _, _ in items:
+                val = str(candidate.value or "")
+                compact = re.sub(r"[^A-Z0-9]", "", val.upper())
+                if re.fullmatch(r"[A-Z0-9]{6,20}", compact) and not re.search(
+                    r"INSUR|NUMBER|PROGRAM|ITEM|NAME", val.upper()
+                ):
+                    return True
+            return False
+
         ranked = sorted(
             groups.items(),
             key=lambda item: (
                 independent_agreement(item[0], item[1]),
                 _group_calendar_valid(item[1]) if is_dob_field else True,
+                _group_name_clean(item[1]) if is_name_field else True,
+                _group_id_shaped(item[1])
+                if field_name in {"insured_id_number", "member_id", "subscriber_id"}
+                else True,
                 max(score for _, score, _ in item[1]),
             ),
             reverse=True,
@@ -358,11 +491,55 @@ class EvidenceReconciler:
                 str(max(items, key=lambda row: row[1])[0].value)
                 for _, items in ranked[1:]
             ]
-            name_clean = prefer_name_without_confusable_insertion(str(value), competing)
-            if name_clean:
-                value = name_clean
+            label_clean = prefer_name_without_label_contamination(str(value), competing)
+            if label_clean:
+                value = label_clean
                 early_name_relief = True
-        has_independent_agreement = independent_agreement(_normalized_value, supporting)
+            else:
+                prefix_clean = prefer_longer_name_prefix(str(value), competing)
+                if prefix_clean:
+                    value = prefix_clean
+                    early_name_relief = True
+                else:
+                    name_clean = prefer_name_without_confusable_insertion(
+                        str(value), competing
+                    )
+                    if name_clean:
+                        value = name_clean
+                        early_name_relief = True
+
+        # Prefer non-contaminated name groups when ranking was poisoned by
+        # high-confidence header OCR (rapid often outscores paddle on labels).
+        if is_name_field and len(ranked) > 1 and _name_label_contaminated(str(value)):
+            for _norm, items in ranked[1:]:
+                cand_val = str(max(items, key=lambda row: row[1])[0].value)
+                if not _name_label_contaminated(cand_val) and _name_tokens(cand_val):
+                    value = cand_val
+                    supporting = items
+                    early_name_relief = True
+                    break
+
+        # Prefer shaped member-id over header-only crops in the top slot.
+        is_id_field = field_name in {"insured_id_number", "member_id", "subscriber_id"}
+        if is_id_field and len(ranked) > 1:
+            top_compact = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+            top_is_id = bool(re.fullmatch(r"[A-Z0-9]{6,20}", top_compact)) and not re.search(
+                r"INSUR|NUMBER|PROGRAM|ITEM|NAME", str(value or "").upper()
+            )
+            if not top_is_id:
+                for _norm, items in ranked[1:]:
+                    cand_val = str(max(items, key=lambda row: row[1])[0].value)
+                    compact = re.sub(r"[^A-Z0-9]", "", cand_val.upper())
+                    if re.fullmatch(r"[A-Z0-9]{6,20}", compact) and not re.search(
+                        r"INSUR|NUMBER|PROGRAM|ITEM|NAME", cand_val.upper()
+                    ):
+                        value = cand_val
+                        supporting = items
+                        break
+
+        has_independent_agreement = independent_agreement(
+            normalize_agreement_value(field_name, str(value)), supporting
+        )
         calibrated = max(score for _, score, _ in supporting)
         agreement_bonus = 0.04 if has_independent_agreement else 0.0
         reference_match = (
@@ -575,7 +752,7 @@ class EvidenceReconciler:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
                 )
-                reasons.append("NAME_CONFUSABLE_INSERTION_RELIEVED")
+                reasons.append("NAME_CONFLICT_RELIEVED")
             elif not genuine:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
@@ -584,11 +761,17 @@ class EvidenceReconciler:
             else:
                 separator_clean = None
                 name_clean = None
+                label_clean = None
+                prefix_clean = None
                 if date_corroborated or is_dob_field:
                     separator_clean = prefer_dob_without_separator_one(
                         str(value), genuine
                     )
                 if is_name_field:
+                    label_clean = prefer_name_without_label_contamination(
+                        str(value), genuine
+                    )
+                    prefix_clean = prefer_longer_name_prefix(str(value), genuine)
                     name_clean = prefer_name_without_confusable_insertion(
                         str(value), genuine
                     )
@@ -600,6 +783,22 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
+                elif label_clean:
+                    value = label_clean
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("NAME_LABEL_CONTAMINATION_RELIEVED")
+                elif prefix_clean:
+                    value = prefix_clean
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("NAME_PREFIX_EXPANSION_RELIEVED")
                 elif name_clean:
                     value = name_clean
                     decision = (
@@ -631,7 +830,7 @@ class EvidenceReconciler:
             if early_separator_relief:
                 reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
             if early_name_relief:
-                reasons.append("NAME_CONFUSABLE_INSERTION_RELIEVED")
+                reasons.append("NAME_CONFLICT_RELIEVED")
         versions = (
             [f"authoritative-reference:{authoritative_version or 'version-not-provided'}"]
             if reference_match

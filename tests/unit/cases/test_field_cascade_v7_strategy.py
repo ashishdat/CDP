@@ -1,4 +1,4 @@
-"""Unit tests for field-cascade-v10 strategy loading, E3 honesty, crop ladders."""
+"""Unit tests for field-cascade-v11 strategy loading, E3 honesty, crop ladders."""
 
 from __future__ import annotations
 
@@ -19,12 +19,12 @@ from packages.extraction_recovery.strategy import (
 from scripts.complete_from_extraction import _load_registration_context
 
 
-def test_strategy_is_v10():
+def test_strategy_is_v11():
     load_cascade_strategy.cache_clear()
     strategy = load_cascade_strategy()
-    assert strategy.strategy_id == "field-cascade-v10"
+    assert strategy.strategy_id == "field-cascade-v11"
     assert strategy.status == "ACTIVE"
-    assert strategy.phase == 10
+    assert strategy.phase == 11
     assert "EVIDENCE_PLUMBING_GAP" in strategy.gap_classes
     assert "CALIBRATION_HITL" in strategy.gap_classes
     assert "DOB_SEPARATOR_ARTIFACT" in strategy.gap_classes
@@ -33,6 +33,7 @@ def test_strategy_is_v10():
     assert any(s.get("id") == "engine_agreement" for s in strategy.stages)
     assert any(s.get("id") == "dob_cells_first" for s in strategy.stages)
     assert any(s.get("id") == "dob_separator_relief" for s in strategy.stages)
+    assert any(s.get("id") == "name_label_relief" for s in strategy.stages)
     assert strategy.defaults.get("confirmation_required_usable") == 2
 
 
@@ -44,6 +45,12 @@ def test_dob_ladder_includes_year_wide_and_post_miss_cells():
         "dob_year_wide",
     )
     assert "dob_cells" in post_miss_for("patient_dob")
+
+
+def test_name_ladder_prefers_value_band():
+    assert crop_ladder_for("insured_name")[0] == "name_value_band"
+    assert crop_ladder_for("patient_name")[0] == "name_value_band"
+    assert crop_ladder_for("insured_id_number")[0] == "id_value_band"
 
 
 def test_crop_variants_follow_strategy_order():
@@ -62,9 +69,9 @@ def test_crop_variants_follow_strategy_order():
     assert ids == present
 
 
-def test_field_cascade_defaults_to_v9():
+def test_field_cascade_defaults_to_v11():
     load_cascade_strategy.cache_clear()
-    assert FieldCascade().strategy_id == "field-cascade-v10"
+    assert FieldCascade().strategy_id == "field-cascade-v11"
 
 
 def test_pick_prefers_confirmation_when_primary_is_header_bleed():

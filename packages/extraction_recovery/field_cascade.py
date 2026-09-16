@@ -14,10 +14,12 @@ Principles
 4. Empty / contaminated financial crops stay empty — cascade never invents
    amounts. Claim-total E6 remains crop-total ∩ Σ line charges.
 5. Strategy id, crop ladders, and post-miss stages come from
-   ``config/field_cascade_strategy.yaml`` (field-cascade-v10).
+   ``config/field_cascade_strategy.yaml`` (field-cascade-v11).
 6. Dual-engine confirmation (primary + confirmation OBSERVED) before
    short-circuit; among engine candidates prefer multi-engine agreement
    after span-select, else first field-shaped value in route order.
+7. Name/ID value-band crops run before full-cell primary; label-contaminated
+   spans are never NAME_SHAPED / ID_SHAPED.
 """
 
 from __future__ import annotations
@@ -82,7 +84,7 @@ class CascadeResult:
     cascade_trace: list[CascadeStepResult] = field(default_factory=list)
     accepted: bool = False
     accept_reason: str = "EXHAUSTED"
-    strategy_id: str = "field-cascade-v10"
+    strategy_id: str = "field-cascade-v11"
 
 
 RecognizeFn = Callable[
@@ -144,15 +146,42 @@ def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
         return False, "NOT_CURRENCY_SHAPED"
 
     if name in {"patient_name", "insured_name"} or datatype == "PERSON_NAME":
-        tokens = _NAME_TOKEN.findall(text.upper())
-        stop = {"PATIENT", "INSURED", "NAME", "LAST", "FIRST", "MIDDLE", "INITIAL"}
-        tokens = [t for t in tokens if t not in stop]
+        upper = text.upper()
+        # Form-label residue is not a person name even if token count looks ok.
+        if re.search(
+            r"(?:[I1L]NSUR[EFO0][DO0]'?S?|[PF]AT[I1L]?E?NT'?S?|PATENTS)\s*NAME",
+            upper,
+        ):
+            return False, "NAME_LABEL_CONTAMINATED"
+        if re.search(
+            r"(?:LAST|FIRST|FURST|FST|MIDDLE)\s*NAME|MIDDLE\s*INITIAL",
+            upper,
+        ):
+            return False, "NAME_LABEL_CONTAMINATED"
+        tokens = _NAME_TOKEN.findall(upper)
+        stop = {
+            "PATIENT", "FATIENT", "INSURED", "1NSURED", "NAME", "LAST", "FIRST",
+            "FURST", "FST", "MIDDLE", "INITIAL", "MIDDIE", "MIDALE",
+        }
+        tokens = [
+            t for t in tokens
+            if t not in stop
+            and not t.endswith("NAME")
+            and not re.fullmatch(r"[I1L]NSUR[EFO0][DO0]'?S?", t)
+            and not re.fullmatch(r"[PF]AT[I1L]?E?NT'?S?", t)
+            and "NAME" not in t  # glued PATIENTSNAMELASTNAME residue
+        ]
         if len(tokens) >= 2 or (len(tokens) == 1 and len(tokens[0]) >= 3):
             return True, "NAME_SHAPED"
         return False, "NOT_NAME_SHAPED"
 
     if name in {"insured_id_number", "member_id"} or datatype == "ALPHANUMERIC_ID":
         compact = text.upper().replace(" ", "")
+        # Reject header-only crops that still contain ID NUMBER / PROGRAM boilerplate.
+        if re.search(r"INSUR|NUMBER|PROGRAM|ITEM", compact) and not _ID_SHAPE.fullmatch(
+            re.sub(r"[^A-Z0-9]", "", compact)
+        ):
+            return False, "ID_LABEL_CONTAMINATED"
         if _ID_SHAPE.fullmatch(compact):
             return True, "ID_SHAPED"
         return False, "NOT_ID_SHAPED"

@@ -393,3 +393,92 @@ def test_name_confusable_insertion_reynele():
     )
     assert result.decision == Decision.ACCEPT
     assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_name_label_contamination_relieved():
+    result = EvidenceReconciler().reconcile(
+        "insured_name",
+        [
+            _candidate("SLOGER CHLOE", "paddleocr", 0.97),
+            _candidate(
+                "4. 1NSURED'S NAME . FURST NAME SLOGER CHLOE",
+                "rapidocr",
+                0.99,
+            ),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert "SLOGER" in (result.selected_value or "").upper()
+    assert "INSURED" not in (result.selected_value or "").upper()
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_name_token_prefix_expansion_relieved():
+    result = EvidenceReconciler().reconcile(
+        "patient_name",
+        [
+            _candidate("ORR JAMES", "paddleocr", 0.94),
+            _candidate("ORR JAMES ANTHONY", "rapidocr", 0.96),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert "ANTHONY" in (result.selected_value or "").upper()
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_name_letter_substitution_equivalent():
+    result = EvidenceReconciler().reconcile(
+        "patient_name",
+        [
+            _candidate("OWENS CAITEIN", "paddleocr", 0.93),
+            _candidate("OWENS, CAITLIN", "rapidocr", 0.97),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert "CAITLIN" in (result.selected_value or "").upper().replace(" ", "")
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_shaped_member_id_preferred_over_header_crop():
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate(
+                "1a.INSURED'SI.D.NUMBER (ForPrograminItem1",
+                "paddleocr",
+                0.93,
+            ),
+            _candidate("20143064268", "rapidocr", 0.89),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.selected_value == "20143064268"
+    assert "INSURED" not in (result.selected_value or "").upper()

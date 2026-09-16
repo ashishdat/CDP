@@ -1,16 +1,20 @@
 # Field-cascade OCR strategy — operational CMS-1500 STP
 #
-# Version field-cascade-v10: DOB cells-FIRST + separator-1 conflict relief.
-# Root cause of Track-B DOB HITL: CMS box-3 dashed vertical rules OCR as
-# digit "1" (01↔11, 09↔19), dual engines disagree, CONFLICT_MARGIN → HITL.
-# Fix: OCR MM/DD/YY cells independently (inset away from rules) before
-# whole-band; reconciler prefers calendar-valid groups and peels separator-1
-# even when confidence margin is large.
+# Version field-cascade-v11: name/ID value-band FIRST + label-contamination
+# conflict relief on top of v10 DOB cells-FIRST + separator-1 peel.
 #
-version: field-cascade-v10
+# Track-B learning from hackathon_50_cascade_v11:
+# - insured_name / patient_name HITL dominated by CONFLICT_MARGIN when rapid
+#   OCR keeps "4. 1NSURED'S NAME … FURST NAME …" while paddle has clean ink.
+# - semantic_accept previously treated header residue as NAME_SHAPED.
+# - insured_id header-only crops outranked shaped IDs on raw confidence.
+# Fix: strip OCR-garbled CMS headers; reject label-contaminated shapes;
+# prefer value-band crops; relieve label/prefix name conflicts in reconciler.
+#
+version: field-cascade-v11
 status: ACTIVE
-phase: 10
-supersedes: field-cascade-v9
+phase: 11
+supersedes: field-cascade-v10
 
 # Pipeline stages (ops path). Later stages must not invent ink.
 stages:
@@ -51,6 +55,12 @@ stages:
     role: >
       When two calendar-valid DOBs differ only by leading-1 on MM/DD (rule artifact),
       prefer the copy without the extra 1 — even if confidence margin is large.
+  - id: name_label_relief
+    role: >
+      Strip OCR-garbled CMS headers (1NSURED/FATIENT/FURST); reject label-shaped
+      names; when engines disagree, prefer clean ink or longer token-prefix.
+  - id: id_value_band_first
+    role: Prefer id_value_band crop and shaped IDs over header-only OCR.
   - id: service_lines
     role: Probe service-line charges; skip header rows; currency can prove liveness.
   - id: assemble
@@ -78,6 +88,7 @@ honesty:
   - DATE_VALID + HARD_VALIDATION may relieve calibrated floor; never waive E3.
   - Multi-engine ID agreement + HARD_VALIDATION may relieve C3 floor to 0.95 (corroboration).
   - DOB separator-1 peel only when both readings are calendar-valid and differ by that artifact.
+  - Name label contamination is never NAME_SHAPED; CONFLICT relief only for clean⊆dirty or token-prefix.
   - Report registration HITL and field-ink HITL as separate tracks.
   - Hackathon 1000 has no field GT — accuracy status UNAVAILABLE_NO_GROUND_TRUTH.
 
@@ -125,15 +136,24 @@ fields:
     completion: [LINE_TOTALS_RECONCILED]
     notes: Currency confusable repair on observed glyphs; line-sum when box-28 empty.
   patient_name:
-    crop_ladder: [primary, name_value_band]
+    crop_ladder: [name_value_band, primary]
     accept: NAME_SHAPED
+    notes: >
+      v11: value-band FIRST (below printed Last/First header). Reject
+      label-contaminated spans; relieve CONFLICT when one engine is header
+      bleed and the other is clean ink, or when tokens are a strict prefix.
   insured_name:
-    crop_ladder: [primary, name_value_band]
+    crop_ladder: [name_value_band, primary]
     accept: NAME_SHAPED
+    notes: >
+      Same as patient_name. OCR garble 1NSURED/FURST stripped before span;
+      never NAME_SHAPED on header-only crops.
   insured_id_number:
-    crop_ladder: [primary, id_value_band]
+    crop_ladder: [id_value_band, primary]
     accept: ID_SHAPED
-    notes: Multi-engine agreement + HARD_VALIDATION → C3 floor 0.95 corroboration.
+    notes: >
+      Value-band FIRST; prefer shaped ID over header-only crop; multi-engine
+      agreement + HARD_VALIDATION → C3 floor 0.95 corroboration.
   charges:
     crop_ladder: [charges_primary, charges_mid, charges_right, charges_far_right]
     accept: CURRENCY_SHAPED

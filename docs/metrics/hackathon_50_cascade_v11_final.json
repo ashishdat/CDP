@@ -1,0 +1,41 @@
+{
+  "run": "hackathon_50_cascade_v11",
+  "status": "COMPLETE",
+  "n_requested": 50,
+  "n_finished": 50,
+  "true_stp": 26,
+  "true_stp_rate": 0.52,
+  "field_hitl": 17,
+  "field_hitl_rate": 0.34,
+  "registration_failed": 7,
+  "registration_failed_rate": 0.14,
+  "combined_hitl": 24,
+  "combined_hitl_rate": 0.48,
+  "disposition_counts": {
+    "HITL": 17,
+    "TRUE_STP": 26,
+    "REGISTRATION_FAILED": 7
+  },
+  "critical_blockers": {
+    "patient_name": 3,
+    "patient_dob": 7,
+    "insured_id_number": 7
+  },
+  "field_auto_rate_of_completed": {
+    "patient_dob": 0.837209,
+    "total_charge": 1.0,
+    "patient_name": 0.930233,
+    "insured_id_number": 0.837209,
+    "insured_name": 0.837209
+  },
+  "engines_probe": {
+    "paddleocr": "OBSERVED",
+    "rapidocr": "OBSERVED",
+    "tesseract": "OBSERVED",
+    "all_observed": true,
+    "tesseract_text": "HELLO123"
+  },
+  "strategy_id": "field-cascade-v10",
+  "learnings_applied_in": "field-cascade-v11",
+  "generated_at": "2026-09-16T06:45:15.368302+00:00"
+}

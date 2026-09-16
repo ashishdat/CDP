@@ -16,9 +16,14 @@ _LABELS = (
     "PATIENT NAME",
     "PATIENT'S NAME",
     "PATIENTS NAME",
+    "FATIENT'S NAME",
+    "FATIENTS NAME",
     "INSURED NAME",
     "INSURED'S NAME",
     "INSUREDS NAME",
+    "1NSURED'S NAME",
+    "1NSUREDS NAME",
+    "LNSURED'S NAME",
     "FACILITY/PROVIDER",
     "FACILITY PROVIDER",
     "PROVIDER NAME",
@@ -38,6 +43,7 @@ _LABELS = (
     "INSURED'S ID",
     "INSUREDS ID",
     "INSURED ID",
+    "1NSURED'S ID",
     "ID NUMBER",
     "ID, NUMBER",
     "I.D. NUMBER",
@@ -48,8 +54,10 @@ _CMS_BOX_HEADER = re.compile(
     r"""
     \b\d{1,2}[A-Z]?\.?\s*
     (?:
-        PATIENT'?S?|PATENTS|PATT'?S?|PATTENT'?S?|
-        INSURED'?S?|INSUREO'?S?|INSUREO|INSUAED'?S?|INSURFO'?S?|INSURF0'?S?
+        # PATIENT / FATIENT / PATTENT — OCR often flips P↔F and I↔1
+        [PF]AT[I1L]?E?NT'?S?|PATENTS|PATT'?S?|PATTENT'?S?|
+        # INSURED / 1NSURED / INSUAED — leading I often reads as digit 1
+        [I1L]NSUR[EFO0][DO0]'?S?|[I1L]NSUREO'?S?|INSUAED'?S?|INSURFO'?S?|INSURF0'?S?
     )?\s*
     (?:
         NAME|
@@ -59,22 +67,46 @@ _CMS_BOX_HEADER = re.compile(
         ID[,.]?\s*NUMBER|
         I\.?D\.?\s*NUMBER|
         L\.?D\.?\s*NUMBER|
+        # Compact OCR glue: INSURED'SI.D.NUMBER / INSUREDSIDNUMBER
+        I'?\.?D\.?\s*,?\s*NUM[B8]ER|
         NUM[B8]ER|
         POLICY\s*GROUP|
         ACCOUNT\s*NO
     )
-    \b
+    # Glued OCR often omits spaces: PATIENT'SNAMELASTNAME / INSUREDSNAME(
+    (?:
+        \b
+        |(?=LAST|FIRST|FURST|FST|MIDDLE|IN[I1L]T|\()
+    )
     (?:\s*\([^)]*\))?
     """,
     re.IGNORECASE | re.VERBOSE,
 )
 
+# Standalone label residue after numbered-header strip fails (1NSURED'S NAME).
+_ORPHAN_NAME_LABEL = re.compile(
+    r"""
+    (?:
+        [I1L]NSUR[EFO0][DO0]'?S?
+        |[PF]AT[I1L]?E?NT'?S?
+        |PATENTS
+    )
+    \s*NAME
+    (?=\b|LAST|FIRST|FURST|FST|MIDDLE|IN[I1L]T|\(|\s|$)
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
+
 _NAME_BOILERPLATE = re.compile(
-    r"\b(?:"
-    r"LAST\s*NAME|FIRST\s*NAME|MIDDLE\s*(?:NAME|IN[I1L]T[I1L]?A[IL]?|LNITIAL|INILIAL|INIIAL|INITAL)|"
+    r"(?:"
+    r"LAST\s*NAME|"
+    r"(?:FIRST|FURST|FST|FIRS|1IRST)\s*NAME|"
+    r"MIDDLE\s*(?:NAME|IN[I1L]T[I1L]?A[IL]?|LNITIAL|INILIAL|INIIAL|INITAL|IN[I1L]T[I1L]AN)|"
+    r"MIDD(?:IE|LA|ALE|EE)\s*(?:NAME|INITIAL)?|"
     r"FOR\s+PROGRAM\s+IN\s+(?:ITEM|TEM)\s*1|"
-    r"FOR\s+PROGRAM\s+IN\s*\(?\s*TEM\s*1"
-    r")\b",
+    r"FOR\s+PROGRAM\s+IN\s*\(?\s*TEM\s*1|"
+    r"FORPROGRAMINITEM\s*1?"
+    r")",
     re.IGNORECASE,
 )
 
@@ -167,6 +199,7 @@ def _strip_known_labels(text: str) -> tuple[str, list[str]]:
 
 def _strip_cms_headers(text: str) -> tuple[str, bool]:
     cleaned = _CMS_BOX_HEADER.sub(" ", text)
+    cleaned = _ORPHAN_NAME_LABEL.sub(" ", cleaned)
     cleaned = _NAME_BOILERPLATE.sub(" ", cleaned)
     changed = cleaned != text
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .,-:")
@@ -442,18 +475,26 @@ def _person_name_from(text: str) -> str | None:
     # Header / boilerplate OCR junk frequently appears as false Last, First pairs
     # inside the parenthetical (e.g. "NaTe, Midale"). Strip first, then search.
     junk = {
-        "LAST", "FIRST", "MIDDLE", "INITIAL", "NAME", "PATIENT", "INSURED",
+        "LAST", "FIRST", "FURST", "FST", "FIRS", "1IRST", "MIDDLE", "INITIAL",
+        "NAME", "PATIENT", "FATIENT", "INSURED", "1NSURED", "LNSURED",
         "PROGRAM", "ITEM", "LNITIAL", "INILIAL", "MIDDLA", "MIDALE", "MIDDIE",
-        "MIDDLA", "NUMBER", "NATE", "NAMO", "NAMF", "LASI", "FIRS", "INALAL",
-        "INILIAL", "IATTIAL", "INIIAL",
+        "NUMBER", "NATE", "NAMO", "NAMF", "LASI", "INALAL", "IATTIAL", "INIIAL",
+        "INITIAN", "INITAL", "INSUREDSNAME", "PATIENTSNAME",
     }
     cleaned, _ = _strip_cms_headers(upper)
     cleaned, _ = _strip_known_labels(cleaned)
+    cleaned = _ORPHAN_NAME_LABEL.sub(" ", cleaned)
     cleaned = _NAME_BOILERPLATE.sub(" ", cleaned)
     # Keep commas so Last, First patterns survive cleanup.
     cleaned = re.sub(r"[^A-Z0-9'., -]+", " ", cleaned)
     cleaned = re.sub(r"\s+", " ", cleaned).strip(" .'-")
+    # Drop leading box numbers and OCR digit-glued labels (4. / 1NSURED'S).
     cleaned = re.sub(r"^\d{1,2}[A-Z]?\.?\s*", "", cleaned)
+    cleaned = re.sub(
+        r"^(?:[I1L]NSUR[EFO0][DO0]'?S?|[PF]AT[I1L]?E?NT'?S?)\s*NAME\b[\s.,:-]*",
+        "",
+        cleaned,
+    )
 
     matches: list[str] = []
     for match in re.finditer(
@@ -461,8 +502,13 @@ def _person_name_from(text: str) -> str | None:
         cleaned,
     ):
         last, first = match.group(1), match.group(2)
-        if last not in junk and first.split()[0] not in junk:
-            matches.append(f"{last}, {first}")
+        first_tok = first.split()[0]
+        # Reject header residue pairs like "NAME, SLOGER" / "FURST, NAME".
+        if last in junk or first_tok in junk:
+            continue
+        if last.endswith("NAME") or first_tok.endswith("NAME"):
+            continue
+        matches.append(f"{last}, {first}")
     # Prefer the last Last, First in the crop — printed headers sit above ink.
     if matches:
         return _repair_name_digit_confusables(matches[-1])
@@ -471,12 +517,19 @@ def _person_name_from(text: str) -> str | None:
     while words and re.fullmatch(r"\d+[A-Z]?", words[0]):
         words = words[1:]
     stop = {
-        "LAST", "FIRST", "MIDDLE", "INITIAL", "NAME", "PATIENT", "INSURED",
+        "LAST", "FIRST", "FURST", "FST", "FIRS", "1IRST", "MIDDLE", "INITIAL",
+        "NAME", "PATIENT", "FATIENT", "INSURED", "1NSURED", "LNSURED",
         "FOR", "PROGRAM", "ITEM", "TEM", "LNITIAL", "INILIAL", "MIDDLA",
         "MIDALE", "MIDDIE", "NUMBER", "BIRTH", "DATE", "LASI", "PATT",
-        "PATTENT", "PATENTS", "NATE", "NAMO", "NAMF",
+        "PATTENT", "PATENTS", "NATE", "NAMO", "NAMF", "INITIAN", "INITAL",
     }
-    words = [w for w in words if w not in stop]
+    words = [
+        w for w in words
+        if w not in stop
+        and not w.endswith("NAME")
+        and not re.fullmatch(r"[I1L]NSUR[EFO0][DO0]'?S?", w)
+        and not re.fullmatch(r"[PF]AT[I1L]?E?NT'?S?", w)
+    ]
     if len(words) >= 2 and all(re.search(r"[A-Z]", w) for w in words[:2]):
         return _repair_name_digit_confusables(" ".join(words))
     if len(words) == 1 and len(words[0]) >= 2:

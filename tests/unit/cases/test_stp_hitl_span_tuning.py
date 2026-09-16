@@ -19,6 +19,38 @@ def test_cms1500_name_span_strips_box_header_and_keeps_last_first():
     assert selected.selected_text == "CAMARATO, JOSHUA"
 
 
+def test_insured_name_strips_ocr_garble_1nsured_and_furst():
+    selected = select_field_span(
+        "4. 1NSURED'S NAME (Last Name. Furst Name, Middle Initial)\nSLOGER,\nCHLOE",
+        "PERSON_NAME",
+        "insured_name",
+    )
+    assert selected.selected_text == "SLOGER, CHLOE"
+
+
+def test_patient_name_strips_glued_header_namelastname():
+    selected = select_field_span(
+        "2.PATIENT'SNAMELastName,FirstName,Middle Initia\nHLMESMALIK",
+        "PERSON_NAME",
+        "patient_name",
+    )
+    assert "PATIENT" not in selected.selected_text.upper()
+    assert "HLMESMALIK" in selected.selected_text.replace(" ", "").upper()
+
+
+def test_header_only_insured_name_not_name_shaped():
+    from packages.extraction_recovery.field_cascade import semantic_accept
+
+    selected = select_field_span(
+        "4. INSURED'S NAME (Last Name,First Name,Middie Initial)",
+        "PERSON_NAME",
+        "insured_name",
+    )
+    ok, reason = semantic_accept("insured_name", selected.selected_text)
+    assert not ok
+    assert reason == "NAME_LABEL_CONTAMINATED"
+
+
 def test_cms1500_member_id_span_extracts_trailing_identifier():
     selected = select_field_span(
         "1a. INSURED'S ID, NUMBER\n(For Program in Item 1)\n993751319",
