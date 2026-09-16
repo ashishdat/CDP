@@ -2,32 +2,41 @@
   "run": "hackathon_50_cascade_v10b",
   "status": "RUNNING",
   "n_finished": 0,
+  "n_requested": 50,
+  "true_stp": 0,
+  "disposition_counts": {},
+  "registration_failures": [],
   "claims_in_flight": 4,
   "registration_probe": [
     {
       "claim": "Group A__M048DJJF.001",
       "geometry": true,
       "geom_status": "SUCCESS",
-      "algorithm": "sift_flann_ransac_homography_near_miss_boost"
+      "algorithm": "sift_flann_ransac_homography_near_miss_boost",
+      "ocr_dir": true
     },
     {
       "claim": "Group A__M048DJJF.002",
       "geometry": true,
       "geom_status": "SUCCESS",
-      "algorithm": null
+      "algorithm": "sift_flann_ransac_homography",
+      "ocr_dir": true
     },
     {
       "claim": "Group A__M048DJJF.003",
       "geometry": true,
       "geom_status": "SUCCESS",
-      "algorithm": null
+      "algorithm": "sift_flann_ransac_homography",
+      "ocr_dir": true
     },
     {
       "claim": "Group A__M048DJJF.004",
       "geometry": true,
       "geom_status": "SUCCESS",
-      "algorithm": null
+      "algorithm": "sift_flann_ransac_homography",
+      "ocr_dir": true
     }
   ],
-  "generated_at": "2026-09-16T04:26:36.304177+00:00"
+  "note": "First wave still in OCR (.001-.004). DJJF.001 registered via near_miss_boost (geom SUCCESS). No finished ledger rows yet.",
+  "generated_at": "2026-09-16T04:33:46.375666+00:00"
 }
