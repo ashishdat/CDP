@@ -44,11 +44,13 @@ def register_classified_document(images, routing, registry, selection=None):
     )
     from packages.recovery.registration_near_miss import (
         assess_evidence_near_miss,
+        best_orientation_rotation_degrees,
         content_corroboration_eligible,
         should_attempt_near_miss_boost,
-        should_attempt_orientation_recovery,
+        should_attempt_orientation_recovery_any,
         should_attempt_perspective_recovery,
     )
+    from packages.recovery.orientation_hint import ordered_orientation_attempts
     from packages.recovery.planner import Strategy
     from workers.page_detection.registration_telemetry import registration_context
     from workers.page_detection.template_alignment import (
@@ -144,6 +146,7 @@ def register_classified_document(images, routing, registry, selection=None):
     aligned = None
     attempts = []
     recovery_strategies = []
+    orientation_evidence_trail: list = []
     try:
         size = (template.reference_dimensions.width_px, template.reference_dimensions.height_px)
         if reference.size != size:
@@ -154,6 +157,8 @@ def register_classified_document(images, routing, registry, selection=None):
         source = images[page_number - 1]
         aligned, evidence, accepted, meta, content_ok, content_reason = _attempt(source, "primary")
         attempts.append(meta)
+        if evidence is not None:
+            orientation_evidence_trail.append(evidence)
 
         recovery_decision = None
         if not accepted:
@@ -190,6 +195,8 @@ def register_classified_document(images, routing, registry, selection=None):
                     enhanced, attempt_name
                 )
                 attempts.append(meta)
+                if evidence is not None:
+                    orientation_evidence_trail.append(evidence)
             finally:
                 enhanced.close()
 
@@ -218,6 +225,8 @@ def register_classified_document(images, routing, registry, selection=None):
                         enhanced, "enhanced_contrast_stretch"
                     )
                     attempts.append(meta)
+                    if evidence is not None:
+                        orientation_evidence_trail.append(evidence)
                 finally:
                     enhanced.close()
 
@@ -310,6 +319,8 @@ def register_classified_document(images, routing, registry, selection=None):
             attempts.append(meta)
             recovery_strategies.append(strategy_name)
             gap = assess_evidence_near_miss(evidence) if evidence is not None else None
+            if evidence is not None:
+                orientation_evidence_trail.append(evidence)
             if not accepted:
                 _preserve_corroboration_candidate(aligned, evidence)
 
@@ -371,19 +382,23 @@ def register_classified_document(images, routing, registry, selection=None):
             finally:
                 deskewed.close()
 
-        # Orientation Step 4: try 180/90/270 when rotation looks catastrophic.
-        if (
-            not accepted
-            and evidence is not None
-            and should_attempt_orientation_recovery(evidence)
+        # Orientation Step 4: ranked 180/90/270 when ANY ladder attempt looked
+        # orientation-recoverable (do not let a later lineage/precheck miss erase
+        # an earlier catastrophic rotation signal before fail-closed).
+        if not accepted and should_attempt_orientation_recovery_any(
+            orientation_evidence_trail
         ):
             if aligned is not None and aligned.warped is not None:
                 if best_corroboration_aligned is not aligned:
                     aligned.warped.close()
                 aligned = None
+            rot_hint = best_orientation_rotation_degrees(orientation_evidence_trail)
+            degree_order = ordered_orientation_attempts(
+                source, rotation_degrees=rot_hint
+            )
             best_orient = None
             best_orient_key = (-1, -1.0)
-            for degrees in (180, 90, 270):
+            for degrees in degree_order:
                 rotated = rotate_page_for_orientation(source, degrees)
                 try:
                     with registration_context(

@@ -249,32 +249,24 @@ def _stage_env() -> dict[str, str]:
     # Paddle warm inference is ~50× faster than Rapid on CPU; use as STP-eval
     # primary while Rapid remains confirmation when primary is unshaped.
     env.setdefault("CDP_OCR_PRIMARY_OVERRIDE", "paddleocr")
-    # Serialize OCR subprocesses — parallel Rapid/Paddle thrash to multi-minute claims.
+    # Serialize OCR inference (Paddle/Rapid) across workers; prep overlaps.
     env.setdefault("CDP_OCR_LOCK", "1")
+    env.setdefault("CDP_OCR_LOCK_SCOPE", "inference")
     return env
 
 
 @contextmanager
 def _ocr_process_lock():
-    """Cross-process exclusive lock around OCR so workers do not thrash CPU."""
-    if (os.environ.get("CDP_OCR_LOCK") or "1").strip().casefold() in {
-        "0",
-        "false",
-        "no",
-        "off",
-    }:
-        yield
-        return
-    import fcntl
+    """Whole-process OCR lock only when CDP_OCR_LOCK_SCOPE=process.
 
-    lock_path = Path(os.environ.get("CDP_OCR_LOCK_PATH") or "/tmp/cdp_ocr.lock")
-    lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with lock_path.open("w", encoding="utf-8") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
-        try:
-            yield
-        finally:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+    Default scope is ``inference`` — Paddle/Rapid critical sections take the
+    flock inside ``packages.ocr_runtime_lock``, so unzip/warp/JSON overlap.
+    """
+    from packages.ocr_runtime_lock import ocr_process_lock
+
+    with ocr_process_lock():
+        yield
+
 
 def _run_stage(cmd: list[str], log_path: Path) -> tuple[int, str]:
     """Stream stdout/stderr to a file to avoid pipe deadlocks with verbose app.py."""

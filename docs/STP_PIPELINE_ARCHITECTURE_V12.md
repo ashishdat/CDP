@@ -42,12 +42,31 @@ register → geometry → cascade OCR → span/semantic
 - Unrelated names (`VITI`/`ILIA`, `PERRI`/`PEMI`)
 - Distinct calendar DOBs / future DOBs
 - Empty box-28 with zero service-line ink
+- Catastrophic multipage warps that still fail after orientation recovery
+
+## v12.1 tool-stack leverage (not more local OCR)
+
+```
+OpenCV register → Paddle/Rapid/Tesseract OCR → Authority+Reconcile
+  ↘ empty finance → Docling (gated, mostly unused)
+  ↘ handwriting DOB → Azure DI crop residual (review-only until promoted)
+  ↘ else → HITL
+```
+
+| Lever | Change |
+|-------|--------|
+| Registration | Orientation trail across ladder attempts; ranked 180/90/270 (+ optional VLM hint via `CDP_REGISTRATION_ORIENTATION_VLM`) before fail-closed. Gates unchanged. |
+| DOB handwriting | `packages/extraction_recovery/dob_azure_di_residual.py` — crop-scoped Azure DI after local miss; shadow candidate only. |
+| Speed | `CDP_OCR_LOCK_SCOPE=inference` — flock only Paddle/Rapid `extract_region`; prep overlaps. Keep selective confirm + Paddle-primary. |
 
 ## Packages
 
 - `packages/field_value_authority/` — authority API
 - `packages/candidate_reconciliation/reconciler.py` — decision gate + ranking
 - `packages/deterministic_evidence/` — compact member-ID FORMAT_VALID
+- `packages/recovery/orientation_hint.py` — local edge ranking (+ gated VLM hook)
+- `packages/extraction_recovery/dob_azure_di_residual.py` — DOB Azure DI residual
+- `packages/ocr_runtime_lock.py` — inference-scoped OCR flock
 
 ## Evaluation
 

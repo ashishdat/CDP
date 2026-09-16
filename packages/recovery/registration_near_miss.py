@@ -103,6 +103,15 @@ def classify_registration_gap(
     if rotation_degrees is not None:
         abs_rot = abs(float(rotation_degrees))
         orientation = abs_rot >= 70.0  # ~90/180 phone capture
+    # Noisy/missing rotation estimates still warrant an orientation probe when
+    # Acceptance already flagged unsafe_rotation or invalid corners (classic
+    # warp ladder used to drop the signal after a later lineage precheck).
+    if not orientation and token_set & {
+        "unsafe_rotation",
+        "invalid_transformed_corners",
+    }:
+        if rotation_degrees is None or abs(float(rotation_degrees)) >= 35.0:
+            orientation = True
     catastrophic = (
         corner_validity is False
         or (scale_change is not None and float(scale_change) < 0.5)
@@ -241,6 +250,39 @@ def should_attempt_perspective_recovery(evidence: Any) -> bool:
 
 def should_attempt_orientation_recovery(evidence: Any) -> bool:
     return assess_evidence_near_miss(evidence).is_orientation_candidate
+
+
+def should_attempt_orientation_recovery_any(
+    evidences: list[Any] | tuple[Any, ...] | None,
+) -> bool:
+    """True when any ladder attempt showed an orientation-recoverable signal.
+
+    Later template_lineage / insufficient_good_matches attempts must not erase
+    an earlier catastrophic rotation signal before fail-closed.
+    """
+    for evidence in evidences or ():
+        if evidence is not None and should_attempt_orientation_recovery(evidence):
+            return True
+    return False
+
+
+def best_orientation_rotation_degrees(
+    evidences: list[Any] | tuple[Any, ...] | None,
+) -> float | None:
+    """Largest-|rotation| estimate among orientation-candidate attempts."""
+    best: float | None = None
+    best_abs = -1.0
+    for evidence in evidences or ():
+        if evidence is None or not should_attempt_orientation_recovery(evidence):
+            continue
+        rot = _metric(evidence, "rotation_degrees")
+        if rot is None:
+            continue
+        abs_rot = abs(float(rot))
+        if abs_rot > best_abs:
+            best_abs = abs_rot
+            best = float(rot)
+    return best
 
 
 def content_corroboration_eligible(evidence: Any) -> bool:

@@ -34,6 +34,47 @@ from packages.ocr_router import OCRRouter, OCRRouteRequest
 from packages.templates.registry import TemplateRegistry
 
 
+def _maybe_attach_dob_azure_di_residuals(rows, image):
+    """Crop-scoped Azure DI for DOB handwriting residuals (off common path)."""
+    enabled = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "1").strip().casefold()
+    if enabled in {"0", "false", "no", "off"}:
+        return rows
+    from packages.extraction_recovery.dob_azure_di_residual import (
+        maybe_attach_dob_azure_di_to_field_row,
+    )
+    from packages.extraction_recovery.gap_taxonomy import classify_field_gap
+
+    updated = []
+    for row in rows:
+        name = str(row.get("field") or "")
+        if name.casefold() not in {"patient_dob", "date_of_birth"}:
+            updated.append(row)
+            continue
+        cascade = row.get("cascade") or {}
+        if cascade.get("accepted"):
+            updated.append(row)
+            continue
+        observed = ""
+        for cand in row.get("candidates") or []:
+            text = str(cand.get("value") or "").strip()
+            if text:
+                observed = text
+                break
+        gap = classify_field_gap(
+            name,
+            observed_text=observed,
+            accepted=False,
+            reason_codes=[],
+        )
+        gap_class = gap.gap_class if gap is not None else "HANDWRITING_UNREADABLE"
+        updated.append(
+            maybe_attach_dob_azure_di_to_field_row(
+                row, image=image, gap_class=gap_class
+            )
+        )
+    return updated
+
+
 # STP evaluation can limit OCR to critical fields (+ service lines for E6).
 # Set CDP_OCR_FIELD_SCOPE=stp_critical to skip non-blocking ROIs (~5× less OCR).
 _STP_CRITICAL_FIELDS = frozenset({
@@ -1125,6 +1166,9 @@ def run(directory, output):
             router = OCRRouter(lambda attempt: True)
             recognize_regions(canonical, geometry, router, save, template=template)
             report['service_lines'] = recognize_service_lines(canonical, router, template)
+            report['fields'] = _maybe_attach_dob_azure_di_residuals(
+                report['fields'], canonical
+            )
         report['status'] = 'COMPLETED'
     except Exception as exc:
         report['status'] = 'FAILED'

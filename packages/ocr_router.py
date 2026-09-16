@@ -92,8 +92,11 @@ def _regional_factory(engine: str) -> Recognizer:
         extractor = TesseractTextExtractor()
 
     def recognize(request: OCRRouteRequest) -> OCRObservation:
+        from packages.ocr_runtime_lock import ocr_inference_lock
+
         try:
-            lines = extractor.extract_region(request.image, *request.bbox)
+            with ocr_inference_lock(engine):
+                lines = extractor.extract_region(request.image, *request.bbox)
         except FileNotFoundError as exc:
             if engine != "tesseract":
                 raise
