@@ -240,3 +240,47 @@ def test_date_corroborated_threshold_relief_for_patient_dob():
     assert "DATE_CORROBORATED_THRESHOLD_RELIEF" in result.rationale_codes
     assert "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD" not in result.rationale_codes
 
+
+
+def test_conflict_margin_relieved_for_equivalent_member_id_padding():
+    # Leading-zero padding normalizes to the same agreement key, so engines
+    # support one canonical value (no CONFLICT_MARGIN_TOO_SMALL).
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("0000374350", "paddleocr", 0.97),
+            _candidate("00000374350", "rapidocr", 0.96),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+    assert "MULTI_ENGINE_AGREEMENT" in result.rationale_codes
+
+
+def test_conflict_margin_relieved_for_date_fragments_when_date_valid():
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("1946-07-16", "paddleocr", 0.93),
+            _candidate("07/16/1946", "rapidocr", 0.91),
+            _candidate("MM DD", "tesseract", 0.90),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes

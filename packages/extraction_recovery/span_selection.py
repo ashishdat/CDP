@@ -422,6 +422,17 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
     return None
 
 
+def _repair_name_digit_confusables(name: str) -> str:
+    """Repair typed-name I/1 confusables without inventing letters elsewhere."""
+    parts = []
+    for token in re.split(r"([,\s]+)", name):
+        if re.search(r"[A-Z]", token) and "1" in token:
+            parts.append(re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", token))
+        else:
+            parts.append(token)
+    return "".join(parts)
+
+
 def _person_name_from(text: str) -> str | None:
     upper = text.upper()
     # Header / boilerplate OCR junk frequently appears as false Last, First pairs
@@ -450,7 +461,7 @@ def _person_name_from(text: str) -> str | None:
             matches.append(f"{last}, {first}")
     # Prefer the last Last, First in the crop — printed headers sit above ink.
     if matches:
-        return matches[-1]
+        return _repair_name_digit_confusables(matches[-1])
 
     words = [w for w in cleaned.split() if w and w not in _DOB_HEADER_TOKENS]
     while words and re.fullmatch(r"\d+[A-Z]?", words[0]):
@@ -463,9 +474,9 @@ def _person_name_from(text: str) -> str | None:
     }
     words = [w for w in words if w not in stop]
     if len(words) >= 2 and all(re.search(r"[A-Z]", w) for w in words[:2]):
-        return " ".join(words)
+        return _repair_name_digit_confusables(" ".join(words))
     if len(words) == 1 and len(words[0]) >= 2:
-        return words[0]
+        return _repair_name_digit_confusables(words[0])
     return None
 
 

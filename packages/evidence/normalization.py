@@ -21,10 +21,29 @@ def normalize_agreement_value(field_name: str, value: str | None) -> str:
         except (InvalidOperation, ValueError):
             return raw
     if any(token in name for token in ("date", "dob")):
-        return re.sub(r"\D", "", raw)
+        digits = re.sub(r"\D", "", raw)
+        if len(digits) == 8:
+            if int(digits[0:4]) >= 1880:
+                return digits  # YYYYMMDD
+            return digits[4:8] + digits[0:2] + digits[2:4]  # MMDDYYYY → YYYYMMDD
+        if len(digits) == 6:
+            yy = int(digits[4:6])
+            century = 1900 if yy >= 30 else 2000
+            return f"{century + yy:04d}{digits[0:2]}{digits[2:4]}"
+        return digits
     if any(token in name for token in (
-        "name", "address", "member", "insured_id", "subscriber_id", "npi",
-        "diagnos", "icd", "code", "tax", "bill", "zip", "postal",
+        "member", "insured_id", "subscriber_id", "npi",
     )):
-        return re.sub(r"[^A-Z0-9]", "", raw)
+        compact = re.sub(r"[^A-Z0-9]", "", raw)
+        if compact.isdigit():
+            return compact.lstrip("0") or "0"
+        return compact
+    if any(token in name for token in (
+        "name", "address", "diagnos", "icd", "code", "tax", "bill", "zip", "postal",
+    )):
+        compact = re.sub(r"[^A-Z0-9]", "", raw)
+        # Digit-1 amid letters is a common I confusable on typed names.
+        if "name" in name:
+            compact = re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", compact)
+        return compact
     return " ".join(raw.split())

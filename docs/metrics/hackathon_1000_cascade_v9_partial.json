@@ -1,16 +1,90 @@
 {
   "run": "hackathon_1000_cascade_v9",
   "status": "RUNNING",
-  "n_ledger": 2,
-  "registration_ok": 0,
-  "completed": 0,
-  "true_stp": 0,
-  "hitl": 0,
-  "registration_hitl": 2,
-  "accuracy": {"status": "UNAVAILABLE_NO_GROUND_TRUTH"},
-  "by_bundle": {"Group A/M048DJJF": {"n": 2, "registration_ok": 0, "true_stp": 0, "registration_hitl": 2}},
-  "engines_probe": {"paddleocr": "OBSERVED", "rapidocr": "OBSERVED", "tesseract": "OBSERVED", "all_observed": true},
-  "live_ocr_attempts_in_flight": {"paddleocr_OBSERVED": 106, "rapidocr_OBSERVED": 106, "tesseract_OBSERVED": 12},
-  "note": "Dual-engine + tesseract-fill OCR in flight; ledger waiting on long OCR stage.",
-  "updated_at": "2026-09-16T02:42:00+00:00"
+  "n_ledger": 11,
+  "registration_ok": 8,
+  "registration_ok_rate": 0.727273,
+  "completed": 8,
+  "true_stp": 2,
+  "true_stp_rate_of_completed": 0.25,
+  "true_stp_rate_of_all": 0.181818,
+  "hitl": 6,
+  "registration_hitl": 3,
+  "field_ink_hitl": 6,
+  "disposition_counts": {
+    "REGISTRATION_FAILED": 3,
+    "HITL": 6,
+    "TRUE_STP": 2
+  },
+  "accuracy": {
+    "status": "UNAVAILABLE_NO_GROUND_TRUTH",
+    "end_to_end_correct_completion_rate": null,
+    "field_accuracy": null,
+    "note": "Hackathon 1000 ZIP has no field-level labels. Accuracy cannot be scored; report operational STP/HITL and field auto-accept rates only."
+  },
+  "ocr_cascade": {
+    "claims_with_ocr": 8,
+    "cascade_healthy_claims": 8,
+    "cascade_healthy_rate": 1.0,
+    "claims_with_tesseract_observed": 0,
+    "engines_attempted": {
+      "paddleocr": 210,
+      "rapidocr": 210,
+      "tesseract": 49,
+      "tesseract_digits": 54
+    },
+    "engines_observed": {
+      "paddleocr": 210,
+      "rapidocr": 210,
+      "tesseract": 49
+    },
+    "engines_unavailable": {},
+    "required": "paddleocr OBSERVED + rapidocr OBSERVED; tesseract fill on miss (never UNAVAILABLE)"
+  },
+  "critical_blockers": {
+    "patient_dob": 6,
+    "insured_id_number": 1
+  },
+  "field_auto_of_completed": {
+    "patient_dob": "2/8",
+    "total_charge": "8/8",
+    "patient_name": "8/8",
+    "insured_id_number": "7/8",
+    "insured_name": "7/8"
+  },
+  "by_bundle": {
+    "Group A/M048DJJF": {
+      "n": 11,
+      "registration_ok": 8,
+      "registration_ok_rate": 0.727273,
+      "completed": 8,
+      "completion_rate": 0.727273,
+      "true_stp": 2,
+      "true_stp_rate_of_all": 0.181818,
+      "true_stp_rate_of_completed": 0.25,
+      "hitl": 6,
+      "hitl_rate_of_all": 0.545455,
+      "registration_hitl": 3,
+      "registration_hitl_rate": 0.272727,
+      "field_ink_hitl": 6,
+      "field_ink_hitl_rate_of_completed": 0.75
+    }
+  },
+  "updated_at": "2026-09-16T03:11:26.611494+00:00",
+  "agent_gt_accuracy_snapshot": {
+    "claims_scored": 4,
+    "exact_accuracy": 0.95,
+    "false_accepts": 0,
+    "perfect_claim_exact_rate": 0.75,
+    "note": "visual ROI GT on completed DJJF claims"
+  },
+  "failed_claim_retest": {
+    "status": "RUNNING",
+    "claims": [
+      "DJJF.002",
+      ".003",
+      ".006"
+    ],
+    "note": "OCR stage in progress for .002"
+  }
 }

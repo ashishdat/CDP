@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from hashlib import sha256
 
@@ -17,6 +18,54 @@ from packages.evidence_policy import EvidencePolicyRegistry
 from packages.observability.metrics import field_reconciliation_total
 from packages.ocr.contracts import OCRCandidate
 from packages.ocr.independence import independence_group
+
+
+def _canonical_date_digits(value: str) -> str:
+    """Normalize US/ISO/compact dates to YYYYMMDD for conflict comparison."""
+    digits = re.sub(r"\D", "", (value or "").strip())
+    if len(digits) == 8:
+        # Prefer ISO YYYYMMDD when year-looking prefix, else MMDDYYYY.
+        if int(digits[0:4]) >= 1880:
+            return digits
+        return digits[4:8] + digits[0:2] + digits[2:4]
+    if len(digits) == 6:
+        yy = int(digits[4:6])
+        century = 1900 if yy >= 30 else 2000
+        return f"{century + yy:04d}{digits[0:2]}{digits[2:4]}"
+    return digits
+
+
+def _canonical_member_id(value: str) -> str:
+    compact = re.sub(r"[^A-Z0-9]", "", (value or "").strip().upper())
+    if compact.isdigit():
+        stripped = compact.lstrip("0")
+        return stripped or "0"
+    return compact
+
+
+def _canonical_person_name(value: str) -> str:
+    # Trailing/internal digit 1 amid letters is a common I confusable (ROVINSK1).
+    text = re.sub(r"[^A-Z0-9]", "", (value or "").strip().upper())
+    return re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", text)
+
+
+def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
+    """True when two OCR values are representation-equivalent (not true conflicts)."""
+    name = (field_name or "").casefold()
+    if not (left or "").strip() or not (right or "").strip():
+        return False
+    if name in {"patient_dob", "date_of_birth", "dob"} or name.endswith("_date"):
+        a, b = _canonical_date_digits(left), _canonical_date_digits(right)
+        return bool(a) and a == b
+    if name in {"insured_id_number", "member_id", "subscriber_id"}:
+        a, b = _canonical_member_id(left), _canonical_member_id(right)
+        return bool(a) and a == b
+    if name in {"patient_name", "insured_name"} or "name" in name:
+        a, b = _canonical_person_name(left), _canonical_person_name(right)
+        return bool(a) and a == b
+    return normalize_agreement_value(field_name, left) == normalize_agreement_value(
+        field_name, right
+    )
 
 
 class EvidenceReconciler:
@@ -290,8 +339,30 @@ class EvidenceReconciler:
             decision = Decision.REVIEW
             reasons.append("C3_INDEPENDENT_EVIDENCE_REQUIRED")
         elif len(ranked) > 1 and confidence - max(s for _, s, _ in ranked[1][1]) < 0.05:
-            decision = Decision.REVIEW
-            reasons.append("CONFLICT_MARGIN_TOO_SMALL")
+            competing_values = [str(other) for other, _ in ranked[1:]]
+            genuine = [
+                other
+                for other in competing_values
+                if not values_conflict_equivalent(field_name, value, other)
+            ]
+            if not genuine:
+                decision = (
+                    Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
+                )
+                reasons.append("EQUIVALENT_VALUE_CONFLICT_RELIEVED")
+            elif date_corroborated and not any(
+                len(_canonical_date_digits(other)) in {6, 8}
+                and _canonical_date_digits(other) != _canonical_date_digits(str(value))
+                for other in genuine
+            ):
+                # Calendar-valid top date vs fragment competitors — not ambiguous.
+                decision = (
+                    Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
+                )
+                reasons.append("DATE_CONFLICT_FRAGMENTS_RELIEVED")
+            else:
+                decision = Decision.REVIEW
+                reasons.append("CONFLICT_MARGIN_TOO_SMALL")
         else:
             decision = (
                 Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT

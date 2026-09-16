@@ -175,9 +175,14 @@ def _normalize_for_agreement(field_name: str, value: str) -> str:
     if name in {"total_charge", "total_charges", "charges", "charge_amount"} or datatype == "CURRENCY":
         return text.lstrip("$").replace(",", "")
     if name in {"insured_id_number", "member_id"} or datatype == "ALPHANUMERIC_ID":
-        return text.upper().replace(" ", "").replace("-", "")
+        compact = text.upper().replace(" ", "").replace("-", "")
+        if compact.isdigit():
+            return compact.lstrip("0") or "0"
+        return compact
     if name in {"patient_name", "insured_name"} or datatype == "PERSON_NAME":
-        return re.sub(r"\s+", " ", text.upper()).strip()
+        compact = re.sub(r"\s+", " ", text.upper()).strip()
+        compact = re.sub(r"[^A-Z0-9 ]", "", compact)
+        return re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", compact.replace(" ", ""))
     return text
 
 
