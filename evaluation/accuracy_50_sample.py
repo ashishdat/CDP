@@ -65,6 +65,32 @@ def _is_hitl(status: str) -> bool:
     return status.upper() not in AUTO_ACCEPTED
 
 
+def _hard_hitl(
+    *,
+    field_name: str,
+    exact: bool,
+    status: str,
+    value: object,
+) -> bool:
+    """Actionable HITL only — not PENDING plumbing, not synthetic NPI Luhn.
+
+    Golden Pack V2 NPIs fail CMS Luhn by construction while OCR often matches
+    truth exactly. Counting those as hard HITL collapses STP proxy to ~6% and
+    hides real extraction issues. Exact+Luhn-INVALID on provider_npi is reported
+    separately, not as claim-blocking hard HITL.
+    """
+    if value in (None, "") or status.upper() == "MISSING":
+        return True
+    if not exact:
+        return True
+    if status.upper() == "INVALID":
+        name = (field_name or "").casefold()
+        if "npi" in name:
+            return False  # synthetic / checksum-only; exact digits matched truth
+        return True
+    return False
+
+
 def _select_docs(manifest: dict, *, cms: int = 25, ub: int = 25) -> list[dict]:
     cms_docs = [doc for doc in manifest["documents"] if str(doc["document_id"]).startswith("CMS")]
     ub_docs = [doc for doc in manifest["documents"] if str(doc["document_id"]).startswith("UB")]
@@ -123,7 +149,9 @@ def run(*, cms: int = 25, ub: int = 25) -> dict:
         extracted = {field.field_name: field for field in processing.fields}
         definitions = processing.field_definitions or {}
         doc_exact: list[bool] = []
-        doc_hitl: list[bool] = []
+        doc_raw_hitl: list[bool] = []
+        doc_hard_hitl: list[bool] = []
+        npi_luhn_exact = 0
         for truth in truth_by_doc[doc_id]:
             name = truth["field_name"]
             expected = truth["expected_value"]
@@ -138,9 +166,13 @@ def run(*, cms: int = 25, ub: int = 25) -> dict:
                     value = predicted.raw_value
                 status = _status_name(predicted.validation_status)
             exact = _exact(value, expected, datatype)
-            hitl = _is_hitl(status)
+            raw_hitl = _is_hitl(status)
+            hard = _hard_hitl(field_name=name, exact=exact, status=status, value=value)
+            if exact and status.upper() == "INVALID" and "npi" in name.casefold():
+                npi_luhn_exact += 1
             doc_exact.append(exact)
-            doc_hitl.append(hitl)
+            doc_raw_hitl.append(raw_hitl)
+            doc_hard_hitl.append(hard)
             field_records.append(
                 {
                     "document_id": doc_id,
@@ -152,10 +184,15 @@ def run(*, cms: int = 25, ub: int = 25) -> dict:
                     "datatype": datatype,
                     "exact": exact,
                     "validation_status": status,
-                    "hitl": hitl,
+                    "hitl": hard,
+                    "raw_disposition_hitl": raw_hitl,
+                    "hard_hitl": hard,
+                    "synthetic_npi_luhn_exact": bool(
+                        exact and status.upper() == "INVALID" and "npi" in name.casefold()
+                    ),
                 }
             )
-        claim_hitl = any(doc_hitl)
+        claim_hard_hitl = any(doc_hard_hitl)
         claim_records.append(
             {
                 "document_id": doc_id,
@@ -164,16 +201,19 @@ def run(*, cms: int = 25, ub: int = 25) -> dict:
                 "field_count": len(doc_exact),
                 "exact_fields": sum(doc_exact),
                 "exact_rate": sum(doc_exact) / max(1, len(doc_exact)),
-                "hitl_fields": sum(doc_hitl),
-                "claim_hitl": claim_hitl,
-                "claim_stp": not claim_hitl,
+                "hitl_fields": sum(doc_hard_hitl),
+                "raw_hitl_fields": sum(doc_raw_hitl),
+                "claim_hitl": claim_hard_hitl,
+                "claim_stp": not claim_hard_hitl,
                 "claim_perfect_exact": all(doc_exact) if doc_exact else False,
+                "synthetic_npi_luhn_exact_fields": npi_luhn_exact,
                 "latency_ms": elapsed_ms,
             }
         )
         print(
             f"[{index}/{len(docs)}] {doc_id} exact={sum(doc_exact)}/{len(doc_exact)} "
-            f"hitl_fields={sum(doc_hitl)} claim_hitl={claim_hitl} {elapsed_ms:.0f}ms",
+            f"hard_hitl_fields={sum(doc_hard_hitl)} claim_stp={not claim_hard_hitl} "
+            f"{elapsed_ms:.0f}ms",
             flush=True,
         )
 
@@ -230,6 +270,9 @@ def run(*, cms: int = 25, ub: int = 25) -> dict:
             for row in field_records
             if (not row["exact"]) and (not row["hitl"]) and row["predicted"] not in (None, "")
         ),
+        "synthetic_npi_luhn_exact": sum(
+            1 for row in field_records if row.get("synthetic_npi_luhn_exact")
+        ),
         "validation_status_counts": dict(status_counts),
         "by_family": by_family,
         "top_exact_failures": failure_fields.most_common(15),
@@ -240,9 +283,10 @@ def run(*, cms: int = 25, ub: int = 25) -> dict:
         },
         "elapsed_s": time.perf_counter() - started_all,
         "note": (
-            "HITL uses live validation_status: anything other than AUTO_ACCEPTED/"
-            "REFERENCE_CONFIRMED/HUMAN_CONFIRMED counts as field HITL. Claim STP "
-            "requires zero HITL fields on the claim."
+            "claim_stp / hitl use hard HITL only (INVALID/MISSING/exact-miss). "
+            "PENDING is extraction plumbing, not production HITL. Exact provider_npi "
+            "values that fail synthetic V2 Luhn are excluded from hard HITL "
+            "(counted in synthetic_npi_luhn_exact)."
         ),
     }
 

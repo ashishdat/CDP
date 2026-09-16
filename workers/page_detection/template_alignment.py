@@ -380,6 +380,145 @@ def _sift_alignment(
     )
 
 
+def _sift_alignment_multiscale(
+    candidate: np.ndarray,
+    reference: np.ndarray,
+    policy: RegistrationPolicy,
+    *,
+    scales: tuple[float, ...] = (0.85, 1.0, 1.15),
+) -> AlignmentResult:
+    """Try SIFT at multiple candidate scales; keep the best accepted or best near-miss."""
+    from packages.recovery.registration_near_miss import assess_evidence_near_miss
+
+    best: AlignmentResult | None = None
+    best_key = (-1, -1, -1, -1.0)  # accepted, near_miss, inliers, ratio
+    for scale in scales:
+        if abs(scale - 1.0) < 1e-6:
+            scaled = candidate
+            result = _sift_alignment(scaled, reference, policy)
+        else:
+            scaled = cv2.resize(
+                candidate,
+                None,
+                fx=scale,
+                fy=scale,
+                interpolation=cv2.INTER_AREA if scale < 1.0 else cv2.INTER_LINEAR,
+            )
+            scaled_result = _sift_alignment(scaled, reference, policy)
+            if scaled_result.homography is None:
+                result = scaled_result
+            else:
+                # H_scaled maps scaled→template; compose so H maps original→template.
+                s_forward = np.array(
+                    [[scale, 0.0, 0.0], [0.0, scale, 0.0], [0.0, 0.0, 1.0]],
+                    dtype=np.float64,
+                )
+                composed = scaled_result.homography @ s_forward
+                warped = cv2.warpPerspective(
+                    candidate,
+                    composed,
+                    (reference.shape[1], reference.shape[0]),
+                    borderValue=255,
+                )
+                evidence = scaled_result.evidence
+                if evidence is not None:
+                    evidence = evidence.model_copy(
+                        update={"transform_matrix": composed.tolist()}
+                    )
+                if scaled_result.warped is not None:
+                    scaled_result.warped.close()
+                result = AlignmentResult(
+                    scaled_result.success,
+                    scaled_result.alignment_score,
+                    scaled_result.good_match_count,
+                    composed,
+                    Image.fromarray(warped),
+                    scaled_result.method,
+                    scaled_result.inlier_ratio,
+                    scaled_result.reprojection_error,
+                    scaled_result.accepted,
+                    evidence,
+                    scaled_result.compatibility,
+                    scaled_result.cheap_evidence,
+                    scaled_result.sift_attempted,
+                )
+        accepted_rank = 1 if result.accepted else 0
+        inliers = int(result.evidence.inlier_count) if result.evidence else 0
+        ratio = float(result.inlier_ratio or 0.0)
+        near = (
+            assess_evidence_near_miss(result.evidence).is_near_miss
+            if result.evidence is not None
+            else False
+        )
+        key = (accepted_rank, 1 if near else 0, inliers, ratio)
+        if best is None or key > best_key:
+            if best is not None and best.warped is not None and best.warped is not result.warped:
+                best.warped.close()
+            best = result
+            best_key = key
+            if result.accepted:
+                break
+        elif result.warped is not None:
+            result.warped.close()
+    assert best is not None
+    return best
+
+
+def align_near_miss_boosted(
+    candidate: Image.Image,
+    reference: Image.Image,
+    *,
+    family: str | None = None,
+    base_policy: RegistrationPolicy | None = None,
+) -> AlignmentResult:
+    """Bounded secondary geometric pass for ratio-only near-miss failures.
+
+    Raises sift_features and searches a small scale pyramid. Acceptance policy
+    thresholds are unchanged — accept only if full gates pass.
+    """
+    base = base_policy or DEFAULT_REGISTRATION_POLICY
+    boosted = RegistrationPolicy(
+        lowe_ratio=base.lowe_ratio,
+        ransac_reprojection_threshold=base.ransac_reprojection_threshold,
+        min_good_matches=base.min_good_matches,
+        min_inliers=base.min_inliers,
+        min_inlier_ratio=base.min_inlier_ratio,
+        max_reprojection_error=base.max_reprojection_error,
+        min_coverage_ratio=base.min_coverage_ratio,
+        cheap_min_confidence=base.cheap_min_confidence,
+        cheap_max_aspect_delta=base.cheap_max_aspect_delta,
+        sift_features=max(base.sift_features, 5000),
+        min_scale=base.min_scale,
+        max_scale=base.max_scale,
+        max_abs_rotation_degrees=base.max_abs_rotation_degrees,
+        max_perspective_distortion=base.max_perspective_distortion,
+    )
+    candidate_arr, reference_arr = _gray(candidate), _gray(reference)
+    compatibility = assess_template_compatibility(candidate, reference, family=family)
+    sift = _sift_alignment_multiscale(candidate_arr, reference_arr, boosted)
+    # Prefer algorithm label that marks the boosted path in telemetry/reports.
+    evidence = sift.evidence
+    if evidence is not None:
+        evidence = evidence.model_copy(
+            update={"algorithm": "sift_flann_ransac_homography_near_miss_boost"}
+        )
+    return AlignmentResult(
+        sift.success,
+        sift.alignment_score,
+        sift.good_match_count,
+        sift.homography,
+        sift.warped,
+        "sift_flann_ransac_homography_near_miss_boost",
+        sift.inlier_ratio,
+        sift.reprojection_error,
+        sift.accepted,
+        evidence,
+        compatibility,
+        sift.cheap_evidence,
+        True,
+    )
+
+
 @telemetry.traced_registration
 def align_to_reference(
     candidate: Image.Image,

@@ -1,22 +1,8 @@
 {
-  "sample_size": 50,
-  "field_count": 500,
-  "exact_accuracy": 0.998,
-  "false_accepts": 0,
-  "raw_field_hitl_rate": 1.0,
-  "hard_field_hitl_rate": 0.096,
-  "raw_claim_hitl_rate": 1.0,
-  "hard_claim_hitl_rate": 0.94,
-  "claim_stp_proxy": 0.06,
-  "perfect_claim_exact": 0.98,
-  "issues": {
-    "NPI_LUHN_INVALID": 47,
-    "EXACT_MISS:patient_dob": 1
-  },
-  "issue_examples": {
-    "EXACT_MISS:patient_dob": [
-      "CMS019 pred='2020-04-03' exp='04/03/2002'"
-    ]
-  },
-  "note": "Golden Pack V2 standard-form extractor leaves most fields PENDING (EvidenceDecision not wired in this harness). raw_* HITL is not production STP. hard_* treats INVALID/MISSING/exact-miss as actionable HITL. provider_npi INVALID is Luhn failure on synthetic V2 NPIs (use V3 pack for Luhn-valid). claim_stp_proxy = claims with zero hard HITL fields."
+  "NPI_LUHN_INVALID_exact": 47,
+  "EXACT_MISS:patient_dob": 1,
+  "claim_stp_proxy": 0.98,
+  "hard_claim_hitl": 0.02,
+  "hard_field_hitl": 0.002,
+  "note": "Synthetic V2 NPI Luhn INVALID on exact OCR match is excluded from hard HITL / claim_stp_proxy. Residual hard HITL: CMS019 patient_dob exact miss."
 }

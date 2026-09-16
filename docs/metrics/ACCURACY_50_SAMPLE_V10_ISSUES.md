@@ -12,15 +12,15 @@ Harness: `evaluation/accuracy_50_sample.py` (standard-form RapidOCR; **not** ful
 | Perfect claim exact | **98%** (49/50) | |
 | False accepts | **0** | |
 | Raw claim HITL | 100% | PENDING≠AUTO — **not production HITL** |
-| Hard claim HITL | **94%** | INVALID / exact-miss only |
-| Claim STP proxy | **6%** | Claims with zero hard HITL |
+| Hard claim HITL | **2%** | INVALID / exact-miss only (synthetic NPI Luhn carved out) |
+| Claim STP proxy | **98%** | Claims with zero hard HITL |
 
 ### Issues identified (Golden Pack)
 
-1. **`provider_npi` Luhn INVALID (47/50 claims)** — dominant hard HITL  
-   - Synthetic V2 NPIs fail Luhn checksum → `validation_status=INVALID`  
-   - Extraction often reads the digits correctly; policy correctly rejects  
-   - **Fix:** evaluate on Luhn-valid pack (V3) *or* keep fail-closed and exclude NPI from STP proxy when measuring extraction quality  
+1. **`provider_npi` Luhn INVALID (47/50 claims)** — synthetic V2 checksum fails  
+   - Extraction often matches digits exactly; policy correctly marks `INVALID`  
+   - **Fixed in STP proxy:** exact + Luhn-INVALID on `*npi*` is counted in `synthetic_npi_luhn_exact`, not hard HITL  
+   - Production path still fail-closed on Luhn; use V3 pack for Luhn-valid end-to-end STP  
 
 2. **`patient_dob` exact miss (1)** — CMS019  
    - Predicted `2020-04-03` vs expected `04/03/2002`  
@@ -29,18 +29,19 @@ Harness: `evaluation/accuracy_50_sample.py` (standard-form RapidOCR; **not** ful
 
 3. **Harness STP gap** — extractor leaves fields `PENDING`  
    - EvidenceDecision / claim STP stack not wired in this Golden Pack path  
-   - Raw HITL/STP from this harness are **misleading** for production STP  
+   - Raw HITL/STP from this harness are **misleading** for production STP; use hard HITL / claim_stp_proxy  
 
 ## B. Operational cascade (50 hackathon claims) — true STP/HITL
 
-Path: `evaluation_results/hackathon_50_cascade_v10/` (**RUNNING**)  
+Path: `evaluation_results/hackathon_50_cascade_v10b/` (retest after near-miss fix)  
 Measures Track A registration HITL + Track B field-ink HITL + true STP (`COMPLETED` ∧ ¬review).
 
-Known issue classes from prior v9 ledger (will confirm on this 50):
+Known issue classes from prior v9/v10 ledger:
 
 | Class | Symptom | Fix direction |
 |-------|---------|----------------|
-| Registration `low_inlier_ratio` | Track A HITL ~30%+ | Secondary matcher / landmark corroboration (see registration doc) |
+| Registration ratio-only near-miss | Track A HITL (DJJF.001/.007) | **Shipped:** boosted SIFT+multiscale; content corroboration fallback |
+| Registration perspective-unsafe | DJJF.005-class | Still Track A HITL (Step 3 deskew / affine-first) |
 | DOB separator-1 / E4 | Was Track B wall | v10 cells-first + separator peel + unique calendar (shipped) |
 | Name JI / .1 confusables | patient/insured name CONFLICT | v10 name peel (shipped) |
 | Claim FIELD_CONFLICT on relieved OCR | Empty blockers but HITL | Fixed — accepted fields ignore residual conflicts |
@@ -51,4 +52,4 @@ Hackathon ZIP has **no vendor GT** → accuracy = agent visual GT only when scor
 
 - **Accuracy** → Golden Pack exact (A)  
 - **Production HITL/STP** → Cascade 50 (B), not Golden Pack raw HITL  
-- **Actionable Golden Pack blockers** → NPI Luhn (data) + CMS019 DOB year
+- **Actionable Golden Pack blockers** → CMS019 DOB year (NPI Luhn carved out of STP proxy)

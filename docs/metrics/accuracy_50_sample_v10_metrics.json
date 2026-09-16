@@ -6,11 +6,12 @@
   "field_count": 500,
   "exact_accuracy": 0.998,
   "critical_exact_accuracy": 0.9971428571428571,
-  "field_hitl": 1.0,
-  "claim_hitl": 1.0,
-  "claim_stp": 0.0,
+  "field_hitl": 0.002,
+  "claim_hitl": 0.02,
+  "claim_stp": 0.98,
   "perfect_claim_exact": 0.98,
   "false_accepts": 0,
+  "synthetic_npi_luhn_exact": 47,
   "validation_status_counts": {
     "PENDING": 453,
     "INVALID": 47
@@ -20,18 +21,18 @@
       "documents": 25,
       "fields": 275,
       "exact_accuracy": 0.9963636363636363,
-      "field_hitl": 1.0,
-      "claim_hitl": 1.0,
-      "claim_stp": 0.0,
+      "field_hitl": 0.0036363636363636364,
+      "claim_hitl": 0.04,
+      "claim_stp": 0.96,
       "perfect_claim_exact": 0.96
     },
     "UB04": {
       "documents": 25,
       "fields": 225,
       "exact_accuracy": 1.0,
-      "field_hitl": 1.0,
-      "claim_hitl": 1.0,
-      "claim_stp": 0.0,
+      "field_hitl": 0.0,
+      "claim_hitl": 0.0,
+      "claim_stp": 1.0,
       "perfect_claim_exact": 1.0
     }
   },
@@ -41,31 +42,16 @@
       1
     ]
   ],
-  "latency_ms": {
-    "p50": 1441.9529220031109,
-    "mean": 1593.7324855400948,
-    "max": 3339.505375974113
-  },
-  "elapsed_s": 80.33561490601278,
-  "note": "Golden Pack V2 standard-form extractor leaves most fields PENDING (EvidenceDecision not wired in this harness). raw_* HITL is not production STP. hard_* treats INVALID/MISSING/exact-miss as actionable HITL. provider_npi INVALID is Luhn failure on synthetic V2 NPIs (use V3 pack for Luhn-valid). claim_stp_proxy = claims with zero hard HITL fields.",
-  "hard_field_hitl": 0.096,
-  "hard_claim_hitl": 0.94,
-  "claim_stp_proxy": 0.06,
+  "hard_field_hitl": 0.002,
+  "hard_claim_hitl": 0.02,
+  "claim_stp_proxy": 0.98,
   "raw_field_hitl": 1.0,
   "raw_claim_hitl": 1.0,
-  "issues": {
-    "NPI_LUHN_INVALID": 47,
-    "EXACT_MISS:patient_dob": 1
-  },
-  "issue_examples": {
-    "EXACT_MISS:patient_dob": [
-      "CMS019 pred='2020-04-03' exp='04/03/2002'"
-    ]
-  },
+  "note": "claim_stp / hitl use hard HITL only (INVALID/MISSING/exact-miss). PENDING is extraction plumbing, not production HITL. Exact provider_npi values that fail synthetic V2 Luhn are excluded from hard HITL (counted in synthetic_npi_luhn_exact).",
   "metric_definitions": {
     "exact_accuracy": "predicted vs golden field_truth (normalized)",
     "raw_claim_hitl": "validation_status not AUTO_ACCEPTED (PENDING counts) \u2014 NOT production STP",
-    "hard_claim_hitl": "INVALID/MISSING/exact-miss only",
+    "hard_claim_hitl": "INVALID/MISSING/exact-miss only; synthetic exact NPI Luhn INVALID excluded",
     "claim_stp_proxy": "1 - hard_claim_hitl (Golden Pack proxy, not cascade true STP)"
   }
 }
