@@ -53,14 +53,17 @@ def should_defer_box28_to_line_sum(
         return True
     if is_suspicious_tiny_total(box):
         return True
-    if len(charges) < min_lines:
-        # Single observed line: only defer empty/invalid/suspicious box-28.
-        return False
     observed = sum(charges, Decimal(0))
     if observed <= 0:
         return False
     difference = abs(box - observed)
     tolerance = max(Decimal("1.00"), observed * relative_contradiction)
+    # Multi-line: defer on strong contradiction (existing rule).
+    if len(charges) >= min_lines:
+        return difference > tolerance
+    # Single observed line: defer only when box-28 is wildly off the line
+    # amount (Track-B residual: box-28 ``22.00`` vs line ``305.00``). Plausible
+    # near-miss box-28 (e.g. 400 vs 305) stays with OCR — do not invent.
     return difference > tolerance
 
 

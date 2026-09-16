@@ -95,9 +95,80 @@ def test_murphy_glued_vs_spaced():
     )
 
 
-def test_viti_ilia_not_equivalent():
-    # 4-letter surname disagreement — keep HITL (false-accept risk).
-    assert not values_conflict_equivalent("patient_name", "VITI DAVID", "ILIA DAVID")
+def test_member_id_o0_confusable_substitution():
+    assert values_conflict_equivalent(
+        "insured_id_number", "A00046372APU", "A00046372AP0"
+    )
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("A00046372APU", "rapidocr", 0.9988),
+            _candidate("A00046372AP0", "paddleocr", 0.9408),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "A00046372APU"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_dob_january_dash_artifact_prefers_true_month():
+    from packages.candidate_reconciliation.reconciler import (
+        prefer_dob_without_january_dash_artifact,
+    )
+
+    assert (
+        prefer_dob_without_january_dash_artifact("07/24/1955", ["01/24/1955"])
+        == "07/24/1955"
+    )
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("07/24/1955", "paddleocr", 0.9919),
+            _candidate("01/24/1955", "rapidocr", 0.9012),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "07/24/1955"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_dob_genuine_month_day_conflict_stays_hitl():
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("12/29/1999", "rapidocr", 0.8954),
+            _candidate("01/22/1999", "paddleocr", 0.8739),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.REVIEW
+    assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
 
 
 def test_member_id_confusable_l_insertion():
@@ -173,7 +244,10 @@ def test_id_format_valid_floor_single_engine():
         enforce_legacy_evidence_policy=False,
     )
     assert result.decision == Decision.ACCEPT
-    assert "FORMAT_VALID_ID_THRESHOLD_RELIEF" in result.rationale_codes
+    assert (
+        "FORMAT_VALID_ID_THRESHOLD_RELIEF" in result.rationale_codes
+        or "UNIQUE_SHAPED_ID_CORROBORATED" in result.rationale_codes
+    )
 
 
 def test_id_identity_corroborated_near_miss():

@@ -129,12 +129,107 @@ def prefer_dob_without_separator_one(
     return None
 
 
+def prefer_dob_without_january_dash_artifact(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """When day+year agree and one engine reads MM=01, prefer the other month.
+
+    CMS MM dashed rules often OCR as ``01`` while the true month is elsewhere
+    (Track-B residual: ``07/24/1955`` vs ``01/24/1955``). Only fires when exactly
+    one side is January and both dates are calendar-valid non-future.
+    """
+    observed: list[tuple[tuple[str, str, str], str]] = []
+    for value in [primary, *competitors]:
+        ymd = _dob_ymd(value)
+        if ymd is None or _dob_is_future(value):
+            continue
+        observed.append((ymd, value))
+    if len(observed) < 2:
+        return None
+    # Group by (year, day); require a unique non-01 month competing with 01.
+    by_yd: dict[tuple[str, str], list[tuple[tuple[str, str, str], str]]] = {}
+    for ymd, display in observed:
+        by_yd.setdefault((ymd[0], ymd[2]), []).append((ymd, display))
+    for (_year, _day), rows in by_yd.items():
+        months = {ymd[1] for ymd, _ in rows}
+        if "01" not in months or len(months) != 2:
+            continue
+        non_jan = [(ymd, display) for ymd, display in rows if ymd[1] != "01"]
+        if len(non_jan) != 1:
+            continue
+        return non_jan[0][1]
+    return None
+
+
+_DOB_YEAR_DIGIT_CONFUSABLES = {
+    frozenset({"6", "9"}),
+    frozenset({"5", "6"}),
+    frozenset({"8", "9"}),
+    frozenset({"0", "8"}),
+    frozenset({"3", "8"}),
+    frozenset({"1", "7"}),
+    frozenset({"5", "8"}),
+}
+
+
+def prefer_dob_year_confusable_digit(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """When month+day agree and years differ by one OCR-confusable digit, prefer higher conf.
+
+    Independent case: ``05/20/1995`` vs ``05/20/1965`` (9↔6). Does not fire on
+    multi-digit year disagreements or month/day conflicts.
+    """
+    observed: list[tuple[tuple[str, str, str], str]] = []
+    for value in [primary, *competitors]:
+        ymd = _dob_ymd(value)
+        if ymd is None or _dob_is_future(value):
+            continue
+        observed.append((ymd, value))
+    if len(observed) < 2:
+        return None
+    by_md: dict[tuple[str, str], list[tuple[tuple[str, str, str], str]]] = {}
+    for ymd, display in observed:
+        by_md.setdefault((ymd[1], ymd[2]), []).append((ymd, display))
+    for (_month, _day), rows in by_md.items():
+        years = {ymd[0] for ymd, _ in rows}
+        if len(years) != 2:
+            continue
+        y_list = sorted(years)
+        if len(y_list[0]) != 4 or len(y_list[1]) != 4:
+            continue
+        diffs = [(a, b) for a, b in zip(y_list[0], y_list[1]) if a != b]
+        if len(diffs) != 1 or frozenset(diffs[0]) not in _DOB_YEAR_DIGIT_CONFUSABLES:
+            continue
+        # Prefer the display whose year matches the lexicographically... no —
+        # prefer primary if it is one of the confusable twins; else first non-future.
+        # Caller passes primary as ranked winner (higher confidence).
+        for ymd, display in rows:
+            if ymd[0] == _dob_ymd(primary)[0] if _dob_ymd(primary) else None:
+                return display
+        return rows[0][1]
+    return None
+
+
 def _canonical_member_id(value: str) -> str:
     compact = re.sub(r"[^A-Z0-9]", "", (value or "").strip().upper())
     if compact.isdigit():
         stripped = compact.lstrip("0")
         return stripped or "0"
     return compact
+
+
+def _member_id_is_shaped(value: str) -> bool:
+    """True for plausible member IDs; rejects short OCR soup like ``RQ4G0L``."""
+    raw = str(value or "")
+    compact = re.sub(r"[^A-Z0-9]", "", raw.upper())
+    if not re.fullmatch(r"[A-Z0-9]{6,20}", compact):
+        return False
+    if re.search(r"INSUR|NUMBER|PROGRAM|ITEM|NAME", raw.upper()):
+        return False
+    digit_count = sum(ch.isdigit() for ch in compact)
+    # Require real digit mass so letter soup cannot outrank/shape-match.
+    return digit_count >= 5
 
 
 def _member_ids_differ_by_confusable_insertion(left: str, right: str) -> bool:
@@ -155,19 +250,52 @@ def _member_ids_differ_by_confusable_insertion(left: str, right: str) -> bool:
     return False
 
 
+_MEMBER_ID_CONFUSABLE_PAIRS = {
+    frozenset({"O", "0"}),
+    frozenset({"U", "0"}),  # O misread as U on one engine, 0 on the other
+    frozenset({"D", "0"}),
+    frozenset({"O", "Q"}),
+    frozenset({"I", "1"}),
+    frozenset({"I", "L"}),
+    frozenset({"L", "1"}),
+    frozenset({"S", "5"}),
+}
+
+
+def _member_ids_differ_by_confusable_substitution(left: str, right: str) -> bool:
+    """True when same-length member IDs differ by ≤1 OCR-confusable glyph.
+
+    Independent cases: ``…APU`` vs ``…AP0`` (U↔0), ``OSC…`` vs ``QSC…`` (O↔Q).
+    """
+    a, b = _canonical_member_id(left), _canonical_member_id(right)
+    if not a or not b or a == b or len(a) != len(b):
+        return False
+    diffs = [(x, y) for x, y in zip(a, b) if x != y]
+    if len(diffs) != 1:
+        return False
+    return frozenset(diffs[0]) in _MEMBER_ID_CONFUSABLE_PAIRS
+
+
 def prefer_member_id_without_confusable_insertion(
     primary: str, competitors: list[str]
 ) -> str | None:
-    """Prefer the shorter member ID when OCR inserted an I/1/L confusable."""
+    """Prefer the shorter / letter-form member ID under confusable OCR twins."""
     observed = [v for v in [primary, *competitors] if (v or "").strip()]
     for left in observed:
         for right in observed:
             if left == right:
                 continue
-            if not _member_ids_differ_by_confusable_insertion(left, right):
-                continue
-            cl, cr = _canonical_member_id(left), _canonical_member_id(right)
-            return left if len(cl) <= len(cr) else right
+            if _member_ids_differ_by_confusable_insertion(left, right):
+                cl, cr = _canonical_member_id(left), _canonical_member_id(right)
+                return left if len(cl) <= len(cr) else right
+            if _member_ids_differ_by_confusable_substitution(left, right):
+                # Prefer alphabetic O/I/L over digit lookalikes in the suffix.
+                cl, cr = _canonical_member_id(left), _canonical_member_id(right)
+                left_letters = sum(ch.isalpha() for ch in cl)
+                right_letters = sum(ch.isalpha() for ch in cr)
+                if left_letters != right_letters:
+                    return left if left_letters > right_letters else right
+                return left if len(left) >= len(right) else right
     return None
 
 
@@ -551,6 +679,7 @@ def _names_differ_by_confusable_insertion(left: str, right: str) -> bool:
 _NAME_CONFUSABLE_PAIRS = {
     frozenset({"E", "L"}),
     frozenset({"E", "F"}),
+    frozenset({"P", "F"}),
     frozenset({"I", "L"}),
     frozenset({"I", "T"}),
     frozenset({"I", "1"}),
@@ -580,6 +709,31 @@ def _names_differ_by_confusable_substitution(left: str, right: str) -> bool:
     if not diffs or len(diffs) > 2:
         return False
     return all(frozenset(pair) in _NAME_CONFUSABLE_PAIRS for pair in diffs)
+
+
+def _names_differ_by_confusable_edit(left: str, right: str) -> bool:
+    """True when names match after one deletion plus ≤1 confusable substitution.
+
+    Independent case: ``PATRICIA`` vs ``FATRCIA`` — delete ``I``, then P↔F.
+    Deletion is limited to a single vowel/confusable glyph so we do not collapse
+    unrelated surnames.
+    """
+    a, b = _canonical_person_name(left), _canonical_person_name(right)
+    if not a or not b or a == b or abs(len(a) - len(b)) != 1:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    for idx, ch in enumerate(longer):
+        if ch not in {"A", "E", "I", "O", "U", "L", "1"}:
+            continue
+        peeled = longer[:idx] + longer[idx + 1 :]
+        if peeled == shorter:
+            return True
+        if len(peeled) != len(shorter):
+            continue
+        diffs = [(x, y) for x, y in zip(peeled, shorter) if x != y]
+        if len(diffs) == 1 and frozenset(diffs[0]) in _NAME_CONFUSABLE_PAIRS:
+            return True
+    return False
 
 
 def prefer_name_without_confusable_insertion(
@@ -628,12 +782,38 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
         return False
     if name in {"patient_dob", "date_of_birth", "dob"} or name.endswith("_date"):
         a, b = _canonical_date_digits(left), _canonical_date_digits(right)
-        return bool(a) and a == b
+        if bool(a) and a == b:
+            return True
+        ya, yb = _dob_ymd(left), _dob_ymd(right)
+        if not ya or not yb:
+            return False
+        # Month+day match with a single confusable year digit is not a true conflict.
+        if (
+            ya[1] == yb[1]
+            and ya[2] == yb[2]
+            and ya[0] != yb[0]
+            and len(ya[0]) == 4
+            and len(yb[0]) == 4
+        ):
+            diffs = [(x, y) for x, y in zip(ya[0], yb[0]) if x != y]
+            if len(diffs) == 1 and frozenset(diffs[0]) in _DOB_YEAR_DIGIT_CONFUSABLES:
+                return True
+        # Day+year match with January dash artifact vs true month.
+        if (
+            ya[0] == yb[0]
+            and ya[2] == yb[2]
+            and ya[1] != yb[1]
+            and "01" in (ya[1], yb[1])
+        ):
+            return True
+        return False
     if name in {"insured_id_number", "member_id", "subscriber_id"}:
         a, b = _canonical_member_id(left), _canonical_member_id(right)
         if bool(a) and a == b:
             return True
         if _member_ids_differ_by_confusable_insertion(left, right):
+            return True
+        if _member_ids_differ_by_confusable_substitution(left, right):
             return True
         return False
     if name in {"patient_name", "insured_name"} or "name" in name:
@@ -643,6 +823,8 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
         if _names_differ_by_confusable_insertion(left, right):
             return True
         if _names_differ_by_confusable_substitution(left, right):
+            return True
+        if _names_differ_by_confusable_edit(left, right):
             return True
         # Token-prefix (missing middle name on one engine) is not a true conflict.
         if prefer_longer_name_prefix(left, [right]) is not None:
@@ -784,11 +966,7 @@ class EvidenceReconciler:
 
         def _group_id_shaped(items) -> bool:
             for candidate, _, _ in items:
-                val = str(candidate.value or "")
-                compact = re.sub(r"[^A-Z0-9]", "", val.upper())
-                if re.fullmatch(r"[A-Z0-9]{6,20}", compact) and not re.search(
-                    r"INSUR|NUMBER|PROGRAM|ITEM|NAME", val.upper()
-                ):
+                if _member_id_is_shaped(str(candidate.value or "")):
                     return True
             return False
 
@@ -843,6 +1021,18 @@ class EvidenceReconciler:
             if separator_clean:
                 value = separator_clean
                 early_separator_relief = True
+            else:
+                january_clean = prefer_dob_without_january_dash_artifact(
+                    str(value), competing
+                )
+                if january_clean:
+                    value = january_clean
+                    early_separator_relief = True
+                else:
+                    year_clean = prefer_dob_year_confusable_digit(str(value), competing)
+                    if year_clean:
+                        value = year_clean
+                        early_separator_relief = True
         elif is_name_field and len(ranked) > 1:
             competing = [
                 str(max(items, key=lambda row: row[1])[0].value)
@@ -911,17 +1101,11 @@ class EvidenceReconciler:
         # Prefer shaped member-id over header-only crops in the top slot.
         is_id_field = field_name in {"insured_id_number", "member_id", "subscriber_id"}
         if is_id_field and len(ranked) > 1:
-            top_compact = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
-            top_is_id = bool(re.fullmatch(r"[A-Z0-9]{6,20}", top_compact)) and not re.search(
-                r"INSUR|NUMBER|PROGRAM|ITEM|NAME", str(value or "").upper()
-            )
+            top_is_id = _member_id_is_shaped(str(value or ""))
             if not top_is_id:
                 for _norm, items in ranked[1:]:
                     cand_val = str(max(items, key=lambda row: row[1])[0].value)
-                    compact = re.sub(r"[^A-Z0-9]", "", cand_val.upper())
-                    if re.fullmatch(r"[A-Z0-9]{6,20}", compact) and not re.search(
-                        r"INSUR|NUMBER|PROGRAM|ITEM|NAME", cand_val.upper()
-                    ):
+                    if _member_id_is_shaped(cand_val):
                         value = cand_val
                         supporting = items
                         break
@@ -1102,11 +1286,7 @@ class EvidenceReconciler:
         # without MEMBER_RELATIONSHIP E6 or inventing ink.
         id_shaped = False
         if field_name in {"insured_id_number", "member_id", "subscriber_id"}:
-            compact_id = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
-            id_shaped = bool(
-                re.fullmatch(r"[A-Z0-9]{6,20}", compact_id)
-                and not re.search(r"INSUR|NUMBER|PROGRAM|ITEM|NAME", str(value or "").upper())
-            )
+            id_shaped = _member_id_is_shaped(str(value or ""))
         format_valid_id_corroborated = (
             field_name in {"insured_id_number", "member_id", "subscriber_id"}
             and "HARD_VALIDATION_PASSED" in deterministic
@@ -1141,6 +1321,23 @@ class EvidenceReconciler:
         # Dual-engine exact ID agreement after hard validation is independent
         # confirmation — lift near-miss calibrated floors (~0.71–0.80) that were
         # blocking STP despite paddle+rapid agreeing on the same shaped ID.
+        unique_shaped_id = False
+        if (
+            field_name in {"insured_id_number", "member_id", "subscriber_id"}
+            and "HARD_VALIDATION_PASSED" in deterministic
+            and "FORMAT_VALID" in deterministic
+            and id_shaped
+        ):
+            shaped_values = set()
+            for candidate in candidates:
+                raw = str(candidate.value or "")
+                if _member_id_is_shaped(raw):
+                    shaped_values.add(_canonical_member_id(raw))
+            shaped_values.discard("")
+            unique_shaped_id = len(shaped_values) == 1
+            if unique_shaped_id:
+                confidence = max(confidence, 0.92)
+
         if multi_engine_id_corroborated:
             confidence = max(confidence, 0.96)
         elif identity_corroborated and format_valid_id_corroborated:
@@ -1159,7 +1356,11 @@ class EvidenceReconciler:
             identity_corroborated or multi_engine_id_corroborated
         ):
             effective_threshold = min(effective_threshold, 0.92)
-            relief_reason = "FORMAT_VALID_ID_THRESHOLD_RELIEF"
+            relief_reason = (
+                "UNIQUE_SHAPED_ID_CORROBORATED"
+                if unique_shaped_id
+                else "FORMAT_VALID_ID_THRESHOLD_RELIEF"
+            )
         if date_corroborated:
             effective_threshold = min(effective_threshold, 0.80)
             relief_reason = (
@@ -1212,6 +1413,11 @@ class EvidenceReconciler:
                         _dob_ymd(str(other)) is not None and _dob_is_future(str(other))
                     )
                 ]
+            # Unshaped member-ID OCR soup is not a genuine identity conflict.
+            if is_id_field:
+                genuine = [
+                    other for other in genuine if _member_id_is_shaped(str(other))
+                ]
             if early_separator_relief:
                 # Competing values were separator-1 twins of the cleaned date.
                 decision = (
@@ -1243,6 +1449,14 @@ class EvidenceReconciler:
                     separator_clean = prefer_dob_without_separator_one(
                         str(value), genuine
                     )
+                    if not separator_clean:
+                        separator_clean = prefer_dob_without_january_dash_artifact(
+                            str(value), genuine
+                        )
+                    if not separator_clean:
+                        separator_clean = prefer_dob_year_confusable_digit(
+                            str(value), genuine
+                        )
                 if is_name_field:
                     label_clean = prefer_name_without_label_contamination(
                         str(value), genuine
