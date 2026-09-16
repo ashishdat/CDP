@@ -1,23 +1,32 @@
 {
+  "title": "Independent Samples — 300 (v11.1 OCR reprocess — ABANDONED)",
   "run": "hackathon_300_field_hitl_reprocess_v11_1",
-  "status": "RUNNING",
-  "reprocess_done": 2,
-  "reprocess_target": 107,
-  "flipped_to_true_stp": 0,
-  "projected_n": 300,
-  "projected_true_stp": 118,
-  "projected_true_stp_rate": 0.3933333333333333,
-  "projected_field_hitl": 107,
-  "projected_field_hitl_rate": 0.3566666666666667,
-  "projected_registration_hitl": 75,
-  "projected_registration_hitl_rate": 0.25,
-  "projected_combined_hitl": 182,
-  "projected_combined_hitl_rate": 0.6066666666666667,
+  "status": "ABANDONED_SUPERSEDED",
+  "unique_docs_completed": 5,
+  "target_docs": 107,
+  "runner": "exited",
+  "superseded_by": [
+    "evaluation_results/hackathon_300_field_hitl_decision_reprocess_v11_1",
+    "evaluation_results/hackathon_300_field_hitl_decision_reprocess_v11_2b",
+    "evaluation_results/hackathon_300_field_hitl_decision_reprocess_v11_3"
+  ],
+  "authoritative_report": "docs/metrics/hackathon_300_independent_samples_report.json",
+  "authoritative_metrics": {
+    "true_stp": 153,
+    "field_hitl": 72,
+    "registration_hitl": 75,
+    "combined_hitl": 147,
+    "stage_failure": 0,
+    "exact_accuracy_agent_gt": "822/824",
+    "perfect_claim_exact": "222/224",
+    "false_accepts": 2
+  },
   "baseline": {
     "true_stp": 118,
     "field_hitl": 107,
     "registration_hitl": 75,
     "combined_hitl": 182
   },
-  "generated_at": "2026-09-16T12:59:16.437500+00:00"
+  "note": "Full OCR reprocess starved/exited at 5/107. Decision-only reprocess (reuse OCRCandidates) completed 107/107 and is authoritative through v11.3 line-sum + Azure tool-fit. Do not restart OCR thrash.",
+  "generated_at": "2026-09-16T13:30:00+00:00"
 }
