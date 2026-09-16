@@ -1,6 +1,6 @@
 {
   "run": "hackathon_1000_cascade_v9",
-  "status": "RUNNING",
+  "status": "STOPPED",
   "n_ledger": 23,
   "registration_ok": 15,
   "registration_ok_rate": 0.652174,
@@ -90,7 +90,7 @@
     }
   },
   "updated_at": "2026-09-16T03:46:32.040022+00:00",
-  "note": "Partial ledger while main run continues; field-ink HITL rates reflect v9 artifacts (pre v10 reconciler retest).",
+  "note": "Partial ledger while main run continues; field-ink HITL rates reflect v9 artifacts (pre v10 reconciler retest). | Full 1000-run stopped by user request.",
   "field_fix_retest": {
     "v10_blocker_retest": {
       "n": 9,
@@ -169,5 +169,6 @@
       }
     },
     "note": "visual ROI GT on retested DJJF claims; DOB FA may reflect separator peel vs GT disagreement \u2014 investigate before trusting peel on those claims"
-  }
+  },
+  "stopped_at": "2026-09-16T03:53:07.628915+00:00"
 }
