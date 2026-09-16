@@ -39,6 +39,26 @@ Independent cohort `docs[50:350]` under `field-cascade-v11` (+ v11.1 live for la
 
 Accuracy ≠ STP: labeled HITL claims still score; unlabeled hard ink abstains.
 
+## Independent Samples — 300 post-decision v11.4
+
+Decision-only reprocess of the 107 field-HITL claims after reconciler reliefs
+(`hackathon_300_field_hitl_decision_reprocess_v11_4`).
+
+| Metric | v11.3 | v11.4 |
+|--------|------:|------:|
+| True STP | 153 (51.0%) | **161 (53.7%)** |
+| Field HITL | 72 | **64** |
+| Registration HITL | 75 | 75 |
+| Combined HITL | 147 | **139 (46.3%)** |
+| Flipped from baseline 118 | +35 | **+43** |
+| Agent-GT exact / FA | 822/824 · 2 FA | same (0 new FA on flips) |
+
+v11.4 reliefs: broader name confusables (E↔F/V↔Y/T↔Y/G↔C/L↔T), MRS honorific
+peel, SAME/Z junk, glued-vs-spaced names, ID multi-engine corroboration when E2
+is empty, FORMAT_VALID ID floor 0.92, member-ID L/I insertion (APU↔APLU), future
+DOB reject, and name helpers gated off DOB/ID conflict paths (corrected 3 prior
+false STPs that name-MI had wrongly accepted).
+
 ## Golden Pack V3 (authoritative truth)
 
 Dataset: `CDP_GOLDEN_ENGINEERING_PACK_V3` (`evaluation_data/phase8_7_golden_pack/...`).
