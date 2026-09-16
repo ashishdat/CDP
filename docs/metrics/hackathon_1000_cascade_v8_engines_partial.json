@@ -1,0 +1,29 @@
+{
+  "run": "hackathon_1000_cascade_v8_engines",
+  "stopped": true,
+  "stopped_reason": "Superseded by field-cascade-v9 (dual-engine confirmation + agreement pick + by-bundle metrics). Parent runner killed; orphans cleared.",
+  "n": 8,
+  "registration_ok": 5,
+  "completed": 4,
+  "true_stp": 4,
+  "true_stp_rate_of_completed": 1.0,
+  "dispositions": {
+    "REGISTRATION_FAILED": 3,
+    "TRUE_STP": 4,
+    "STAGE_FAILURE": 1
+  },
+  "ocr_engines_sample": {
+    "paddleocr_OBSERVED": 179,
+    "rapidocr_OBSERVED": 86,
+    "tesseract_OBSERVED": 6,
+    "note": "Engines OBSERVED (not UNAVAILABLE). Pre-v9 runner lacked ocr_engine_stats on ledger rows."
+  },
+  "vs_v8_freeze_n309": {
+    "v8_reg_ok_rate": 0.673,
+    "v8_true_stp_of_completed": 0.774,
+    "note": "n=8 too small for rate comparison; engines path confirmed live before stop."
+  },
+  "superseded_by": "evaluation_results/hackathon_1000_cascade_v9",
+  "architecture": "docs/STP_PIPELINE_ARCHITECTURE_V9.md",
+  "updated_at": "2026-09-16T02:34:00+00:00"
+}
