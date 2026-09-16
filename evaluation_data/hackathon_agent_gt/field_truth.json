@@ -1,7 +1,7 @@
 {
   "dataset": "Hackathon - 1000 Claims.zip",
   "created_by": "agent_consensus_gt_v2",
-  "created_at": "2026-09-16T12:17:22.382851+00:00",
+  "created_at": "2026-09-16T12:41:42.664078+00:00",
   "methodology": [
     "No vendor labels on Hackathon ZIP \u2014 this is agent-created GT.",
     "GOLD: \u22652 OCR engines agree after span-select + field-shape gate.",
@@ -11,1233 +11,21 @@
     "Never invent DOB/amounts/IDs when ink is ambiguous."
   ],
   "stats": {
-    "claims": 244,
-    "field_labels": 891,
+    "claims": 228,
+    "field_labels": 844,
     "by_confidence": {
-      "SILVER": 331,
-      "GOLD": 560
+      "SILVER": 301,
+      "GOLD": 543
     },
     "by_field": {
-      "total_charge": 205,
-      "patient_name": 205,
-      "insured_id_number": 217,
-      "insured_name": 195,
-      "patient_dob": 69
+      "total_charge": 188,
+      "patient_name": 194,
+      "insured_id_number": 206,
+      "insured_name": 184,
+      "patient_dob": 72
     }
   },
   "claims": {
-    "Group A__M048DJJF.001": {
-      "document": "Group A/M048DJJF.001",
-      "fields": {
-        "total_charge": {
-          "expected_value": "561.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "SLOGER CHLOE",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "P32683567",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "SLOGER CHLOE",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.002": {
-      "document": "Group A/M048DJJF.002",
-      "fields": {
-        "total_charge": {
-          "expected_value": "910.00",
-          "source": "box28_empty; line_sum 640+260+10",
-          "confidence": "GOLD"
-        },
-        "patient_name": {
-          "expected_value": "THOMAS DARLENE",
-          "source": "visual_roi+multi_engine",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "0000374350",
-          "source": "multi_engine_agree; border glyph not counted as leading 0",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "THOMAS DARLENE",
-          "source": "visual_roi+multi_engine",
-          "confidence": "GOLD"
-        },
-        "patient_dob": {
-          "expected_value": "1946-07-16",
-          "source": "visual_roi+paddle_span",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.003": {
-      "document": "Group A/M048DJJF.003",
-      "fields": {
-        "patient_dob": {
-          "expected_value": "1948-07-10",
-          "source": "visual_digit_band 07|10|1948",
-          "confidence": "GOLD"
-        },
-        "total_charge": {
-          "expected_value": "260.01",
-          "source": "box28_empty; line_sum observed",
-          "confidence": "GOLD"
-        },
-        "patient_name": {
-          "expected_value": "THOMAS DARLENE",
-          "source": "visual_roi+multi_engine",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "0000374350",
-          "source": "visual+rapid; paddle border-extra leading 0 discarded via lstrip norm",
-          "confidence": "SILVER"
-        },
-        "insured_name": {
-          "expected_value": "THOMAS DARLENE",
-          "source": "visual_roi+multi_engine",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.004": {
-      "document": "Group A/M048DJJF.004",
-      "fields": {
-        "patient_dob": {
-          "expected_value": "1973-07-01",
-          "source": "cascade_span DATE_SHAPED rapidocr 07/01/1973",
-          "confidence": "SILVER"
-        },
-        "total_charge": {
-          "expected_value": "573.00",
-          "source": "line_sum E6",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "BLASZAK HAROLD",
-          "source": "multi_engine_auto",
-          "confidence": "SILVER"
-        },
-        "insured_id_number": {
-          "expected_value": "126190668",
-          "source": "multi_engine_agree",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "SAME",
-          "source": "multi_engine_auto (form SELF marker)",
-          "confidence": "SILVER"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.005": {
-      "document": "Group A/M048DJJF.005",
-      "fields": {
-        "total_charge": {
-          "expected_value": "270.01",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "RENTER ROVINSK",
-          "source": "auto_accepted+hard_validation",
-          "confidence": "SILVER"
-        },
-        "insured_id_number": {
-          "expected_value": "967140950",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "RENTER ROVINSKI",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.006": {
-      "document": "Group A/M048DJJF.006",
-      "fields": {
-        "patient_dob": {
-          "expected_value": "1960-01-19",
-          "source": "visual_roi MM=01 DD=19 YY=60",
-          "confidence": "GOLD"
-        },
-        "total_charge": {
-          "expected_value": "281.00",
-          "source": "box28_empty; line_sum 270+11",
-          "confidence": "GOLD"
-        },
-        "patient_name": {
-          "expected_value": "RENTER ROVINSKI",
-          "source": "visual_roi+multi_engine",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "967140950",
-          "source": "visual_roi+multi_engine",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "RENTER ROVINSKI",
-          "source": "visual_roi; repair I/1 confusable",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.007": {
-      "document": "Group A/M048DJJF.007",
-      "fields": {
-        "total_charge": {
-          "expected_value": "270.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "LOYA ISABELLA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "787217306",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "LOYA ISABELLA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.008": {
-      "document": "Group A/M048DJJF.008",
-      "fields": {
-        "total_charge": {
-          "expected_value": "480.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "WOOD AVA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "876572433",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "WOOD AVA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.009": {
-      "document": "Group A/M048DJJF.009",
-      "fields": {
-        "total_charge": {
-          "expected_value": "281.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "CONNELLASARAH",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "869225940",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "CONNELL SARAH",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.010": {
-      "document": "Group A/M048DJJF.010",
-      "fields": {
-        "total_charge": {
-          "expected_value": "270.01",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "LOYA ISABELLA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "787217306",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "LOYA ISABELLA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.011": {
-      "document": "Group A/M048DJJF.011",
-      "fields": {
-        "patient_dob": {
-          "expected_value": "2018-01-08",
-          "source": "auto_accepted+hard_validation",
-          "confidence": "SILVER"
-        },
-        "total_charge": {
-          "expected_value": "270.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "POWELL JAVON",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "996953013",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "POWELL JAVON",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.012": {
-      "document": "Group A/M048DJJF.012",
-      "fields": {
-        "total_charge": {
-          "expected_value": "200.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "insured_id_number": {
-          "expected_value": "210957901",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.013": {
-      "document": "Group A/M048DJJF.013",
-      "fields": {
-        "total_charge": {
-          "expected_value": "270.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "POPE LINDA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "908420220",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "POPE LINDA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.014": {
-      "document": "Group A/M048DJJF.014",
-      "fields": {
-        "patient_dob": {
-          "expected_value": "2023-05-01",
-          "source": "single_engine_shaped:rapidocr",
-          "confidence": "SILVER"
-        },
-        "total_charge": {
-          "expected_value": "200.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "MARENCO JOSEPHINE A",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "19461229900",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "MARENCO JOSEPHINE A",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJF.015": {
-      "document": "Group A/M048DJJF.015",
-      "fields": {
-        "total_charge": {
-          "expected_value": "238.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "REYNELLSA",
-          "source": "auto_accepted+hard_validation",
-          "confidence": "SILVER"
-        },
-        "insured_id_number": {
-          "expected_value": "951689078",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "REYNEL LISA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.002": {
-      "document": "Group A/M048DJJM.002",
-      "fields": {
-        "total_charge": {
-          "expected_value": "270.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "NICOLAS WILLIAM",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "21823983500",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "NICOLAS WILLIAM",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.003": {
-      "document": "Group A/M048DJJM.003",
-      "fields": {
-        "total_charge": {
-          "expected_value": "27010.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "MEEFORD ANDREA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "8892155",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "MEFFORD ANDREA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.004": {
-      "document": "Group A/M048DJJM.004",
-      "fields": {
-        "total_charge": {
-          "expected_value": "450.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "insured_id_number": {
-          "expected_value": "954474241",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "OWENS CAITLIN",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.005": {
-      "document": "Group A/M048DJJM.005",
-      "fields": {
-        "total_charge": {
-          "expected_value": "2701.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "MORALES KENITHA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "916266132",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "MORALES KENITHA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.006": {
-      "document": "Group A/M048DJJM.006",
-      "fields": {
-        "total_charge": {
-          "expected_value": "2724.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "ACOSTA CHRISTOPHER",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "208791204",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.007": {
-      "document": "Group A/M048DJJM.007",
-      "fields": {
-        "total_charge": {
-          "expected_value": "480.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "GUTIERREZ DANIELA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "245027101",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "GUTIERREZ DANIELA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.009": {
-      "document": "Group A/M048DJJM.009",
-      "fields": {
-        "patient_dob": {
-          "expected_value": "1996-09-29",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "total_charge": {
-          "expected_value": "49.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "insured_id_number": {
-          "expected_value": "58985812900",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "ORR JAMES",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.010": {
-      "document": "Group A/M048DJJM.010",
-      "fields": {
-        "total_charge": {
-          "expected_value": "49.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "ORR JAMES",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "58985812900",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "ORR JAMES",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.012": {
-      "document": "Group A/M048DJJM.012",
-      "fields": {
-        "total_charge": {
-          "expected_value": "115.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "HANSCOM STEVEN",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "HANSCOM STEVEN",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.013": {
-      "document": "Group A/M048DJJM.013",
-      "fields": {
-        "total_charge": {
-          "expected_value": "34.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "REMS KEVIN",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "21411100",
-          "source": "single_engine_shaped:paddleocr",
-          "confidence": "SILVER"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.014": {
-      "document": "Group A/M048DJJM.014",
-      "fields": {
-        "patient_dob": {
-          "expected_value": "2016-01-14",
-          "source": "single_engine_shaped:paddleocr",
-          "confidence": "SILVER"
-        },
-        "total_charge": {
-          "expected_value": "212.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "HANSCOM STEVEN",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "993751319",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "HANSCOM STEVEN",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.015": {
-      "document": "Group A/M048DJJM.015",
-      "fields": {
-        "patient_dob": {
-          "expected_value": "1960-02-29",
-          "source": "single_engine_shaped:paddleocr",
-          "confidence": "SILVER"
-        },
-        "total_charge": {
-          "expected_value": "150.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "REMILLARD MARGO",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "94823231600",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "REMILLARD MARGO",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.016": {
-      "document": "Group A/M048DJJM.016",
-      "fields": {
-        "total_charge": {
-          "expected_value": "175.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "LOCKHART MARIA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "913397281",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "LOCKHART MARIA",
-          "source": "single_engine_shaped:rapidocr",
-          "confidence": "SILVER"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.017": {
-      "document": "Group A/M048DJJM.017",
-      "fields": {
-        "total_charge": {
-          "expected_value": "150.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "REMILLARD MARGO",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "94823231600",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "REMILLARD MARGO",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.018": {
-      "document": "Group A/M048DJJM.018",
-      "fields": {
-        "total_charge": {
-          "expected_value": "150.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "BRIEN LAUREN",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "904083203",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "BRIEN LAUREN",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.019": {
-      "document": "Group A/M048DJJM.019",
-      "fields": {
-        "total_charge": {
-          "expected_value": "26.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "RIVERA LARAA",
-          "source": "auto_accepted+hard_validation",
-          "confidence": "SILVER"
-        },
-        "insured_name": {
-          "expected_value": "RIVERA ANDREW",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.022": {
-      "document": "Group A/M048DJJM.022",
-      "fields": {
-        "total_charge": {
-          "expected_value": "346.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "CAMARATO JOSHUA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "997001392",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "CAMARATO JOSHUA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.023": {
-      "document": "Group A/M048DJJM.023",
-      "fields": {
-        "total_charge": {
-          "expected_value": "223.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "HARRINGTON SOPHIE",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "HARRINGTONL RACHAEI",
-          "source": "auto_accepted+hard_validation",
-          "confidence": "SILVER"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.024": {
-      "document": "Group A/M048DJJM.024",
-      "fields": {
-        "total_charge": {
-          "expected_value": "81.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "PAWELCZYK MATTHEW",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "973626734",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "PAWELCZYK MELISSA",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.025": {
-      "document": "Group A/M048DJJM.025",
-      "fields": {
-        "insured_name": {
-          "expected_value": "NSURED ALKAMEFIRST",
-          "source": "auto_accepted+hard_validation",
-          "confidence": "SILVER"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.026": {
-      "document": "Group A/M048DJJM.026",
-      "fields": {
-        "total_charge": {
-          "expected_value": "10.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "WITTS ROBERT",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "54818203401",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.027": {
-      "document": "Group A/M048DJJM.027",
-      "fields": {
-        "total_charge": {
-          "expected_value": "600.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "JAVANMARD SAM",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "940931759",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "JAVANMARD SAM",
-          "source": "auto_accepted+hard_validation",
-          "confidence": "SILVER"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.028": {
-      "document": "Group A/M048DJJM.028",
-      "fields": {
-        "total_charge": {
-          "expected_value": "411.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "POHLEN JOYCE",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "952258035",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "POHLEN JOYCE",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.029": {
-      "document": "Group A/M048DJJM.029",
-      "fields": {
-        "patient_dob": {
-          "expected_value": "1984-10-09",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "total_charge": {
-          "expected_value": "220.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "NASH DAVID",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "901916350",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "NASH DAVID",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.030": {
-      "document": "Group A/M048DJJM.030",
-      "fields": {
-        "total_charge": {
-          "expected_value": "400.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "PRICE TRAVIS",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "984818981",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_name": {
-          "expected_value": "PRICE TRAVIS",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.031": {
-      "document": "Group A/M048DJJM.031",
-      "fields": {
-        "total_charge": {
-          "expected_value": "40.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "CRUZ FREDY",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        },
-        "insured_id_number": {
-          "expected_value": "968948840",
-          "source": "multi_engine_consensus:paddleocr+rapidocr",
-          "confidence": "GOLD"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.034": {
-      "document": "Group A/M048DJJM.034",
-      "fields": {
-        "total_charge": {
-          "expected_value": "346.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        },
-        "patient_name": {
-          "expected_value": "LASNAME MDDIEINITIAL",
-          "source": "auto_accepted+hard_validation",
-          "confidence": "SILVER"
-        },
-        "insured_id_number": {
-          "expected_value": "97739518",
-          "source": "single_engine_shaped:rapidocr",
-          "confidence": "SILVER"
-        },
-        "insured_name": {
-          "expected_value": "CMUNAULANI AIALL",
-          "source": "auto_accepted+hard_validation",
-          "confidence": "SILVER"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
-    "Group A__M048DJJM.035": {
-      "document": "Group A/M048DJJM.035",
-      "fields": {
-        "total_charge": {
-          "expected_value": "165.00",
-          "source": "auto_accepted+line_sum",
-          "confidence": "SILVER"
-        }
-      },
-      "run_source": "hackathon_50_cascade_v11",
-      "run_sources": [
-        "hackathon_50_cascade_v11"
-      ]
-    },
     "Group A__M048DJJM.036": {
       "document": "Group A/M048DJJM.036",
       "fields": {
@@ -6676,6 +5464,827 @@
       "run_sources": [
         "hackathon_300_cascade_v11"
       ]
+    },
+    "Group A__M048HJCX.013": {
+      "document": "Group A/M048HJCX.013",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1968-07-12",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "198.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MARNE FARAH",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "929468546",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "SAME",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.014": {
+      "document": "Group A/M048HJCX.014",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1955-02-15",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "198.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "GREEN MICHAEL",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "905217795",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "SAME",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.016": {
+      "document": "Group A/M048HJCX.016",
+      "fields": {
+        "total_charge": {
+          "expected_value": "1440.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "COLTMAN THOMAS N",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "R225842878",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "COLTMAN THOMAS N",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.017": {
+      "document": "Group A/M048HJCX.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-03-30",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "510.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HENMAN CALEB",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "R226418995",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "HENMAN CALEB",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.018": {
+      "document": "Group A/M048HJCX.018",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1984-12-24",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "478.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PHILLIPS LAGINA",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "635123784",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "PHILLIPS LAGINA",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.019": {
+      "document": "Group A/M048HJCX.019",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1984-12-24",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "1776.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PHILLIPS LAGINA",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "635123784",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "PHILLIPS LAGINA",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.020": {
+      "document": "Group A/M048HJCX.020",
+      "fields": {
+        "patient_name": {
+          "expected_value": "BIRKEL CARRIE",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "2154544943",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "BIRKEL JOHN",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.021": {
+      "document": "Group A/M048HJCX.021",
+      "fields": {
+        "patient_name": {
+          "expected_value": "BIRKEL CARRIE",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "2154544943",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "BIRKEL JOHN",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.001": {
+      "document": "Group A/M048HJDF.001",
+      "fields": {
+        "total_charge": {
+          "expected_value": "380.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PALACIO GUSTAVO A",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "30022225",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "PALACIO GUSTAVO",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.002": {
+      "document": "Group A/M048HJDF.002",
+      "fields": {
+        "total_charge": {
+          "expected_value": "2027.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "POVIA ELEANOR S",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "20288765",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "POVIA ANGELA",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.003": {
+      "document": "Group A/M048HJDF.003",
+      "fields": {
+        "total_charge": {
+          "expected_value": "25.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "KAMOWSKI MAX H",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "21166441",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "CONTRATA KENNETH",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.004": {
+      "document": "Group A/M048HJDF.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1991-05-04",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "28.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "KAMOWSKI MAX H",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "21166441",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "CONTRATA KENNETH",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.005": {
+      "document": "Group A/M048HJDF.005",
+      "fields": {
+        "total_charge": {
+          "expected_value": "25.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WALZ CHERRI M",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "39877820",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "WALZ CHERRI",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.006": {
+      "document": "Group A/M048HJDF.006",
+      "fields": {
+        "total_charge": {
+          "expected_value": "14.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "DONLEY ERIN N",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "43392335",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "DONLEY ERIN",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.008": {
+      "document": "Group A/M048HJDF.008",
+      "fields": {
+        "total_charge": {
+          "expected_value": "2670.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "TALL PRINCESS R",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "21430611",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "TALL PRINCESS",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.009": {
+      "document": "Group A/M048HJDF.009",
+      "fields": {
+        "total_charge": {
+          "expected_value": "2751.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MURPHY PATRICK",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "46432963",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.012": {
+      "document": "Group A/M048HJDF.012",
+      "fields": {
+        "total_charge": {
+          "expected_value": "18.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LYNCH COLIN",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "52448529",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "LYNCH IAN",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.013": {
+      "document": "Group A/M048HJDF.013",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1961-05-06",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "287.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "TALL PRINCESS R",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "21430611",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "TALL PRINCESS",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.014": {
+      "document": "Group A/M048HJDF.014",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2018-06-09",
+          "source": "single_engine_shaped:paddleocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "280.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "VOLK MAVERICK",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "20987802",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "SONG SHERRY",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.015": {
+      "document": "Group A/M048HJDF.015",
+      "fields": {
+        "total_charge": {
+          "expected_value": "27655.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HASAN IMRAN S",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "26750419",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "HASAN IMRAN",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.017": {
+      "document": "Group A/M048HJDF.017",
+      "fields": {
+        "total_charge": {
+          "expected_value": "180.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "YANDLE KRYSTAL S",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "20291677",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "YANDLE KRYSTAL",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.018": {
+      "document": "Group A/M048HJDF.018",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2007-01-23",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "2721.80",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MILLER GABRIEL",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "53287863",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "MILLER RICHARD",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJDF.020": {
+      "document": "Group A/M048HJDF.020",
+      "fields": {
+        "total_charge": {
+          "expected_value": "328.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WITTENMEIER JORDAN A",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "46489488",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "WITTENMEIER TODD",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048DJJF.002": {
+      "document": "Group A/M048DJJF.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1946-07-16",
+          "source": "visual_roi+paddle_span",
+          "confidence": "GOLD"
+        },
+        "patient_name": {
+          "expected_value": "THOMAS DARLENE",
+          "source": "visual_roi+multi_engine",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "THOMAS DARLENE",
+          "source": "visual_roi+multi_engine",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "0000374350",
+          "source": "multi_engine_agree; border glyph not counted as leading 0",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "910.00",
+          "source": "box28_empty; line_sum 640+260+10",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": null
+    },
+    "Group A__M048DJJF.003": {
+      "document": "Group A/M048DJJF.003",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1948-07-10",
+          "source": "visual_digit_band 07|10|1948",
+          "confidence": "GOLD"
+        },
+        "patient_name": {
+          "expected_value": "THOMAS DARLENE",
+          "source": "visual_roi+multi_engine",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "THOMAS DARLENE",
+          "source": "visual_roi+multi_engine",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "0000374350",
+          "source": "visual+rapid; paddle border-extra leading 0 discarded via lstrip norm",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "260.01",
+          "source": "box28_empty; line_sum observed",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": null
+    },
+    "Group A__M048DJJF.006": {
+      "document": "Group A/M048DJJF.006",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1960-01-19",
+          "source": "visual_roi MM=01 DD=19 YY=60",
+          "confidence": "GOLD"
+        },
+        "patient_name": {
+          "expected_value": "RENTER ROVINSKI",
+          "source": "visual_roi+multi_engine",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "RENTER ROVINSKI",
+          "source": "visual_roi; repair I/1 confusable",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "967140950",
+          "source": "visual_roi+multi_engine",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "281.00",
+          "source": "box28_empty; line_sum 270+11",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": null
+    },
+    "Group A__M048DJJF.004": {
+      "document": "Group A/M048DJJF.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1973-07-01",
+          "source": "cascade_span DATE_SHAPED rapidocr 07/01/1973",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BLASZAK HAROLD",
+          "source": "multi_engine_auto",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "SAME",
+          "source": "multi_engine_auto (form SELF marker)",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "126190668",
+          "source": "multi_engine_agree",
+          "confidence": "GOLD"
+        },
+        "total_charge": {
+          "expected_value": "573.00",
+          "source": "line_sum E6",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": null
     }
   }
 }

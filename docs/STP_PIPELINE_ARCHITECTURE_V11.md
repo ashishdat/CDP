@@ -23,7 +23,23 @@
 
 Near-miss / mild-perspective / orientation ladder (v11 registration recovery) recovered most ratio-only fails. Residual DJJM multipage catastrophic warps remain fail-closed.
 
-## Learning from hackathon_300_cascade_v11 (~260 partial)
+## hackathon_300_cascade_v11 FINAL
+
+Independent cohort `docs[50:350]` under `field-cascade-v11` (+ v11.1 live for late claims).
+
+| Metric | Value |
+|--------|------:|
+| n | 300 |
+| TRUE_STP | 118 (39.3%) |
+| Field HITL | 107 (35.7%) |
+| Registration failed | 75 (25.0%) |
+| Combined HITL | 182 (60.7%) |
+| TRUE_STP of completed | 52.4% (118/225) |
+| Agent-GT exact accuracy | 99.76% (822/824 labeled fields; 2 FA on patient_dob SILVER) |
+
+Accuracy ≠ STP: labeled HITL claims still score; unlabeled hard ink abstains.
+
+## Learning from hackathon_300_cascade_v11 (historical partial notes)
 
 | Track | Rate | Dominant cause |
 |-------|------|----------------|

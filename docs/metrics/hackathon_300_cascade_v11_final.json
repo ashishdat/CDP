@@ -1,0 +1,346 @@
+{
+  "run": "hackathon_300_cascade_v11",
+  "status": "COMPLETE",
+  "n_requested": 300,
+  "n_finished": 300,
+  "offset": 50,
+  "cohort": "hackathon docs[50:350] independent of diagnostic first-50",
+  "strategy_id": "field-cascade-v11",
+  "true_stp": 118,
+  "true_stp_rate": 0.393333,
+  "true_stp_rate_of_completed": 0.524444,
+  "field_hitl": 107,
+  "field_hitl_rate": 0.356667,
+  "registration_failed": 75,
+  "registration_failed_rate": 0.25,
+  "combined_hitl": 182,
+  "combined_hitl_rate": 0.6066666666666667,
+  "registration_ok": 225,
+  "registration_ok_rate": 0.75,
+  "completed": 225,
+  "completion_rate": 0.75,
+  "disposition_counts": {
+    "HITL": 107,
+    "REGISTRATION_FAILED": 75,
+    "TRUE_STP": 118
+  },
+  "critical_blockers": {
+    "insured_id_number": 28,
+    "patient_dob": 31,
+    "patient_name": 35,
+    "total_charge": 38
+  },
+  "gap_classes": {
+    "EVIDENCE_PLUMBING_GAP": 21,
+    "AMBIGUOUS_DIGIT_FRAGMENTS": 11,
+    "HANDWRITING_UNREADABLE": 46,
+    "CALIBRATION_HITL": 29,
+    "EMPTY_FINANCIAL_INK": 25
+  },
+  "field_auto_of_completed": {
+    "patient_dob": "194/225",
+    "total_charge": "187/225",
+    "patient_name": "190/225",
+    "insured_id_number": "197/225",
+    "insured_name": "182/225"
+  },
+  "field_auto_rate_of_completed": {
+    "patient_dob": 0.862222,
+    "total_charge": 0.831111,
+    "patient_name": 0.844444,
+    "insured_id_number": 0.875556,
+    "insured_name": 0.808889
+  },
+  "registration_failure_reasons": {
+    "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 6,
+    "insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 5,
+    "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 16,
+    "insufficient_inliers,low_inlier_ratio,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 3,
+    "low_inlier_ratio,low_coverage,unsafe_perspective_distortion": 2,
+    "low_inlier_ratio,unsafe_rotation": 4,
+    "insufficient_inliers,low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 8,
+    "low_inlier_ratio,unsafe_perspective_distortion": 4,
+    "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 4,
+    "insufficient_inliers,low_inlier_ratio,unsafe_perspective_distortion": 1,
+    "unsafe_rotation": 2,
+    "low_inlier_ratio": 4,
+    "insufficient_inliers,low_coverage,unsafe_scale_change,unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "low_inlier_ratio,low_coverage,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "low_coverage": 1,
+    "low_inlier_ratio,low_coverage,unsafe_perspective_distortion,invalid_transformed_corners": 3,
+    "low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners": 2,
+    "insufficient_inliers,low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "low_inlier_ratio,unsafe_rotation,unsafe_perspective_distortion": 2,
+    "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 1
+  },
+  "ocr_cascade": {
+    "claims_with_ocr": 225,
+    "cascade_healthy_claims": 225,
+    "cascade_healthy_rate": 1.0,
+    "claims_with_tesseract_observed": 138,
+    "engines_attempted": {
+      "paddleocr": 2660,
+      "rapidocr": 2660,
+      "tesseract": 773,
+      "tesseract_digits": 899
+    },
+    "engines_observed": {
+      "paddleocr": 2660,
+      "rapidocr": 2660,
+      "tesseract": 773
+    },
+    "engines_unavailable": {},
+    "required": "paddleocr OBSERVED + rapidocr OBSERVED; tesseract fill on miss (never UNAVAILABLE)"
+  },
+  "by_bundle": {
+    "Group A/M048DJKH": {
+      "n": 50,
+      "registration_ok": 49,
+      "registration_ok_rate": 0.98,
+      "completed": 49,
+      "completion_rate": 0.98,
+      "true_stp": 38,
+      "true_stp_rate_of_all": 0.76,
+      "true_stp_rate_of_completed": 0.77551,
+      "hitl": 11,
+      "hitl_rate_of_all": 0.22,
+      "registration_hitl": 1,
+      "registration_hitl_rate": 0.02,
+      "field_ink_hitl": 11,
+      "field_ink_hitl_rate_of_completed": 0.22449
+    },
+    "Group A/M048EJI2": {
+      "n": 50,
+      "registration_ok": 35,
+      "registration_ok_rate": 0.7,
+      "completed": 35,
+      "completion_rate": 0.7,
+      "true_stp": 14,
+      "true_stp_rate_of_all": 0.28,
+      "true_stp_rate_of_completed": 0.4,
+      "hitl": 21,
+      "hitl_rate_of_all": 0.42,
+      "registration_hitl": 15,
+      "registration_hitl_rate": 0.3,
+      "field_ink_hitl": 21,
+      "field_ink_hitl_rate_of_completed": 0.6
+    },
+    "Group A/M048EJGE": {
+      "n": 47,
+      "registration_ok": 31,
+      "registration_ok_rate": 0.659574,
+      "completed": 31,
+      "completion_rate": 0.659574,
+      "true_stp": 9,
+      "true_stp_rate_of_all": 0.191489,
+      "true_stp_rate_of_completed": 0.290323,
+      "hitl": 22,
+      "hitl_rate_of_all": 0.468085,
+      "registration_hitl": 16,
+      "registration_hitl_rate": 0.340426,
+      "field_ink_hitl": 22,
+      "field_ink_hitl_rate_of_completed": 0.709677
+    },
+    "Group A/M048EJG7": {
+      "n": 36,
+      "registration_ok": 25,
+      "registration_ok_rate": 0.694444,
+      "completed": 25,
+      "completion_rate": 0.694444,
+      "true_stp": 9,
+      "true_stp_rate_of_all": 0.25,
+      "true_stp_rate_of_completed": 0.36,
+      "hitl": 16,
+      "hitl_rate_of_all": 0.444444,
+      "registration_hitl": 11,
+      "registration_hitl_rate": 0.305556,
+      "field_ink_hitl": 16,
+      "field_ink_hitl_rate_of_completed": 0.64
+    },
+    "Group A/M048DJKN": {
+      "n": 24,
+      "registration_ok": 18,
+      "registration_ok_rate": 0.75,
+      "completed": 18,
+      "completion_rate": 0.75,
+      "true_stp": 11,
+      "true_stp_rate_of_all": 0.458333,
+      "true_stp_rate_of_completed": 0.611111,
+      "hitl": 7,
+      "hitl_rate_of_all": 0.291667,
+      "registration_hitl": 6,
+      "registration_hitl_rate": 0.25,
+      "field_ink_hitl": 7,
+      "field_ink_hitl_rate_of_completed": 0.388889
+    },
+    "Group A/M048HJBI": {
+      "n": 24,
+      "registration_ok": 17,
+      "registration_ok_rate": 0.708333,
+      "completed": 17,
+      "completion_rate": 0.708333,
+      "true_stp": 9,
+      "true_stp_rate_of_all": 0.375,
+      "true_stp_rate_of_completed": 0.529412,
+      "hitl": 8,
+      "hitl_rate_of_all": 0.333333,
+      "registration_hitl": 7,
+      "registration_hitl_rate": 0.291667,
+      "field_ink_hitl": 8,
+      "field_ink_hitl_rate_of_completed": 0.470588
+    },
+    "Group A/M048HJCX": {
+      "n": 21,
+      "registration_ok": 18,
+      "registration_ok_rate": 0.857143,
+      "completed": 18,
+      "completion_rate": 0.857143,
+      "true_stp": 9,
+      "true_stp_rate_of_all": 0.428571,
+      "true_stp_rate_of_completed": 0.5,
+      "hitl": 9,
+      "hitl_rate_of_all": 0.428571,
+      "registration_hitl": 3,
+      "registration_hitl_rate": 0.142857,
+      "field_ink_hitl": 9,
+      "field_ink_hitl_rate_of_completed": 0.5
+    },
+    "Group A/M048HJDF": {
+      "n": 21,
+      "registration_ok": 15,
+      "registration_ok_rate": 0.714286,
+      "completed": 15,
+      "completion_rate": 0.714286,
+      "true_stp": 12,
+      "true_stp_rate_of_all": 0.571429,
+      "true_stp_rate_of_completed": 0.8,
+      "hitl": 3,
+      "hitl_rate_of_all": 0.142857,
+      "registration_hitl": 6,
+      "registration_hitl_rate": 0.285714,
+      "field_ink_hitl": 3,
+      "field_ink_hitl_rate_of_completed": 0.2
+    },
+    "Group A/M048DJJM": {
+      "n": 15,
+      "registration_ok": 9,
+      "registration_ok_rate": 0.6,
+      "completed": 9,
+      "completion_rate": 0.6,
+      "true_stp": 5,
+      "true_stp_rate_of_all": 0.333333,
+      "true_stp_rate_of_completed": 0.555556,
+      "hitl": 4,
+      "hitl_rate_of_all": 0.266667,
+      "registration_hitl": 6,
+      "registration_hitl_rate": 0.4,
+      "field_ink_hitl": 4,
+      "field_ink_hitl_rate_of_completed": 0.444444
+    },
+    "Group A/M048EJH6": {
+      "n": 6,
+      "registration_ok": 4,
+      "registration_ok_rate": 0.666667,
+      "completed": 4,
+      "completion_rate": 0.666667,
+      "true_stp": 1,
+      "true_stp_rate_of_all": 0.166667,
+      "true_stp_rate_of_completed": 0.25,
+      "hitl": 3,
+      "hitl_rate_of_all": 0.5,
+      "registration_hitl": 2,
+      "registration_hitl_rate": 0.333333,
+      "field_ink_hitl": 3,
+      "field_ink_hitl_rate_of_completed": 0.75
+    },
+    "Group A/M048HJCR": {
+      "n": 6,
+      "registration_ok": 4,
+      "registration_ok_rate": 0.666667,
+      "completed": 4,
+      "completion_rate": 0.666667,
+      "true_stp": 1,
+      "true_stp_rate_of_all": 0.166667,
+      "true_stp_rate_of_completed": 0.25,
+      "hitl": 3,
+      "hitl_rate_of_all": 0.5,
+      "registration_hitl": 2,
+      "registration_hitl_rate": 0.333333,
+      "field_ink_hitl": 3,
+      "field_ink_hitl_rate_of_completed": 0.75
+    }
+  },
+  "agent_gt_accuracy": {
+    "claims_scored": 224,
+    "field_count": 824,
+    "exact_accuracy": 0.997573,
+    "perfect_claim_exact_rate": 0.991071,
+    "false_accepts": 2,
+    "false_accept_rate": 0.002427,
+    "field_exact": {
+      "patient_dob": {
+        "exact": 66,
+        "n": 68,
+        "rate": 0.970588
+      },
+      "total_charge": {
+        "exact": 184,
+        "n": 184,
+        "rate": 1.0
+      },
+      "patient_name": {
+        "exact": 190,
+        "n": 190,
+        "rate": 1.0
+      },
+      "insured_id_number": {
+        "exact": 202,
+        "n": 202,
+        "rate": 1.0
+      },
+      "insured_name": {
+        "exact": 180,
+        "n": 180,
+        "rate": 1.0
+      }
+    },
+    "true_stp_of_scored": 118,
+    "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6.",
+    "false_accept_examples": [
+      {
+        "claim_id": "Group A__M048EJGE.038",
+        "field": "patient_dob",
+        "expected": "1966-08-18",
+        "predicted": "1966-08-08",
+        "gt_confidence": "SILVER",
+        "note": "day FA 08\u219418"
+      },
+      {
+        "claim_id": "Group A__M048HJCX.009",
+        "field": "patient_dob",
+        "expected": "1965-06-19",
+        "predicted": "1965-06-01",
+        "gt_confidence": "SILVER",
+        "note": "day FA"
+      }
+    ]
+  },
+  "definition": {
+    "true_stp": "COMPLETED and not review_required",
+    "field_hitl": "registration ok but claim requires field review",
+    "registration_failed": "Track A fail-closed registration HITL",
+    "combined_hitl": "field_hitl + registration_failed",
+    "accuracy": "exact match vs agent GT on labeled fields only (GOLD/SILVER); unlabeled/hard cases abstain; HITL claims included when labeled"
+  },
+  "v11_1_notes": [
+    "Name confusable \u22642 + optional MI relief",
+    "Tesseract auth for charge/ID/DOB",
+    "Service-line paddle fallback + digits-first charge/DOB",
+    "CDP_OCR_FIELD_SCOPE=stp_critical + OCR stubs"
+  ],
+  "generated_at": "2026-09-16T12:42:02.853761+00:00"
+}
