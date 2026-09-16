@@ -1,0 +1,30 @@
+{
+  "run": "hackathon_50_cascade_v10",
+  "status": "STOPPED_SUPERSEDED",
+  "stopped_reason": "Killed mid-run after shipping near-miss registration fix; retest on hackathon_50_cascade_v10b",
+  "n_finished": 6,
+  "n_requested": 50,
+  "true_stp": 3,
+  "true_stp_rate": 0.5,
+  "disposition_counts": {
+    "REGISTRATION_FAILED": 3,
+    "TRUE_STP": 3
+  },
+  "registration_failures": [
+    {
+      "claim_id": "Group A__M048DJJF.001",
+      "reason": "low_inlier_ratio"
+    },
+    {
+      "claim_id": "Group A__M048DJJF.005",
+      "reason": "low_inlier_ratio,unsafe_perspective_distortion"
+    },
+    {
+      "claim_id": "Group A__M048DJJF.007",
+      "reason": "low_inlier_ratio"
+    }
+  ],
+  "note": "DJJF.001/.007 were ratio-only near-miss; fix shipped and retested accepted in registration_near_miss_retest_v10.json. Cascade continuing on v10b.",
+  "superseded_by": "evaluation_results/hackathon_50_cascade_v10b",
+  "generated_at": "2026-09-16T04:26:36.280020+00:00"
+}

@@ -1,0 +1,33 @@
+{
+  "run": "hackathon_50_cascade_v10b",
+  "status": "RUNNING",
+  "n_finished": 0,
+  "claims_in_flight": 4,
+  "registration_probe": [
+    {
+      "claim": "Group A__M048DJJF.001",
+      "geometry": true,
+      "geom_status": "SUCCESS",
+      "algorithm": "sift_flann_ransac_homography_near_miss_boost"
+    },
+    {
+      "claim": "Group A__M048DJJF.002",
+      "geometry": true,
+      "geom_status": "SUCCESS",
+      "algorithm": null
+    },
+    {
+      "claim": "Group A__M048DJJF.003",
+      "geometry": true,
+      "geom_status": "SUCCESS",
+      "algorithm": null
+    },
+    {
+      "claim": "Group A__M048DJJF.004",
+      "geometry": true,
+      "geom_status": "SUCCESS",
+      "algorithm": null
+    }
+  ],
+  "generated_at": "2026-09-16T04:26:36.304177+00:00"
+}
