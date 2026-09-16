@@ -1,39 +1,39 @@
 {
   "run_dir": "/workspace/evaluation_results/hackathon_300_cascade_v11",
-  "claims_scored": 147,
-  "field_count": 531,
-  "exact_accuracy": 0.998117,
-  "perfect_claim_exact_rate": 0.993197,
+  "claims_scored": 165,
+  "field_count": 594,
+  "exact_accuracy": 0.998316,
+  "perfect_claim_exact_rate": 0.993939,
   "false_accepts": 1,
-  "false_accept_rate": 0.001883,
+  "false_accept_rate": 0.001684,
   "field_exact": {
     "patient_dob": {
-      "exact": 40,
-      "n": 41,
-      "rate": 0.97561
+      "exact": 45,
+      "n": 46,
+      "rate": 0.978261
     },
     "total_charge": {
-      "exact": 116,
-      "n": 116,
+      "exact": 130,
+      "n": 130,
       "rate": 1.0
     },
     "patient_name": {
-      "exact": 120,
-      "n": 120,
+      "exact": 133,
+      "n": 133,
       "rate": 1.0
     },
     "insured_id_number": {
-      "exact": 136,
-      "n": 136,
+      "exact": 154,
+      "n": 154,
       "rate": 1.0
     },
     "insured_name": {
-      "exact": 118,
-      "n": 118,
+      "exact": 131,
+      "n": 131,
       "rate": 1.0
     }
   },
-  "true_stp_of_scored": 77,
+  "true_stp_of_scored": 84,
   "by_bundle": {
     "Group A/M048DJJM": {
       "n": 9,
@@ -66,11 +66,11 @@
       "true_stp": 1
     },
     "Group A/M048EJI2": {
-      "n": 12,
-      "perfect_exact": 12,
-      "true_stp": 4
+      "n": 30,
+      "perfect_exact": 30,
+      "true_stp": 11
     }
   },
-  "generated_at": "2026-09-16T11:12:18.315933+00:00",
+  "generated_at": "2026-09-16T11:28:10.696063+00:00",
   "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6."
 }
