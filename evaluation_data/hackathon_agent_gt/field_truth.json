@@ -1,7 +1,7 @@
 {
   "dataset": "Hackathon - 1000 Claims.zip",
   "created_by": "agent_consensus_gt_v2",
-  "created_at": "2026-09-16T11:55:10.594603+00:00",
+  "created_at": "2026-09-16T12:13:25.204923+00:00",
   "methodology": [
     "No vendor labels on Hackathon ZIP \u2014 this is agent-created GT.",
     "GOLD: \u22652 OCR engines agree after span-select + field-shape gate.",
@@ -11,18 +11,18 @@
     "Never invent DOB/amounts/IDs when ink is ambiguous."
   ],
   "stats": {
-    "claims": 232,
-    "field_labels": 853,
+    "claims": 241,
+    "field_labels": 878,
     "by_confidence": {
-      "SILVER": 309,
-      "GOLD": 544
+      "SILVER": 326,
+      "GOLD": 552
     },
     "by_field": {
-      "total_charge": 195,
-      "patient_name": 193,
-      "insured_id_number": 213,
-      "insured_name": 187,
-      "patient_dob": 65
+      "total_charge": 202,
+      "patient_name": 202,
+      "insured_id_number": 215,
+      "insured_name": 192,
+      "patient_dob": 67
     }
   },
   "claims": {
@@ -6326,6 +6326,20 @@
         "hackathon_300_cascade_v11"
       ]
     },
+    "Group A__M048HJCR.002": {
+      "document": "Group A/M048HJCR.002",
+      "fields": {
+        "patient_name": {
+          "expected_value": "HANUSHEFSKY NARTINA",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
     "Group A__M048HJCR.003": {
       "document": "Group A/M048HJCR.003",
       "fields": {
@@ -6370,6 +6384,198 @@
         },
         "insured_name": {
           "expected_value": "COOPER ABBOT B",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCR.006": {
+      "document": "Group A/M048HJCR.006",
+      "fields": {
+        "patient_name": {
+          "expected_value": "HOLODAK RICHARD",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "987543634",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "HOLODAK RICHARD",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.001": {
+      "document": "Group A/M048HJCX.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1962-07-08",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "1530.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LABA KAREN",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "OSC75389739",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "IABA KAREN",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.003": {
+      "document": "Group A/M048HJCX.003",
+      "fields": {
+        "total_charge": {
+          "expected_value": "150.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "KOFMAN SOFIA",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.004": {
+      "document": "Group A/M048HJCX.004",
+      "fields": {
+        "total_charge": {
+          "expected_value": "350.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CLARK ROSANNA",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.005": {
+      "document": "Group A/M048HJCX.005",
+      "fields": {
+        "total_charge": {
+          "expected_value": "31.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "SURHMEET SINAH",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "SIN4H SUKHMEET 52",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.006": {
+      "document": "Group A/M048HJCX.006",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2010-10-10",
+          "source": "single_engine_shaped:paddleocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "3000.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "KOLOMAT S MARAARETC",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.007": {
+      "document": "Group A/M048HJCX.007",
+      "fields": {
+        "total_charge": {
+          "expected_value": "3012.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WRIAHT CRYSTAL G",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "WRIAHT CRYSTAL G IZ",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCX.008": {
+      "document": "Group A/M048HJCX.008",
+      "fields": {
+        "total_charge": {
+          "expected_value": "150.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CORREA KASANDRA",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "CORREA KASANDRA",
           "source": "multi_engine_consensus:paddleocr+rapidocr",
           "confidence": "GOLD"
         }
