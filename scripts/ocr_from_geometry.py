@@ -739,6 +739,25 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 (c.get('value') or '' for c in dig_cands if (c.get('value') or '').strip()),
                 '',
             )
+            if not selected:
+                # Span may empty sparse digit ink; recover whole-dollar / decimal raw.
+                import re as _re_amt
+                raw = next(
+                    (c.get('raw_value') or '' for c in dig_cands if (c.get('raw_value') or '').strip()),
+                    '',
+                )
+                m = _re_amt.search(
+                    r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?',
+                    raw or '',
+                )
+                if m:
+                    selected = m.group(0).lstrip('$')
+                    if '.' not in selected and _re_amt.fullmatch(r'\d{2,6}', selected):
+                        selected = f'{selected}.00'
+                    if dig_cands:
+                        lead = dict(dig_cands[0])
+                        lead['value'] = selected
+                        dig_cands[0] = lead
             ok, accept_reason = semantic_accept(field['field'], selected)
             if ok:
                 cascaded = CascadeResult(
@@ -764,6 +783,34 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     ],
                     accepted=True,
                     accept_reason=f'DIGITS_FIRST:{accept_reason}',
+                    strategy_id=cascade.strategy_id,
+                )
+            else:
+                # Empty box-28: do not exhaust paddle×3 crop variants — E6 uses
+                # service-line charges. Keeps STP eval from multi-minute thrash.
+                cascaded = CascadeResult(
+                    field_name=field['field'],
+                    bbox=primary,
+                    candidates=list(dig_cands),
+                    attempts=list(dig_attempts),
+                    router_reason=dig_reason or 'CHARGE_DIGITS_EMPTY',
+                    status='NO_VALUE',
+                    cascade_trace=[
+                        CascadeStepResult(
+                            variant_id='charge_digits_first',
+                            bbox=primary,
+                            engines=('tesseract_digits',),
+                            selected_value='',
+                            raw_value=(dig_cands[0].get('raw_value') if dig_cands else '') or '',
+                            accepted=False,
+                            accept_reason=accept_reason or 'EMPTY',
+                            candidates=tuple(dig_cands),
+                            attempts=tuple(dig_attempts),
+                            router_reason=dig_reason or 'CHARGE_DIGITS_EMPTY',
+                        )
+                    ],
+                    accepted=False,
+                    accept_reason=accept_reason or 'EMPTY',
                     strategy_id=cascade.strategy_id,
                 )
         if cascaded is None:
