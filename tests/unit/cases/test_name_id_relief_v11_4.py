@@ -171,6 +171,52 @@ def test_future_dob_rejected():
     assert "FUTURE_DOB_REJECTED" in result.rationale_codes
 
 
+def test_future_digit_glue_does_not_block_unique_dob():
+    """Paddle year-5199 glue must not starve tesseract's only real DOB."""
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("05/15/1997", "tesseract", 0.37),
+            _candidate("05 115199", "paddleocr", 0.97),
+            _candidate("MM 5 1 1 Q D", "rapidocr", 0.85),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert _dob_is_future(result.selected_value or "") is False
+    assert "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD" not in result.rationale_codes
+
+
+def test_name_mi_relief_does_not_accept_dob_year_conflict():
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("01/09/1960", "rapidocr", 0.92),
+            _candidate("09/09/2015", "paddleocr", 0.89),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.REVIEW
+    assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
+    assert "NAME_MIDDLE_INITIAL_RELIEVED" not in result.rationale_codes
+
+
 def test_name_conflict_jeffrey_accepts():
     result = EvidenceReconciler().reconcile(
         "patient_name",

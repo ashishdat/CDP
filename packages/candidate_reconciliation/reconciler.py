@@ -914,7 +914,10 @@ class EvidenceReconciler:
         }
         has_multi_engine_family = len(supporting_engine_families) >= 2
         calibrated = max(score for _, score, _ in supporting)
-        agreement_bonus = 0.04 if (has_independent_agreement or has_multi_engine_family) else 0.0
+        # Agreement bonus stays tied to E2-qualified independent agreement only.
+        # Boosting confidence from raw engine-family co-presence widens the
+        # conflict margin and can silently ACCEPT genuine DOB/year conflicts.
+        agreement_bonus = 0.04 if has_independent_agreement else 0.0
         reference_match = (
             authoritative_reference_verified
             and authoritative_value is not None
@@ -1011,13 +1014,13 @@ class EvidenceReconciler:
                 for candidate, _, _ in items
             )
         reasons = ["HARD_VALIDATION_PASSED"] if "HARD_VALIDATION_PASSED" in deterministic else []
-        if has_independent_agreement or has_multi_engine_family:
+        if has_independent_agreement:
             reasons.append("MULTI_ENGINE_AGREEMENT")
         if reference_match:
             reasons.append("REFERENCE_MATCH")
         reasons.extend(sorted(deterministic))
         signals = set(deterministic)
-        if has_independent_agreement or has_multi_engine_family:
+        if has_independent_agreement:
             signals.add("OCR_MULTI_ENGINE")
         if reference_match:
             signals.add("REFERENCE_MATCH")
@@ -1073,13 +1076,16 @@ class EvidenceReconciler:
         )
         unique_calendar_dob = False
         if date_corroborated:
+            # Future-shaped OCR (year 5199 from digit glue) is junk — do not
+            # count it against unique-calendar corroboration.
             calendar_ymds = {
                 _dob_ymd(str(candidate.value or ""))
                 for candidate in candidates
                 if (candidate.value or "").strip()
+                and not _dob_is_future(str(candidate.value or ""))
             }
             calendar_ymds.discard(None)
-            unique_calendar_dob = len(calendar_ymds) == 1 and _dob_ymd(str(value)) is not None
+            unique_calendar_dob = len(calendar_ymds) == 1 and _dob_ymd(str(value)) is not None and not _dob_is_future(str(value))
             # Uncalibrated fill engines (tesseract) often sit ~0.3 raw conf even when
             # the only calendar-valid shaped DOB passes DATE_VALID — treat unique
             # calendar corroboration like deterministic authority on confidence.
@@ -1150,6 +1156,15 @@ class EvidenceReconciler:
                 for other in competing_values
                 if not values_conflict_equivalent(field_name, value, other)
             ]
+            # Future-shaped DOB OCR is digit junk, not a genuine calendar conflict.
+            if is_dob_field:
+                genuine = [
+                    other
+                    for other in genuine
+                    if not (
+                        _dob_ymd(str(other)) is not None and _dob_is_future(str(other))
+                    )
+                ]
             if early_separator_relief:
                 # Competing values were separator-1 twins of the cleaned date.
                 decision = (
@@ -1207,7 +1222,7 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("NAME_PREFIX_EXPANSION_RELIEVED")
-                elif (
+                elif is_name_field and (
                     mi_clean := prefer_name_with_optional_middle_initial(
                         str(value), genuine
                     )
@@ -1219,7 +1234,7 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("NAME_MIDDLE_INITIAL_RELIEVED")
-                elif (
+                elif is_name_field and (
                     order_clean := prefer_name_canonical_token_order(
                         str(value), genuine
                     )
