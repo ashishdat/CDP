@@ -49,14 +49,32 @@ _STP_CRITICAL_FIELDS = frozenset({
 })
 
 
+def _ocr_scope() -> str:
+    return (os.environ.get("CDP_OCR_FIELD_SCOPE") or "").strip().casefold()
+
+
+def _ocr_fast_mode() -> bool:
+    """STP eval speed path: fewer ROIs, fewer tess PSMs, cheap service-line OCR."""
+    return _ocr_scope() in {"stp_critical", "critical", "stp"}
+
+
 def _field_in_scope(field_name: str) -> bool:
-    scope = (os.environ.get("CDP_OCR_FIELD_SCOPE") or "").strip().casefold()
+    scope = _ocr_scope()
     if scope in {"", "all", "*"}:
         return True
     if scope in {"stp_critical", "critical", "stp"}:
         return (field_name or "").casefold() in _STP_CRITICAL_FIELDS
     allowed = {part.strip().casefold() for part in scope.split(",") if part.strip()}
     return (field_name or "").casefold() in allowed
+
+
+def _digit_psms_charge() -> tuple[int, ...]:
+    # One PSM is enough for whitelist digit recovery; 3× PSMs thrashed 4-worker runs.
+    return (8,) if _ocr_fast_mode() else (7, 8, 6)
+
+
+def _digit_psms_dob() -> tuple[int, ...]:
+    return (8,) if _ocr_fast_mode() else (10, 7, 8)
 
 def _clamp_bbox(bbox, width, height):
     x0, y0, x1, y1 = (int(v) for v in bbox)
@@ -218,7 +236,7 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             up = ImageOps.autocontrast(up)
             up = ImageEnhance.Contrast(up).enhance(1.5)
             digit_raws = []
-            for psm in (7, 8, 6):
+            for psm in _digit_psms_charge():
                 cfg = f'--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789.$'
                 raw = pytesseract.image_to_string(up, config=cfg).strip()
                 attempts.append({
@@ -229,6 +247,7 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
                 })
                 if raw:
                     digit_raws.append(raw)
+                    break
             for raw in digit_raws:
                 span = select_field_span(
                     raw, span_datatype_for_field(name, field_type), name,
@@ -261,6 +280,70 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
     return candidates, attempts, routed.reason
 
 
+def _recognize_charge_digits_only(image, bbox):
+    """Cheap charge OCR: digit-whitelist tesseract only (no paddle/rapid)."""
+    attempts = []
+    candidates = []
+    try:
+        import pytesseract
+        from PIL import ImageOps, ImageEnhance
+        x0, y0, x1, y1 = (int(v) for v in bbox)
+        crop = image.crop((x0, y0, x1, y1))
+        up = crop.resize(
+            (max(1, crop.width * 3), max(1, crop.height * 3)),
+            Image.Resampling.LANCZOS,
+        )
+        up = ImageOps.autocontrast(up)
+        up = ImageEnhance.Contrast(up).enhance(1.5)
+        for psm in _digit_psms_charge():
+            cfg = f'--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789.$'
+            raw = pytesseract.image_to_string(up, config=cfg).strip()
+            attempts.append({
+                'engine': 'tesseract_digits', 'reason': f'PSM_{psm}',
+                'latency_ms': 0.0,
+                'observation': {'text': raw} if raw else None,
+                'preprocessing_profile': 'charge_digit_whitelist_fast',
+            })
+            if not raw:
+                continue
+            span = select_field_span(raw, span_datatype_for_field('charges', 'currency'), 'charges')
+            if not span.selected_text:
+                # Keep raw so _currency_value can still parse whole dollars.
+                box = BoundingBox(
+                    x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
+                    image_width=image.width, image_height=image.height,
+                )
+                candidates.append({
+                    'value': '', 'raw_value': raw, 'engine': 'tesseract_digits',
+                    'bounding_box': box.model_dump(mode='json'),
+                })
+                break
+            box = BoundingBox(
+                x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
+                image_width=image.width, image_height=image.height,
+            )
+            candidate = OCRCandidate(
+                value=span.selected_text, raw_value=raw, engine='tesseract_digits',
+                model_name='unknown', model_version='unknown',
+                preprocessing_variant='charge_digit_whitelist_fast',
+                preprocessing_version='cascade-v11-fast',
+                raw_confidence=0.7, calibrated_confidence=None, bounding_box=box,
+                latency_ms=0.0,
+            )
+            payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
+            payload['span_selection'] = {
+                'selected_text': span.selected_text,
+                'rule_id': span.rule_id,
+                'confidence': span.confidence,
+                'reason_codes': list(span.reason_codes) + ['CHARGE_DIGIT_FAST'],
+            }
+            candidates.append(payload)
+            break
+    except Exception:
+        pass
+    return candidates, attempts, 'CHARGE_DIGITS_FAST'
+
+
 def recognize_service_lines(image, router, template):
     """OCR CMS-1500 service-line charge cells for claim-total E6 confirmation."""
     table = getattr(template, 'service_line_region', None) if template is not None else None
@@ -278,6 +361,11 @@ def recognize_service_lines(image, router, template):
     charge_windows = [
         (x0, x1) for _, x0, x1 in charge_column_windows(charge_col.x0, charge_col.x1)
     ]
+    fast = _ocr_fast_mode()
+    if fast:
+        # Primary + one alternate window is enough for STP E6; 4 windows × paddle
+        # × tess was the dominant multi-minute bottleneck under 4 workers.
+        charge_windows = charge_windows[:2]
 
     def _currency_value(raw_text, candidates):
         import re as _re
@@ -310,31 +398,35 @@ def recognize_service_lines(image, router, template):
             break
         probe_empty = True
         import re as _re_probe
-        for column in probe_cols:
-            pb = _clamp_bbox((column.x0, y0, column.x1, y1), image.width, image.height)
-            pcs, _, _ = _recognize_one(image, column.field_name, pb, router, column.field_type)
-            for cand in pcs or []:
-                # Prefer raw ink for liveness; span may empty a noisy but real cell.
-                val = ((cand.get('raw_value') or '') + ' ' + (cand.get('value') or '')).strip()
-                if not val:
-                    continue
-                if column.field_name in {'date_from', 'date_to'} and _re_probe.search(r'\d', val):
-                    probe_empty = False
+        if not fast:
+            for column in probe_cols:
+                pb = _clamp_bbox((column.x0, y0, column.x1, y1), image.width, image.height)
+                pcs, _, _ = _recognize_one(image, column.field_name, pb, router, column.field_type)
+                for cand in pcs or []:
+                    # Prefer raw ink for liveness; span may empty a noisy but real cell.
+                    val = ((cand.get('raw_value') or '') + ' ' + (cand.get('value') or '')).strip()
+                    if not val:
+                        continue
+                    if column.field_name in {'date_from', 'date_to'} and _re_probe.search(r'\d', val):
+                        probe_empty = False
+                        break
+                    if column.field_name in {'cpt_hcpcs', 'cpt', 'hcpcs'} and _re_probe.search(
+                        r'\d{4,5}|[A-Z]\d{3,4}', val.upper()
+                    ):
+                        probe_empty = False
+                        break
+                if not probe_empty:
                     break
-                if column.field_name in {'cpt_hcpcs', 'cpt', 'hcpcs'} and _re_probe.search(
-                    r'\d{4,5}|[A-Z]\d{3,4}', val.upper()
-                ):
-                    probe_empty = False
-                    break
-            if not probe_empty:
-                break
         # Phase 2: skip leading header/blank rows; only stop after a live block ends.
         # Charge-column currency ink can also prove the row is live when date/CPT probes fail.
         best = None
         for x0, x1 in charge_windows:
             bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
-            candidates, attempts, reason = _recognize_one(
-                image, 'charges', bbox, router, charge_col.field_type)
+            if fast:
+                candidates, attempts, reason = _recognize_charge_digits_only(image, bbox)
+            else:
+                candidates, attempts, reason = _recognize_one(
+                    image, 'charges', bbox, router, charge_col.field_type)
             raw = candidates[0].get('raw_value') if candidates else ''
             value = _currency_value(raw, candidates)
             score = 0
@@ -379,6 +471,9 @@ def recognize_service_lines(image, router, template):
             # Probe saw date/CPT but charge empty: still end once we are past a live block.
             continue
         lines.append(best)
+        # STP E6 only needs observed line charges; 3 live rows is enough evidence.
+        if fast and len(lines) >= 3:
+            break
     return lines
 
 
@@ -449,28 +544,11 @@ def _recognize_dob_cells(image, band, router, engines):
         bbox = _clamp_bbox(bbox, image.width, image.height)
         crop = _preprocess_dob_cell(image.crop(bbox))
         best_digits = ''
-        # Primary route engines on the upscaled cell.
-        routed = router.route(
-            OCRRouteRequest(crop, (0, 0, crop.width, crop.height), engine_order=engines)
-        )
-        for attempt in routed.attempts:
-            observation = attempt.observation
-            attempts.append({
-                'engine': attempt.engine, 'reason': attempt.reason,
-                'latency_ms': attempt.latency_ns / 1e6,
-                'observation': asdict(observation) if observation else None,
-                'preprocessing_profile': 'dob_cell_upscale',
-                'dob_cell': label,
-            })
-            if observation is None or not observation.lines:
-                continue
-            raw = chr(10).join(line.text for line in observation.lines)
-            raw_bits.append(f'{label}:{raw}')
-            best_digits = _consider(label, _digits_from(raw), raw, best_digits)
-        # Digit-only tesseract pass — typed CMS DOB cells often resolve under whitelist.
+        # Digit-only tesseract first — typed CMS DOB cells often resolve under whitelist.
+        # Under STP fast mode, skip route engines when digits already assemble.
         try:
             import pytesseract
-            for psm in (10, 7, 8):
+            for psm in _digit_psms_dob():
                 cfg = f'--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789'
                 raw = pytesseract.image_to_string(crop, config=cfg).strip()
                 attempts.append({
@@ -481,8 +559,28 @@ def _recognize_dob_cells(image, band, router, engines):
                 if raw:
                     raw_bits.append(f'{label}:tess{psm}:{raw}')
                     best_digits = _consider(label, _digits_from(raw), raw, best_digits)
+                    if best_digits:
+                        break
         except Exception:
             pass
+        if not best_digits or not _ocr_fast_mode():
+            routed = router.route(
+                OCRRouteRequest(crop, (0, 0, crop.width, crop.height), engine_order=engines)
+            )
+            for attempt in routed.attempts:
+                observation = attempt.observation
+                attempts.append({
+                    'engine': attempt.engine, 'reason': attempt.reason,
+                    'latency_ms': attempt.latency_ns / 1e6,
+                    'observation': asdict(observation) if observation else None,
+                    'preprocessing_profile': 'dob_cell_upscale',
+                    'dob_cell': label,
+                })
+                if observation is None or not observation.lines:
+                    continue
+                raw = chr(10).join(line.text for line in observation.lines)
+                raw_bits.append(f'{label}:{raw}')
+                best_digits = _consider(label, _digits_from(raw), raw, best_digits)
         parts[label] = best_digits
     mm, dd, yy = parts.get('MM', ''), parts.get('DD', ''), parts.get('YY', '')
     # Reject weak cell reads — garbage like "1'4QR2" can span-shape into a false date.
@@ -628,6 +726,45 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     accepted=True,
                     accept_reason=f'CELLS_FIRST:{accept_reason}',
                     strategy_id=FieldCascade().strategy_id,
+                )
+        if cascaded is None and _ocr_fast_mode() and field['field'].casefold() in {
+            'total_charge', 'total_charges',
+        }:
+            from packages.extraction_recovery.field_cascade import (
+                CascadeResult,
+                CascadeStepResult,
+            )
+            dig_cands, dig_attempts, dig_reason = _recognize_charge_digits_only(image, primary)
+            selected = next(
+                (c.get('value') or '' for c in dig_cands if (c.get('value') or '').strip()),
+                '',
+            )
+            ok, accept_reason = semantic_accept(field['field'], selected)
+            if ok:
+                cascaded = CascadeResult(
+                    field_name=field['field'],
+                    bbox=primary,
+                    candidates=list(dig_cands),
+                    attempts=list(dig_attempts),
+                    router_reason=dig_reason,
+                    status='OBSERVED',
+                    cascade_trace=[
+                        CascadeStepResult(
+                            variant_id='charge_digits_first',
+                            bbox=primary,
+                            engines=('tesseract_digits',),
+                            selected_value=selected,
+                            raw_value=(dig_cands[0].get('raw_value') if dig_cands else '') or '',
+                            accepted=True,
+                            accept_reason=f'DIGITS_FIRST:{accept_reason}',
+                            candidates=tuple(dig_cands),
+                            attempts=tuple(dig_attempts),
+                            router_reason=dig_reason,
+                        )
+                    ],
+                    accepted=True,
+                    accept_reason=f'DIGITS_FIRST:{accept_reason}',
+                    strategy_id=cascade.strategy_id,
                 )
         if cascaded is None:
             cascaded = cascade.recognize(
