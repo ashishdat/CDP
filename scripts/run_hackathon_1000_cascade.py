@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run field-cascade-v9 ops on the Hackathon 1000 Claims corpus.
+"""Run field-cascade ops on the Hackathon Claims corpus (cascade strategy from YAML).
 
 Operational completion / true-STP / HITL evaluation (no field-level GT).
 Pipeline per claim: app.py (register+geometry+recovery ladder) → ocr → rank →
@@ -512,7 +512,7 @@ def _process_one(
         "service_line_charges": summary["service_line_charges"],
         "claim_status": summary["claim_status"],
         "ocr_engine_stats": summary.get("ocr_engine_stats") or {},
-        "strategy_id": "field-cascade-v9",
+        "strategy_id": "field-cascade-v10",
         "elapsed_sec": round(time.time() - started, 3),
         "ts": _utc_now(),
     }
@@ -600,7 +600,7 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
         "dataset": "DEVELOPMENT_DATASET_V1 / Hackathon - 1000 Claims.zip",
         "document_count_requested": limit,
         "document_count_evaluated": n,
-        "strategy_id": "field-cascade-v9",
+        "strategy_id": "field-cascade-v10",
         **overall,
         "disposition_counts": dict(by_disp),
         "registration_failure_reasons": dict(reg_reasons),
@@ -649,7 +649,7 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
         },
         "bundle_count": len(by_bundle),
         "note": (
-            "Operational metrics under field-cascade-v9 with paddle+rapid confirmation "
+            "Operational metrics under field-cascade-v10 with paddle+rapid confirmation "
             "cascade and agreement-aware pick. No field-level GT on Hackathon corpus — "
             "accuracy marked unavailable."
         ),
@@ -699,7 +699,7 @@ def main() -> int:
     done = _load_done(ledger) if args.resume else set()
     pending = [d for d in selected if _claim_slug(d) not in done]
     print(
-        f"strategy=field-cascade-v9 selected={len(selected)} "
+        f"strategy=field-cascade-v10 selected={len(selected)} "
         f"already_done={len(selected) - len(pending)} pending={len(pending)} "
         f"workers={args.workers}",
         flush=True,
