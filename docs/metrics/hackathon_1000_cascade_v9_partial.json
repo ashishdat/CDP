@@ -1,20 +1,21 @@
 {
   "run": "hackathon_1000_cascade_v9",
   "status": "RUNNING",
-  "n_ledger": 11,
-  "registration_ok": 8,
-  "registration_ok_rate": 0.727273,
-  "completed": 8,
-  "true_stp": 2,
-  "true_stp_rate_of_completed": 0.25,
-  "true_stp_rate_of_all": 0.181818,
-  "hitl": 6,
-  "registration_hitl": 3,
-  "field_ink_hitl": 6,
+  "n_ledger": 23,
+  "registration_ok": 15,
+  "registration_ok_rate": 0.652174,
+  "completed": 13,
+  "true_stp": 4,
+  "true_stp_rate_of_completed": 0.307692,
+  "true_stp_rate_of_all": 0.173913,
+  "hitl": 17,
+  "registration_hitl": 8,
+  "field_ink_hitl": 9,
   "disposition_counts": {
-    "REGISTRATION_FAILED": 3,
-    "HITL": 6,
-    "TRUE_STP": 2
+    "REGISTRATION_FAILED": 8,
+    "HITL": 9,
+    "TRUE_STP": 4,
+    "STAGE_FAILURE": 2
   },
   "accuracy": {
     "status": "UNAVAILABLE_NO_GROUND_TRUTH",
@@ -23,68 +24,150 @@
     "note": "Hackathon 1000 ZIP has no field-level labels. Accuracy cannot be scored; report operational STP/HITL and field auto-accept rates only."
   },
   "ocr_cascade": {
-    "claims_with_ocr": 8,
-    "cascade_healthy_claims": 8,
+    "claims_with_ocr": 18,
+    "cascade_healthy_claims": 18,
     "cascade_healthy_rate": 1.0,
-    "claims_with_tesseract_observed": 0,
+    "claims_with_tesseract_observed": 18,
     "engines_attempted": {
-      "paddleocr": 210,
-      "rapidocr": 210,
-      "tesseract": 49,
-      "tesseract_digits": 54
+      "paddleocr": 450,
+      "rapidocr": 450,
+      "tesseract": 135,
+      "tesseract_digits": 129
     },
     "engines_observed": {
-      "paddleocr": 210,
-      "rapidocr": 210,
-      "tesseract": 49
+      "paddleocr": 450,
+      "rapidocr": 450,
+      "tesseract": 135,
+      "tesseract_digits": 33
     },
     "engines_unavailable": {},
     "required": "paddleocr OBSERVED + rapidocr OBSERVED; tesseract fill on miss (never UNAVAILABLE)"
   },
   "critical_blockers": {
-    "patient_dob": 6,
-    "insured_id_number": 1
+    "patient_dob": 7,
+    "insured_id_number": 1,
+    "patient_name": 2
   },
   "field_auto_of_completed": {
-    "patient_dob": "2/8",
-    "total_charge": "8/8",
-    "patient_name": "8/8",
-    "insured_id_number": "7/8",
-    "insured_name": "7/8"
+    "patient_dob": "6/13",
+    "total_charge": "13/13",
+    "patient_name": "11/13",
+    "insured_id_number": "12/13",
+    "insured_name": "12/13"
   },
   "by_bundle": {
     "Group A/M048DJJF": {
-      "n": 11,
-      "registration_ok": 8,
-      "registration_ok_rate": 0.727273,
-      "completed": 8,
-      "completion_rate": 0.727273,
+      "n": 15,
+      "registration_ok": 12,
+      "registration_ok_rate": 0.8,
+      "completed": 11,
+      "completion_rate": 0.733333,
       "true_stp": 2,
-      "true_stp_rate_of_all": 0.181818,
-      "true_stp_rate_of_completed": 0.25,
-      "hitl": 6,
-      "hitl_rate_of_all": 0.545455,
+      "true_stp_rate_of_all": 0.133333,
+      "true_stp_rate_of_completed": 0.181818,
+      "hitl": 12,
+      "hitl_rate_of_all": 0.8,
       "registration_hitl": 3,
-      "registration_hitl_rate": 0.272727,
-      "field_ink_hitl": 6,
-      "field_ink_hitl_rate_of_completed": 0.75
+      "registration_hitl_rate": 0.2,
+      "field_ink_hitl": 9,
+      "field_ink_hitl_rate_of_completed": 0.818182
+    },
+    "Group A/M048DJJM": {
+      "n": 8,
+      "registration_ok": 3,
+      "registration_ok_rate": 0.375,
+      "completed": 2,
+      "completion_rate": 0.25,
+      "true_stp": 2,
+      "true_stp_rate_of_all": 0.25,
+      "true_stp_rate_of_completed": 1.0,
+      "hitl": 5,
+      "hitl_rate_of_all": 0.625,
+      "registration_hitl": 5,
+      "registration_hitl_rate": 0.625,
+      "field_ink_hitl": 0,
+      "field_ink_hitl_rate_of_completed": 0.0
     }
   },
-  "updated_at": "2026-09-16T03:11:26.611494+00:00",
-  "agent_gt_accuracy_snapshot": {
-    "claims_scored": 4,
-    "exact_accuracy": 0.95,
-    "false_accepts": 0,
-    "perfect_claim_exact_rate": 0.75,
-    "note": "visual ROI GT on completed DJJF claims"
+  "updated_at": "2026-09-16T03:46:32.040022+00:00",
+  "note": "Partial ledger while main run continues; field-ink HITL rates reflect v9 artifacts (pre v10 reconciler retest).",
+  "field_fix_retest": {
+    "v10_blocker_retest": {
+      "n": 9,
+      "true_stp": 6,
+      "hitl": 3,
+      "note": "rank\u2192complete with v10 reconciler/claim decision on prior HITL claims"
+    }
   },
   "failed_claim_retest": {
-    "status": "RUNNING",
-    "claims": [
-      "DJJF.002",
-      ".003",
-      ".006"
-    ],
-    "note": "OCR stage in progress for .002"
+    "v9_ocr_retest": {
+      "status": "FAILED",
+      "claims": [
+        ".002",
+        ".003",
+        ".006"
+      ],
+      "note": "OCR stage killed (rc -15); no usable rows"
+    },
+    "v10_rank_complete_retest": {
+      "status": "DONE",
+      "n": 9,
+      "true_stp": 6,
+      "hitl": 3,
+      "claims": [
+        "Group A__M048DJJF.002",
+        "Group A__M048DJJF.003",
+        "Group A__M048DJJF.006",
+        "Group A__M048DJJF.008",
+        "Group A__M048DJJF.009",
+        "Group A__M048DJJF.011",
+        "Group A__M048DJJF.013",
+        "Group A__M048DJJF.014",
+        "Group A__M048DJJF.015"
+      ],
+      "note": "Reuse OCR; v10 reconciler+claim decision. Later .008/.009/.013 also fixed via E4/shaped ranking/unique calendar."
+    },
+    "v10_residual_dob_008": {
+      "DJJF.008": {
+        "review_required": false,
+        "claim_status": "STP_SAFE"
+      }
+    }
+  },
+  "agent_gt_accuracy_snapshot": {
+    "source": "v10_blocker_retest",
+    "claims_scored": 3,
+    "exact_accuracy": 0.866667,
+    "false_accepts": 2,
+    "perfect_claim_exact_rate": 0.333333,
+    "true_stp_of_scored": 3,
+    "field_exact": {
+      "patient_dob": {
+        "exact": 1,
+        "n": 3,
+        "rate": 0.333333
+      },
+      "total_charge": {
+        "exact": 3,
+        "n": 3,
+        "rate": 1.0
+      },
+      "patient_name": {
+        "exact": 3,
+        "n": 3,
+        "rate": 1.0
+      },
+      "insured_id_number": {
+        "exact": 3,
+        "n": 3,
+        "rate": 1.0
+      },
+      "insured_name": {
+        "exact": 3,
+        "n": 3,
+        "rate": 1.0
+      }
+    },
+    "note": "visual ROI GT on retested DJJF claims; DOB FA may reflect separator peel vs GT disagreement \u2014 investigate before trusting peel on those claims"
   }
 }

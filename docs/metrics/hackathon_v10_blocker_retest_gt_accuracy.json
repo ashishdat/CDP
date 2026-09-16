@@ -1,0 +1,46 @@
+{
+  "run_dir": "evaluation_results/hackathon_1000_cascade_v10_blocker_retest",
+  "claims_scored": 3,
+  "field_count": 15,
+  "exact_accuracy": 0.866667,
+  "perfect_claim_exact_rate": 0.333333,
+  "false_accepts": 2,
+  "false_accept_rate": 0.133333,
+  "field_exact": {
+    "patient_dob": {
+      "exact": 1,
+      "n": 3,
+      "rate": 0.333333
+    },
+    "total_charge": {
+      "exact": 3,
+      "n": 3,
+      "rate": 1.0
+    },
+    "patient_name": {
+      "exact": 3,
+      "n": 3,
+      "rate": 1.0
+    },
+    "insured_id_number": {
+      "exact": 3,
+      "n": 3,
+      "rate": 1.0
+    },
+    "insured_name": {
+      "exact": 3,
+      "n": 3,
+      "rate": 1.0
+    }
+  },
+  "true_stp_of_scored": 3,
+  "by_bundle": {
+    "Group A/M048DJJF": {
+      "n": 3,
+      "perfect_exact": 1,
+      "true_stp": 3
+    }
+  },
+  "generated_at": "2026-09-16T03:47:10.504380+00:00",
+  "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6."
+}
