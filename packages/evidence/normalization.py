@@ -41,9 +41,14 @@ def normalize_agreement_value(field_name: str, value: str | None) -> str:
     if any(token in name for token in (
         "name", "address", "diagnos", "icd", "code", "tax", "bill", "zip", "postal",
     )):
-        compact = re.sub(r"[^A-Z0-9]", "", raw)
-        # Digit-1 amid letters is a common I confusable on typed names.
+        compact = re.sub(r"[^A-Z0-9.]", "", raw)
         if "name" in name:
+            # Align with reconciler person-name confusable peels.
+            compact = re.sub(r"\.[I1]", "L", raw)
+            compact = re.sub(r"[^A-Z0-9]", "", compact)
             compact = re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", compact)
+            compact = re.sub(r"JI(?=[AEIOUY])", "J", compact)
+        else:
+            compact = re.sub(r"[^A-Z0-9]", "", raw)
         return compact
     return " ".join(raw.split())

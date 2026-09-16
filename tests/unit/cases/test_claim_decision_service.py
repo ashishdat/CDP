@@ -88,6 +88,51 @@ def test_claim_contradiction_requires_claim_review():
     assert decision.contradictions == ["CLAIM_TOTAL_CONTRADICTION"]
 
 
+def test_relieved_field_conflict_does_not_force_claim_review():
+    """AUTO_ACCEPTED fields may retain OCR alternatives; claim STP must proceed."""
+    from packages.candidate_reconciliation.contracts import EvidenceReference
+
+    service = ClaimDecisionService.load()
+    context = _context(service)
+    dob = next(d for d in context.field_decisions if d.field_name == "patient_dob")
+    dob.conflicting_evidence = [
+        EvidenceReference(
+            evidence_type="OCR_CANDIDATE",
+            reference="alt",
+            source="rapidocr",
+            reason_code="CONFLICTING_VALUE:junk",
+        )
+    ]
+    decision = service.decide(context)
+    assert decision.disposition in {
+        ClaimDisposition.STP_SAFE,
+        ClaimDisposition.STP_STANDARD,
+    }
+    assert "FIELD_CONFLICT:patient_dob" not in decision.contradictions
+    assert decision.stp_eligible
+
+
+def test_unresolved_field_conflict_still_forces_claim_review():
+    from packages.candidate_reconciliation.contracts import EvidenceReference
+
+    service = ClaimDecisionService.load()
+    context = _context(service)
+    dob = next(d for d in context.field_decisions if d.field_name == "patient_dob")
+    dob.disposition = FieldDisposition.HUMAN_REVIEW_REQUIRED
+    dob.next_action = NextAction.HUMAN_REVIEW
+    dob.conflicting_evidence = [
+        EvidenceReference(
+            evidence_type="OCR_CANDIDATE",
+            reference="alt",
+            source="rapidocr",
+            reason_code="CONFLICTING_VALUE:other",
+        )
+    ]
+    decision = service.decide(context)
+    assert decision.disposition is ClaimDisposition.CLAIM_REVIEW_REQUIRED
+    assert "FIELD_CONFLICT:patient_dob" in decision.contradictions
+
+
 def test_missing_required_decisions_fail_closed_without_review_task_proxy():
     service = ClaimDecisionService.load()
     decision = service.decide(ClaimDecisionContext(

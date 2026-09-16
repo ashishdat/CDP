@@ -124,9 +124,70 @@ def _canonical_member_id(value: str) -> str:
 
 
 def _canonical_person_name(value: str) -> str:
-    # Trailing/internal digit 1 amid letters is a common I confusable (ROVINSK1).
-    text = re.sub(r"[^A-Z0-9]", "", (value or "").strip().upper())
-    return re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", text)
+    """Normalize person-name OCR for agreement / conflict equivalence.
+
+    Handles common typed-CMS confusables without inventing letters:
+    - digit ``1`` amid letters → ``I`` (ROVINSK1)
+    - ``.1`` / ``.I`` between letters → ``L`` (REYNEL.1ISA)
+    - capital-J stem ``JI`` before a vowel → ``J`` (JIOSEPHINE)
+    """
+    text = (value or "").strip().upper()
+    text = re.sub(r"\.[I1]", "L", text)  # .1 / .I often a broken L glyph
+    text = re.sub(r"[^A-Z0-9]", "", text)
+    text = re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", text)
+    text = re.sub(r"JI(?=[AEIOUY])", "J", text)
+    return text
+
+
+def _names_differ_by_confusable_insertion(left: str, right: str) -> bool:
+    """True when names match after removing one inserted I/1/L glyph."""
+    a, b = _canonical_person_name(left), _canonical_person_name(right)
+    if not a or not b or a == b:
+        return a == b and bool(a)
+    if abs(len(a) - len(b)) != 1:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    for idx, ch in enumerate(longer):
+        if ch in {"I", "1", "L"} and longer[:idx] + longer[idx + 1 :] == shorter:
+            return True
+    return False
+
+
+def prefer_name_without_confusable_insertion(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """Prefer the cleaner name when OCR inserted an I/1/L confusable glyph."""
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    for left in observed:
+        for right in observed:
+            if left == right:
+                continue
+            if not _names_differ_by_confusable_insertion(left, right):
+                continue
+            # Prefer fewer confusable glyphs / shorter canonical form.
+            cl, cr = _canonical_person_name(left), _canonical_person_name(right)
+            if len(cl) < len(cr):
+                return left
+            if len(cr) < len(cl):
+                return right
+    # JI-peel twins: same canonical after peel — prefer display without raw JI / 1.
+    norms = [(_canonical_person_name(v), v) for v in observed]
+    by_norm: dict[str, list[str]] = {}
+    for norm, display in norms:
+        if norm:
+            by_norm.setdefault(norm, []).append(display)
+    if len(by_norm) == 1:
+        displays = next(iter(by_norm.values()))
+        scored = sorted(
+            displays,
+            key=lambda d: (
+                "JI" in re.sub(r"[^A-Z]", "", (d or "").upper()),
+                "1" in (d or ""),
+                len(d or ""),
+            ),
+        )
+        return scored[0] if len(scored) > 1 else None
+    return None
 
 
 def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
@@ -142,7 +203,9 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
         return bool(a) and a == b
     if name in {"patient_name", "insured_name"} or "name" in name:
         a, b = _canonical_person_name(left), _canonical_person_name(right)
-        return bool(a) and a == b
+        if bool(a) and a == b:
+            return True
+        return _names_differ_by_confusable_insertion(left, right)
     return normalize_agreement_value(field_name, left) == normalize_agreement_value(
         field_name, right
     )
@@ -231,6 +294,10 @@ class EvidenceReconciler:
             return len({independence_group(c.engine) for c, _, _ in items}) >= 2
 
         is_dob_field = field_name in {"patient_dob", "date_of_birth", "dob"}
+        is_name_field = field_name in {
+            "patient_name",
+            "insured_name",
+        } or "name" in (field_name or "").casefold()
 
         def _group_calendar_valid(items) -> bool:
             # Prefer calendar-valid DOB groups over header labels / digit junk
@@ -252,6 +319,28 @@ class EvidenceReconciler:
         _normalized_value, supporting = ranked[0]
         value = max(supporting, key=lambda item: item[1])[0].value
         early_separator_relief = False
+        early_name_relief = False
+        # Within a multi-engine name agreement group, prefer the display that
+        # already lacks JI / digit-1 confusables (JIOSEPHINE → JOSEPHINE).
+        if is_name_field and len(supporting) >= 1:
+            displays = [str(c.value or "") for c, _, _ in supporting]
+            name_clean = prefer_name_without_confusable_insertion(
+                displays[0], displays[1:]
+            )
+            if name_clean:
+                value = name_clean
+                early_name_relief = True
+            else:
+                # Prefer already-peeled display among same-canonical supporters.
+                scored = sorted(
+                    supporting,
+                    key=lambda item: (
+                        "JI" in re.sub(r"[^A-Z]", "", (item[0].value or "").upper()),
+                        "1" in (item[0].value or ""),
+                        -item[1],
+                    ),
+                )
+                value = scored[0][0].value
         # CMS box-3 dashed rules OCR as leading "1" (01↔11, 09↔19). Apply
         # separator relief against ALL competing groups, not only when the
         # confidence margin is tiny — high-confidence separator-1 otherwise STP-wrong.
@@ -264,6 +353,15 @@ class EvidenceReconciler:
             if separator_clean:
                 value = separator_clean
                 early_separator_relief = True
+        elif is_name_field and len(ranked) > 1:
+            competing = [
+                str(max(items, key=lambda row: row[1])[0].value)
+                for _, items in ranked[1:]
+            ]
+            name_clean = prefer_name_without_confusable_insertion(str(value), competing)
+            if name_clean:
+                value = name_clean
+                early_name_relief = True
         has_independent_agreement = independent_agreement(_normalized_value, supporting)
         calibrated = max(score for _, score, _ in supporting)
         agreement_bonus = 0.04 if has_independent_agreement else 0.0
@@ -455,6 +553,11 @@ class EvidenceReconciler:
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
                 )
                 reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
+            elif early_name_relief:
+                decision = (
+                    Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
+                )
+                reasons.append("NAME_CONFUSABLE_INSERTION_RELIEVED")
             elif not genuine:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
@@ -462,8 +565,13 @@ class EvidenceReconciler:
                 reasons.append("EQUIVALENT_VALUE_CONFLICT_RELIEVED")
             else:
                 separator_clean = None
+                name_clean = None
                 if date_corroborated or is_dob_field:
                     separator_clean = prefer_dob_without_separator_one(
+                        str(value), genuine
+                    )
+                if is_name_field:
+                    name_clean = prefer_name_without_confusable_insertion(
                         str(value), genuine
                     )
                 if separator_clean:
@@ -474,6 +582,14 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
+                elif name_clean:
+                    value = name_clean
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("NAME_CONFUSABLE_INSERTION_RELIEVED")
                 elif date_corroborated and not any(
                     _dob_ymd(other) is not None
                     and _dob_ymd(other) != _dob_ymd(str(value))
@@ -496,6 +612,8 @@ class EvidenceReconciler:
             )
             if early_separator_relief:
                 reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
+            if early_name_relief:
+                reasons.append("NAME_CONFUSABLE_INSERTION_RELIEVED")
         versions = (
             [f"authoritative-reference:{authoritative_version or 'version-not-provided'}"]
             if reference_match

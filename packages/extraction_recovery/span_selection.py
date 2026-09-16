@@ -423,11 +423,15 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
 
 
 def _repair_name_digit_confusables(name: str) -> str:
-    """Repair typed-name I/1 confusables without inventing letters elsewhere."""
+    """Repair typed-name I/1/JI confusables without inventing letters elsewhere."""
     parts = []
     for token in re.split(r"([,\s]+)", name):
-        if re.search(r"[A-Z]", token) and "1" in token:
-            parts.append(re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", token))
+        if re.search(r"[A-Z]", token) and ("1" in token or "JI" in token.upper() or ".1" in token or ".I" in token.upper()):
+            fixed = re.sub(r"\.[I1i]", "L", token)
+            fixed = re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", fixed)
+            fixed = re.sub(r"(?<=[A-Za-z])JI(?=[AEIOUYaeiouy])", "J", fixed)
+            fixed = re.sub(r"^JI(?=[AEIOUYaeiouy])", "J", fixed)
+            parts.append(fixed)
         else:
             parts.append(token)
     return "".join(parts)

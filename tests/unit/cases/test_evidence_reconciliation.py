@@ -349,3 +349,44 @@ def test_dob_prefers_calendar_valid_over_header_label():
     assert result.decision == Decision.ACCEPT
     assert result.selected_value == "01/03/2006"
     assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_name_ji_insertion_equivalent_josephine():
+    result = EvidenceReconciler().reconcile(
+        "patient_name",
+        [
+            _candidate("MARENCO JIOSEPHINE A", "paddleocr", 0.95),
+            _candidate("MARENCO, JOSEPHINE A", "rapidocr", 0.94),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert "JOSEPHINE" in (result.selected_value or "").upper()
+    assert "JIOSEPHINE" not in (result.selected_value or "").upper()
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_name_confusable_insertion_reynele():
+    result = EvidenceReconciler().reconcile(
+        "patient_name",
+        [
+            _candidate("REYNEL.1ISA", "paddleocr", 0.95),
+            _candidate("REYNELLSA", "rapidocr", 0.94),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes

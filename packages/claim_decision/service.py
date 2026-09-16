@@ -201,9 +201,14 @@ class ClaimDecisionService:
     def _contradictions(context: ClaimDecisionContext) -> list[str]:
         descriptions = [item.evidence_type for item in context.contradictions]
         for decision in context.field_decisions:
-            if decision.conflicting_evidence:
+            # Accepted fields may still list OCR alternatives as conflicting_evidence
+            # (fragments / separator twins / name confusables). Reconciler already
+            # resolved those — they must not force claim-level HITL.
+            if decision.conflicting_evidence and decision.disposition not in _ACCEPTED:
                 descriptions.append(f"FIELD_CONFLICT:{decision.field_name}")
             if decision.evidence_bundle and decision.evidence_bundle.contradictions:
+                if decision.disposition in _ACCEPTED:
+                    continue
                 descriptions.extend(
                     f"{decision.field_name}:{item.evidence_type}"
                     for item in decision.evidence_bundle.contradictions
