@@ -1,0 +1,94 @@
+{
+  "title": "Independent Samples \u2014 100 batch 2 (v12)",
+  "run": "hackathon independent cohort slice[100:200] + decision_reprocess_v12",
+  "n": 100,
+  "slice": {
+    "start": 100,
+    "end": 200,
+    "first_doc": "Group A/M048EJG7.014",
+    "last_doc": "Group A/M048EJI2.022"
+  },
+  "disjoint_from": "hackathon_100_independent_v12 (slice[0:100])",
+  "metrics": {
+    "true_stp": {
+      "count": 38,
+      "rate": 0.38
+    },
+    "field_hitl": {
+      "count": 30,
+      "rate": 0.3
+    },
+    "registration_hitl": {
+      "count": 32,
+      "rate": 0.32
+    },
+    "combined_hitl": {
+      "count": 62,
+      "rate": 0.62
+    },
+    "stage_failure": {
+      "count": 0,
+      "rate": null
+    },
+    "exact_accuracy_agent_gt": {
+      "exact": 205,
+      "n": 212,
+      "rate": 0.9669811320754716
+    },
+    "perfect_claim_exact": {
+      "exact": 60,
+      "n": 67,
+      "rate": 0.8955223880597015
+    },
+    "false_accepts": {
+      "count": 7,
+      "rate": 0.0330188679245283
+    }
+  },
+  "gt_claims_scored": 67,
+  "false_accept_detail": [
+    {
+      "claim_id": "Group A__M048EJG7.015",
+      "field": "patient_name",
+      "expected": "SMITH LNDA",
+      "predicted": "SMITH LINDA"
+    },
+    {
+      "claim_id": "Group A__M048EJG7.033",
+      "field": "insured_name",
+      "expected": "RAMERIZ NATHANIEL",
+      "predicted": "RAMERIZ, NATHANIEI"
+    },
+    {
+      "claim_id": "Group A__M048EJG7.036",
+      "field": "insured_name",
+      "expected": "PIRSR",
+      "predicted": "TOONEDSNAYIE ,FIRSRNAME,MTDDLENTIAL"
+    },
+    {
+      "claim_id": "Group A__M048EJGE.012",
+      "field": "insured_name",
+      "expected": "LUDE SHARLENE",
+      "predicted": "LUDE 1 SHARLENE"
+    },
+    {
+      "claim_id": "Group A__M048EJGE.038",
+      "field": "patient_dob",
+      "expected": "1966-08-18",
+      "predicted": "1966-08-08"
+    },
+    {
+      "claim_id": "Group A__M048EJI2.008",
+      "field": "insured_name",
+      "expected": "MCT ARTY",
+      "predicted": "P MCTARIY MTCRAET"
+    },
+    {
+      "claim_id": "Group A__M048EJI2.010",
+      "field": "insured_name",
+      "expected": "KUMP COLLEEN",
+      "predicted": "KLUMP COLLEEN"
+    }
+  ],
+  "generated_at": "2026-09-16T15:24:00+00:00"
+}
