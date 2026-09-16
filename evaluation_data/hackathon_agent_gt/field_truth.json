@@ -1,7 +1,7 @@
 {
   "dataset": "Hackathon - 1000 Claims.zip",
   "created_by": "agent_consensus_gt_v2",
-  "created_at": "2026-09-16T11:47:31.608617+00:00",
+  "created_at": "2026-09-16T11:55:10.594603+00:00",
   "methodology": [
     "No vendor labels on Hackathon ZIP \u2014 this is agent-created GT.",
     "GOLD: \u22652 OCR engines agree after span-select + field-shape gate.",
@@ -11,18 +11,18 @@
     "Never invent DOB/amounts/IDs when ink is ambiguous."
   ],
   "stats": {
-    "claims": 228,
-    "field_labels": 839,
+    "claims": 232,
+    "field_labels": 853,
     "by_confidence": {
-      "SILVER": 301,
-      "GOLD": 538
+      "SILVER": 309,
+      "GOLD": 544
     },
     "by_field": {
-      "total_charge": 191,
-      "patient_name": 189,
-      "insured_id_number": 211,
-      "insured_name": 184,
-      "patient_dob": 64
+      "total_charge": 195,
+      "patient_name": 193,
+      "insured_id_number": 213,
+      "insured_name": 187,
+      "patient_dob": 65
     }
   },
   "claims": {
@@ -6264,6 +6264,112 @@
         },
         "insured_name": {
           "expected_value": "DAVILA KEVIN",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJBI.022": {
+      "document": "Group A/M048HJBI.022",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1997-05-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "176.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "DAVILA KEVIN",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "OSC77374783",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJBI.024": {
+      "document": "Group A/M048HJBI.024",
+      "fields": {
+        "total_charge": {
+          "expected_value": "168.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "VESSAL0 TAMARA",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "VES5ALC D AMNARA",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCR.003": {
+      "document": "Group A/M048HJCR.003",
+      "fields": {
+        "total_charge": {
+          "expected_value": "135.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "VIETRI MARIAH",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "VIETRL MARIAHMAY",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048HJCR.005": {
+      "document": "Group A/M048HJCR.005",
+      "fields": {
+        "total_charge": {
+          "expected_value": "1600.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "COOPER ABBOT B",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "CDW4406202",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "COOPER ABBOT B",
           "source": "multi_engine_consensus:paddleocr+rapidocr",
           "confidence": "GOLD"
         }
