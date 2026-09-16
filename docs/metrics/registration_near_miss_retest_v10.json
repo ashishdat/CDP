@@ -1,0 +1,30 @@
+{
+  "retest": "registration_near_miss_v10",
+  "claims": [
+    {
+      "document": "Group A/M048DJJF.001",
+      "before": "REGISTRATION_FAILED low_inlier_ratio (near-miss 0.110-0.116)",
+      "after": "ACCEPTED via NEAR_MISS_SIFT_BOOST_MULTISCALE",
+      "inlier_ratio": 0.1875,
+      "inlier_count": 27
+    },
+    {
+      "document": "Group A/M048DJJF.007",
+      "before": "REGISTRATION_FAILED low_inlier_ratio (near-miss 0.107-0.111)",
+      "after": "ACCEPTED via NEAR_MISS_SIFT_BOOST_MULTISCALE",
+      "inlier_ratio": 0.2437,
+      "inlier_count": 48
+    },
+    {
+      "document": "Group A/M048DJJF.005",
+      "before": "REGISTRATION_FAILED low_inlier_ratio,unsafe_perspective_distortion",
+      "after": "still FAILED (perspective-unsafe; not near-miss eligible)",
+      "inlier_ratio": 0.0971,
+      "inlier_count": 10
+    }
+  ],
+  "accepted": "2/3",
+  "golden_pack_claim_stp_proxy": 0.98,
+  "golden_pack_hard_claim_hitl": 0.02,
+  "cascade_retest_out": "evaluation_results/hackathon_50_cascade_v10b"
+}
