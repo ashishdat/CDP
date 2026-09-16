@@ -11,15 +11,159 @@
   "registration_failed_rate": 0.14,
   "combined_hitl": 24,
   "combined_hitl_rate": 0.48,
+  "true_stp_rate_of_completed": 0.604651,
+  "registration_ok_rate": 0.86,
   "disposition_counts": {
-    "HITL": 17,
     "TRUE_STP": 26,
+    "HITL": 17,
     "REGISTRATION_FAILED": 7
+  },
+  "field_blockers": {
+    "insured_name": 7,
+    "patient_name": 3,
+    "patient_dob": 7,
+    "insured_id_number": 7
+  },
+  "field_blocker_reasons": {
+    "insured_name:CONFLICT_MARGIN_TOO_SMALL": 7,
+    "patient_dob:INVALID_FORMAT": 5,
+    "patient_dob:MISSING_E4_DETERMINISTIC_VALIDATION": 5,
+    "patient_dob:ACQUIRE_E4": 5,
+    "patient_dob:CHEAPEST_POLICY_COMPLETING_EVIDENCE": 5,
+    "insured_id_number:CALIBRATED_CONFIDENCE_BELOW_THRESHOLD": 4,
+    "patient_name:CONFLICT_MARGIN_TOO_SMALL": 3,
+    "insured_id_number:CONFLICT_MARGIN_TOO_SMALL": 3,
+    "insured_id_number:CALIBRATION_OR_AMBIGUITY_REQUIRES_REVIEW": 3,
+    "patient_dob:CALIBRATED_CONFIDENCE_BELOW_THRESHOLD": 3,
+    "patient_dob:CONFLICT_MARGIN_TOO_SMALL": 2,
+    "insured_id_number:INVALID_FORMAT": 1,
+    "insured_id_number:MISSING_E4_DETERMINISTIC_VALIDATION": 1,
+    "insured_id_number:CANDIDATE_ENGINE_NOT_AUTHORIZED:CMS1500.insured_id_number.paddleocr.rapidocr.v1": 1,
+    "insured_id_number:ACQUIRE_E4": 1,
+    "insured_id_number:CHEAPEST_POLICY_COMPLETING_EVIDENCE": 1
+  },
+  "field_blocker_examples": {
+    "insured_name": [
+      {
+        "claim_id": "Group A__M048DJJF.001",
+        "value": "4. 1NSURED'S NAME . FURST NAME SLOGER CHLOE",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CONFLICT_MARGIN_TOO_SMALL"
+        ]
+      },
+      {
+        "claim_id": "Group A__M048DJJF.012",
+        "value": "UMES MALIK",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CONFLICT_MARGIN_TOO_SMALL"
+        ]
+      },
+      {
+        "claim_id": "Group A__M048DJJM.006",
+        "value": "4. INSURED'S NAME (Last Name,First Name,Middie Initial)",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CONFLICT_MARGIN_TOO_SMALL"
+        ]
+      }
+    ],
+    "patient_name": [
+      {
+        "claim_id": "Group A__M048DJJF.012",
+        "value": "HUMES MALIK",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CONFLICT_MARGIN_TOO_SMALL"
+        ]
+      },
+      {
+        "claim_id": "Group A__M048DJJM.004",
+        "value": "OWENS CAITLIN",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CONFLICT_MARGIN_TOO_SMALL"
+        ]
+      },
+      {
+        "claim_id": "Group A__M048DJJM.009",
+        "value": "ORR JAMES ANTHONY",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CONFLICT_MARGIN_TOO_SMALL"
+        ]
+      }
+    ],
+    "patient_dob": [
+      {
+        "claim_id": "Group A__M048DJJM.010",
+        "value": "1967-09-29",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CONFLICT_MARGIN_TOO_SMALL"
+        ]
+      },
+      {
+        "claim_id": "Group A__M048DJJM.018",
+        "value": "1991-05-20",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CONFLICT_MARGIN_TOO_SMALL"
+        ]
+      },
+      {
+        "claim_id": "Group A__M048DJJM.023",
+        "value": "MM YY 07 000",
+        "disp": "ESCALATE",
+        "reasons": [
+          "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD",
+          "INVALID_FORMAT",
+          "MISSING_E4_DETERMINISTIC_VALIDATION",
+          "ACQUIRE_E4",
+          "CHEAPEST_POLICY_COMPLETING_EVIDENCE"
+        ]
+      }
+    ],
+    "insured_id_number": [
+      {
+        "claim_id": "Group A__M048DJJM.012",
+        "value": "993751319",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CONFLICT_MARGIN_TOO_SMALL"
+        ]
+      },
+      {
+        "claim_id": "Group A__M048DJJM.013",
+        "value": "021411100",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD",
+          "CALIBRATION_OR_AMBIGUITY_REQUIRES_REVIEW"
+        ]
+      },
+      {
+        "claim_id": "Group A__M048DJJM.019",
+        "value": "OSC79520266",
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "reasons": [
+          "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD",
+          "CALIBRATION_OR_AMBIGUITY_REQUIRES_REVIEW"
+        ]
+      }
+    ]
   },
   "critical_blockers": {
     "patient_name": 3,
     "patient_dob": 7,
     "insured_id_number": 7
+  },
+  "gap_classes": {
+    "HANDWRITING_UNREADABLE": 8,
+    "AMBIGUOUS_DIGIT_FRAGMENTS": 2,
+    "CALIBRATION_HITL": 6,
+    "EVIDENCE_PLUMBING_GAP": 1
   },
   "field_auto_rate_of_completed": {
     "patient_dob": 0.837209,
@@ -28,6 +172,44 @@
     "insured_id_number": 0.837209,
     "insured_name": 0.837209
   },
+  "registration_failure_reasons": {
+    "low_inlier_ratio,unsafe_rotation": 2,
+    "insufficient_inliers,low_inlier_ratio,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "low_inlier_ratio,unsafe_perspective_distortion": 1,
+    "low_inlier_ratio,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "insufficient_inliers,low_inlier_ratio,unsafe_scale_change,unsafe_perspective_distortion,invalid_transformed_corners": 1,
+    "low_inlier_ratio,unsafe_perspective_distortion,invalid_transformed_corners": 1
+  },
+  "registration_failures": [
+    {
+      "claim_id": "Group A__M048DJJM.001",
+      "reason": "None"
+    },
+    {
+      "claim_id": "Group A__M048DJJM.008",
+      "reason": "None"
+    },
+    {
+      "claim_id": "Group A__M048DJJM.011",
+      "reason": "None"
+    },
+    {
+      "claim_id": "Group A__M048DJJM.020",
+      "reason": "None"
+    },
+    {
+      "claim_id": "Group A__M048DJJM.021",
+      "reason": "None"
+    },
+    {
+      "claim_id": "Group A__M048DJJM.032",
+      "reason": "None"
+    },
+    {
+      "claim_id": "Group A__M048DJJM.033",
+      "reason": "None"
+    }
+  ],
   "engines_probe": {
     "paddleocr": "OBSERVED",
     "rapidocr": "OBSERVED",
@@ -35,7 +217,60 @@
     "all_observed": true,
     "tesseract_text": "HELLO123"
   },
-  "strategy_id": "field-cascade-v10",
+  "ocr_cascade": {
+    "claims_with_ocr": 43,
+    "cascade_healthy_claims": 43,
+    "cascade_healthy_rate": 1.0,
+    "claims_with_tesseract_observed": 43,
+    "engines_attempted": {
+      "paddleocr": 1172,
+      "rapidocr": 1172,
+      "tesseract": 462,
+      "tesseract_digits": 456
+    },
+    "engines_observed": {
+      "paddleocr": 1172,
+      "rapidocr": 1172,
+      "tesseract": 462
+    },
+    "engines_unavailable": {},
+    "required": "paddleocr OBSERVED + rapidocr OBSERVED; tesseract fill on miss (never UNAVAILABLE)"
+  },
+  "strategy_id_run": "field-cascade-v10",
+  "note": "Baseline run completed under field-cascade-v10 wiring with v11 registration recovery. Remaining Track-B issues drove field-cascade-v11 name/ID label fixes; independent 300-sample eval is hackathon_300_cascade_v11 (offset 50).",
+  "remaining_issues": [
+    {
+      "track": "B",
+      "issue": "insured_name CONFLICT_MARGIN from label-contaminated rapid OCR",
+      "count": 7,
+      "remediation": "field-cascade-v11 span/semantic/reconciler label relief (shipped)"
+    },
+    {
+      "track": "B",
+      "issue": "patient_dob INVALID_FORMAT / MISSING_E4 (handwriting / header-only)",
+      "count": 5,
+      "remediation": "Keep HITL; handwriting model / better ROI \u2014 do not invent DOB"
+    },
+    {
+      "track": "B",
+      "issue": "insured_id_number confidence / digit CONFLICT_MARGIN",
+      "count": 7,
+      "remediation": "value-band-first + shaped-ID preference (shipped); residual digit ambiguity stays HITL"
+    },
+    {
+      "track": "B",
+      "issue": "patient_name CONFLICT_MARGIN (prefix / E\u2194L / genuine OCR)",
+      "count": 3,
+      "remediation": "prefix + substitution equivalence (shipped)"
+    },
+    {
+      "track": "A",
+      "issue": "DJJM multipage registration catastrophic/perspective/rotation",
+      "count": 7,
+      "remediation": "Near-miss/perspective ladder applied; residual fail-closed"
+    }
+  ],
   "learnings_applied_in": "field-cascade-v11",
-  "generated_at": "2026-09-16T06:45:15.368302+00:00"
+  "follow_on_eval": "evaluation_results/hackathon_300_cascade_v11",
+  "generated_at": "2026-09-16T06:58:11.508571+00:00"
 }
