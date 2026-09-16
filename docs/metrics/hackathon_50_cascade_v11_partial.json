@@ -10,24 +10,23 @@
     "HITL": 1
   },
   "registration_failures": [],
-  "elapsed_sec_finished": [
-    1216.914,
-    1333.736,
-    1349.357,
-    1768.643,
-    236.005,
-    241.144,
-    170.06,
-    181.865,
-    258.605,
-    271.941
-  ],
-  "speed_fix": {
-    "ocr_hard_exit_after_completed": true,
-    "blas_threads_pinned_to_1": true,
+  "speed": {
+    "pre_fix_elapsed_sec": [
+      1216.914,
+      1333.736,
+      1349.357,
+      1768.643
+    ],
+    "post_fix_elapsed_sec": [
+      236.005,
+      241.144,
+      170.06,
+      181.865,
+      258.605,
+      271.941
+    ],
+    "post_fix_mean_sec": 226.60333333333332,
     "workers": 2
   },
-  "generated_at": "2026-09-16T05:30:18.670720+00:00",
-  "claims_in_flight": 2,
-  "claim_dirs": 12
+  "generated_at": "2026-09-16T05:31:04.983285+00:00"
 }
