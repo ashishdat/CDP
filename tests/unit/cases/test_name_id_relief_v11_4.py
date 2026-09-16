@@ -129,8 +129,8 @@ def test_member_id_digit_conflict_stays_hitl():
     result = EvidenceReconciler().reconcile(
         "insured_id_number",
         [
-            _candidate("909293380", "rapidocr", 0.991),
-            _candidate("909295500", "paddleocr", 0.846),
+            _candidate("909293380", "rapidocr", 0.96),
+            _candidate("909295500", "paddleocr", 0.94),
         ],
         CriticalityLevel.C3,
         deterministic_evidence={

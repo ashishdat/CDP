@@ -42,7 +42,8 @@
     "exact_accuracy_agent_gt": {
       "exact": 822,
       "n": 824,
-      "rate": 0.997573
+      "rate": 0.997573,
+      "note": "GOLD fields remain 528/528 exact; no new false accepts on v11.4 flips (11/11 perfect vs agent GT). Three prior v11.3 STPs returned to HITL after name-relief was gated off ID/DOB digit-year conflicts."
     },
     "perfect_claim_exact": {
       "exact": 222,
@@ -60,6 +61,12 @@
     "total_charge": 30,
     "patient_name": 13
   },
+  "remaining_only_blockers": {
+    "total_charge": 18,
+    "patient_dob": 15,
+    "insured_id_number": 6,
+    "patient_name": 4
+  },
   "remaining_gap_classes": {
     "EMPTY_FINANCIAL_INK": 29,
     "HANDWRITING_UNREADABLE": 26,
@@ -67,5 +74,13 @@
     "AMBIGUOUS_DIGIT_FRAGMENTS": 12,
     "EVIDENCE_PLUMBING_GAP": 3
   },
+  "v11_4_reliefs": [
+    "Name confusable pairs E\leftrightarrow F V\leftrightarrow Y T\leftrightarrow Y G\leftrightarrow C L\leftrightarrow T",
+    "MRS/MR/MS/DR honorific peel + shared given-name",
+    "SAME digit junk / Z SAME token order / glued vs spaced names",
+    "ID multi-engine corroboration despite empty E2 set",
+    "FORMAT_VALID ID floor 0.92 + member-ID L/I insertion (APU\leftrightarrow APLU)",
+    "Future DOB reject; name helpers gated off DOB/ID conflict path"
+  ],
   "generated_at": "2026-09-16T14:24:00+00:00"
 }

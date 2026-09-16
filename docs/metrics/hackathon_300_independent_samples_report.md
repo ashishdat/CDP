@@ -1,19 +1,18 @@
 # Metrics
 
-## Independent Samples — 300 (revised v11.3)
+## Independent Samples — 300 (revised v11.4)
 
 | Track | Count | Rate |
 |---|---:|---:|
-| True STP | 153 | 51.0% |
-| Field HITL | 72 | 24.0% |
+| True STP | 161 | 53.7% |
+| Field HITL | 64 | 21.3% |
 | Registration HITL | 75 | 25.0% |
-| Combined HITL | 147 | 49.0% |
+| Combined HITL | 139 | 46.3% |
 | Stage failure | 0 | — |
 | Exact accuracy (agent GT) | 822/824 | 99.8% |
 | Perfect-claim exact | 222/224 | 99.1% |
 | False accepts | 2 | 0.2% |
 
-Before → after: True STP **118→153**, Field HITL **107→72**, Combined **182→147** (flipped 35; +8 vs v11.2 via line-sum authority).
+Before → after: True STP **118→161**, Field HITL **107→64**, Combined **182→139** (flipped 43; **+8 net vs v11.3** via name confusable/title + ID format/multi-engine floor; 3 prior name-on-ID/DOB false STPs corrected back to HITL).
 
-Tool-fit: Rapid primary / Paddle+Tesseract selective / Docling+Azure gpt-4o+Textract gated / React HITL — see `docs/STP_TOOL_FIT_ARCHITECTURE_V11_2.md`.
-Azure: gpt-4o @ truesdlc-test (review-only; credentials in gitignored `.env`).
+v11.4 reliefs: E↔F/V↔Y/T↔Y/G↔C name confusables, MRS peel, SAME/Z junk, glued names, ID E2-empty multi-engine + 0.92 FORMAT_VALID floor, APU↔APLU L-insertion, future DOB reject.
