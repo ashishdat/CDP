@@ -20,6 +20,7 @@ from .field_cascade import (
     charge_column_windows,
     crop_variants,
     load_route_engines,
+    pick_engine_candidates,
     semantic_accept,
 )
 from .wrong_crop import WrongCropDetector
@@ -44,6 +45,7 @@ __all__ = [
     "charge_column_windows",
     "crop_variants",
     "load_route_engines",
+    "pick_engine_candidates",
     "semantic_accept",
     "load_cascade_strategy",
     "crop_ladder_for",

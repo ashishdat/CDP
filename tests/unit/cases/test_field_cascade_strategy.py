@@ -45,6 +45,45 @@ def test_charge_column_windows_shift_right_of_pointer_bleed():
     assert any(x0 >= 1000 for _, x0, _ in windows[1:])
 
 
+def test_cascade_prefers_shaped_confirmation_over_primary_bleed():
+    calls = []
+
+    def recognize_fn(field_name, bbox, field_type, engines):
+        calls.append(bbox)
+        # Dual-engine candidates: primary bleed + confirmation date.
+        return (
+            [
+                {
+                    "value": "MM L 29 1 ds 3",
+                    "raw_value": "MM\nL\n29",
+                    "engine": "paddleocr",
+                },
+                {
+                    "value": "10/29/1983",
+                    "raw_value": "10/29/1983",
+                    "engine": "rapidocr",
+                },
+            ],
+            [
+                {"engine": "paddleocr", "reason": "OBSERVED"},
+                {"engine": "rapidocr", "reason": "OBSERVED"},
+            ],
+            "POLICY_SATISFIED",
+        )
+
+    result = FieldCascade().recognize(
+        field_name="patient_dob",
+        primary_bbox=(672, 424, 871, 457),
+        cell={"x0": 667, "y0": 402, "x1": 886, "y1": 459},
+        image_size=(1700, 2200),
+        recognize_fn=recognize_fn,
+    )
+    assert result.accepted is True
+    assert result.candidates[0]["value"] == "10/29/1983"
+    assert result.accept_reason.endswith("DATE_SHAPED")
+    assert len(calls) == 1
+
+
 def test_cascade_stops_on_first_semantic_accept():
     calls = []
 
@@ -57,7 +96,7 @@ def test_cascade_stops_on_first_semantic_accept():
         else:
             value = "MM L 29 1 ds 3"
             raw = "MM\nL\n29\n1\nds\n3"
-        candidate = {"value": value, "raw_value": raw}
+        candidate = {"value": value, "raw_value": raw, "engine": engines[0]}
         return [candidate], [{"engine": engines[0], "reason": "OBSERVED"}], "POLICY_SATISFIED"
 
     result = FieldCascade().recognize(

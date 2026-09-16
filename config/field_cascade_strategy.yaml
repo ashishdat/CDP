@@ -1,14 +1,15 @@
 # Field-cascade OCR strategy — operational CMS-1500 STP
 #
-# Version field-cascade-v8 closes residual STP/HITL gaps found on the stopped
-# Hackathon-1000 v7 freeze (n=521): DOB assembly (trailing-1 / header-safe
-# compact), dob_cells route-engine attribution, date-corroborated confidence
-# floor, and a second registration preprocess for multi-gate failures.
+# Version field-cascade-v9 consolidates past learning into one architecture:
+# dual-engine confirmation (paddle+rapid), agreement-aware candidate pick,
+# Track A/B HITL separation, and honest accuracy (unavailable without GT).
+# Closes residual v8 Track-B walls: confirmation text ignored when primary
+# is header bleed; insured_id calibration near-misses with multi-engine agree.
 #
-version: field-cascade-v8
+version: field-cascade-v9
 status: ACTIVE
-phase: 8
-supersedes: field-cascade-v7
+phase: 9
+supersedes: field-cascade-v8
 
 # Pipeline stages (ops path). Later stages must not invent ink.
 stages:
@@ -23,7 +24,14 @@ stages:
   - id: crop_ladder
     role: Typed crop variants ordered per field (digit-band, year-wide, NPI-cleared).
   - id: route_engines
-    role: Governed engines from ocr_field_routes.yaml (primary → confirmation → fill).
+    role: >
+      Governed engines from ocr_field_routes.yaml. OCRRouter requires two usable
+      OBSERVED engines (primary + confirmation) before short-circuit; fill
+      (tesseract) only after confirmation ladder.
+  - id: engine_agreement
+    role: >
+      Among dual-engine candidates, prefer span-normalized multi-engine agreement;
+      else first field-shaped value in route order. Never invent glyphs.
   - id: span_select
     role: Always span-select observed text before accept (even when OCR non-empty).
   - id: semantic_accept
@@ -42,6 +50,10 @@ stages:
     role: True STP only when critical evidence classes are complete; else Track-B HITL.
   - id: gap_taxonomy
     role: Classify residual ink gaps only after evidence-complete decision.
+  - id: metrics
+    role: >
+      Report accuracy (UNAVAILABLE without GT), true STP, Track-A registration HITL,
+      Track-B field-ink HITL, OCR cascade health, and the same rollups by_group / by_bundle.
 
 honesty:
   - Never invent DOBs or amounts; empty / unreadable ink → HITL.
@@ -51,13 +63,17 @@ honesty:
   - Residual handwriting with header-only OCR stays HITL (scan/ROI / handwriting model / human).
   - Missing E3 / engine-authority strip is evidence-plumbing, never HANDWRITING_UNREADABLE.
   - DATE_VALID + HARD_VALIDATION may relieve calibrated floor; never waive E3.
+  - Multi-engine ID agreement + HARD_VALIDATION may relieve C3 floor to 0.95 (corroboration).
   - Report registration HITL and field-ink HITL as separate tracks.
+  - Hackathon 1000 has no field GT — accuracy status UNAVAILABLE_NO_GROUND_TRUTH.
 
 defaults:
   engine_source: config/ocr_field_routes.yaml
   stop_on: semantic_accept
   exhaust_action: keep_best_nonempty_or_empty
   always_span_select: true
+  confirmation_required_usable: 2
+  prefer_multi_engine_agreement: true
   e3_sources:
     - registration_report.json
     - document.json
@@ -84,8 +100,8 @@ fields:
     accept: DATE_SHAPED
     post_miss: [dob_cells]
     notes: >
-      Trailing-1 MM/DD peel; header-safe compact (no D→0 poison); MMDDYYY
-      century repair; dob_cells attributed to producing route engine.
+      Trailing-1 MM/DD peel; header-safe compact; MMDDYYY century repair;
+      dob_cells attributed to producing route engine; prefer paddle∩rapid agree.
   total_charge:
     crop_ladder: [primary, charge_npi_cleared, charge_taller]
     accept: CURRENCY_SHAPED
@@ -101,6 +117,7 @@ fields:
   insured_id_number:
     crop_ladder: [primary, id_value_band]
     accept: ID_SHAPED
+    notes: Multi-engine agreement + HARD_VALIDATION → C3 floor 0.95 corroboration.
   charges:
     crop_ladder: [charges_primary, charges_mid, charges_right, charges_far_right]
     accept: CURRENCY_SHAPED
@@ -116,8 +133,8 @@ gap_classes:
   AMBIGUOUS_DIGIT_FRAGMENTS:
     action: Prefer crop/span repair; HITL if no unique calendar-valid date.
   CALIBRATION_HITL:
-    action: Calendar-valid value held for calibrated confidence; corroboration relief or HITL.
+    action: Calendar-valid / format-valid value held for calibrated confidence; corroboration relief or HITL.
   EMPTY_FINANCIAL_INK:
-    action: Prefer service-line sum when charges observed; else HITL.
+    action: Keep HITL unless LINE_TOTALS_RECONCILED from observed service-line charges.
   NPI_CONTAMINATED_CHARGE:
-    action: NPI-cleared crop; empty if still contaminated (never invent).
+    action: Keep empty / HITL; never accept $1.00 NPI bleed as claim total.

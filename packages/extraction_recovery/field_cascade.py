@@ -14,7 +14,10 @@ Principles
 4. Empty / contaminated financial crops stay empty — cascade never invents
    amounts. Claim-total E6 remains crop-total ∩ Σ line charges.
 5. Strategy id, crop ladders, and post-miss stages come from
-   ``config/field_cascade_strategy.yaml`` (field-cascade-v8).
+   ``config/field_cascade_strategy.yaml`` (field-cascade-v9).
+6. Dual-engine confirmation (primary + confirmation OBSERVED) before
+   short-circuit; among engine candidates prefer multi-engine agreement
+   after span-select, else first field-shaped value in route order.
 """
 
 from __future__ import annotations
@@ -79,7 +82,7 @@ class CascadeResult:
     cascade_trace: list[CascadeStepResult] = field(default_factory=list)
     accepted: bool = False
     accept_reason: str = "EXHAUSTED"
-    strategy_id: str = "field-cascade-v8"
+    strategy_id: str = "field-cascade-v9"
 
 
 RecognizeFn = Callable[
@@ -155,6 +158,99 @@ def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
         return False, "NOT_ID_SHAPED"
 
     return True, "NON_EMPTY"
+
+
+def _normalize_for_agreement(field_name: str, value: str) -> str:
+    """Normalize span-selected text so primary/confirmation can agree."""
+    text = (value or "").strip()
+    if not text:
+        return ""
+    name = (field_name or "").casefold()
+    datatype = span_datatype_for_field(field_name, "")
+    if name in {"patient_dob", "date_of_birth"} or datatype == "DATE":
+        digits = re.sub(r"\D", "", text)
+        if len(digits) == 8:
+            return f"{digits[0:2]}/{digits[2:4]}/{digits[4:8]}"
+        return text.replace("-", "/")
+    if name in {"total_charge", "total_charges", "charges", "charge_amount"} or datatype == "CURRENCY":
+        return text.lstrip("$").replace(",", "")
+    if name in {"insured_id_number", "member_id"} or datatype == "ALPHANUMERIC_ID":
+        return text.upper().replace(" ", "").replace("-", "")
+    if name in {"patient_name", "insured_name"} or datatype == "PERSON_NAME":
+        return re.sub(r"\s+", " ", text.upper()).strip()
+    return text
+
+
+def pick_engine_candidates(
+    field_name: str,
+    candidates: list[dict],
+    field_type: str = "",
+) -> tuple[str, str, str, list[dict]]:
+    """Choose a cascade value from dual-engine candidates.
+
+    Past learning: confirmation OCR must run, but the first engine's raw text
+    is often header bleed / fragments while the second is field-shaped. Prefer:
+
+    1. Multi-engine agreement after span-select (accuracy + E2 signal)
+    2. First field-shaped value in candidate/engine order (primary wins ties)
+    3. First non-empty span (keep best for later fusion / HITL)
+
+    Returns (selected, raw, accept_reason, ordered_candidates).
+    """
+    datatype = span_datatype_for_field(field_name, field_type)
+    shaped: list[tuple[str, str, dict, str]] = []
+    nonempty: list[tuple[str, str, dict]] = []
+    by_norm: dict[str, list[tuple[str, str, dict, str]]] = {}
+
+    for cand in candidates:
+        if not isinstance(cand, dict):
+            continue
+        raw = (cand.get("raw_value") or cand.get("value") or "") or ""
+        seed = (cand.get("value") or raw or "").strip()
+        if not seed and not raw.strip():
+            continue
+        span = select_field_span(seed or raw, datatype, field_name)
+        selected = (span.selected_text or "").strip()
+        if not selected:
+            # Fall back to raw span when value was already empty.
+            span = select_field_span(raw, datatype, field_name)
+            selected = (span.selected_text or "").strip()
+        if not selected:
+            continue
+        ok, reason = semantic_accept(field_name, selected)
+        nonempty.append((selected, raw, cand))
+        if ok:
+            shaped.append((selected, raw, cand, reason))
+            key = _normalize_for_agreement(field_name, selected)
+            if key:
+                by_norm.setdefault(key, []).append((selected, raw, cand, reason))
+
+    # Prefer agreement across ≥2 distinct engines (paddle + rapid confirmation).
+    for _key, group in by_norm.items():
+        engines = {
+            str((item[2].get("engine") or "")).casefold()
+            for item in group
+            if (item[2].get("engine") or "").strip()
+        }
+        if len(engines) >= 2:
+            selected, raw, cand, reason = group[0]
+            seen_ids = {id(item[2]) for item in group}
+            ordered = [item[2] for item in group] + [
+                c for c in candidates if id(c) not in seen_ids
+            ]
+            return selected, raw, f"MULTI_ENGINE_AGREEMENT:{reason}", ordered
+
+    if shaped:
+        selected, raw, cand, reason = shaped[0]
+        ordered = [cand] + [c for c in candidates if c is not cand]
+        return selected, raw, reason, ordered
+
+    if nonempty:
+        selected, raw, cand = nonempty[0]
+        ordered = [cand] + [c for c in candidates if c is not cand]
+        return selected, raw, "NON_EMPTY_NO_SHAPE", ordered
+
+    return "", "", "EMPTY", list(candidates)
 
 
 def _order_by_strategy_ladder(field_name: str, variants: list[CropVariant]) -> list[CropVariant]:
@@ -311,23 +407,26 @@ class FieldCascade:
                 field_type,
                 engines,
             )
-            selected = next(
-                (c.get("value") or "" for c in candidates if (c.get("value") or "").strip()),
-                "",
+            selected, raw, pick_reason, ordered = pick_engine_candidates(
+                field_name, list(candidates), field_type
             )
-            raw = (candidates[0].get("raw_value") if candidates else "") or ""
-            # Always span-select observed text before semantic accept so DOB
-            # token assembly / name cleanup run even when OCR returned non-empty.
-            span_source = selected or raw
-            if span_source:
-                span = select_field_span(
-                    span_source,
-                    span_datatype_for_field(field_name, field_type),
-                    field_name,
-                )
-                if span.selected_text:
-                    selected = span.selected_text
-            ok, accept_reason = semantic_accept(field_name, selected)
+            candidates = ordered
+            if selected and candidates:
+                lead = dict(candidates[0])
+                lead["value"] = selected
+                if raw:
+                    lead["raw_value"] = raw
+                if pick_reason.startswith("MULTI_ENGINE_AGREEMENT:"):
+                    lead["reason_code"] = pick_reason
+                candidates[0] = lead
+            ok = pick_reason not in {"EMPTY", "NON_EMPTY_NO_SHAPE"} and bool(selected)
+            if ok:
+                # pick_reason is DATE_SHAPED / MULTI_ENGINE_AGREEMENT:DATE_SHAPED / …
+                accept_reason = pick_reason
+            else:
+                accept_reason = pick_reason if pick_reason else "EMPTY"
+                if selected:
+                    ok, accept_reason = semantic_accept(field_name, selected)
             step = CascadeStepResult(
                 variant_id=variant.variant_id,
                 bbox=variant.bbox,

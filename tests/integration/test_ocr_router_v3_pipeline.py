@@ -38,8 +38,10 @@ def test_pipeline_flag_rollback_preserves_legacy_identity(pipeline_enabled, ocr_
         flags.add(FeatureFlag.OCR_ROUTER_V3)
     result = pipeline.run(payload, PipelineContext("ocr-test", FeatureFlags(flags)))
     if pipeline_enabled and ocr_enabled:
-        assert invoked == ["ocr"]
+        # Confirmation cascade constructs primary + confirmation factories.
+        assert invoked == ["ocr", "ocr"]
         assert result.value.selected.engine == "rapidocr"
+        assert [a.engine for a in result.value.attempts] == ["rapidocr", "paddleocr"]
     else:
         assert invoked == ["legacy"]
         assert result.value is legacy_result

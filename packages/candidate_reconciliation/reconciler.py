@@ -238,6 +238,14 @@ class EvidenceReconciler:
                 }
             )
         )
+        # Dual-engine confirmation agreement (paddle+rapid) after hard ID
+        # validation is independent OCR corroboration — same floor as above,
+        # not a policy waiver and not invented ink.
+        multi_engine_id_corroborated = (
+            field_name in {"insured_id_number", "member_id", "subscriber_id"}
+            and "HARD_VALIDATION_PASSED" in deterministic
+            and has_independent_agreement
+        )
         # DOB with calendar/format hard validation: deterministic DATE_VALID is
         # corroboration, not invented ink. Floor at C1 (0.80) so near-miss
         # calibrated probs (~0.88–0.91) can STP without softening E3/identity.
@@ -248,9 +256,13 @@ class EvidenceReconciler:
         )
         effective_threshold = threshold
         relief_reason: str | None = None
-        if identity_corroborated:
+        if identity_corroborated or multi_engine_id_corroborated:
             effective_threshold = min(effective_threshold, 0.95)
-            relief_reason = "IDENTITY_CORROBORATED_THRESHOLD_RELIEF"
+            relief_reason = (
+                "IDENTITY_CORROBORATED_THRESHOLD_RELIEF"
+                if identity_corroborated
+                else "MULTI_ENGINE_ID_CORROBORATED_THRESHOLD_RELIEF"
+            )
         if date_corroborated:
             effective_threshold = min(effective_threshold, 0.80)
             relief_reason = "DATE_CORROBORATED_THRESHOLD_RELIEF"

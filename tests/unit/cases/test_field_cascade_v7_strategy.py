@@ -1,11 +1,15 @@
-"""Unit tests for field-cascade-v8 strategy loading, E3 honesty, crop ladders."""
+"""Unit tests for field-cascade-v9 strategy loading, E3 honesty, crop ladders."""
 
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-from packages.extraction_recovery.field_cascade import FieldCascade, crop_variants
+from packages.extraction_recovery.field_cascade import (
+    FieldCascade,
+    crop_variants,
+    pick_engine_candidates,
+)
 from packages.extraction_recovery.gap_taxonomy import classify_field_gap
 from packages.extraction_recovery.strategy import (
     crop_ladder_for,
@@ -15,16 +19,18 @@ from packages.extraction_recovery.strategy import (
 from scripts.complete_from_extraction import _load_registration_context
 
 
-def test_strategy_is_v8():
+def test_strategy_is_v9():
     load_cascade_strategy.cache_clear()
     strategy = load_cascade_strategy()
-    assert strategy.strategy_id == "field-cascade-v8"
+    assert strategy.strategy_id == "field-cascade-v9"
     assert strategy.status == "ACTIVE"
-    assert strategy.phase == 8
+    assert strategy.phase == 9
     assert "EVIDENCE_PLUMBING_GAP" in strategy.gap_classes
     assert "CALIBRATION_HITL" in strategy.gap_classes
     assert any(s.get("id") == "complete_e3" for s in strategy.stages)
     assert any(s.get("id") == "register_recovery" for s in strategy.stages)
+    assert any(s.get("id") == "engine_agreement" for s in strategy.stages)
+    assert strategy.defaults.get("confirmation_required_usable") == 2
 
 
 def test_dob_ladder_includes_year_wide_and_post_miss_cells():
@@ -53,8 +59,54 @@ def test_crop_variants_follow_strategy_order():
     assert ids == present
 
 
-def test_field_cascade_defaults_to_v7():
-    assert FieldCascade().strategy_id == "field-cascade-v8"
+def test_field_cascade_defaults_to_v9():
+    load_cascade_strategy.cache_clear()
+    assert FieldCascade().strategy_id == "field-cascade-v9"
+
+
+def test_pick_prefers_confirmation_when_primary_is_header_bleed():
+    """v9: do not stop on primary header bleed when confirmation is DATE_SHAPED."""
+    candidates = [
+        {
+            "value": "MM L 29",
+            "raw_value": "MM\nL\n29",
+            "engine": "paddleocr",
+            "raw_confidence": 0.7,
+        },
+        {
+            "value": "09/29/1996",
+            "raw_value": "09/29/1996",
+            "engine": "rapidocr",
+            "raw_confidence": 0.85,
+        },
+    ]
+    selected, raw, reason, ordered = pick_engine_candidates("patient_dob", candidates)
+    assert selected == "09/29/1996"
+    assert "DATE_SHAPED" in reason
+    assert ordered[0]["engine"] == "rapidocr"
+
+
+def test_pick_prefers_multi_engine_agreement():
+    candidates = [
+        {
+            "value": "OSC75491075",
+            "raw_value": "OSC75491075",
+            "engine": "paddleocr",
+            "raw_confidence": 0.9,
+        },
+        {
+            "value": "OSC75491075",
+            "raw_value": "OSC75491075\n",
+            "engine": "rapidocr",
+            "raw_confidence": 0.88,
+        },
+    ]
+    selected, _raw, reason, ordered = pick_engine_candidates(
+        "insured_id_number", candidates
+    )
+    assert selected == "OSC75491075"
+    assert reason.startswith("MULTI_ENGINE_AGREEMENT:")
+    assert ordered[0]["engine"] == "paddleocr"
 
 
 def test_gap_taxonomy_marks_header_only_dob_as_handwriting():

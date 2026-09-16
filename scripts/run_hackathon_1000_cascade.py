@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run field-cascade-v8 ops on the Hackathon 1000 Claims corpus.
+"""Run field-cascade-v9 ops on the Hackathon 1000 Claims corpus.
 
 Operational completion / true-STP / HITL evaluation (no field-level GT).
 Pipeline per claim: app.py (register+geometry+recovery ladder) → ocr → rank →
@@ -31,7 +31,7 @@ from packages.extraction_recovery.gap_taxonomy import classify_field_gap
 
 DEFAULT_ZIP = ROOT / "data" / "Hackathon - 1000 Claims.zip"
 DEFAULT_DATASET = ROOT / "dataset.yaml"
-DEFAULT_OUT = ROOT / "evaluation_results" / "hackathon_1000_cascade_v8"
+DEFAULT_OUT = ROOT / "evaluation_results" / "hackathon_1000_cascade_v9"
 
 CRITICAL = (
     "patient_dob",
@@ -41,11 +41,71 @@ CRITICAL = (
     "insured_name",
 )
 AUTO = {"AUTO_ACCEPTED", "REFERENCE_CONFIRMED"}
+CASCADE_ENGINES = ("paddleocr", "rapidocr", "tesseract", "tesseract_digits")
 
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
+
+def _bundle_id(document: str) -> str:
+    """Group + claim family (e.g. Group A/M048DJJM) — multipage claim bundle."""
+    text = (document or "").replace("\\", "/")
+    if "/" in text:
+        group, name = text.split("/", 1)
+    else:
+        group, name = "", text
+    family = name.split(".")[0] if name else ""
+    return f"{group}/{family}" if group else family
+
+
+def _group_id(document: str) -> str:
+    text = (document or "").replace("\\", "/")
+    return text.split("/", 1)[0] if "/" in text else "UNKNOWN"
+
+
+def _ocr_engine_stats(claim_out: Path) -> dict[str, Any]:
+    """Count cascade OCR attempt outcomes from OCRCandidates.json."""
+    path = claim_out / "ocr" / "OCRCandidates.json"
+    attempts: Counter[str] = Counter()
+    observed: Counter[str] = Counter()
+    unavailable: Counter[str] = Counter()
+    if not path.exists():
+        return {
+            "engines_attempted": {},
+            "engines_observed": {},
+            "engines_unavailable": {},
+            "cascade_healthy": False,
+        }
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {
+            "engines_attempted": {},
+            "engines_observed": {},
+            "engines_unavailable": {},
+            "cascade_healthy": False,
+        }
+    for field in payload.get("fields") or []:
+        for attempt in field.get("attempts") or []:
+            engine = str(attempt.get("engine") or "")
+            if engine not in CASCADE_ENGINES:
+                continue
+            attempts[engine] += 1
+            reason = str(attempt.get("reason") or "")
+            if reason == "OBSERVED":
+                observed[engine] += 1
+            elif reason == "UNAVAILABLE":
+                unavailable[engine] += 1
+    # Healthy when primary paddle and confirmation rapid both observed at least once
+    # on completed OCR (tesseract is fill and may be unused when first two succeed).
+    healthy = observed.get("paddleocr", 0) > 0 and observed.get("rapidocr", 0) > 0
+    return {
+        "engines_attempted": dict(attempts),
+        "engines_observed": dict(observed),
+        "engines_unavailable": dict(unavailable),
+        "cascade_healthy": healthy,
+    }
 
 def _write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -167,6 +227,7 @@ def _summarize_final(claim_out: Path) -> dict[str, Any]:
             )
     completed = final.get("status") == "COMPLETED"
     review_required = bool(final.get("review_required") or decision.get("review_required"))
+    engine_stats = _ocr_engine_stats(claim_out)
     return {
         "completed": completed,
         "review_required": review_required,
@@ -176,6 +237,7 @@ def _summarize_final(claim_out: Path) -> dict[str, Any]:
         "gap_classes": gaps,
         "service_line_charges": service_line_charges,
         "claim_status": decision.get("claim_status") or final.get("claim_status"),
+        "ocr_engine_stats": engine_stats,
     }
 
 
@@ -244,6 +306,8 @@ def _process_one(
             "finished": True,
             "claim_id": claim_id,
             "document": document,
+            "bundle_id": _bundle_id(document),
+            "group_id": _group_id(document),
             "registration_ok": False,
             "completed": False,
             "true_stp": False,
@@ -331,12 +395,15 @@ def _process_one(
                 "finished": True,
                 "claim_id": claim_id,
                 "document": document,
+                "bundle_id": _bundle_id(document),
+                "group_id": _group_id(document),
                 "registration_ok": True,
                 "completed": False,
                 "true_stp": False,
                 "disposition": "STAGE_FAILURE",
                 "failed_stage": stage_name,
                 "error": tail,
+                "ocr_engine_stats": _ocr_engine_stats(claim_out),
                 "elapsed_sec": round(time.time() - started, 3),
                 "ts": _utc_now(),
             }
@@ -350,6 +417,8 @@ def _process_one(
             "finished": True,
             "claim_id": claim_id,
             "document": document,
+            "bundle_id": _bundle_id(document),
+            "group_id": _group_id(document),
             "registration_ok": True,
             "completed": False,
             "true_stp": False,
@@ -365,17 +434,21 @@ def _process_one(
         "finished": True,
         "claim_id": claim_id,
         "document": document,
+        "bundle_id": _bundle_id(document),
+        "group_id": _group_id(document),
         "registration_ok": True,
         "completed": summary["completed"],
         "true_stp": summary["true_stp"],
         "review_required": summary["review_required"],
         "disposition": "TRUE_STP" if summary["true_stp"] else "HITL",
+        "hitl_track": None if summary["true_stp"] else "FIELD_INK",
         "critical_blockers": summary["critical_blockers"],
         "fields": summary["fields"],
         "gap_classes": summary["gap_classes"],
         "service_line_charges": summary["service_line_charges"],
         "claim_status": summary["claim_status"],
-        "strategy_id": "field-cascade-v8",
+        "ocr_engine_stats": summary.get("ocr_engine_stats") or {},
+        "strategy_id": "field-cascade-v9",
         "elapsed_sec": round(time.time() - started, 3),
         "ts": _utc_now(),
     }
@@ -383,16 +456,49 @@ def _process_one(
     return row
 
 
-def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
+def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
     n = len(rows)
     reg_ok = sum(1 for r in rows if r.get("registration_ok"))
     completed = sum(1 for r in rows if r.get("completed"))
     true_stp = sum(1 for r in rows if r.get("true_stp"))
+    hitl = sum(1 for r in rows if r.get("disposition") == "HITL")
+    reg_hitl = sum(1 for r in rows if r.get("disposition") == "REGISTRATION_FAILED")
+    field_hitl = sum(1 for r in rows if r.get("disposition") == "HITL" and r.get("completed"))
+    return {
+        "n": n,
+        "registration_ok": reg_ok,
+        "registration_ok_rate": round(reg_ok / n, 6) if n else 0.0,
+        "completed": completed,
+        "completion_rate": round(completed / n, 6) if n else 0.0,
+        "true_stp": true_stp,
+        "true_stp_rate_of_all": round(true_stp / n, 6) if n else 0.0,
+        "true_stp_rate_of_completed": round(true_stp / completed, 6) if completed else 0.0,
+        "hitl": hitl,
+        "hitl_rate_of_all": round(hitl / n, 6) if n else 0.0,
+        "registration_hitl": reg_hitl,
+        "registration_hitl_rate": round(reg_hitl / n, 6) if n else 0.0,
+        "field_ink_hitl": field_hitl,
+        "field_ink_hitl_rate_of_completed": (
+            round(field_hitl / completed, 6) if completed else 0.0
+        ),
+    }
+
+
+def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
+    n = len(rows)
     by_disp = Counter(str(r.get("disposition") or "UNKNOWN") for r in rows)
     blockers: Counter[str] = Counter()
     gaps: Counter[str] = Counter()
     auto = {name: 0 for name in CRITICAL}
     reg_reasons: Counter[str] = Counter()
+    engine_attempted: Counter[str] = Counter()
+    engine_observed: Counter[str] = Counter()
+    engine_unavailable: Counter[str] = Counter()
+    cascade_healthy = 0
+    cascade_claims = 0
+    by_bundle: dict[str, list[dict[str, Any]]] = {}
+    by_group: dict[str, list[dict[str, Any]]] = {}
+    completed = sum(1 for r in rows if r.get("completed"))
     for row in rows:
         for b in row.get("critical_blockers") or []:
             blockers[str(b)] += 1
@@ -405,21 +511,30 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
             disp = (fields.get(name) or {}).get("disp")
             if disp in AUTO:
                 auto[name] += 1
-    denom = max(completed, 1)
+        stats = row.get("ocr_engine_stats") or {}
+        if stats:
+            cascade_claims += 1
+            if stats.get("cascade_healthy"):
+                cascade_healthy += 1
+            for eng, count in (stats.get("engines_attempted") or {}).items():
+                engine_attempted[str(eng)] += int(count)
+            for eng, count in (stats.get("engines_observed") or {}).items():
+                engine_observed[str(eng)] += int(count)
+            for eng, count in (stats.get("engines_unavailable") or {}).items():
+                engine_unavailable[str(eng)] += int(count)
+        doc = str(row.get("document") or "")
+        bundle = str(row.get("bundle_id") or _bundle_id(doc))
+        group = str(row.get("group_id") or _group_id(doc))
+        by_bundle.setdefault(bundle, []).append(row)
+        by_group.setdefault(group, []).append(row)
+
+    overall = _rollup_scope(rows)
     return {
         "dataset": "DEVELOPMENT_DATASET_V1 / Hackathon - 1000 Claims.zip",
         "document_count_requested": limit,
         "document_count_evaluated": n,
-        "strategy_id": "field-cascade-v8",
-        "registration_ok": reg_ok,
-        "registration_fail": n - reg_ok,
-        "registration_ok_rate": round(reg_ok / n, 6) if n else 0.0,
-        "completed": completed,
-        "completion_rate": round(completed / n, 6) if n else 0.0,
-        "true_stp": true_stp,
-        "true_stp_rate_of_all": round(true_stp / n, 6) if n else 0.0,
-        "true_stp_rate_of_completed": round(true_stp / denom, 6) if completed else 0.0,
-        "hitl_completed": completed - true_stp,
+        "strategy_id": "field-cascade-v9",
+        **overall,
         "disposition_counts": dict(by_disp),
         "registration_failure_reasons": dict(reg_reasons),
         "critical_blockers": dict(blockers),
@@ -427,10 +542,45 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
         "field_auto_of_completed": {
             name: f"{auto[name]}/{completed}" for name in CRITICAL
         },
+        "field_auto_rate_of_completed": {
+            name: round(auto[name] / completed, 6) if completed else 0.0
+            for name in CRITICAL
+        },
+        "accuracy": {
+            "status": "UNAVAILABLE_NO_GROUND_TRUTH",
+            "end_to_end_correct_completion_rate": None,
+            "field_accuracy": None,
+            "note": (
+                "Hackathon 1000 ZIP has no field-level labels. Accuracy cannot be "
+                "scored; report operational STP/HITL and field auto-accept rates only."
+            ),
+        },
+        "ocr_cascade": {
+            "claims_with_ocr": cascade_claims,
+            "cascade_healthy_claims": cascade_healthy,
+            "cascade_healthy_rate": (
+                round(cascade_healthy / cascade_claims, 6) if cascade_claims else 0.0
+            ),
+            "engines_attempted": dict(engine_attempted),
+            "engines_observed": dict(engine_observed),
+            "engines_unavailable": dict(engine_unavailable),
+            "required": "paddleocr OBSERVED + rapidocr OBSERVED (primary+confirmation)",
+        },
+        "by_group": {
+            group: _rollup_scope(group_rows)
+            for group, group_rows in sorted(by_group.items())
+        },
+        "by_bundle": {
+            bundle: _rollup_scope(bundle_rows)
+            for bundle, bundle_rows in sorted(
+                by_bundle.items(), key=lambda item: (-len(item[1]), item[0])
+            )
+        },
+        "bundle_count": len(by_bundle),
         "note": (
-            "No field-level ground truth for Hackathon 1000; "
-            "metrics are registration / completion / true STP / HITL under field-cascade-v8 "
-            "(E3 plumbing, registration recovery ladder, Track-B DOB/charge cascade)."
+            "Operational metrics under field-cascade-v9 with paddle+rapid confirmation "
+            "cascade and agreement-aware pick. No field-level GT on Hackathon corpus — "
+            "accuracy marked unavailable."
         ),
         "generated_at": _utc_now(),
     }
@@ -460,7 +610,7 @@ def main() -> int:
     done = _load_done(ledger) if args.resume else set()
     pending = [d for d in selected if _claim_slug(d) not in done]
     print(
-        f"strategy=field-cascade-v8 selected={len(selected)} "
+        f"strategy=field-cascade-v9 selected={len(selected)} "
         f"already_done={len(selected) - len(pending)} pending={len(pending)} "
         f"workers={args.workers}",
         flush=True,
@@ -488,6 +638,8 @@ def main() -> int:
                     "finished": True,
                     "claim_id": _claim_slug(document),
                     "document": document,
+                    "bundle_id": _bundle_id(document),
+                    "group_id": _group_id(document),
                     "registration_ok": False,
                     "completed": False,
                     "true_stp": False,

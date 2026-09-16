@@ -165,8 +165,15 @@ class OCRRouter:
             request.engine_order,
         )
         order = request.engine_order or ENGINE_ORDER
+        # Governed routes list primary then confirmation; require two usable
+        # observations before short-circuit so cascade is not single-engine.
+        # Selection keeps the first policy-accepted usable (primary wins once
+        # confirmation has also been observed).
+        required_usable = 2 if len(tuple(order)) >= 2 else 1
         with self._lock:
             attempts = []
+            usable_count = 0
+            first_accepted: OCRAttempt | None = None
             for engine in order:
                 if engine == "trocr" and not request.allow_handwriting:
                     continue
@@ -185,8 +192,21 @@ class OCRRouter:
                 usable = not observation.insufficient_evidence and any(
                     line.text.strip() for line in observation.lines
                 )
-                if usable and self._accept(attempt):
-                    return OCRRoutingResult(attempt, tuple(attempts), "POLICY_SATISFIED")
+                if not usable:
+                    continue
+                usable_count += 1
+                if self._accept(attempt):
+                    if first_accepted is None:
+                        first_accepted = attempt
+                if first_accepted is not None and usable_count >= required_usable:
+                    return OCRRoutingResult(
+                        first_accepted, tuple(attempts), "POLICY_SATISFIED"
+                    )
+            if first_accepted is not None:
+                # Single usable engine (others unavailable) still satisfies policy.
+                return OCRRoutingResult(
+                    first_accepted, tuple(attempts), "POLICY_SATISFIED"
+                )
             return OCRRoutingResult(None, tuple(attempts), "EXHAUSTED")
 
     def stage(self, legacy):
