@@ -335,7 +335,8 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         # to compact digit-stream assembly instead of aborting recovery.
         if len(year) != 1:
             if len(year) == 2:
-                year = f"20{year}" if int(year) <= 36 else f"19{year}"
+                # Align with reconciler / compact `_yy_to_yyyy` (YY>=30 → 19xx).
+                year = f"{1900 + int(year):04d}" if int(year) >= 30 else f"{2000 + int(year):04d}"
             # Split day before a century-repaired year: "03 1 983 1 9" → day 1+9=19.
             # Gated on 3-digit year repair so plain "12 2 1983 6" noise does not become 26.
             # Skip a post-year edge glyph that merely duplicates the day tens digit.
@@ -363,11 +364,20 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             ):
                 try:
                     from datetime import date as _date
-                    _date(int(year), int(month), int(day))
+                    parsed = _date(int(year), int(month), int(day))
                 except ValueError:
                     pass
                 else:
-                    return f"{month}/{day}/{year}"
+                    if parsed > _date.today() and year.startswith("20"):
+                        alt = str(int(year) - 100)
+                        try:
+                            repaired = _date(int(alt), int(month), int(day))
+                        except ValueError:
+                            repaired = None
+                        if repaired is not None and repaired <= _date.today():
+                            return f"{month}/{day}/{alt}"
+                    elif parsed <= _date.today():
+                        return f"{month}/{day}/{year}"
     def _valid(month: str, day: str, year: str) -> str | None:
         if not (
             re.fullmatch(r"\d{2}", month)
@@ -380,8 +390,21 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             return None
         try:
             from datetime import date as _date
-            _date(int(year), int(month), int(day))
+            parsed = _date(int(year), int(month), int(day))
         except ValueError:
+            return None
+        # Never emit a future DOB — 2-digit YY under a 20xx pivot (or OCR year
+        # junk) must century-repair to 19xx when that stays calendar-valid.
+        if parsed > _date.today() and year.startswith("20"):
+            alt = str(int(year) - 100)
+            try:
+                repaired = _date(int(alt), int(month), int(day))
+            except ValueError:
+                return None
+            if repaired <= _date.today():
+                return f"{month}/{day}/{alt}"
+            return None
+        if parsed > _date.today():
             return None
         return f"{month}/{day}/{year}"
 
@@ -392,7 +415,11 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
     normalized_text = header_safe.translate(_OCR_CONFUSABLES)
     compact = re.sub(r"\D", "", _normalize_digit_token(re.sub(r"[^0-9A-Za-z]", "", normalized_text)))
     def _yy_to_yyyy(yy: str) -> str:
-        return f"20{yy}" if int(yy) <= 36 else f"19{yy}"
+        # Align with reconciler / evidence normalization / GT scorer:
+        # YY>=30 → 19xx, else 20xx. The prior <=36→20xx pivot minted future
+        # DOBs (2030–2036) that fail closed as FUTURE_DOB_REJECTED.
+        n = int(yy)
+        return f"{1900 + n:04d}" if n >= 30 else f"{2000 + n:04d}"
 
     # Prefer digit streams that look like MM DD YY / MM DD YYYY / YYYY MM DD.
     if len(compact) == 6:
@@ -498,7 +525,8 @@ def _person_name_from(text: str) -> str | None:
 
     matches: list[str] = []
     for match in re.finditer(
-        r"\b([A-Z][A-Z'-]{1,30})[,.]\s*([A-Z][A-Z'-]{1,30}(?:\s+[A-Z])?)\b",
+        # Comma only — OCR mid-name periods ("DAtSt.EY") are not Last, First.
+        r"\b([A-Z][A-Z'-]{1,30}),\s*([A-Z][A-Z'-]{1,30}(?:\s+[A-Z])?)\b",
         cleaned,
     ):
         last, first = match.group(1), match.group(2)
@@ -507,6 +535,10 @@ def _person_name_from(text: str) -> str | None:
         if last in junk or first_tok in junk:
             continue
         if last.endswith("NAME") or first_tok.endswith("NAME"):
+            continue
+        # Tiny first tokens from period/noise splits ("DATST, EY") are not
+        # reliable Last, First — fall through to multi-token join instead.
+        if len(first_tok) < 3:
             continue
         matches.append(f"{last}, {first}")
     # Prefer the last Last, First in the crop — printed headers sit above ink.

@@ -242,6 +242,19 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             for c in candidates
             if (c.get('value') or '').strip()
         )
+        # Learning from Independent-300 v12.1: low-confidence primary name
+        # reads (e.g. paddle 0.75 → "DATST EY") short-circuited confirmation
+        # and regressed vs rapidocr ("TOHNSON RATSTRY"). Always confirm person
+        # names when the shaped primary is weak.
+        name_key = (name or '').casefold()
+        if shaped and name_key in {'patient_name', 'insured_name'}:
+            confs = [
+                float(c.get('raw_confidence') or 0.0)
+                for c in candidates
+                if (c.get('value') or '').strip()
+            ]
+            if confs and max(confs) < 0.88:
+                shaped = False
         if not shaped:
             confirm = router.route(
                 OCRRouteRequest(

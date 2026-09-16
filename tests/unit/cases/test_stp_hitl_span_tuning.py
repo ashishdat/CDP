@@ -373,3 +373,23 @@ def test_cross_variant_span_fusion_recovers_dob():
     assert result.candidates
     assert result.candidates[0]["value"] == "06/14/1974"
     assert any(s.variant_id == "cross_variant_span" for s in result.cascade_trace)
+
+
+def test_dob_yy_pivot_aligns_with_reconciler_not_future():
+    """Independent-300 v12.1 learning: YY=30 under <=36→20xx minted FUTURE DOBs."""
+    from packages.extraction_recovery.span_selection import select_field_span
+
+    assert select_field_span("9 1 30", "DATE", "patient_dob").selected_text == "09/01/1930"
+    assert select_field_span("09 01 34", "DATE", "patient_dob").selected_text == "09/01/1934"
+    assert select_field_span("12 21 30", "DATE", "patient_dob").selected_text == "12/21/1930"
+    # YY<30 still maps to 20xx when not future.
+    assert select_field_span("09 01 02", "DATE", "patient_dob").selected_text == "09/01/2002"
+
+
+def test_person_name_period_is_not_last_first_separator():
+    """OCR mid-name periods must not invent Last, First (DATST, EY)."""
+    from packages.extraction_recovery.span_selection import select_field_span
+
+    span = select_field_span("TOHNCON\nDAtSt.EY", "PERSON_NAME", "patient_name")
+    assert span.selected_text != "DATST, EY"
+    assert "TOHNCON" in (span.selected_text or "").upper()
