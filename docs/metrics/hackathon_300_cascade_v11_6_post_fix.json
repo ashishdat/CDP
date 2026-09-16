@@ -2,6 +2,13 @@
   "title": "Independent Samples — 300 (v11.6 residual field batch)",
   "run": "hackathon_300_cascade_v11 + decision_reprocess_v11_6",
   "n": 300,
+  "batch_of_15": {
+    "passed": 15,
+    "targeted_fixes": 7,
+    "honest_hitl_controls": 8,
+    "new_true_stp_from_batch": 2,
+    "independent_unit_tests": "tests/unit/cases/test_residual_field_batch_v11_6.py"
+  },
   "baseline": {
     "true_stp": 118,
     "field_hitl": 107,
@@ -25,5 +32,15 @@
     "perfect_claim_exact": {"exact": 222, "n": 224, "rate": 0.991071},
     "false_accepts": {"count": 2, "rate": 0.002427}
   },
+  "generalizable_rules": [
+    "Member ID FORMAT_VALID on compact form (spaces/dots/dashes stripped)",
+    "Emit canonical compact member ID on accept",
+    "Member ID length-fragment twin (short crop vs full number)",
+    "Tesseract-only shaped ID disagreement ignored when primary engines agree",
+    "Member ID J↔U confusable substitution",
+    "Member ID 1–2 letter prefix bleed (OSC… vs C…)",
+    "Name L↔H confusable substitution (MCLARTY/MCHARTY)"
+  ],
+  "new_true_stp_claims": ["Group A__M048EJG7.032", "Group A__M048EJGE.001"],
   "generated_at": "2026-09-16T14:58:00+00:00"
 }
