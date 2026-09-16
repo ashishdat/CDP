@@ -4,6 +4,7 @@
   "n_requested": 50,
   "n_finished": 0,
   "true_stp": 0,
+  "true_stp_rate": 0.0,
   "disposition_counts": {},
   "registration_failures": [],
   "claims_in_flight": 4,
@@ -11,29 +12,28 @@
   "registration_probe": [
     {
       "claim": "Group A__M048DJJF.001",
+      "finished": false,
       "geometry": true,
-      "geom_status": "SUCCESS",
       "algorithm": "sift_flann_ransac_homography_near_miss_boost"
     },
     {
       "claim": "Group A__M048DJJF.002",
+      "finished": false,
       "geometry": true,
-      "geom_status": "SUCCESS",
       "algorithm": "sift_flann_ransac_homography"
     },
     {
       "claim": "Group A__M048DJJF.003",
+      "finished": false,
       "geometry": true,
-      "geom_status": "SUCCESS",
       "algorithm": "sift_flann_ransac_homography"
     },
     {
       "claim": "Group A__M048DJJF.004",
+      "finished": false,
       "geometry": true,
-      "geom_status": "SUCCESS",
       "algorithm": "sift_flann_ransac_homography"
     }
   ],
-  "note": "First wave OCR in flight. All 4 started claims have geometry SUCCESS including DJJF.001 via near_miss_boost.",
-  "generated_at": "2026-09-16T04:57:23.471329+00:00"
+  "generated_at": "2026-09-16T04:58:53.186946+00:00"
 }
