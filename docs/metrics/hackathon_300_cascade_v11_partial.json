@@ -1,23 +1,86 @@
 {
   "run": "hackathon_300_cascade_v11",
-  "status": "RUNNING",
-  "n_requested": 300,
-  "n_finished": 88,
-  "offset": 50,
-  "cohort": "hackathon docs[50:350] independent of diagnostic first-50",
   "strategy_id": "field-cascade-v11",
-  "true_stp": 54,
-  "true_stp_rate": 0.6136363636363636,
-  "field_hitl": 21,
-  "field_hitl_rate": 0.23863636363636365,
-  "registration_failed": 13,
-  "registration_failed_rate": 0.14772727272727273,
-  "combined_hitl": 34,
-  "combined_hitl_rate": 0.38636363636363635,
-  "disposition_counts": {
-    "HITL": 21,
-    "REGISTRATION_FAILED": 13,
-    "TRUE_STP": 54
+  "status": "RUNNING",
+  "updated_at": "2026-09-16T09:53:44.189989+00:00",
+  "selected": 300,
+  "offset": 50,
+  "finished": 95,
+  "pending": 205,
+  "workers": 3,
+  "rates": {
+    "true_stp": 0.5895,
+    "field_hitl": 0.2526,
+    "registration_hitl": 0.1579,
+    "combined_hitl": 0.4105,
+    "stage_failure": 0.0,
+    "exact_accuracy_vs_agent_gt": 1.0,
+    "perfect_claim_exact_rate": 1.0,
+    "false_accept_rate": 0.0
   },
-  "generated_at": "2026-09-16T09:46:03.992517+00:00"
+  "counts": {
+    "true_stp": 56,
+    "field_hitl": 24,
+    "registration_hitl": 15,
+    "combined_hitl": 39,
+    "stage_failure": 0,
+    "finished": 95,
+    "claims_scored_for_accuracy": 80,
+    "fields_scored_for_accuracy": 322,
+    "false_accepts": 0
+  },
+  "accuracy": {
+    "source": "agent_created_gt",
+    "gt_claims": 123,
+    "gt_field_labels": 487,
+    "gt_by_confidence": {
+      "SILVER": 174,
+      "GOLD": 313
+    },
+    "claims_scored": 80,
+    "field_count": 322,
+    "exact_accuracy": 1.0,
+    "perfect_claim_exact_rate": 1.0,
+    "false_accepts": 0,
+    "false_accept_rate": 0.0,
+    "field_exact": {
+      "patient_dob": {
+        "exact": 27,
+        "n": 27,
+        "rate": 1.0
+      },
+      "total_charge": {
+        "exact": 77,
+        "n": 77,
+        "rate": 1.0
+      },
+      "patient_name": {
+        "exact": 72,
+        "n": 72,
+        "rate": 1.0
+      },
+      "insured_id_number": {
+        "exact": 78,
+        "n": 78,
+        "rate": 1.0
+      },
+      "insured_name": {
+        "exact": 68,
+        "n": 68,
+        "rate": 1.0
+      }
+    },
+    "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6.",
+    "caveat": "Accuracy is vs agent consensus GT (GOLD/SILVER) on labeled fields only; conflicts/empty/unreadable abstain. Not vendor GT. Scored 80/95 finished claims with \u22651 GT label."
+  },
+  "elapsed_sec_post_speedfix": {
+    "n": 19,
+    "mean": 165.1,
+    "min": 93.7,
+    "max": 391.1
+  },
+  "notes": [
+    "CDP_OCR_FIELD_SCOPE=stp_critical with out-of-scope stubs for ranking",
+    "digits-first charges/DOB; cheap service-line OCR; empty box-28 skip"
+  ]
 }

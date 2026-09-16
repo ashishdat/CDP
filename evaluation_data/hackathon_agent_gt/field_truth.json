@@ -1,7 +1,7 @@
 {
   "dataset": "Hackathon - 1000 Claims.zip",
   "created_by": "agent_consensus_gt_v2",
-  "created_at": "2026-09-16T09:45:56.176875+00:00",
+  "created_at": "2026-09-16T09:53:44.169050+00:00",
   "methodology": [
     "No vendor labels on Hackathon ZIP \u2014 this is agent-created GT.",
     "GOLD: \u22652 OCR engines agree after span-select + field-shape gate.",
@@ -11,17 +11,17 @@
     "Never invent DOB/amounts/IDs when ink is ambiguous."
   ],
   "stats": {
-    "claims": 118,
-    "field_labels": 472,
+    "claims": 123,
+    "field_labels": 487,
     "by_confidence": {
-      "SILVER": 170,
-      "GOLD": 302
+      "SILVER": 174,
+      "GOLD": 313
     },
     "by_field": {
-      "total_charge": 116,
-      "patient_name": 107,
-      "insured_id_number": 112,
-      "insured_name": 100,
+      "total_charge": 119,
+      "patient_name": 110,
+      "insured_id_number": 116,
+      "insured_name": 105,
       "patient_dob": 37
     }
   },
@@ -3439,6 +3439,126 @@
         },
         "insured_id_number": {
           "expected_value": "133691049",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048DJKN.024": {
+      "document": "Group A/M048DJKN.024",
+      "fields": {
+        "insured_id_number": {
+          "expected_value": "P32683567",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "SLOGER CHLOE",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048EJG7.001": {
+      "document": "Group A/M048EJG7.001",
+      "fields": {
+        "insured_id_number": {
+          "expected_value": "959145934",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "LO DANNY",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048EJG7.002": {
+      "document": "Group A/M048EJG7.002",
+      "fields": {
+        "total_charge": {
+          "expected_value": "5122.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BELDIN BONNIE",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "907431452",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "BELDIN BONNIE",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048EJG7.004": {
+      "document": "Group A/M048EJG7.004",
+      "fields": {
+        "total_charge": {
+          "expected_value": "9641.00",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WOODS GENEVA",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_id_number": {
+          "expected_value": "915590820",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        },
+        "insured_name": {
+          "expected_value": "WOODS GENEVA",
+          "source": "multi_engine_consensus:paddleocr+rapidocr",
+          "confidence": "GOLD"
+        }
+      },
+      "run_source": "hackathon_300_cascade_v11",
+      "run_sources": [
+        "hackathon_300_cascade_v11"
+      ]
+    },
+    "Group A__M048EJG7.005": {
+      "document": "Group A/M048EJG7.005",
+      "fields": {
+        "total_charge": {
+          "expected_value": "71.40",
+          "source": "auto_accepted+line_sum",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ACOS TA BRIDGITA",
+          "source": "auto_accepted+hard_validation",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ACOSTA HECTOR",
           "source": "multi_engine_consensus:paddleocr+rapidocr",
           "confidence": "GOLD"
         }
