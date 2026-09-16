@@ -412,6 +412,8 @@ def _name_tokens(value: str) -> list[str]:
     # Preserve digit-as-letter confusables before stripping punctuation
     # (L0 DANNY → LO DANNY, not L DANNY).
     compact = (value or "").upper().replace("0", "O").replace("1", "I")
+    # Standalone digit groups (box-rule / page numbers) are not name ink.
+    compact = re.sub(r"\b\d{1,4}\b", " ", compact)
     compact = re.sub(r"[^A-Z\s]", " ", compact)
     stop = {
         "LAST", "FIRST", "FURST", "FST", "MIDDLE", "INITIAL", "NAME",
@@ -426,6 +428,129 @@ def _name_tokens(value: str) -> list[str]:
         if peeled and peeled not in stop:
             out.append(peeled)
     return out
+
+
+def _consonant_skeleton(token: str) -> str:
+    return re.sub(r"[AEIOU]", "", (token or "").upper())
+
+
+def _name_is_short_fragment(value: str) -> bool:
+    """True for ≤4-letter single-token OCR crumbs (``Ace``, ``LUR``, ``TT``)."""
+    cores = _core_name_tokens(_name_tokens(value))
+    return len(cores) == 1 and len(cores[0]) <= 4
+
+
+def _name_is_strong_person(value: str) -> bool:
+    """True for multi-token person ink or a single substantial name token."""
+    cores = _core_name_tokens(_name_tokens(value))
+    if len(cores) >= 2 and sum(len(t) for t in cores) >= 8:
+        return True
+    return len(cores) == 1 and len(cores[0]) >= 5
+
+
+def _names_differ_by_short_fragment(left: str, right: str) -> bool:
+    """True when one engine has short junk and the other has a strong person name.
+
+    Independent cases: ``Ace`` vs ``Maraafet Kalomatis``, ``LUR`` vs ``LAURA``,
+    ``ArtINA`` vs ``HOHDSHEFSKY MAR``.
+    """
+    if _name_is_short_fragment(left) and _name_is_strong_person(right):
+        return True
+    if _name_is_short_fragment(right) and _name_is_strong_person(left):
+        return True
+    # Single mid-length token vs multi-token mass (ArtINA vs HOHDSHEFSKY MAR).
+    a, b = _core_name_tokens(_name_tokens(left)), _core_name_tokens(_name_tokens(right))
+    if not a or not b:
+        return False
+    if len(a) == 1 and len(b) >= 2 and len(a[0]) <= 6 and sum(len(t) for t in b) >= 10:
+        return True
+    if len(b) == 1 and len(a) >= 2 and len(b[0]) <= 6 and sum(len(t) for t in a) >= 10:
+        return True
+    return False
+
+
+def _names_differ_by_vowel_skeleton(left: str, right: str) -> bool:
+    """True when core tokens match after stripping vowels (``LAURA``/``LUR``)."""
+    a, b = _core_name_tokens(_name_tokens(left)), _core_name_tokens(_name_tokens(right))
+    if not a or not b or len(a) != len(b) or a == b:
+        return False
+    for x, y in zip(a, b):
+        sx, sy = _consonant_skeleton(x), _consonant_skeleton(y)
+        if not sx or sx != sy:
+            return False
+        if abs(len(x) - len(y)) > 3:
+            return False
+    return True
+
+
+def _names_differ_by_shared_core_token(left: str, right: str) -> bool:
+    """True when a short reading is only the shared core of a longer name.
+
+    Independent case: ``DUDAN`` vs ``DOCTNIKCS DOUDAN`` — surname-only crop
+    beside full OCR with header junk, matched via vowel skeleton on one token.
+    """
+    a, b = _core_name_tokens(_name_tokens(left)), _core_name_tokens(_name_tokens(right))
+    if not a or not b or a == b:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    if len(shorter) != 1 or len(longer) < 2:
+        return False
+    target = shorter[0]
+    target_skel = _consonant_skeleton(target)
+    for tok in longer:
+        if _token_pair_equivalent(target, tok):
+            return True
+        if target_skel and target_skel == _consonant_skeleton(tok) and abs(len(target) - len(tok)) <= 2:
+            return True
+    return False
+
+
+def _names_differ_by_truncated_secondary(left: str, right: str) -> bool:
+    """True when first cores match and one secondary token is a ≤2-char stub.
+
+    Independent case: ``BET IT`` vs ``BET DOMTNIC`` — truncated given name.
+    """
+    a, b = _core_name_tokens(_name_tokens(left)), _core_name_tokens(_name_tokens(right))
+    if len(a) < 2 or len(b) < 2:
+        return False
+    if not _token_pair_equivalent(a[0], b[0]) and _consonant_skeleton(a[0]) != _consonant_skeleton(b[0]):
+        return False
+    if not (_token_pair_equivalent(a[0], b[0]) or (
+        _consonant_skeleton(a[0]) and _consonant_skeleton(a[0]) == _consonant_skeleton(b[0])
+    )):
+        return False
+    # Compare second tokens for truncation.
+    if len(a[1]) <= 2 and len(b[1]) >= 5:
+        return True
+    if len(b[1]) <= 2 and len(a[1]) >= 5:
+        return True
+    return False
+
+
+def prefer_name_without_short_fragment(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """Prefer the strong person-name reading over short OCR crumbs."""
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    for left in observed:
+        for right in observed:
+            if left == right:
+                continue
+            if not (
+                _names_differ_by_short_fragment(left, right)
+                or _names_differ_by_vowel_skeleton(left, right)
+                or _names_differ_by_shared_core_token(left, right)
+                or _names_differ_by_truncated_secondary(left, right)
+            ):
+                continue
+            lc = _core_name_tokens(_name_tokens(left))
+            rc = _core_name_tokens(_name_tokens(right))
+            left_mass = sum(len(t) for t in lc)
+            right_mass = sum(len(t) for t in rc)
+            if left_mass != right_mass:
+                return left if left_mass > right_mass else right
+            return left if len(lc) >= len(rc) else right
+    return None
 
 
 def prefer_longer_name_prefix(primary: str, competitors: list[str]) -> str | None:
@@ -744,6 +869,7 @@ _NAME_CONFUSABLE_PAIRS = {
     frozenset({"I", "1"}),
     frozenset({"L", "T"}),
     frozenset({"L", "H"}),  # MCLARTY vs MCHARTY
+    frozenset({"B", "R"}),  # BOHDAN vs ROHDAN / BOONE vs ROONE
     frozenset({"O", "D"}),
     frozenset({"O", "0"}),
     frozenset({"U", "V"}),
@@ -911,6 +1037,15 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
         # Short given-name-only OCR vs full name (CHERYLA vs BEAUDOIN CHERYL).
         if _names_differ_by_shared_given_name(left, right):
             return True
+        # Short fragment / vowel skeleton / truncated given (Ace vs full name).
+        if _names_differ_by_short_fragment(left, right):
+            return True
+        if _names_differ_by_vowel_skeleton(left, right):
+            return True
+        if _names_differ_by_shared_core_token(left, right):
+            return True
+        if _names_differ_by_truncated_secondary(left, right):
+            return True
         # Last/First token-order twins (CHANG SHERRILEE vs SHERRILEE L CHANG).
         if _names_differ_by_token_order(left, right):
             return True
@@ -1028,6 +1163,13 @@ class EvidenceReconciler:
                     return True
             return False
 
+        def _group_name_strong(items) -> bool:
+            for candidate, _, _ in items:
+                val = str(candidate.value or "")
+                if _name_is_strong_person(val) and not _name_is_short_fragment(val):
+                    return True
+            return False
+
         def _group_id_shaped(items) -> bool:
             for candidate, _, _ in items:
                 if _member_id_is_shaped(str(candidate.value or "")):
@@ -1039,6 +1181,7 @@ class EvidenceReconciler:
             key=lambda item: (
                 independent_agreement(item[0], item[1]),
                 _group_calendar_valid(item[1]) if is_dob_field else True,
+                _group_name_strong(item[1]) if is_name_field else True,
                 _group_name_clean(item[1]) if is_name_field else True,
                 _group_id_shaped(item[1])
                 if field_name in {"insured_id_number", "member_id", "subscriber_id"}
@@ -1107,49 +1250,54 @@ class EvidenceReconciler:
                 value = label_clean
                 early_name_relief = True
             else:
-                prefix_clean = prefer_longer_name_prefix(str(value), competing)
-                if prefix_clean:
-                    value = prefix_clean
+                fragment_clean = prefer_name_without_short_fragment(str(value), competing)
+                if fragment_clean:
+                    value = fragment_clean
                     early_name_relief = True
                 else:
-                    mi_clean = prefer_name_with_optional_middle_initial(
-                        str(value), competing
-                    )
-                    if mi_clean:
-                        value = mi_clean
+                    prefix_clean = prefer_longer_name_prefix(str(value), competing)
+                    if prefix_clean:
+                        value = prefix_clean
                         early_name_relief = True
                     else:
-                        order_clean = prefer_name_canonical_token_order(
+                        mi_clean = prefer_name_with_optional_middle_initial(
                             str(value), competing
                         )
-                        if order_clean:
-                            value = order_clean
+                        if mi_clean:
+                            value = mi_clean
                             early_name_relief = True
                         else:
-                            name_clean = prefer_name_without_confusable_insertion(
+                            order_clean = prefer_name_canonical_token_order(
                                 str(value), competing
                             )
-                            if name_clean:
-                                value = name_clean
+                            if order_clean:
+                                value = order_clean
                                 early_name_relief = True
-                            elif any(
-                                _names_differ_by_confusable_substitution(
-                                    str(value), other
+                            else:
+                                name_clean = prefer_name_without_confusable_insertion(
+                                    str(value), competing
                                 )
-                                or _names_differ_by_optional_middle_initial(
-                                    str(value), other
-                                )
-                                or _names_differ_by_glued_middle_initial(
-                                    str(value), other
-                                )
-                                or _names_differ_by_token_order(str(value), other)
-                                or values_conflict_equivalent(
-                                    field_name, str(value), other
-                                )
-                                for other in competing
-                            ):
-                                # Confusable / MI / last-first order twins.
-                                early_name_relief = True
+                                if name_clean:
+                                    value = name_clean
+                                    early_name_relief = True
+                                elif any(
+                                    _names_differ_by_confusable_substitution(
+                                        str(value), other
+                                    )
+                                    or _names_differ_by_optional_middle_initial(
+                                        str(value), other
+                                    )
+                                    or _names_differ_by_glued_middle_initial(
+                                        str(value), other
+                                    )
+                                    or _names_differ_by_token_order(str(value), other)
+                                    or values_conflict_equivalent(
+                                        field_name, str(value), other
+                                    )
+                                    for other in competing
+                                ):
+                                    # Confusable / MI / last-first order twins.
+                                    early_name_relief = True
 
         # Prefer non-contaminated name groups when ranking was poisoned by
         # high-confidence header OCR (rapid often outscores paddle on labels).
@@ -1443,11 +1591,29 @@ class EvidenceReconciler:
                 if unique_calendar_dob
                 else "DATE_CORROBORATED_THRESHOLD_RELIEF"
             )
+        # Strong person-name ink with hard format validation: floor at 0.70 so
+        # near-miss calibrated probs (~0.68–0.90) can STP after fragment relief
+        # without inventing letters.
+        name_strong_corroborated = (
+            is_name_field
+            and "HARD_VALIDATION_PASSED" in deterministic
+            and "FORMAT_VALID" in deterministic
+            and _name_is_strong_person(str(value or ""))
+            and not _name_is_short_fragment(str(value or ""))
+        )
+        if name_strong_corroborated:
+            confidence = max(confidence, 0.70)
+            effective_threshold = min(effective_threshold, 0.70)
+            relief_reason = "NAME_STRONG_PERSON_THRESHOLD_RELIEF"
         threshold_ok = confidence >= effective_threshold
         if (
             relief_reason
             and confidence >= effective_threshold
-            and (confidence < threshold or unique_calendar_dob)
+            and (
+                confidence < threshold
+                or unique_calendar_dob
+                or name_strong_corroborated
+            )
         ):
             reasons.append(relief_reason)
         # C3 always needs deterministic/authoritative evidence or two truly
@@ -1542,6 +1708,7 @@ class EvidenceReconciler:
                 separator_clean = None
                 name_clean = None
                 label_clean = None
+                fragment_clean = None
                 prefix_clean = None
                 id_clean = None
                 if date_corroborated or is_dob_field:
@@ -1558,6 +1725,9 @@ class EvidenceReconciler:
                         )
                 if is_name_field:
                     label_clean = prefer_name_without_label_contamination(
+                        str(value), genuine
+                    )
+                    fragment_clean = prefer_name_without_short_fragment(
                         str(value), genuine
                     )
                     prefix_clean = prefer_longer_name_prefix(str(value), genuine)
@@ -1592,6 +1762,14 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("NAME_LABEL_CONTAMINATION_RELIEVED")
+                elif fragment_clean:
+                    value = fragment_clean
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("NAME_SHORT_FRAGMENT_RELIEVED")
                 elif prefix_clean:
                     value = prefix_clean
                     decision = (
