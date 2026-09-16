@@ -1,0 +1,62 @@
+{
+  "dataset_id": "CDP_GOLDEN_ENGINEERING_PACK_V3",
+  "status": "COMPLETE",
+  "role": "AUTHORITATIVE_GOLDEN_TRUTH",
+  "strategy_context": "field-cascade-v12 / Field Value Authority; EXTRACTION_HARNESS measurement",
+  "n": 100,
+  "cms_docs": 50,
+  "ub_docs": 50,
+  "claim_stp_proxy": 0.98,
+  "claim_hard_hitl": 0.02,
+  "field_hard_hitl": 0.002,
+  "exact_accuracy": 0.998,
+  "critical_exact_accuracy": 0.9971428571428571,
+  "perfect_claim_exact": 0.98,
+  "false_accepts": 0,
+  "by_family": {
+    "CMS1500": {
+      "documents": 50,
+      "fields": 550,
+      "exact_accuracy": 0.9981818181818182,
+      "field_hard_hitl": 0.0018181818181818182,
+      "field_raw_disposition_hitl": 1.0,
+      "claim_hard_hitl": 0.02,
+      "claim_stp_proxy": 0.98,
+      "perfect_claim_exact": 0.98
+    },
+    "UB04": {
+      "documents": 50,
+      "fields": 450,
+      "exact_accuracy": 0.9977777777777778,
+      "field_hard_hitl": 0.0022222222222222222,
+      "field_raw_disposition_hitl": 1.0,
+      "claim_hard_hitl": 0.02,
+      "claim_stp_proxy": 0.98,
+      "perfect_claim_exact": 0.98
+    }
+  },
+  "top_exact_failures": [
+    [
+      "patient_dob",
+      1
+    ],
+    [
+      "patient_name",
+      1
+    ]
+  ],
+  "vs_cascade_v11_golden": {
+    "exact_accuracy": "0.998 \u2192 0.998",
+    "claim_stp_proxy": "0.98 \u2192 0.98",
+    "claim_hard_hitl": "0.02 \u2192 0.02",
+    "false_accepts": "0 \u2192 0"
+  },
+  "artifacts": {
+    "dataset": "evaluation_data/phase8_7_golden_pack/CDP_GOLDEN_ENGINEERING_PACK_V3",
+    "run_dir": "evaluation_results/accuracy_100_sample_v3_independent_cascade_v12",
+    "evaluator": "evaluation/accuracy_100_sample.py",
+    "architecture": "docs/STP_PIPELINE_ARCHITECTURE_V12.md"
+  },
+  "elapsed_s": 193.01815612698556,
+  "generated_at": "2026-09-16T15:12:00+00:00"
+}

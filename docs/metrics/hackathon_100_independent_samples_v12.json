@@ -1,0 +1,48 @@
+{
+  "title": "Independent Samples — 100 (v12 Field Value Authority)",
+  "run": "hackathon_300_cascade_v11[0:100] + decision_reprocess_v12",
+  "n": 100,
+  "slice": "first 100 documents of Independent Samples-300 cohort",
+  "architecture": "docs/STP_PIPELINE_ARCHITECTURE_V12.md",
+  "baseline_slice": {
+    "true_stp": 58,
+    "field_hitl": 26,
+    "registration_hitl": 16,
+    "combined_hitl": 42
+  },
+  "metrics": {
+    "true_stp": {"count": 74, "rate": 0.74},
+    "field_hitl": {"count": 10, "rate": 0.10},
+    "registration_hitl": {"count": 16, "rate": 0.16},
+    "combined_hitl": {"count": 26, "rate": 0.26},
+    "stage_failure": {"count": 0, "rate": null}
+  },
+  "delta_vs_baseline_slice": {
+    "true_stp": "+16",
+    "field_hitl": "-16",
+    "combined_hitl": "-16"
+  },
+  "full_cohort_300_v12": {
+    "true_stp": {"count": 170, "rate": 0.566667},
+    "field_hitl": {"count": 55, "rate": 0.183333},
+    "registration_hitl": {"count": 75, "rate": 0.25},
+    "combined_hitl": {"count": 130, "rate": 0.433333},
+    "flipped_to_true_stp": 52,
+    "new_flips_vs_v11_6": 3,
+    "new_true_stp_claims": [
+      "Group A__M048EJG7.030",
+      "Group A__M048EJI2.034",
+      "Group A__M048HJCX.006"
+    ]
+  },
+  "golden_pack_v3_independent_100": {
+    "run": "evaluation_results/accuracy_100_sample_v3_independent_cascade_v12",
+    "measurement_scope": "EXTRACTION_HARNESS",
+    "exact_accuracy": 0.998,
+    "claim_stp_proxy": 0.98,
+    "claim_hard_hitl": 0.02,
+    "false_accepts": 0
+  },
+  "independent_unit_tests": "tests/unit/cases/test_field_value_authority_v12.py",
+  "generated_at": "2026-09-16T15:12:00+00:00"
+}
