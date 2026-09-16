@@ -45,6 +45,57 @@ def test_charge_column_windows_shift_right_of_pointer_bleed():
     assert any(x0 >= 1000 for _, x0, _ in windows[1:])
 
 
+def test_cascade_invokes_tesseract_fill_when_confirmation_unshaped():
+    calls: list[tuple[str, ...]] = []
+
+    def recognize_fn(field_name, bbox, field_type, engines):
+        calls.append(tuple(engines))
+        if engines == ("tesseract",):
+            return (
+                [
+                    {
+                        "value": "10/29/1983",
+                        "raw_value": "10/29/1983",
+                        "engine": "tesseract",
+                    }
+                ],
+                [{"engine": "tesseract", "reason": "OBSERVED"}],
+                "POLICY_SATISFIED",
+            )
+        return (
+            [
+                {
+                    "value": "MM L 29",
+                    "raw_value": "MM\nL\n29",
+                    "engine": "paddleocr",
+                },
+                {
+                    "value": "header bleed",
+                    "raw_value": "header bleed",
+                    "engine": "rapidocr",
+                },
+            ],
+            [
+                {"engine": "paddleocr", "reason": "OBSERVED"},
+                {"engine": "rapidocr", "reason": "OBSERVED"},
+            ],
+            "POLICY_SATISFIED",
+        )
+
+    result = FieldCascade().recognize(
+        field_name="patient_dob",
+        primary_bbox=(672, 424, 871, 457),
+        cell={"x0": 667, "y0": 402, "x1": 886, "y1": 459},
+        image_size=(1700, 2200),
+        recognize_fn=recognize_fn,
+    )
+    assert ("tesseract",) in calls
+    assert result.accepted is True
+    assert result.candidates[0]["engine"] == "tesseract"
+    assert result.accept_reason.startswith("TESSERACT_FILL:")
+    assert any(a.get("engine") == "tesseract" for a in result.attempts)
+
+
 def test_cascade_prefers_shaped_confirmation_over_primary_bleed():
     calls = []
 

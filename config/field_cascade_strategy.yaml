@@ -28,6 +28,10 @@ stages:
       Governed engines from ocr_field_routes.yaml. OCRRouter requires two usable
       OBSERVED engines (primary + confirmation) before short-circuit; fill
       (tesseract) only after confirmation ladder.
+  - id: tesseract_fill
+    role: >
+      When paddle+rapid return usable but unshaped text, explicitly run tesseract
+      on the same crop and re-pick — ensures fill engine is exercised and OBSERVED.
   - id: engine_agreement
     role: >
       Among dual-engine candidates, prefer span-normalized multi-engine agreement;

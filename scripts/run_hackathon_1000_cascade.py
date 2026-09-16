@@ -64,6 +64,59 @@ def _group_id(document: str) -> str:
     return text.split("/", 1)[0] if "/" in text else "UNKNOWN"
 
 
+def _probe_ocr_engines() -> dict[str, Any]:
+    """One-shot live probe: paddle / rapid / tesseract must OBSERVE, not UNAVAILABLE."""
+    from PIL import Image, ImageDraw, ImageFont
+
+    from packages.ocr_router import OCRRouter, OCRRouteRequest
+
+    image = Image.new("L", (220, 64), 255)
+    draw = ImageDraw.Draw(image)
+    try:
+        font = ImageFont.load_default()
+    except Exception:  # noqa: BLE001
+        font = None
+    draw.text((12, 18), "HELLO 123", fill=0, font=font)
+    router = OCRRouter(lambda _attempt: True)
+    result = router.route(
+        OCRRouteRequest(
+            image,
+            (0, 0, image.width, image.height),
+            engine_order=("paddleocr", "rapidocr", "tesseract"),
+        )
+    )
+    # Force tesseract even when confirmation already satisfied.
+    tess_only = router.route(
+        OCRRouteRequest(
+            image,
+            (0, 0, image.width, image.height),
+            engine_order=("tesseract",),
+        )
+    )
+    observed = {
+        attempt.engine: attempt.reason for attempt in result.attempts
+    }
+    observed["tesseract"] = (
+        tess_only.selected.reason
+        if tess_only.selected is not None
+        else next((a.reason for a in tess_only.attempts if a.engine == "tesseract"), "MISSING")
+    )
+    return {
+        "paddleocr": observed.get("paddleocr", "MISSING"),
+        "rapidocr": observed.get("rapidocr", "MISSING"),
+        "tesseract": observed.get("tesseract", "MISSING"),
+        "all_observed": all(
+            observed.get(name) == "OBSERVED"
+            for name in ("paddleocr", "rapidocr", "tesseract")
+        ),
+        "tesseract_text": (
+            " ".join(line.text for line in tess_only.selected.observation.lines)
+            if tess_only.selected and tess_only.selected.observation
+            else ""
+        ),
+    }
+
+
 def _ocr_engine_stats(claim_out: Path) -> dict[str, Any]:
     """Count cascade OCR attempt outcomes from OCRCandidates.json."""
     path = claim_out / "ocr" / "OCRCandidates.json"
@@ -76,6 +129,8 @@ def _ocr_engine_stats(claim_out: Path) -> dict[str, Any]:
             "engines_observed": {},
             "engines_unavailable": {},
             "cascade_healthy": False,
+            "tesseract_observed": 0,
+            "tesseract_unavailable": 0,
         }
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -85,6 +140,8 @@ def _ocr_engine_stats(claim_out: Path) -> dict[str, Any]:
             "engines_observed": {},
             "engines_unavailable": {},
             "cascade_healthy": False,
+            "tesseract_observed": 0,
+            "tesseract_unavailable": 0,
         }
     for field in payload.get("fields") or []:
         for attempt in field.get("attempts") or []:
@@ -97,14 +154,21 @@ def _ocr_engine_stats(claim_out: Path) -> dict[str, Any]:
                 observed[engine] += 1
             elif reason == "UNAVAILABLE":
                 unavailable[engine] += 1
-    # Healthy when primary paddle and confirmation rapid both observed at least once
-    # on completed OCR (tesseract is fill and may be unused when first two succeed).
-    healthy = observed.get("paddleocr", 0) > 0 and observed.get("rapidocr", 0) > 0
+    # Healthy when primary paddle + confirmation rapid observed, and tesseract
+    # never reported UNAVAILABLE (fill may be unused when first two succeed).
+    healthy = (
+        observed.get("paddleocr", 0) > 0
+        and observed.get("rapidocr", 0) > 0
+        and unavailable.get("tesseract", 0) == 0
+    )
     return {
         "engines_attempted": dict(attempts),
         "engines_observed": dict(observed),
         "engines_unavailable": dict(unavailable),
         "cascade_healthy": healthy,
+        "tesseract_observed": observed.get("tesseract", 0)
+        + observed.get("tesseract_digits", 0),
+        "tesseract_unavailable": unavailable.get("tesseract", 0),
     }
 
 def _write_json(path: Path, payload: Any) -> None:
@@ -496,6 +560,7 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
     engine_unavailable: Counter[str] = Counter()
     cascade_healthy = 0
     cascade_claims = 0
+    tesseract_claims = 0
     by_bundle: dict[str, list[dict[str, Any]]] = {}
     by_group: dict[str, list[dict[str, Any]]] = {}
     completed = sum(1 for r in rows if r.get("completed"))
@@ -516,6 +581,8 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
             cascade_claims += 1
             if stats.get("cascade_healthy"):
                 cascade_healthy += 1
+            if int(stats.get("tesseract_observed") or 0) > 0:
+                tesseract_claims += 1
             for eng, count in (stats.get("engines_attempted") or {}).items():
                 engine_attempted[str(eng)] += int(count)
             for eng, count in (stats.get("engines_observed") or {}).items():
@@ -561,10 +628,14 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
             "cascade_healthy_rate": (
                 round(cascade_healthy / cascade_claims, 6) if cascade_claims else 0.0
             ),
+            "claims_with_tesseract_observed": tesseract_claims,
             "engines_attempted": dict(engine_attempted),
             "engines_observed": dict(engine_observed),
             "engines_unavailable": dict(engine_unavailable),
-            "required": "paddleocr OBSERVED + rapidocr OBSERVED (primary+confirmation)",
+            "required": (
+                "paddleocr OBSERVED + rapidocr OBSERVED; tesseract fill on miss "
+                "(never UNAVAILABLE)"
+            ),
         },
         "by_group": {
             group: _rollup_scope(group_rows)
@@ -604,6 +675,24 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     ledger = out_dir / "results.jsonl"
     lock = threading.Lock()
+
+    try:
+        engine_probe = _probe_ocr_engines()
+    except Exception as exc:  # noqa: BLE001
+        engine_probe = {
+            "paddleocr": "ERROR",
+            "rapidocr": "ERROR",
+            "tesseract": "ERROR",
+            "all_observed": False,
+            "error": f"{type(exc).__name__}: {exc}",
+        }
+    _write_json(out_dir / "engines_probe.json", engine_probe)
+    print(f"engines_probe={json.dumps(engine_probe)}", flush=True)
+    if not engine_probe.get("all_observed"):
+        print(
+            "WARNING: OCR engine probe incomplete — cascade fill may degrade",
+            flush=True,
+        )
 
     docs = _list_documents(args.zip)
     selected = docs[args.offset : args.offset + args.limit]
@@ -678,6 +767,7 @@ def main() -> int:
     final_rows = [by_id[_claim_slug(d)] for d in selected if _claim_slug(d) in by_id]
     summary = _summarize(final_rows, limit=len(selected))
     summary["workers"] = args.workers
+    summary["engines_probe"] = engine_probe
     try:
         summary["out_dir"] = str(out_dir.relative_to(ROOT))
     except ValueError:

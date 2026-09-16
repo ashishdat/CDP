@@ -421,12 +421,58 @@ class FieldCascade:
                 candidates[0] = lead
             ok = pick_reason not in {"EMPTY", "NON_EMPTY_NO_SHAPE"} and bool(selected)
             if ok:
-                # pick_reason is DATE_SHAPED / MULTI_ENGINE_AGREEMENT:DATE_SHAPED / …
                 accept_reason = pick_reason
             else:
                 accept_reason = pick_reason if pick_reason else "EMPTY"
                 if selected:
                     ok, accept_reason = semantic_accept(field_name, selected)
+
+            # Tesseract fill: dual-engine confirmation short-circuits before the
+            # fill engine whenever paddle+rapid return any usable text — even
+            # header bleed. When the crop is still not field-shaped, run
+            # tesseract alone and re-pick (observed ink only).
+            already_tess = any(
+                str((a.get("engine") if isinstance(a, dict) else "") or "").casefold()
+                == "tesseract"
+                for a in attempts
+            )
+            if (
+                not ok
+                and not already_tess
+                and "tesseract" in {e.casefold() for e in engines}
+            ):
+                fill_cands, fill_attempts, fill_reason = recognize_fn(
+                    field_name,
+                    variant.bbox,
+                    field_type,
+                    ("tesseract",),
+                )
+                merged = list(candidates) + list(fill_cands)
+                attempts = list(attempts) + list(fill_attempts)
+                selected, raw, pick_reason, ordered = pick_engine_candidates(
+                    field_name, merged, field_type
+                )
+                candidates = ordered
+                if selected and candidates:
+                    lead = dict(candidates[0])
+                    lead["value"] = selected
+                    if raw:
+                        lead["raw_value"] = raw
+                    lead["reason_code"] = f"TESSERACT_FILL:{pick_reason}"
+                    candidates[0] = lead
+                ok = pick_reason not in {"EMPTY", "NON_EMPTY_NO_SHAPE"} and bool(
+                    selected
+                )
+                if ok:
+                    accept_reason = f"TESSERACT_FILL:{pick_reason}"
+                    reason = fill_reason or reason
+                else:
+                    accept_reason = pick_reason if pick_reason else accept_reason
+                    if selected:
+                        ok, base_reason = semantic_accept(field_name, selected)
+                        if ok:
+                            accept_reason = f"TESSERACT_FILL:{base_reason}"
+
             step = CascadeStepResult(
                 variant_id=variant.variant_id,
                 bbox=variant.bbox,
