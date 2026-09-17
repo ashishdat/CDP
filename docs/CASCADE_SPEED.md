@@ -22,17 +22,15 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 | `CDP_TROCR_DOB_RESIDUAL` | `0` | Local TrOCR DOB residual (off for ≤30s/doc latency bar) |
 | `CDP_AZURE_DI_CHARGE_RESIDUAL` | `0` | Charge Azure DI crop (off for ≤30s/doc latency bar) |
 | `CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED` | `1` | Skip TrOCR/DI when local OCR already date-shaped |
-| `CDP_LEARNED_MATCHER` | `0` | SuperPoint+LightGlue off (torch ~6–8s REG + OCR drag); set `1` for accuracy |
+| `CDP_LEARNED_MATCHER` | `1` | SuperPoint+LightGlue singleton for catastrophic REG |
+| `CDP_TROCR_DOB_RESIDUAL` | `1` | Local TrOCR DOB residual (skip-if-local-shaped) |
 | `CDP_OCR_NAME_CONFIRM_MIN_CONF` | `0.80` | Rapid name confirm only when primary conf below this |
 | `CDP_AZURE_DI_PAGE_CORNERS` | `0` | Full-page Azure DI corners (billable; off by default) |
 
-**Latency bar (this VM):** claim mean **≤30s**. Independent-300 v12.3h
-(`evaluation_results/hackathon_300_cascade_v12_3h`): mean **11.6s**, p50 **9.4s**,
-TRUE_STP **70%**. Achieved at **`--workers 1`** with residuals off, learned matcher
-off, app/OCR pools. `--workers 2+` thrash SIFT/OCR and push mean ~40s+. Hard REG
-docs that formerly loaded LightGlue ran 25–33s; disabling it fail-closes those
-claims faster without torch pollution.
-For accuracy residuals: `CDP_TROCR_DOB_RESIDUAL=1 CDP_AZURE_DI_DOB_RESIDUAL=1 CDP_AZURE_DI_CHARGE_RESIDUAL=1 CDP_LEARNED_MATCHER=1`.
+**Latency bar (this VM):** claim mean **≤30s**. Independent-300 v12.3h latency path was
+11.6s mean / 70% STP; v12.3i restores trail-aware near-miss + TrOCR + LightGlue for STP
+while keeping workers=1 (early ~13s mean, 0 REG on first 12). `--workers 2+` thrash.
+Opt out of product stamps with `CDP_CASCADE_RESPECT_ENV=1`.
 
 Override examples:
 
