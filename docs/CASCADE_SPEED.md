@@ -26,10 +26,12 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 | `CDP_OCR_NAME_CONFIRM_MIN_CONF` | `0.80` | Rapid name confirm only when primary conf below this |
 | `CDP_AZURE_DI_PAGE_CORNERS` | `0` | Full-page Azure DI corners (billable; off by default) |
 
-**Latency bar (this VM):** claim mean **≤30s**. Achieved at **`--workers 1`** with residuals
-off, learned matcher off, app/OCR pools (~10s mean smoke). `--workers 2+` thrash SIFT/OCR
-and push mean ~40s+. Hard REG docs that formerly loaded LightGlue ran 25–33s; disabling it
-fail-closes those claims faster without torch pollution.
+**Latency bar (this VM):** claim mean **≤30s**. Independent-300 v12.3h
+(`evaluation_results/hackathon_300_cascade_v12_3h`): mean **11.6s**, p50 **9.4s**,
+TRUE_STP **70%**. Achieved at **`--workers 1`** with residuals off, learned matcher
+off, app/OCR pools. `--workers 2+` thrash SIFT/OCR and push mean ~40s+. Hard REG
+docs that formerly loaded LightGlue ran 25–33s; disabling it fail-closes those
+claims faster without torch pollution.
 For accuracy residuals: `CDP_TROCR_DOB_RESIDUAL=1 CDP_AZURE_DI_DOB_RESIDUAL=1 CDP_AZURE_DI_CHARGE_RESIDUAL=1 CDP_LEARNED_MATCHER=1`.
 
 Override examples:
