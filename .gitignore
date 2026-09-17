@@ -74,3 +74,4 @@ submission/
 .docker-empty/
 .model-cache/
 .tools/
+.env

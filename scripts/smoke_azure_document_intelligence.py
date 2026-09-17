@@ -44,7 +44,8 @@ def main() -> int:
     except AzureDocumentIntelligenceConfigurationError as exc:
         print("status", "CONFIG_ERROR", str(exc))
         return 2
-    img = Image.new("RGB", (120, 40), "white")
+    # Azure DI rejects tiny crops (InvalidContentDimensions); keep smoke ≥ ~50px.
+    img = Image.new("RGB", (400, 120), "white")
     request = OCRRequest(
         document_id="di-smoke",
         page_number=1,
@@ -52,7 +53,7 @@ def main() -> int:
         field_type="date",
         form_type=ClaimFormType.CMS1500,
         image=img,
-        bounding_box=BoundingBox(x0=0, y0=0, x1=120, y1=40, image_width=120, image_height=40),
+        bounding_box=BoundingBox(x0=0, y0=0, x1=400, y1=120, image_width=400, image_height=120),
     )
     candidates = engine.recognize(request)
     cand = candidates[0] if candidates else None
