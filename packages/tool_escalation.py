@@ -28,6 +28,7 @@ class EscalationTool(StrEnum):
     DOCLING = "docling"
     TROCR = "trocr"
     DOCUMENT_QUAD_RECOVERY = "document_quad_recovery"
+    LEARNED_MATCHER = "superpoint_lightglue"
     AZURE_DOCUMENT_INTELLIGENCE_READ = "azure_document_intelligence_read"
     AZURE_GPT4O = "azure_gpt4o"
     TEXTRACT_DETECT_DOCUMENT_TEXT = "aws_textract_detect_document_text"
@@ -62,6 +63,8 @@ def plan_field_escalation(
     trocr_attempted: bool = False,
     azure_di_attempted: bool = False,
     document_quad_attempted: bool = False,
+    learned_matcher_attempted: bool = False,
+    azure_di_corners_attempted: bool = False,
     policy: dict | None = None,
 ) -> EscalationDecision:
     """Pick the next gated tool after local Rapid→Paddle/Tesseract exhaustion."""
@@ -76,8 +79,8 @@ def plan_field_escalation(
     )
 
     if gap in {"REGISTRATION_HITL", "REGISTRATION_FAILED", "CATASTROPHIC_TRANSFORM"}:
-        # Catastrophic multi-gate warps: try document-quad crop before HITL.
-        # Learned matchers (LightGlue/LoFTR) stay future; gpt-4o corners gated.
+        # Catastrophic warps: quad → SuperPoint/LightGlue → Azure DI corners → HITL.
+        # Azure DI (configured) replaces gpt-4o for page-corner recovery.
         quad_enabled = bool(policy.get("document_quad_recovery_enabled", True))
         if quad_enabled and not document_quad_attempted:
             return EscalationDecision(
@@ -85,17 +88,22 @@ def plan_field_escalation(
                 "Catastrophic warp — document-quad crop then re-SIFT",
                 review_only=False,
             )
-        if policy.get("azure_ai_cascade_enabled") and policy.get(
-            "registration_vlm_corners_enabled", False
-        ):
+        learned_enabled = bool(policy.get("learned_matcher_enabled", True))
+        if learned_enabled and not learned_matcher_attempted:
             return EscalationDecision(
-                EscalationTool.AZURE_GPT4O,
-                "Catastrophic warp — gated gpt-4o page-corner hint",
-                review_only=bool(policy.get("azure_review_only_until_promoted", True)),
+                EscalationTool.LEARNED_MATCHER,
+                "Catastrophic warp — SuperPoint+LightGlue then same Acceptance gates",
+                review_only=False,
+            )
+        if di_enabled and not azure_di_corners_attempted:
+            return EscalationDecision(
+                EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ,
+                "Catastrophic warp — Azure DI ink-polygon page corners",
+                review_only=False,
             )
         return EscalationDecision(
             EscalationTool.OPENCV_REGISTRATION_HITL,
-            "OpenCV SIFT/FLANN/RANSAC recovery exhausted — fail-closed Track A",
+            "OpenCV SIFT/FLANN/RANSAC + LightGlue + Azure DI exhausted — fail-closed Track A",
             review_only=True,
         )
 

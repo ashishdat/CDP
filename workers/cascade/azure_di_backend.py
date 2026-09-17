@@ -41,9 +41,15 @@ class AzureDocumentIntelligenceReadBackend:
     def analyze(self, image_bytes: bytes) -> AzureReadEvidence:
         if not image_bytes:
             return AzureReadEvidence("", 0.0, False)
-        operation = self._start_analyze(image_bytes)
-        payload = self._poll_result(operation)
+        payload = self.analyze_raw(image_bytes)
         return self._to_evidence(payload)
+
+    def analyze_raw(self, image_bytes: bytes) -> dict[str, Any]:
+        """Return the full Azure DI analyze payload (pages/polygons included)."""
+        if not image_bytes:
+            return {}
+        operation = self._start_analyze(image_bytes)
+        return self._poll_result(operation)
 
     def _start_analyze(self, image_bytes: bytes) -> str:
         url = (

@@ -56,7 +56,7 @@ OpenCV register → Paddle/Rapid/Tesseract OCR → Authority+Reconcile
 
 | Lever | Change |
 |-------|--------|
-| Registration | Orientation trail + **document-quad crop** for catastrophic warps; ranked 180/90/270 (+ optional VLM hint via `CDP_REGISTRATION_ORIENTATION_VLM`) before fail-closed. Gates unchanged. |
+| Registration | Orientation + document-quad + **SuperPoint/LightGlue** + **Azure DI page corners** before fail-closed. Gates unchanged. |
 | DOB handwriting | `packages/extraction_recovery/dob_trocr_residual.py` — crop-scoped TrOCR after local miss; Azure DI remains fallback via `dob_azure_di_residual.py`. |
 | Speed | `CDP_OCR_LOCK_SCOPE=inference` — flock only Paddle/Rapid `extract_region`; prep overlaps. Keep selective confirm + Paddle-primary. |
 
@@ -67,6 +67,8 @@ OpenCV register → Paddle/Rapid/Tesseract OCR → Authority+Reconcile
 - `packages/deterministic_evidence/` — compact member-ID FORMAT_VALID
 - `packages/recovery/orientation_hint.py` — local edge ranking (+ gated VLM hook)
 - `packages/recovery/document_quad.py` — catastrophic warp document-quad crop residual
+- `packages/recovery/learned_matcher.py` — SuperPoint+LightGlue residual
+- `packages/recovery/azure_di_page_corners.py` — Azure DI ink-polygon page corners
 - `packages/extraction_recovery/dob_trocr_residual.py` — DOB TrOCR residual (preferred)
 - `packages/extraction_recovery/dob_azure_di_residual.py` — DOB Azure DI residual (fallback)
 - `packages/ocr_runtime_lock.py` — inference-scoped OCR flock

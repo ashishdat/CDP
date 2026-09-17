@@ -101,5 +101,7 @@ def test_escalation_prefers_document_quad_before_hitl():
         gap_class="REGISTRATION_FAILED",
         field_name="*",
         document_quad_attempted=True,
+        learned_matcher_attempted=True,
+        azure_di_corners_attempted=True,
     )
     assert after.tool == EscalationTool.OPENCV_REGISTRATION_HITL

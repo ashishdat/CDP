@@ -96,7 +96,24 @@ def test_tool_escalation_maps_gaps_to_stack():
         field_name="*",
         document_quad_attempted=True,
     )
-    assert reg_after_quad.tool == EscalationTool.OPENCV_REGISTRATION_HITL
+    assert reg_after_quad.tool == EscalationTool.LEARNED_MATCHER
+
+    reg_after_learned = plan_field_escalation(
+        gap_class="REGISTRATION_FAILED",
+        field_name="*",
+        document_quad_attempted=True,
+        learned_matcher_attempted=True,
+    )
+    assert reg_after_learned.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
+
+    reg_hitl = plan_field_escalation(
+        gap_class="REGISTRATION_FAILED",
+        field_name="*",
+        document_quad_attempted=True,
+        learned_matcher_attempted=True,
+        azure_di_corners_attempted=True,
+    )
+    assert reg_hitl.tool == EscalationTool.OPENCV_REGISTRATION_HITL
 
     charge_no_docling = plan_field_escalation(
         gap_class="EMPTY_FINANCIAL_INK",

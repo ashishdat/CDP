@@ -16,12 +16,15 @@ cloud_common_path_enabled: false  # never on common path
 trocr_enabled: true
 trocr_invoke_when: LOCAL_OCR_EXHAUSTED_OR_HANDWRITING_RESIDUAL
 trocr_review_only_until_promoted: false  # date-shaped TrOCR may accept (local)
-# Catastrophic registration: document-quad crop before Track A HITL.
+# Catastrophic registration: document-quad → SuperPoint/LightGlue → Azure DI corners.
 document_quad_recovery_enabled: true
-registration_vlm_corners_enabled: false  # optional gpt-4o corner hints (gated)
+learned_matcher_enabled: true
+# Azure DI (configured stack) supplies page corners — not gpt-4o.
+registration_azure_di_corners_enabled: true
+registration_vlm_corners_enabled: false
 # Azure Document Intelligence Read remains available after TrOCR miss.
 azure_document_intelligence_enabled: true
-azure_document_intelligence_invoke_when: LOCAL_OCR_EXHAUSTED_AFTER_TROCR
+azure_document_intelligence_invoke_when: LOCAL_OCR_EXHAUSTED_AFTER_TROCR_OR_REGISTRATION_CORNERS
 azure_document_intelligence_model: prebuilt-read
 azure_document_intelligence_review_only_until_promoted: true
 textract_enabled: true

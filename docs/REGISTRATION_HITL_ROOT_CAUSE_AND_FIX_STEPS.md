@@ -113,14 +113,13 @@ Wire into `hackathon_*_partial.json` `by_bundle` like field blockers.
 | Option | Role | Status |
 |--------|------|--------|
 | Current SIFT+RANSAC + enhance ladder | Production baseline | Shipped |
-| **Document-quad crop → re-SIFT** | Phone-framed catastrophic warps (invalid corners / low coverage) | **Shipped** (`packages/recovery/document_quad.py`) |
-| LightGlue / SuperPoint | Learned matches for skewed full-bleed scans | Future (needs `[ml]` matcher extra) |
-| LoFTR | Dense correspondence when SIFT sparse | Future |
-| Gated gpt-4o page corners | VLM corner hint when local quad misses | Policy flag `registration_vlm_corners_enabled` |
-| Template edge NCC + ECC | Cheap refine after coarse H | Partial (affine-first path) |
+| **Document-quad crop → re-SIFT** | Phone-framed catastrophic warps | **Shipped** |
+| **SuperPoint + LightGlue** | Dense learned matches; same Acceptance gates | **Shipped** (`packages/recovery/learned_matcher.py`) |
+| **Azure DI page corners** | Ink-polygon hull → quad (configured Azure DI, not gpt-4o) | **Shipped** (`packages/recovery/azure_di_page_corners.py`) |
+| LoFTR | Dense correspondence alternative | Future |
 | Human registration HITL | Residual catastrophic / no-form | Fail-closed Track A |
 
-Catastrophic escalation order: document-quad → (optional gpt-4o corners) → Track A HITL.
+Catastrophic escalation order: **document-quad → SuperPoint/LightGlue → Azure DI corners → Track A HITL**.
 Do **not** globally soften Acceptance gates; learned matchers must still clear the same policy.
 
 ## Expected impact (this ledger)

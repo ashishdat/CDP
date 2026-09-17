@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import atan2, degrees, sqrt
 from time import perf_counter
+from typing import Any
 
 import cv2
 import numpy as np
@@ -675,6 +676,202 @@ def align_perspective_recovery(
         affine.evidence,
         compatibility,
         affine.cheap_evidence,
+        True,
+    )
+
+
+def align_learned_matcher(
+    candidate: Image.Image,
+    reference: Image.Image,
+    *,
+    family: str | None = None,
+    base_policy: RegistrationPolicy | None = None,
+    extractor: Any | None = None,
+) -> AlignmentResult:
+    """Catastrophic residual: SuperPoint+LightGlue matches → same Acceptance gates."""
+    from packages.recovery.learned_matcher import SuperPointLightGlueExtractor
+
+    base = base_policy or DEFAULT_REGISTRATION_POLICY
+    policy = RegistrationPolicy(
+        lowe_ratio=base.lowe_ratio,
+        ransac_reprojection_threshold=base.ransac_reprojection_threshold,
+        min_good_matches=max(8, base.min_good_matches // 2),
+        min_inliers=base.min_inliers,
+        min_inlier_ratio=base.min_inlier_ratio,
+        max_reprojection_error=base.max_reprojection_error,
+        min_coverage_ratio=base.min_coverage_ratio,
+        cheap_min_confidence=base.cheap_min_confidence,
+        cheap_max_aspect_delta=base.cheap_max_aspect_delta,
+        sift_features=base.sift_features,
+        min_scale=base.min_scale,
+        max_scale=base.max_scale,
+        max_abs_rotation_degrees=base.max_abs_rotation_degrees,
+        max_perspective_distortion=base.max_perspective_distortion,
+    )
+    candidate_arr, reference_arr = _gray(candidate), _gray(reference)
+    compatibility = assess_template_compatibility(candidate, reference, family=family)
+    started = perf_counter()
+    matcher = extractor or SuperPointLightGlueExtractor()
+    try:
+        corr = matcher.extract(candidate, reference)
+    except RuntimeError as exc:
+        return AlignmentResult(
+            **{
+                **_failure(
+                    "superpoint_lightglue_homography",
+                    f"learned_matcher_unavailable:{type(exc).__name__}",
+                    (perf_counter() - started) * 1000,
+                ).__dict__,
+                "compatibility": compatibility,
+                "sift_attempted": True,
+            }
+        )
+    if corr is None or len(corr.source_xy) < policy.min_good_matches:
+        return AlignmentResult(
+            **{
+                **_failure(
+                    "superpoint_lightglue_homography",
+                    "insufficient_good_matches",
+                    (perf_counter() - started) * 1000,
+                    good_matches=0 if corr is None else len(corr.source_xy),
+                ).__dict__,
+                "compatibility": compatibility,
+                "sift_attempted": True,
+            }
+        )
+    src = corr.source_xy.reshape(-1, 1, 2).astype(np.float32)
+    dst = corr.template_xy.reshape(-1, 1, 2).astype(np.float32)
+    matrix, mask = cv2.findHomography(
+        src, dst, cv2.RANSAC, policy.ransac_reprojection_threshold
+    )
+    if matrix is None or mask is None:
+        return AlignmentResult(
+            **{
+                **_failure(
+                    "superpoint_lightglue_homography",
+                    "homography_not_found",
+                    (perf_counter() - started) * 1000,
+                    good_matches=len(corr.source_xy),
+                ).__dict__,
+                "compatibility": compatibility,
+                "sift_attempted": True,
+            }
+        )
+    inliers = mask.ravel().astype(bool)
+    inlier_count = int(inliers.sum())
+    good_count = int(len(corr.source_xy))
+    inlier_ratio = inlier_count / max(1, good_count)
+    projected = cv2.perspectiveTransform(src, matrix)
+    errors = np.linalg.norm(projected[inliers] - dst[inliers], axis=2).ravel()
+    reprojection_error = float(errors.mean()) if errors.size else None
+    source_hull = cv2.convexHull(src[inliers]) if inlier_count >= 3 else None
+    template_hull = cv2.convexHull(dst[inliers]) if inlier_count >= 3 else None
+    source_coverage = (
+        float(cv2.contourArea(source_hull)) / (candidate_arr.shape[0] * candidate_arr.shape[1])
+        if source_hull is not None
+        else 0.0
+    )
+    template_coverage = (
+        float(cv2.contourArea(template_hull))
+        / (reference_arr.shape[0] * reference_arr.shape[1])
+        if template_hull is not None
+        else 0.0
+    )
+    coverage = min(source_coverage, template_coverage)
+    normalized = matrix / matrix[2, 2]
+    scale_change = sqrt(abs(float(np.linalg.det(normalized[:2, :2]))))
+    rotation_degrees = degrees(atan2(float(normalized[1, 0]), float(normalized[0, 0])))
+    perspective_distortion = float(
+        np.linalg.norm(normalized[2, :2])
+        * max(candidate_arr.shape[0], candidate_arr.shape[1])
+    )
+    source_corners = np.float32(
+        [
+            [[0, 0]],
+            [[candidate_arr.shape[1] - 1, 0]],
+            [[candidate_arr.shape[1] - 1, candidate_arr.shape[0] - 1]],
+            [[0, candidate_arr.shape[0] - 1]],
+        ]
+    )
+    transformed_corners = cv2.perspectiveTransform(source_corners, matrix).reshape(-1, 2)
+    margin_x, margin_y = reference_arr.shape[1] * 0.1, reference_arr.shape[0] * 0.1
+    corner_validity = bool(
+        np.isfinite(transformed_corners).all()
+        and cv2.isContourConvex(transformed_corners.astype(np.float32))
+        and np.all(transformed_corners[:, 0] >= -margin_x)
+        and np.all(transformed_corners[:, 0] <= reference_arr.shape[1] + margin_x)
+        and np.all(transformed_corners[:, 1] >= -margin_y)
+        and np.all(transformed_corners[:, 1] <= reference_arr.shape[0] + margin_y)
+    )
+    confidence = float(
+        np.clip(
+            0.65 * inlier_ratio
+            + 0.25 * min(1.0, coverage / 0.35)
+            + 0.10
+            * max(
+                0.0,
+                1.0 - (reprojection_error or 99.0) / policy.max_reprojection_error,
+            ),
+            0.0,
+            1.0,
+        )
+    )
+    reasons: list[str] = []
+    if inlier_count < policy.min_inliers:
+        reasons.append("insufficient_inliers")
+    if inlier_ratio < policy.min_inlier_ratio:
+        reasons.append("low_inlier_ratio")
+    if reprojection_error is None or reprojection_error > policy.max_reprojection_error:
+        reasons.append("high_reprojection_error")
+    if coverage < policy.min_coverage_ratio:
+        reasons.append("low_coverage")
+    if not policy.min_scale <= scale_change <= policy.max_scale:
+        reasons.append("unsafe_scale_change")
+    if abs(rotation_degrees) > policy.max_abs_rotation_degrees:
+        reasons.append("unsafe_rotation")
+    if perspective_distortion > policy.max_perspective_distortion:
+        reasons.append("unsafe_perspective_distortion")
+    if not corner_validity:
+        reasons.append("invalid_transformed_corners")
+    accepted = not reasons
+    evidence = RegistrationEvidence(
+        algorithm="superpoint_lightglue_homography",
+        good_matches=good_count,
+        inlier_count=inlier_count,
+        inlier_ratio=inlier_ratio,
+        reprojection_error=reprojection_error,
+        coverage_ratio=coverage,
+        template_coverage=template_coverage,
+        scale_change=scale_change,
+        rotation_degrees=rotation_degrees,
+        perspective_distortion=perspective_distortion,
+        corner_validity=corner_validity,
+        homography_quality=confidence,
+        alignment_confidence=confidence,
+        transform_matrix=matrix.tolist(),
+        accepted=accepted,
+        rejection_reason=",".join(reasons) or None,
+        processing_time_ms=(perf_counter() - started) * 1000,
+    )
+    warped = cv2.warpPerspective(
+        candidate_arr,
+        matrix,
+        (reference_arr.shape[1], reference_arr.shape[0]),
+        borderValue=255,
+    )
+    return AlignmentResult(
+        accepted,
+        confidence,
+        good_count,
+        matrix,
+        Image.fromarray(warped),
+        evidence.algorithm,
+        inlier_ratio,
+        reprojection_error,
+        accepted,
+        evidence,
+        compatibility,
+        None,
         True,
     )
 

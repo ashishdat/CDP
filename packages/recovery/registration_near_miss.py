@@ -271,6 +271,16 @@ def should_attempt_document_quad_recovery(evidence: Any) -> bool:
     return False
 
 
+def should_attempt_learned_matcher(evidence: Any) -> bool:
+    """Authorize SuperPoint+LightGlue after classical SIFT residual exhaustion."""
+    return should_attempt_document_quad_recovery(evidence)
+
+
+def should_attempt_azure_di_page_corners(evidence: Any) -> bool:
+    """Authorize Azure DI polygon→quad residual after local / LightGlue miss."""
+    return should_attempt_document_quad_recovery(evidence)
+
+
 def should_attempt_orientation_recovery(evidence: Any) -> bool:
     return assess_evidence_near_miss(evidence).is_orientation_candidate
 

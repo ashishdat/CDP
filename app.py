@@ -46,7 +46,9 @@ def register_classified_document(images, routing, registry, selection=None):
         assess_evidence_near_miss,
         best_orientation_rotation_degrees,
         content_corroboration_eligible,
+        should_attempt_azure_di_page_corners,
         should_attempt_document_quad_recovery,
+        should_attempt_learned_matcher,
         should_attempt_near_miss_boost,
         should_attempt_orientation_recovery_any,
         should_attempt_perspective_recovery,
@@ -56,10 +58,12 @@ def register_classified_document(images, routing, registry, selection=None):
         compose_source_to_template,
         detect_document_quad,
     )
+    from packages.recovery.azure_di_page_corners import run_azure_di_page_corners
     from packages.recovery.planner import Strategy
     from workers.page_detection.registration_telemetry import registration_context
     from workers.page_detection.template_alignment import (
         AlignmentResult,
+        align_learned_matcher,
         align_near_miss_boosted,
         align_perspective_recovery,
         align_to_reference,
@@ -675,6 +679,141 @@ def register_classified_document(images, routing, registry, selection=None):
                         "attempt": "document_quad_recovery",
                         "accepted": False,
                         "reason": "DOCUMENT_QUAD_NOT_FOUND",
+                    }
+                )
+
+        # Catastrophic Step 6: SuperPoint + LightGlue (same Acceptance gates).
+        if (
+            not accepted
+            and evidence is not None
+            and should_attempt_learned_matcher(evidence)
+            and "LEARNED_MATCHER" not in recovery_strategies
+        ):
+            if aligned is not None:
+                _preserve_corroboration_candidate(aligned, evidence)
+                if (
+                    best_corroboration_aligned is not aligned
+                    and aligned.warped is not None
+                ):
+                    aligned.warped.close()
+                aligned = None
+            with registration_context(
+                template_id=template.template_id, page_number=page_number
+            ):
+                learned = align_learned_matcher(
+                    source,
+                    reference,
+                    family=template.form_type.value,
+                )
+            _apply_alignment_result(
+                learned,
+                "learned_matcher",
+                "LEARNED_MATCHER",
+            )
+
+        # Catastrophic Step 7: Azure DI ink-polygon page corners (not gpt-4o).
+        if (
+            not accepted
+            and evidence is not None
+            and should_attempt_azure_di_page_corners(evidence)
+            and "AZURE_DI_PAGE_CORNERS" not in recovery_strategies
+        ):
+            if aligned is not None:
+                _preserve_corroboration_candidate(aligned, evidence)
+                if (
+                    best_corroboration_aligned is not aligned
+                    and aligned.warped is not None
+                ):
+                    aligned.warped.close()
+                aligned = None
+            di_corners = run_azure_di_page_corners(source)
+            recovery_strategies.append("AZURE_DI_PAGE_CORNERS")
+            if di_corners.quad is not None:
+                quad = di_corners.quad
+                try:
+                    with registration_context(
+                        template_id=template.template_id, page_number=page_number
+                    ):
+                        cropped_aligned = align_to_reference(
+                            quad.rectified,
+                            reference,
+                            family=template.form_type.value,
+                            enforce_compatibility_precheck=False,
+                        )
+                    if (
+                        cropped_aligned.homography is not None
+                        and cropped_aligned.warped is not None
+                    ):
+                        import cv2
+                        import numpy as np
+
+                        composed = compose_source_to_template(
+                            quad.source_to_rectified,
+                            cropped_aligned.homography,
+                        )
+                        size = (
+                            template.reference_dimensions.width_px,
+                            template.reference_dimensions.height_px,
+                        )
+                        source_gray = np.asarray(source.convert("L"), dtype=np.uint8)
+                        warped_arr = cv2.warpPerspective(
+                            source_gray, composed, size, borderValue=255
+                        )
+                        if cropped_aligned.warped is not None:
+                            cropped_aligned.warped.close()
+                        evidence_out = cropped_aligned.evidence
+                        if evidence_out is not None:
+                            evidence_out = evidence_out.model_copy(
+                                update={
+                                    "algorithm": "azure_di_corners_then_sift",
+                                    "transform_matrix": composed.tolist(),
+                                }
+                            )
+                        composed_aligned = AlignmentResult(
+                            cropped_aligned.success,
+                            cropped_aligned.alignment_score,
+                            cropped_aligned.good_match_count,
+                            composed,
+                            Image.fromarray(warped_arr),
+                            "azure_di_corners_then_sift",
+                            cropped_aligned.inlier_ratio,
+                            cropped_aligned.reprojection_error,
+                            cropped_aligned.accepted,
+                            evidence_out,
+                            cropped_aligned.compatibility,
+                            cropped_aligned.cheap_evidence,
+                            cropped_aligned.sift_attempted,
+                        )
+                        # _apply_alignment_result appends strategy; avoid double-count.
+                        recovery_strategies.pop()
+                        _apply_alignment_result(
+                            composed_aligned,
+                            "azure_di_page_corners",
+                            "AZURE_DI_PAGE_CORNERS",
+                        )
+                        attempts[-1]["quad_area_ratio"] = quad.area_ratio
+                        attempts[-1]["di_reason"] = di_corners.reason
+                        attempts[-1]["di_word_count"] = di_corners.word_count
+                    else:
+                        if cropped_aligned.warped is not None:
+                            cropped_aligned.warped.close()
+                        attempts.append(
+                            {
+                                "attempt": "azure_di_page_corners",
+                                "accepted": False,
+                                "reason": "AZURE_DI_CORNERS_ALIGN_FAILED",
+                                "di_reason": di_corners.reason,
+                            }
+                        )
+                finally:
+                    quad.rectified.close()
+            else:
+                attempts.append(
+                    {
+                        "attempt": "azure_di_page_corners",
+                        "accepted": False,
+                        "reason": di_corners.reason,
+                        "configured": di_corners.configured,
                     }
                 )
 
