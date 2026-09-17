@@ -13,8 +13,9 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 | `CDP_OCR_SELECTIVE_CONFIRM` | `1` | Stop after field-shaped primary; confirm only on miss |
 | `CDP_OCR_PRIMARY_OVERRIDE` | `paddleocr` | Prefer fast Paddle first on STP eval (Rapid confirms if needed) |
 | `CDP_OCR_LOCK` | `1` | Enable cross-process OCR flock |
-| `CDP_OCR_LOCK_SCOPE` | `process` | Flock entire OCR subprocess (stable). `inference` = Paddle/Rapid only (prep overlaps; can thrash under 3 workers) |
+| `CDP_OCR_LOCK_SCOPE` | `inference` | Flock Paddle/Rapid only (prep overlaps). `process` = entire OCR subprocess |
 | `CDP_OCR_LOCK_ENGINES` | `paddleocr,rapidocr` | Engines that take the inference flock (Tesseract digits stay unlocked) |
+| `CDP_REGISTRATION_VERBOSE_TELEMETRY` | `0` | Skip multi-MB keypoint/match dumps + full-image SHA256 |
 | `CDP_AZURE_DI_DOB_RESIDUAL` | `1` | After TrOCR miss, crop-scoped Azure DI (billable; small crop) |
 | `CDP_TROCR_DOB_RESIDUAL` | `1` | Local TrOCR DOB residual before Azure DI |
 | `CDP_LEARNED_MATCHER` | `1` | SuperPoint+LightGlue for catastrophic REG (local) |
@@ -28,6 +29,7 @@ CDP_OCR_SELECTIVE_CONFIRM=0         # legacy dual-engine always
 CDP_OCR_LOCK=0                      # allow parallel OCR (slower under contention)
 CDP_OCR_LOCK_SCOPE=process          # legacy: flock entire ocr_from_geometry subprocess
 CDP_OCR_FIELD_SCOPE=all             # full-form OCR
+CDP_REGISTRATION_VERBOSE_TELEMETRY=1  # debug keypoint/match dumps
 CDP_REGISTRATION_ORIENTATION_VLM=1  # gated VLM orientation hint before fail-closed
 ```
 
@@ -39,9 +41,14 @@ Cascade claim wall (Independent-300, 3 workers, this VM):
 | --- | ---: | --- |
 | v12.2 | ~128s | selective + paddle-primary (prod-ish bar) |
 | v12.3 early | ~243s | always dual-engine on charges (regressed) |
-| Target | **≤ v12.2 p50** | conditional rapid confirm on short charges only |
+| v12.3 smoke | ~36s mean ~41s | conditional charge confirm + one charge window |
+| v12.3d target | **≤ smoke** | inference lock + quiet REG telemetry + merged finish |
 
 Charge confirm policy: force rapid only when primary currency has **≤3 dollar digits**
 (digit-drop risk). Longer amounts stay single-engine under selective confirm.
 
+Name confirm: use mean confidence of tokens length ≥3 so a weak MI fragment does not
+force Rapid.
+
 Inference-scoped lock lets registration+warp overlap across workers while still serializing heavy OCR.
+Post-OCR rank/validate/assemble/complete run in one `finish_from_ocr` subprocess.

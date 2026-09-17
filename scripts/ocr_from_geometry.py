@@ -128,6 +128,31 @@ def _ocr_selective_confirm() -> bool:
     return raw not in {"0", "false", "no", "off"}
 
 
+def _name_confirm_confidence(attempts: list, candidates: list) -> float:
+    """Confidence for name selective-confirm gate.
+
+    Mean line confidence often includes a weak 1–2 char MI/fragment (e.g. ``CL``
+    at 0.62) that pulls a strong two-token name under the 0.88 threshold and
+    forces a ~1s Rapid confirm. Prefer tokens with length ≥ 3 when available.
+    """
+    for attempt in attempts:
+        observation = attempt.get("observation") or {}
+        lines = observation.get("lines") or []
+        strong = [
+            float(line.get("confidence") or 0.0)
+            for line in lines
+            if len(str(line.get("text") or "").strip()) >= 3
+        ]
+        if strong:
+            return sum(strong) / len(strong)
+    confs = [
+        float(c.get("raw_confidence") or 0.0)
+        for c in candidates
+        if (c.get("value") or "").strip()
+    ]
+    return max(confs) if confs else 0.0
+
+
 def _field_in_scope(field_name: str) -> bool:
     scope = _ocr_scope()
     if scope in {"", "all", "*"}:
@@ -271,12 +296,8 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
         # names when the shaped primary is weak.
         name_key = (name or '').casefold()
         if shaped and name_key in {'patient_name', 'insured_name'}:
-            confs = [
-                float(c.get('raw_confidence') or 0.0)
-                for c in candidates
-                if (c.get('value') or '').strip()
-            ]
-            if confs and max(confs) < 0.88:
+            conf = _name_confirm_confidence(attempts, candidates)
+            if conf < 0.88:
                 shaped = False
         # Service-line / box-28 charges: paddle often truncates trailing digits
         # that rapid recovers (157 vs 1571). Force confirm ONLY on short amounts

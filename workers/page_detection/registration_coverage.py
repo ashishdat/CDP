@@ -7,24 +7,54 @@ from pathlib import Path
 
 import numpy as np
 
-from workers.page_detection.registration_telemetry import ACTIVE
+from workers.page_detection.registration_telemetry import ACTIVE, verbose_registration_telemetry
 
 
 def observe(stage, candidate, reference, **details):
     trace = ACTIVE.get()
     if trace is None:
         return
+    # STP fast path: keep size-bearing Input image (OCR needs it); skip bulky mid-stage dumps.
+    if not verbose_registration_telemetry() and stage != "Input image":
+        return
     try:
         def image_info(image):
             array = np.asarray(image)
             height, width = array.shape[:2]
-            digest = hashlib.sha256()
-            digest.update(str((array.shape, str(array.dtype))).encode())
-            digest.update(array.tobytes())
-            return {"size": [width, height], "roi": [0, 0, width, height],
-                    "image_hash": digest.hexdigest(), "roi_hash": digest.hexdigest(),
-                    "hash_basis": "shape, dtype and decoded pixels; full-frame ROI",
-                    "coverage_denominator": width * height}
+            info = {
+                "size": [width, height],
+                "roi": [0, 0, width, height],
+                "coverage_denominator": width * height,
+            }
+            if verbose_registration_telemetry():
+                digest = hashlib.sha256()
+                digest.update(str((array.shape, str(array.dtype))).encode())
+                digest.update(array.tobytes())
+                info.update(
+                    {
+                        "image_hash": digest.hexdigest(),
+                        "roi_hash": digest.hexdigest(),
+                        "hash_basis": "shape, dtype and decoded pixels; full-frame ROI",
+                    }
+                )
+            else:
+                info.update(
+                    {
+                        "image_hash": None,
+                        "roi_hash": None,
+                        "hash_basis": "size_only_fast_path",
+                    }
+                )
+            return info
+
+        # Drop huge coordinate payloads on the fast path.
+        slim = details
+        if not verbose_registration_telemetry():
+            slim = {
+                key: value
+                for key, value in details.items()
+                if key not in {"ransac_inputs", "source_preprocessing", "template_preprocessing"}
+            }
         trace.emit(trace.current or "Registration Started", "OBSERVED", coverage_observation={
             "stage": stage, "source": image_info(candidate), "reference": image_info(reference),
             "feature_detector": "SIFT", "feature_descriptor": "SIFT float32",
@@ -32,7 +62,7 @@ def observe(stage, candidate, reference, **details):
             "ransac_inputs": None, "coverage_numerator": None,
             "coverage_formula": "min(area(convexHull(source_inliers))/(source_width*source_height), area(convexHull(template_inliers))/(template_width*template_height))",
             "note": "Coverage numerator requires inliers; unavailable before homography. No new coverage calculation is run.",
-            **details,
+            **slim,
         })
     except Exception:  # noqa: BLE001, S110 -- observations must not change registration
         pass
@@ -111,6 +141,17 @@ def capture_keypoints(image_points, image_descriptors, template_points, template
     trace = ACTIVE.get()
     if trace is None:
         return
+    if not verbose_registration_telemetry():
+        trace.emit(
+            "Feature Matching",
+            "OBSERVED",
+            keypoints={
+                "image_count": len(image_points),
+                "template_count": len(template_points),
+                "detail": "suppressed_fast_path",
+            },
+        )
+        return
     def records(points, descriptors):
         return [{"keypoint_id": index, "x": float(point.pt[0]), "y": float(point.pt[1]),
                  "descriptor_hash": hashlib.sha256(descriptors[index].tobytes()).hexdigest()
@@ -124,6 +165,17 @@ def capture_keypoints(image_points, image_descriptors, template_points, template
 def capture_matches(pairs, good, *, ratio_passed=None):
     trace = ACTIVE.get()
     if trace is None:
+        return
+    if not verbose_registration_telemetry():
+        trace.emit(
+            "Feature Matching",
+            "OBSERVED",
+            matches={
+                "pair_count": len(pairs),
+                "good_count": len(good),
+                "detail": "suppressed_fast_path",
+            },
+        )
         return
     accepted = {id(match) for match in good}
     ratio_accepted = {id(match) for match in ratio_passed} if ratio_passed is not None else accepted
@@ -143,6 +195,13 @@ def capture_matches(pairs, good, *, ratio_passed=None):
 def capture_inliers(good, inliers, image_points, template_points):
     trace = ACTIVE.get()
     if trace is None:
+        return
+    if not verbose_registration_telemetry():
+        trace.emit(
+            "Homography",
+            "OBSERVED",
+            inliers={"inlier_count": int(np.asarray(inliers).sum()), "detail": "suppressed_fast_path"},
+        )
         return
     records = []
     for index, (match, inlier) in enumerate(zip(good, inliers, strict=True)):

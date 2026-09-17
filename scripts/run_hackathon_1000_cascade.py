@@ -249,10 +249,13 @@ def _stage_env() -> dict[str, str]:
     # Paddle warm inference is ~50× faster than Rapid on CPU; use as STP-eval
     # primary while Rapid remains confirmation when primary is unshaped.
     env.setdefault("CDP_OCR_PRIMARY_OVERRIDE", "paddleocr")
-    # Serialize OCR across workers (process scope). Inference-only scope allows
-    # parallel Paddle/Rapid subprocesses that thrash and inflate STP wall-clock.
+    # Prefer inference-scoped lock: unzip/warp/JSON overlap across workers while
+    # Paddle/Rapid critical sections still serialize. Process scope was a
+    # conservative fallback that inflated multi-worker claim wall.
     env.setdefault("CDP_OCR_LOCK", "1")
-    env.setdefault("CDP_OCR_LOCK_SCOPE", "process")
+    env.setdefault("CDP_OCR_LOCK_SCOPE", "inference")
+    # Skip multi-MB keypoint/match dumps + full-image SHA256 on registration.
+    env.setdefault("CDP_REGISTRATION_VERBOSE_TELEMETRY", "0")
     # Cost defaults: local residuals on; full-page Azure DI corners off unless set.
     env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
     env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "1")  # crop-only after TrOCR miss
@@ -271,8 +274,8 @@ def _stage_env() -> dict[str, str]:
 def _ocr_process_lock():
     """Whole-process OCR lock only when CDP_OCR_LOCK_SCOPE=process.
 
-    Default scope is ``inference`` — Paddle/Rapid critical sections take the
-    flock inside ``packages.ocr_runtime_lock``, so unzip/warp/JSON overlap.
+    Default cascade scope is ``inference`` — Paddle/Rapid critical sections take
+    the flock inside ``packages.ocr_runtime_lock``, so unzip/warp/JSON overlap.
     """
     from packages.ocr_runtime_lock import ocr_process_lock
 
@@ -454,49 +457,17 @@ def _process_one(
             ],
         ),
         (
-            "rank",
+            "finish",
             [
                 sys.executable,
                 "-m",
-                "scripts.rank_from_ocr",
+                "scripts.finish_from_ocr",
                 str(claim_out / "ocr" / "OCRCandidates.json"),
-                str(claim_out / "rank"),
-            ],
-        ),
-        (
-            "validate",
-            [
-                sys.executable,
-                "-m",
-                "scripts.validate_from_ranked",
-                str(claim_out / "rank" / "RankedCandidates.json"),
-                str(claim_out / "validate"),
+                str(claim_out),
                 "--template-id",
                 "cms1500",
                 "--template-version",
                 "02-12",
-            ],
-        ),
-        (
-            "assemble",
-            [
-                sys.executable,
-                "-m",
-                "scripts.assemble_extraction_result",
-                str(claim_out / "ocr" / "OCRCandidates.json"),
-                str(claim_out / "rank" / "RankedCandidates.json"),
-                str(claim_out / "validate" / "ValidationResults.json"),
-                str(claim_out / "extract"),
-            ],
-        ),
-        (
-            "complete",
-            [
-                sys.executable,
-                "-m",
-                "scripts.complete_from_extraction",
-                str(claim_out / "extract" / "ExtractionResult.json"),
-                str(claim_out / "final"),
                 "--document-family",
                 "CMS1500",
             ],

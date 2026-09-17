@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import threading
 from dataclasses import dataclass
 from math import atan2, degrees, sqrt
 from time import perf_counter
@@ -28,6 +30,40 @@ from workers.page_detection.template_compatibility import (
     TemplateCompatibilityStatus,
     assess_template_compatibility,
 )
+
+# Process-local cache: template SIFT is identical across recovery attempts in one claim.
+_TEMPLATE_SIFT_LOCK = threading.Lock()
+_TEMPLATE_SIFT_CACHE: dict[tuple[str, int], tuple[Any, Any, Any]] = {}
+_TEMPLATE_SIFT_CACHE_MAX = 8
+
+
+def _template_sift_cache_key(reference: np.ndarray, nfeatures: int) -> tuple[str, int]:
+    height, width = reference.shape[:2]
+    step_y = max(1, height // 64)
+    step_x = max(1, width // 64)
+    digest = hashlib.sha256(reference[::step_y, ::step_x].tobytes()).hexdigest()
+    return (digest, int(nfeatures))
+
+
+def _cached_template_sift(
+    sift: Any, reference: np.ndarray, nfeatures: int
+) -> tuple[Any, Any, Any]:
+    """Return (preprocessed_features, keypoints, descriptors) for the template."""
+    key = _template_sift_cache_key(reference, nfeatures)
+    with _TEMPLATE_SIFT_LOCK:
+        hit = _TEMPLATE_SIFT_CACHE.get(key)
+        if hit is not None:
+            return hit
+    template_features = preprocess_registration(reference)
+    kp_template, desc_template = sift.detectAndCompute(template_features.image, None)
+    kp_template = template_features.restore_keypoints(kp_template)
+    packed = (template_features, kp_template, desc_template)
+    with _TEMPLATE_SIFT_LOCK:
+        if key not in _TEMPLATE_SIFT_CACHE:
+            if len(_TEMPLATE_SIFT_CACHE) >= _TEMPLATE_SIFT_CACHE_MAX:
+                _TEMPLATE_SIFT_CACHE.pop(next(iter(_TEMPLATE_SIFT_CACHE)))
+            _TEMPLATE_SIFT_CACHE[key] = packed
+    return packed
 
 
 @dataclass(frozen=True)
@@ -183,19 +219,21 @@ def _sift_alignment(
     started = perf_counter()
     telemetry.stage("Feature Matching", algorithm="sift_flann_ransac_homography")
     sift = cv2.SIFT_create(nfeatures=policy.sift_features)
-    before_source = len(sift.detect(candidate, None))
-    before_template = len(sift.detect(reference, None))
+    verbose = telemetry.verbose_registration_telemetry()
+    # Pre-preprocess detect() only feeds verbose coverage charts — skip on STP fast path.
+    before_source = len(sift.detect(candidate, None)) if verbose else None
+    before_template = len(sift.detect(reference, None)) if verbose else None
     source_features = preprocess_registration(candidate)
-    template_features = preprocess_registration(reference)
     kp_source, desc_source = sift.detectAndCompute(source_features.image, None)
-    kp_template, desc_template = sift.detectAndCompute(template_features.image, None)
+    kp_source = source_features.restore_keypoints(kp_source)
+    template_features, kp_template, desc_template = _cached_template_sift(
+        sift, reference, policy.sift_features
+    )
     observe_coverage("Registration preprocessing", source_features.image, template_features.image,
                      source_preprocessing={**source_features.metrics, "feature_count_before": before_source,
                                            "feature_count_after": len(kp_source)},
                      template_preprocessing={**template_features.metrics, "feature_count_before": before_template,
                                              "feature_count_after": len(kp_template)})
-    kp_source = source_features.restore_keypoints(kp_source)
-    kp_template = template_features.restore_keypoints(kp_template)
     observe_coverage("Detected", candidate, reference, detected_feature_count=len(kp_source),
                      template_feature_count=len(kp_template),
                      source_descriptor_shape=list(desc_source.shape) if desc_source is not None else None,
@@ -531,11 +569,11 @@ def _affine_then_homography(
     # First get SIFT matches for affine.
     sift = cv2.SIFT_create(nfeatures=max(policy.sift_features, 4000))
     source_features = preprocess_registration(candidate)
-    template_features = preprocess_registration(reference)
     kp_source, desc_source = sift.detectAndCompute(source_features.image, None)
-    kp_template, desc_template = sift.detectAndCompute(template_features.image, None)
     kp_source = source_features.restore_keypoints(kp_source)
-    kp_template = template_features.restore_keypoints(kp_template)
+    _template_features, kp_template, desc_template = _cached_template_sift(
+        sift, reference, max(policy.sift_features, 4000)
+    )
     if desc_source is None or desc_template is None or len(kp_source) < 4:
         return _failure(
             "affine_then_homography",

@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import UTC, datetime
@@ -16,6 +17,12 @@ COLLECTION = ContextVar("registration_traces", default=None)
 METADATA = ContextVar("registration_metadata", default=None)
 FIELDS = ("anchor_count", "feature_count", "homography_score", "transform_residual", "confidence")
 STAGES = ("Anchor Detection", "Feature Matching", "Homography", "Transform", "Acceptance")
+
+
+def verbose_registration_telemetry() -> bool:
+    """Full keypoint/match/image-hash dumps. Off by default for STP cascade speed."""
+    raw = (os.environ.get("CDP_REGISTRATION_VERBOSE_TELEMETRY") or "0").strip().casefold()
+    return raw in {"1", "true", "yes", "on"}
 
 
 class RegistrationTrace:
