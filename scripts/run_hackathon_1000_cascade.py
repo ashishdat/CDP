@@ -363,12 +363,17 @@ def _stage_env() -> dict[str, str]:
     # Long-lived workers amortize cold start (override with =0 for subprocess-per-claim).
     env.setdefault("CDP_OCR_WORKER_POOL", "1")
     env.setdefault("CDP_APP_WORKER_POOL", "1")
-    # Cost defaults: local residuals on; full-page Azure DI corners off unless set.
-    env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
-    env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "1")  # crop-only after TrOCR miss
-    env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")  # crop-only after local charge verify
-    env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")  # accept currency-shaped charge crops
-    env.setdefault("CDP_LEARNED_MATCHER", "1")  # local — avoids Azure $
+    # Latency bar: claim mean ≤30s on this VM. TrOCR/Azure DI residuals are the
+    # dominant wall (~150s+ when they fire / load torch). Default OFF for STP
+    # cascade; set =1 for accuracy-oriented residual recovery.
+    env.setdefault("CDP_TROCR_DOB_RESIDUAL", "0")
+    env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "0")
+    env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
+    env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
+    env.setdefault("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED", "1")
+    # SuperPoint/LightGlue pulls torch — keep for catastrophic REG only; opt-out
+    # with CDP_LEARNED_MATCHER=0 when chasing the tightest latency bar.
+    env.setdefault("CDP_LEARNED_MATCHER", "1")
     env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")  # billable full-page; opt-in
     env.setdefault(
         "CDP_AZURE_DI_METER_PATH",

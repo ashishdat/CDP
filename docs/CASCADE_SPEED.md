@@ -18,11 +18,16 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 | `CDP_OCR_WORKER_POOL` | `1` | Long-lived OCR processes amortize Paddle/Rapid cold start across claims |
 | `CDP_APP_WORKER_POOL` | `1` | Long-lived app/registration processes amortize imports + template SIFT |
 | `CDP_REGISTRATION_VERBOSE_TELEMETRY` | `0` | Skip multi-MB keypoint/match dumps + full-image SHA256 |
-| `CDP_AZURE_DI_DOB_RESIDUAL` | `1` | After TrOCR miss, crop-scoped Azure DI (billable; small crop) |
-| `CDP_TROCR_DOB_RESIDUAL` | `1` | Local TrOCR DOB residual before Azure DI |
+| `CDP_AZURE_DI_DOB_RESIDUAL` | `0` | DOB Azure DI crop (off for ≤30s/doc latency bar) |
+| `CDP_TROCR_DOB_RESIDUAL` | `0` | Local TrOCR DOB residual (off for ≤30s/doc latency bar) |
+| `CDP_AZURE_DI_CHARGE_RESIDUAL` | `0` | Charge Azure DI crop (off for ≤30s/doc latency bar) |
 | `CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED` | `1` | Skip TrOCR/DI when local OCR already date-shaped |
 | `CDP_LEARNED_MATCHER` | `1` | SuperPoint+LightGlue for catastrophic REG (local) |
 | `CDP_AZURE_DI_PAGE_CORNERS` | `0` | Full-page Azure DI corners (billable; off by default) |
+
+**Latency bar (this VM):** claim mean **≤30s**. Achieved at **`--workers 1`** with residuals
+off + app/OCR pools (~10s mean smoke). `--workers 2+` thrash SIFT/OCR and push mean ~40s+.
+For accuracy residuals: `CDP_TROCR_DOB_RESIDUAL=1 CDP_AZURE_DI_DOB_RESIDUAL=1 CDP_AZURE_DI_CHARGE_RESIDUAL=1`.
 
 Override examples:
 
