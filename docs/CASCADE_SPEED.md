@@ -15,7 +15,10 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 | `CDP_OCR_LOCK` | `1` | Enable cross-process OCR flock |
 | `CDP_OCR_LOCK_SCOPE` | `process` | Flock entire OCR subprocess (stable). `inference` = Paddle/Rapid only (prep overlaps; can thrash under 3 workers) |
 | `CDP_OCR_LOCK_ENGINES` | `paddleocr,rapidocr` | Engines that take the inference flock (Tesseract digits stay unlocked) |
-| `CDP_AZURE_DI_DOB_RESIDUAL` | `1` | After local DOB miss, crop-scoped Azure DI (review-only; no-op if unconfigured) |
+| `CDP_AZURE_DI_DOB_RESIDUAL` | `1` | After TrOCR miss, crop-scoped Azure DI (billable; small crop) |
+| `CDP_TROCR_DOB_RESIDUAL` | `1` | Local TrOCR DOB residual before Azure DI |
+| `CDP_LEARNED_MATCHER` | `1` | SuperPoint+LightGlue for catastrophic REG (local) |
+| `CDP_AZURE_DI_PAGE_CORNERS` | `0` | Full-page Azure DI corners (billable; off by default) |
 
 Override examples:
 

@@ -101,6 +101,17 @@ def _recognize_with_azure_read_engine(
     try:
         candidates = read_engine.recognize(request)
     except Exception as exc:  # noqa: BLE001
+        try:
+            from packages.recovery.azure_di_meter import record_azure_di_call
+
+            record_azure_di_call(
+                kind="dob_crop",
+                field_name=field_name,
+                ok=False,
+                detail=type(exc).__name__,
+            )
+        except Exception:  # noqa: BLE001
+            pass
         return DobAzureDiResidualResult(
             attempted=True,
             configured=True,
@@ -110,6 +121,17 @@ def _recognize_with_azure_read_engine(
             date_shaped=False,
             reason=f"AZURE_DI_ERROR:{type(exc).__name__}",
         )
+    try:
+        from packages.recovery.azure_di_meter import record_azure_di_call
+
+        record_azure_di_call(
+            kind="dob_crop",
+            field_name=field_name,
+            ok=bool(candidates),
+            detail="ok" if candidates else "empty",
+        )
+    except Exception:  # noqa: BLE001
+        pass
     if not candidates:
         return DobAzureDiResidualResult(
             attempted=True,

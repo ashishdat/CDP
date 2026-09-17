@@ -123,7 +123,20 @@ def test_escalation_order_quad_lightglue_azure_hitl():
         document_quad_attempted=True,
         learned_matcher_attempted=True,
     )
-    assert third.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
+    # Full-page Azure DI corners are off by default (low-cost); next is HITL.
+    assert third.tool == EscalationTool.OPENCV_REGISTRATION_HITL
+
+    # When policy enables corners, Azure DI is preferred over HITL.
+    corners_policy = dict(load_secondary_policy())
+    corners_policy["registration_azure_di_corners_enabled"] = True
+    third_on = plan_field_escalation(
+        gap_class="REGISTRATION_FAILED",
+        field_name="*",
+        document_quad_attempted=True,
+        learned_matcher_attempted=True,
+        policy=corners_policy,
+    )
+    assert third_on.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
 
     fourth = plan_field_escalation(
         gap_class="REGISTRATION_FAILED",
@@ -131,5 +144,6 @@ def test_escalation_order_quad_lightglue_azure_hitl():
         document_quad_attempted=True,
         learned_matcher_attempted=True,
         azure_di_corners_attempted=True,
+        policy=corners_policy,
     )
     assert fourth.tool == EscalationTool.OPENCV_REGISTRATION_HITL

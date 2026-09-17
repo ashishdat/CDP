@@ -16,16 +16,18 @@ cloud_common_path_enabled: false  # never on common path
 trocr_enabled: true
 trocr_invoke_when: LOCAL_OCR_EXHAUSTED_OR_HANDWRITING_RESIDUAL
 trocr_review_only_until_promoted: false  # date-shaped TrOCR may accept (local)
-# Catastrophic registration: document-quad → SuperPoint/LightGlue → Azure DI corners.
+# Catastrophic registration: cheap local first; Azure DI last (billable).
 document_quad_recovery_enabled: true
 learned_matcher_enabled: true
-# Azure DI (configured stack) supplies page corners — not gpt-4o.
-registration_azure_di_corners_enabled: true
+# Full-page Azure DI corners are billable — off by default; enable per-run via
+# CDP_AZURE_DI_PAGE_CORNERS=1 when local quad+LightGlue still fail.
+registration_azure_di_corners_enabled: false
 registration_vlm_corners_enabled: false
 # Azure Document Intelligence Read remains available after TrOCR miss.
 azure_document_intelligence_enabled: true
 azure_document_intelligence_invoke_when: LOCAL_OCR_EXHAUSTED_AFTER_TROCR_OR_REGISTRATION_CORNERS
 azure_document_intelligence_model: prebuilt-read
+# DOB crop residual may accept locally via TrOCR; Azure DI crop stays review-only.
 azure_document_intelligence_review_only_until_promoted: true
 textract_enabled: true
 textract_invoke_when: LOCAL_OCR_EXHAUSTED_AND_BLOCKS_STP_AFTER_AZURE_DI

@@ -96,11 +96,13 @@ def plan_field_escalation(
                 review_only=False,
             )
         if di_enabled and not azure_di_corners_attempted:
-            return EscalationDecision(
-                EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ,
-                "Catastrophic warp — Azure DI ink-polygon page corners",
-                review_only=False,
-            )
+            corners_on = bool(policy.get("registration_azure_di_corners_enabled", False))
+            if corners_on:
+                return EscalationDecision(
+                    EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ,
+                    "Catastrophic warp — Azure DI ink-polygon page corners",
+                    review_only=False,
+                )
         return EscalationDecision(
             EscalationTool.OPENCV_REGISTRATION_HITL,
             "OpenCV SIFT/FLANN/RANSAC + LightGlue + Azure DI exhausted — fail-closed Track A",

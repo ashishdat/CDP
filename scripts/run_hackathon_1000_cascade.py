@@ -253,6 +253,15 @@ def _stage_env() -> dict[str, str]:
     # parallel Paddle/Rapid subprocesses that thrash and inflate STP wall-clock.
     env.setdefault("CDP_OCR_LOCK", "1")
     env.setdefault("CDP_OCR_LOCK_SCOPE", "process")
+    # Cost defaults: local residuals on; full-page Azure DI corners off unless set.
+    env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
+    env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "1")  # crop-only after TrOCR miss
+    env.setdefault("CDP_LEARNED_MATCHER", "1")  # local — avoids Azure $
+    env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")  # billable full-page; opt-in
+    env.setdefault(
+        "CDP_AZURE_DI_METER_PATH",
+        str(ROOT / "evaluation_results" / "azure_di_meter.jsonl"),
+    )
     return env
 
 
@@ -711,6 +720,12 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=1000)
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument(
+        "--documents",
+        default="",
+        help="Comma-separated document paths to run (e.g. 'Group A/M048DJJM.036'). "
+        "When set, offset/limit are ignored.",
+    )
     parser.add_argument("--document-type", default="CMS1500")
     parser.add_argument("--keep-heavy", action="store_true")
     parser.add_argument("--resume", action="store_true", default=True)
@@ -741,7 +756,19 @@ def main() -> int:
         )
 
     docs = _list_documents(args.zip)
-    selected = docs[args.offset : args.offset + args.limit]
+    doc_filter = [
+        part.strip().replace("\\", "/")
+        for part in str(args.documents or "").split(",")
+        if part.strip()
+    ]
+    if doc_filter:
+        wanted = set(doc_filter)
+        selected = [d for d in docs if d.replace("\\", "/") in wanted]
+        missing = sorted(wanted - {d.replace("\\", "/") for d in selected})
+        if missing:
+            print(f"WARNING: documents not in zip: {missing}", flush=True)
+    else:
+        selected = docs[args.offset : args.offset + args.limit]
     done = _load_done(ledger) if args.resume else set()
     pending = [d for d in selected if _claim_slug(d) not in done]
     print(

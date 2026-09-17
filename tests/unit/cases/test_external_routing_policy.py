@@ -104,7 +104,21 @@ def test_tool_escalation_maps_gaps_to_stack():
         document_quad_attempted=True,
         learned_matcher_attempted=True,
     )
-    assert reg_after_learned.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
+    # Low-cost default: no full-page Azure DI corners → Track A HITL.
+    assert reg_after_learned.tool == EscalationTool.OPENCV_REGISTRATION_HITL
+
+    from packages.tool_escalation import load_secondary_policy
+
+    corners_on = dict(load_secondary_policy())
+    corners_on["registration_azure_di_corners_enabled"] = True
+    reg_corners = plan_field_escalation(
+        gap_class="REGISTRATION_FAILED",
+        field_name="*",
+        document_quad_attempted=True,
+        learned_matcher_attempted=True,
+        policy=corners_on,
+    )
+    assert reg_corners.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
 
     reg_hitl = plan_field_escalation(
         gap_class="REGISTRATION_FAILED",
@@ -112,6 +126,7 @@ def test_tool_escalation_maps_gaps_to_stack():
         document_quad_attempted=True,
         learned_matcher_attempted=True,
         azure_di_corners_attempted=True,
+        policy=corners_on,
     )
     assert reg_hitl.tool == EscalationTool.OPENCV_REGISTRATION_HITL
 
