@@ -782,6 +782,53 @@ def prefer_name_with_optional_middle_initial(
     return None
 
 
+# CMS form-ruling OCR often injects a lone I/1/L/T between name tokens.
+_OCR_GHOST_MIDDLE_INITIALS = frozenset({"I", "1", "L", "T"})
+
+
+def prefer_name_without_ocr_ghost_middle_initial(
+    primary: str, competitors: list[str]
+) -> str | None:
+    """Prefer the name without a form-ruling ghost MI (I/1/L/T).
+
+    Agent-GT residual: ``HARRY I P`` vs ``HARRY P``, ``MATTHEW IN`` vs
+    ``MATTHEW N`` — dashed vertical rules OCR as I/1/L and inflate names.
+    Real single-letter MIs (A–Z excluding these ghosts) still prefer longer
+    via ``prefer_name_with_optional_middle_initial``.
+    """
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    for left in observed:
+        for right in observed:
+            if left == right:
+                continue
+            if _names_differ_by_optional_middle_initial(left, right):
+                lt, rt = _name_tokens(left), _name_tokens(right)
+                shorter, longer = (lt, rt) if len(lt) < len(rt) else (rt, lt)
+                if len(longer) != len(shorter) + 1:
+                    continue
+                for idx, tok in enumerate(longer):
+                    if len(tok) != 1 or tok not in _OCR_GHOST_MIDDLE_INITIALS:
+                        continue
+                    if longer[:idx] + longer[idx + 1 :] == shorter:
+                        return left if len(lt) < len(rt) else right
+            if _names_differ_by_glued_middle_initial(left, right):
+                lt, rt = _name_tokens(left), _name_tokens(right)
+                diffs = [(x, y) for x, y in zip(lt, rt) if x != y]
+                if len(diffs) != 1:
+                    continue
+                x, y = diffs[0]
+                shorter, longer = (x, y) if len(x) < len(y) else (y, x)
+                if (
+                    len(shorter) == 1
+                    and len(longer) == 2
+                    and longer.endswith(shorter)
+                    and longer[0] in _OCR_GHOST_MIDDLE_INITIALS
+                ):
+                    # Prefer clean MI (N) over ghost-prefixed (IN).
+                    return left if len(x) <= len(y) else right
+    return None
+
+
 def prefer_name_canonical_token_order(
     primary: str, competitors: list[str]
 ) -> str | None:
@@ -1295,44 +1342,53 @@ class EvidenceReconciler:
                         value = prefix_clean
                         early_name_relief = True
                     else:
-                        mi_clean = prefer_name_with_optional_middle_initial(
+                        ghost_mi = prefer_name_without_ocr_ghost_middle_initial(
                             str(value), competing
                         )
-                        if mi_clean:
-                            value = mi_clean
+                        if ghost_mi:
+                            value = ghost_mi
                             early_name_relief = True
                         else:
-                            order_clean = prefer_name_canonical_token_order(
+                            mi_clean = prefer_name_with_optional_middle_initial(
                                 str(value), competing
                             )
-                            if order_clean:
-                                value = order_clean
+                            if mi_clean:
+                                value = mi_clean
                                 early_name_relief = True
                             else:
-                                name_clean = prefer_name_without_confusable_insertion(
+                                order_clean = prefer_name_canonical_token_order(
                                     str(value), competing
                                 )
-                                if name_clean:
-                                    value = name_clean
+                                if order_clean:
+                                    value = order_clean
                                     early_name_relief = True
-                                elif any(
-                                    _names_differ_by_confusable_substitution(
-                                        str(value), other
+                                else:
+                                    name_clean = prefer_name_without_confusable_insertion(
+                                        str(value), competing
                                     )
-                                    or _names_differ_by_optional_middle_initial(
-                                        str(value), other
-                                    )
-                                    or _names_differ_by_glued_middle_initial(
-                                        str(value), other
-                                    )
-                                    or _names_differ_by_token_order(str(value), other)
-                                    or values_conflict_equivalent(
-                                        field_name, str(value), other
-                                    )
-                                    for other in competing
-                                ):
-                                    # Confusable / MI / last-first order twins.
-                                    early_name_relief = True
+                                    if name_clean:
+                                        value = name_clean
+                                        early_name_relief = True
+                                    elif any(
+                                        _names_differ_by_confusable_substitution(
+                                            str(value), other
+                                        )
+                                        or _names_differ_by_optional_middle_initial(
+                                            str(value), other
+                                        )
+                                        or _names_differ_by_glued_middle_initial(
+                                            str(value), other
+                                        )
+                                        or _names_differ_by_token_order(
+                                            str(value), other
+                                        )
+                                        or values_conflict_equivalent(
+                                            field_name, str(value), other
+                                        )
+                                        for other in competing
+                                    ):
+                                        # Confusable / MI / last-first order twins.
+                                        early_name_relief = True
 
         # Prefer non-contaminated name groups when ranking was poisoned by
         # high-confidence header OCR (rapid often outscores paddle on labels).
@@ -1813,6 +1869,18 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("NAME_PREFIX_EXPANSION_RELIEVED")
+                elif is_name_field and (
+                    ghost_mi := prefer_name_without_ocr_ghost_middle_initial(
+                        str(value), genuine
+                    )
+                ):
+                    value = ghost_mi
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("NAME_OCR_GHOST_MI_RELIEVED")
                 elif is_name_field and (
                     mi_clean := prefer_name_with_optional_middle_initial(
                         str(value), genuine

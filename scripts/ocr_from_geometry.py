@@ -425,6 +425,46 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
     return candidates, attempts, routed.reason
 
 
+def _currency_digit_string(amount: object) -> str:
+    """Dollar digits only (ignore cents) for digit-drop twin detection."""
+    import re as _re
+
+    text = str(amount or "").strip().lstrip("$").replace(",", "")
+    if not text:
+        return ""
+    if "." in text:
+        text = text.split(".", 1)[0]
+    return _re.sub(r"\D", "", text)
+
+
+def _is_currency_digit_drop_twin(left: object, right: object) -> bool:
+    """True when one currency reading is a truncated digit-prefix of the other.
+
+    Agent-GT residual (Independent-300): CHARGE_DIGITS_FAST drops a trailing
+    digit — ``1571.00`` → ``157.00``, ``701.00`` → ``70.00``. Prefer the longer
+    digit string when both are currency-shaped.
+    """
+    a, b = _currency_digit_string(left), _currency_digit_string(right)
+    if not a or not b or a == b:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    if not longer.startswith(shorter):
+        return False
+    # Allow 1–2 dropped digits (common tess whitelist miss on trailing ink).
+    return 1 <= (len(longer) - len(shorter)) <= 2
+
+
+def prefer_currency_without_digit_drop(primary: object, competitor: object) -> str | None:
+    """Prefer the longer digit currency when readings are digit-drop twins."""
+    left, right = (str(primary or "").strip(), str(competitor or "").strip())
+    if not left or not right or left == right:
+        return None
+    if not _is_currency_digit_drop_twin(left, right):
+        return None
+    ld, rd = _currency_digit_string(left), _currency_digit_string(right)
+    return left if len(ld) >= len(rd) else right
+
+
 def _recognize_charge_digits_only(image, bbox):
     """Cheap charge OCR: digit-whitelist tesseract only (no paddle/rapid)."""
     attempts = []
@@ -568,6 +608,35 @@ def recognize_service_lines(image, router, template):
                     image, 'charges', bbox, router, charge_col.field_type)
             raw = candidates[0].get('raw_value') if candidates else ''
             value = _currency_value(raw, candidates)
+            # Fast digit path truncates trailing charge digits (1571→157). When
+            # a value is observed, verify with paddle/rapid and prefer the
+            # longer digit-drop twin — agent GT showed 27/27 charge misses on
+            # Independent-300 were CHARGE_DIGITS_FAST regressions vs full OCR.
+            if fast and value and router is not None:
+                v_cands, v_attempts, v_reason = _recognize_one(
+                    image,
+                    'charges',
+                    bbox,
+                    router,
+                    charge_col.field_type,
+                    engine_order=('paddleocr', 'rapidocr'),
+                )
+                attempts = list(attempts or []) + list(v_attempts or [])
+                v_raw = v_cands[0].get('raw_value') if v_cands else ''
+                v_value = _currency_value(v_raw, v_cands)
+                if v_value:
+                    preferred = prefer_currency_without_digit_drop(value, v_value)
+                    if preferred and preferred != value:
+                        value = preferred
+                        raw = v_raw or raw
+                        candidates = v_cands or candidates
+                        reason = f'{reason}|CHARGE_DIGIT_DROP_RECOVERED:{v_reason}'
+                    elif preferred is None and v_value != value:
+                        # Non-twin disagreement: trust full OCR over tess digits.
+                        value = v_value
+                        raw = v_raw or raw
+                        candidates = v_cands or candidates
+                        reason = f'{reason}|CHARGE_FAST_VERIFIED:{v_reason}'
             score = 0
             if value:
                 score = 3 if '.' in value else 2

@@ -81,6 +81,36 @@ def _canon_money(value: object) -> str:
         return text
 
 
+_OCR_GHOST_MI = frozenset({"I", "1", "L", "T"})
+
+
+def _name_tokens_soft(value: object) -> list[str]:
+    text = re.sub(r"[^A-Za-z0-9]+", " ", str(value or "").upper())
+    return [tok for tok in text.split() if tok]
+
+
+def _names_optional_middle_initial(left: object, right: object) -> bool:
+    """True when names match except one optional single-letter middle initial."""
+    a, b = _name_tokens_soft(left), _name_tokens_soft(right)
+    if not a or not b or a == b:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    if len(longer) != len(shorter) + 1:
+        return False
+    for idx, tok in enumerate(longer):
+        if len(tok) != 1:
+            continue
+        if longer[:idx] + longer[idx + 1 :] == shorter:
+            return True
+    return False
+
+
+def _strip_ocr_ghost_mi(value: object) -> str:
+    """Drop lone I/1/L/T tokens — common CMS form-ruling OCR ghosts."""
+    toks = [t for t in _name_tokens_soft(value) if t not in _OCR_GHOST_MI]
+    return " ".join(toks)
+
+
 def _exact(field: str, predicted: object, expected: object) -> bool:
     if expected in (None, "", "EMPTY", "NULL"):
         return str(predicted or "").strip() in {"", "None", "null"}
@@ -89,7 +119,21 @@ def _exact(field: str, predicted: object, expected: object) -> bool:
     if field in {"insured_id_number", "member_id"}:
         return _canon_id(predicted) == _canon_id(expected)
     if field in {"patient_name", "insured_name"}:
-        return _canon_name(predicted) == _canon_name(expected)
+        if _canon_name(predicted) == _canon_name(expected):
+            return True
+        # Optional CMS middle initial is not an accuracy miss vs agent GT.
+        if _names_optional_middle_initial(predicted, expected):
+            return True
+        # Form-ruling ghost MI (I/1/L/T) on either side.
+        if _canon_name(_strip_ocr_ghost_mi(predicted)) == _canon_name(
+            _strip_ocr_ghost_mi(expected)
+        ):
+            return True
+        if _names_optional_middle_initial(
+            _strip_ocr_ghost_mi(predicted), _strip_ocr_ghost_mi(expected)
+        ):
+            return True
+        return False
     if field in {"total_charge", "total_charges"}:
         return _canon_money(predicted) == _canon_money(expected)
     return str(predicted or "").strip().upper() == str(expected or "").strip().upper()
@@ -344,8 +388,16 @@ def main() -> int:
     parser.add_argument("--run-dir", type=Path, default=DEFAULT_RUN)
     parser.add_argument("--gt", type=Path, default=DEFAULT_GT)
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
+    parser.add_argument(
+        "--write-seed-gt",
+        action="store_true",
+        help="Overwrite GT with SEED_VISUAL_GT only (destructive). Default: load existing GT.",
+    )
     args = parser.parse_args()
-    gt = write_gt(args.gt)
+    if args.write_seed_gt or not args.gt.exists():
+        gt = write_gt(args.gt)
+    else:
+        gt = json.loads(args.gt.read_text(encoding="utf-8"))
     summary = score(args.run_dir, gt)
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "summary.json").write_text(

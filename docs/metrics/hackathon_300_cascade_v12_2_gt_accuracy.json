@@ -1,0 +1,96 @@
+{
+  "run_dir": "evaluation_results/hackathon_300_cascade_v12_2",
+  "claims_scored": 218,
+  "field_count": 803,
+  "exact_accuracy": 0.94396,
+  "perfect_claim_exact_rate": 0.811927,
+  "false_accepts": 45,
+  "false_accept_rate": 0.05604,
+  "field_exact": {
+    "patient_dob": {
+      "exact": 64,
+      "n": 66,
+      "rate": 0.969697
+    },
+    "total_charge": {
+      "exact": 153,
+      "n": 180,
+      "rate": 0.85
+    },
+    "patient_name": {
+      "exact": 178,
+      "n": 185,
+      "rate": 0.962162
+    },
+    "insured_id_number": {
+      "exact": 196,
+      "n": 197,
+      "rate": 0.994924
+    },
+    "insured_name": {
+      "exact": 167,
+      "n": 175,
+      "rate": 0.954286
+    }
+  },
+  "true_stp_of_scored": 195,
+  "by_bundle": {
+    "Group A/M048DJJM": {
+      "n": 9,
+      "perfect_exact": 1,
+      "true_stp": 6
+    },
+    "Group A/M048DJKH": {
+      "n": 49,
+      "perfect_exact": 34,
+      "true_stp": 49
+    },
+    "Group A/M048DJKN": {
+      "n": 17,
+      "perfect_exact": 15,
+      "true_stp": 17
+    },
+    "Group A/M048EJG7": {
+      "n": 22,
+      "perfect_exact": 17,
+      "true_stp": 16
+    },
+    "Group A/M048EJGE": {
+      "n": 31,
+      "perfect_exact": 27,
+      "true_stp": 25
+    },
+    "Group A/M048EJH6": {
+      "n": 4,
+      "perfect_exact": 4,
+      "true_stp": 4
+    },
+    "Group A/M048EJI2": {
+      "n": 34,
+      "perfect_exact": 31,
+      "true_stp": 32
+    },
+    "Group A/M048HJBI": {
+      "n": 16,
+      "perfect_exact": 16,
+      "true_stp": 13
+    },
+    "Group A/M048HJCR": {
+      "n": 4,
+      "perfect_exact": 3,
+      "true_stp": 3
+    },
+    "Group A/M048HJCX": {
+      "n": 17,
+      "perfect_exact": 14,
+      "true_stp": 15
+    },
+    "Group A/M048HJDF": {
+      "n": 15,
+      "perfect_exact": 15,
+      "true_stp": 15
+    }
+  },
+  "generated_at": "2026-09-17T02:25:36.589689+00:00",
+  "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6."
+}
