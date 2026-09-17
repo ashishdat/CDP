@@ -443,6 +443,21 @@ def _name_is_short_fragment(value: str) -> bool:
     return len(cores) == 1 and len(cores[0]) <= 4
 
 
+def _name_is_form_chrome(value: str) -> bool:
+    """True for CMS box numbers / digit-only OCR that is not person ink.
+
+    Blind HITL: Rapid/Tesseract emit ``2`` (box 2 chrome) against a strong
+    ``FALCONS SERAFIN`` reading — not a genuine name conflict.
+    """
+    raw = (value or "").strip()
+    if not raw:
+        return True
+    if re.fullmatch(r"[\d.\-#/\s]+", raw):
+        return True
+    cores = _core_name_tokens(_name_tokens(value))
+    return len(cores) == 0
+
+
 def _name_is_strong_person(value: str) -> bool:
     """True for multi-token person ink or a single substantial name token."""
     cores = _core_name_tokens(_name_tokens(value))
@@ -457,6 +472,10 @@ def _names_differ_by_short_fragment(left: str, right: str) -> bool:
     Independent cases: ``Ace`` vs ``Maraafet Kalomatis``, ``LUR`` vs ``LAURA``,
     ``ArtINA`` vs ``HOHDSHEFSKY MAR``.
     """
+    if _name_is_form_chrome(left) and _name_is_strong_person(right):
+        return True
+    if _name_is_form_chrome(right) and _name_is_strong_person(left):
+        return True
     if _name_is_short_fragment(left) and _name_is_strong_person(right):
         return True
     if _name_is_short_fragment(right) and _name_is_strong_person(left):
@@ -1774,6 +1793,13 @@ class EvidenceReconciler:
                         continue
                     filtered.append(other)
                 genuine = filtered
+            # Box-number / digit-only OCR is form chrome, not a name competitor.
+            if is_name_field and _name_is_strong_person(str(value or "")):
+                genuine = [
+                    other
+                    for other in genuine
+                    if not _name_is_form_chrome(str(other))
+                ]
             if early_separator_relief:
                 # Competing values were separator-1 twins of the cleaned date.
                 decision = (

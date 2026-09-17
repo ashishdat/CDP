@@ -377,7 +377,7 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_LEARNED_MATCHER", "1")
     # Name Rapid confirm gate (was 0.88 — nearly always confirmed).
     env.setdefault("CDP_OCR_NAME_CONFIRM_MIN_CONF", "0.80")
-    env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")  # billable full-page; opt-in
+    env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "1")  # last-resort after LightGlue
     env.setdefault(
         "CDP_AZURE_DI_METER_PATH",
         str(ROOT / "evaluation_results" / "azure_di_meter.jsonl"),
@@ -871,7 +871,9 @@ def main() -> int:
         # Crop-scoped Azure DI only after local+TrOCR DOB miss (rare; ~1–3s).
         "CDP_AZURE_DI_DOB_RESIDUAL": "1",
         "CDP_AZURE_DI_CHARGE_RESIDUAL": "0",
-        "CDP_AZURE_DI_PAGE_CORNERS": "0",
+        # Last-resort only (after near-miss/LightGlue). Blind REG was 8/100
+        # terminal AZURE_DI_PAGE_CORNERS_DISABLED_LOW_COST with corners off.
+        "CDP_AZURE_DI_PAGE_CORNERS": "1",
         "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",
         "CDP_OCR_NAME_CONFIRM_MIN_CONF": "0.80",
     }

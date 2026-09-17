@@ -218,3 +218,21 @@ def test_authority_v12_2_insured_patient_ocr_twins():
     assert are_equivalent("insured_name", "FUENTESPEDRO", "2 DD")
     # Unrelated names stay conflicts.
     assert not are_equivalent("insured_name", "DOCTNIKCS DOUDAN", "POSTIMNYCZ BOHDAN")
+
+
+def test_reconcile_box_number_chrome_vs_strong_name_accepts():
+    """Blind HITL: box-2 OCR chrome must not conflict a strong insured_name."""
+    result = EvidenceReconciler().reconcile(
+        "insured_name",
+        [
+            _candidate("FALCONS SERAFIN", "paddleocr", 0.88),
+            _candidate("2", "rapidocr", 0.86),
+            _candidate("2", "tesseract", 0.80),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert "FALCONS" in (result.selected_value or "").upper()
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
