@@ -35,6 +35,12 @@ def test_name_confirm_ignores_weak_short_fragment():
     assert conf > candidates[0]["raw_confidence"]
 
 
+def test_name_confirm_falls_back_to_candidate_confidence():
+    attempts = [{"engine": "paddleocr", "observation": {"lines": []}}]
+    candidates = [{"value": "DATST EY", "raw_confidence": 0.75}]
+    assert _name_confirm_confidence(attempts, candidates) == 0.75
+
+
 def test_stp_critical_skips_non_blocking_diagnosis_and_tax():
     from scripts.ocr_from_geometry import _STP_CRITICAL_FIELDS, _field_in_scope
     import os
