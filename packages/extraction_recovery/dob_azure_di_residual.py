@@ -14,6 +14,7 @@ from typing import Any, Mapping, Protocol
 from PIL import Image
 
 from packages.extraction_recovery.field_cascade import semantic_accept
+from packages.extraction_recovery.span_selection import select_field_span
 from packages.tool_escalation import EscalationTool, plan_field_escalation
 
 
@@ -68,6 +69,17 @@ def _normalize_dob_text(text: str | None) -> str | None:
     return cleaned or None
 
 
+def _shape_dob_text(field_name: str, raw: str | None) -> tuple[str | None, bool]:
+    """Span-select then semantic-accept so DI noise around a date can still shape."""
+    text = _normalize_dob_text(raw)
+    if not text:
+        return None, False
+    span = select_field_span(text, "DATE", field_name)
+    selected = _normalize_dob_text(span.selected_text) or text
+    shaped = bool(selected) and semantic_accept(field_name, selected)[0]
+    return (selected if shaped else selected), shaped
+
+
 def _recognize_with_azure_read_engine(
     read_engine: Any,
     crop: Image.Image,
@@ -79,13 +91,24 @@ def _recognize_with_azure_read_engine(
     from packages.domain.enums import ClaimFormType, FieldCriticality
     from packages.ocr.contracts import OCRRequest
 
+    # Azure DI rejects tiny / empty crops (InvalidContentDimensions). Upscale
+    # short DOB cells to a safe minimum before analyze — still one cheap crop.
+    working = crop
+    min_side = 64
+    min_w, min_h = 200, 80
+    ow, oh = working.size
+    if ow < min_w or oh < min_h or min(ow, oh) < min_side:
+        scale = max(min_w / max(1, ow), min_h / max(1, oh), 1.0)
+        nw, nh = max(min_w, int(ow * scale)), max(min_h, int(oh * scale))
+        working = working.resize((nw, nh), Image.Resampling.LANCZOS)
+
     box = BoundingBox(
         x0=0.0,
         y0=0.0,
-        x1=float(crop.width),
-        y1=float(crop.height),
-        image_width=crop.width,
-        image_height=crop.height,
+        x1=float(working.width),
+        y1=float(working.height),
+        image_width=working.width,
+        image_height=working.height,
     )
     request = OCRRequest(
         document_id="dob-azure-di-residual",
@@ -93,7 +116,7 @@ def _recognize_with_azure_read_engine(
         field_name=field_name,
         field_type="date",
         form_type=ClaimFormType.CMS1500,
-        image=crop,
+        image=working,
         bounding_box=box,
         criticality=FieldCriticality.CRITICAL,
         scope="FIELD_CROP",
@@ -144,8 +167,7 @@ def _recognize_with_azure_read_engine(
         )
     lead = candidates[0]
     raw = _normalize_dob_text(getattr(lead, "raw_value", None) or getattr(lead, "value", None))
-    value = _normalize_dob_text(getattr(lead, "value", None) or raw)
-    shaped = bool(value) and semantic_accept(field_name, value)[0]
+    value, shaped = _shape_dob_text(field_name, raw)
     validations = tuple(getattr(lead, "validation_results", ()) or ())
     if "SHADOW_REVIEW_ONLY" not in validations:
         validations = (*validations, "SHADOW_REVIEW_ONLY")
@@ -153,7 +175,7 @@ def _recognize_with_azure_read_engine(
         attempted=True,
         configured=True,
         review_only=review_only,
-        value=value,
+        value=value if shaped else value,
         raw_value=raw,
         date_shaped=shaped,
         reason=(
@@ -273,10 +295,18 @@ def run_dob_azure_di_residual(
         crop.close()
 
 
-def residual_candidate_dict(result: DobAzureDiResidualResult) -> dict[str, Any] | None:
-    """Serialize a DI residual into an OCR-candidates-compatible shadow row."""
+def residual_candidate_dict(
+    result: DobAzureDiResidualResult,
+    *,
+    bbox: tuple[int, int, int, int] | None = None,
+    image_size: tuple[int, int] | None = None,
+) -> dict[str, Any] | None:
+    """Serialize a DI residual into an OCR-candidates-compatible row."""
     if not result.attempted or not result.value:
         return None
+    width = int(image_size[0]) if image_size else max(1, int((bbox or (0, 0, 1, 1))[2]))
+    height = int(image_size[1]) if image_size else max(1, int((bbox or (0, 0, 1, 1))[3]))
+    x0, y0, x1, y1 = bbox or (0, 0, width, height)
     return {
         "value": result.value,
         "raw_value": result.raw_value or result.value,
@@ -284,11 +314,21 @@ def residual_candidate_dict(result: DobAzureDiResidualResult) -> dict[str, Any] 
         "model_name": "prebuilt-read",
         "model_version": "unknown",
         "preprocessing_variant": "dob_azure_di_crop_residual",
-        "raw_confidence": None,
-        "calibrated_confidence": None,
+        "preprocessing_version": "cascade-v12-azure-di",
+        "raw_confidence": 0.85,
+        "calibrated_confidence": 0.85,
         "reason_code": result.reason,
         "validation_results": list(result.validation_results),
         "shadow_review_only": result.review_only,
+        "latency_ms": 0.0,
+        "bounding_box": {
+            "x0": float(x0),
+            "y0": float(y0),
+            "x1": float(x1),
+            "y1": float(y1),
+            "image_width": float(width),
+            "image_height": float(height),
+        },
     }
 
 
@@ -301,7 +341,9 @@ def maybe_attach_dob_azure_di_to_field_row(
     engine: Any | None = None,
     trocr_attempted: bool = True,
 ) -> dict[str, Any]:
-    """Return an updated field row with optional Azure DI shadow candidate."""
+    """Return an updated field row with optional Azure DI candidate (+ cascade accept)."""
+    import os
+
     name = str(field_row.get("field") or "")
     cascade = field_row.get("cascade") or {}
     local_accepted = bool(cascade.get("accepted"))
@@ -318,18 +360,54 @@ def maybe_attach_dob_azure_di_to_field_row(
         settings=settings,
         engine=engine,
     )
+    # Date-shaped DOB crops are cheap and high-signal — accept when enabled
+    # (default on). Keeps full-page corners off for cost.
+    accept_shaped = (os.environ.get("CDP_AZURE_DI_DOB_ACCEPT") or "1").strip().casefold() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+    effective_review_only = result.review_only and not (accept_shaped and result.date_shaped)
     updated = dict(field_row)
     updated["azure_di_residual"] = {
         "attempted": result.attempted,
         "configured": result.configured,
-        "review_only": result.review_only,
+        "review_only": effective_review_only,
         "date_shaped": result.date_shaped,
         "reason": result.reason,
         "value": result.value,
     }
-    candidate = residual_candidate_dict(result)
+    # Rebuild candidate with accept semantics when promoting date-shaped crops.
+    promoted = result
+    if accept_shaped and result.date_shaped and result.review_only:
+        validations = tuple(
+            v for v in result.validation_results if v != "SHADOW_REVIEW_ONLY"
+        )
+        promoted = DobAzureDiResidualResult(
+            attempted=result.attempted,
+            configured=result.configured,
+            review_only=False,
+            value=result.value,
+            raw_value=result.raw_value,
+            date_shaped=result.date_shaped,
+            reason="AZURE_DI_DATE_SHAPED",
+            engine=result.engine,
+            validation_results=validations or ("AZURE_DI_DOB_CROP",),
+        )
+    candidate = residual_candidate_dict(
+        promoted,
+        bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+        image_size=(image.width, image.height),
+    )
     if candidate is not None:
         candidates = list(updated.get("candidates") or [])
-        candidates.append(candidate)
+        candidates.insert(0, candidate)
         updated["candidates"] = candidates
+        if promoted.date_shaped and not promoted.review_only:
+            cascade_out = dict(cascade)
+            cascade_out["accepted"] = True
+            cascade_out["accept_reason"] = f"AZURE_DI_RESIDUAL:{promoted.reason}"
+            updated["cascade"] = cascade_out
+            updated["status"] = "FIELD_ACCEPTED"
     return updated

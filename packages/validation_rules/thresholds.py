@@ -47,9 +47,10 @@ class ThresholdRegistry:
         return DEFAULT_NON_CRITICAL_THRESHOLD
 
     def meets_threshold(
-        self, field_name: str, confidence: float, criticality: FieldCriticality | None = None
+        self, field_name: str, confidence: float | None, criticality: FieldCriticality | None = None
     ) -> bool:
-        return confidence >= self.min_confidence_for(field_name, criticality)
+        score = 0.0 if confidence is None else float(confidence)
+        return score >= self.min_confidence_for(field_name, criticality)
 
     @classmethod
     def load_from_directory(

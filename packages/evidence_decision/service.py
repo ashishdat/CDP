@@ -125,6 +125,10 @@ class EvidenceDecisionService:
                 "subscriber_id",
             }:
                 allowed_families.add(engine_family("tesseract"))
+            # Crop-scoped residuals for handwriting DOB (local TrOCR / Azure DI).
+            if context.field_name in {"patient_dob", "date_of_birth", "dob"}:
+                allowed_families.add(engine_family("trocr"))
+                allowed_families.add(engine_family("azure_document_intelligence_read"))
             eligible = [
                 candidate
                 for candidate in candidates
