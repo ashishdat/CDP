@@ -414,6 +414,9 @@ def _name_tokens(value: str) -> list[str]:
     compact = (value or "").upper().replace("0", "O").replace("1", "I")
     # Standalone digit groups (box-rule / page numbers) are not name ink.
     compact = re.sub(r"\b\d{1,4}\b", " ", compact)
+    # Mid-name periods/hyphens joining multi-letter pieces are OCR junk
+    # (COT.LEEN → COTLEEN). Single-letter stubs (Bet.t.t) stay tokenized.
+    compact = re.sub(r"(?<=[A-Z][A-Z])[.\-](?=[A-Z][A-Z])", "", compact)
     compact = re.sub(r"[^A-Z\s]", " ", compact)
     stop = {
         "LAST", "FIRST", "FURST", "FST", "MIDDLE", "INITIAL", "NAME",
@@ -704,12 +707,14 @@ def _names_differ_by_glued_middle_initial(left: str, right: str) -> bool:
 
 
 def _token_pair_equivalent(left: str, right: str) -> bool:
-    """Single-token equivalence under confusable insertion/substitution."""
+    """Single-token equivalence under confusable insertion/substitution/edit."""
     if left == right:
         return True
     if _names_differ_by_confusable_insertion(left, right):
         return True
     if _names_differ_by_confusable_substitution(left, right):
+        return True
+    if _names_differ_by_confusable_edit(left, right):
         return True
     return False
 
@@ -867,9 +872,11 @@ _NAME_CONFUSABLE_PAIRS = {
     frozenset({"I", "L"}),
     frozenset({"I", "T"}),
     frozenset({"I", "1"}),
+    frozenset({"I", "U"}),  # KTIIMP vs KLUMP / COTTEEN bleed
     frozenset({"L", "T"}),
     frozenset({"L", "H"}),  # MCLARTY vs MCHARTY
     frozenset({"B", "R"}),  # BOHDAN vs ROHDAN / BOONE vs ROONE
+    frozenset({"C", "O"}),  # SCARTET vs SOARTET (Independent-300 v12.2)
     frozenset({"O", "D"}),
     frozenset({"O", "0"}),
     frozenset({"U", "V"}),
@@ -898,9 +905,10 @@ def _names_differ_by_confusable_substitution(left: str, right: str) -> bool:
 
 
 def _names_differ_by_confusable_edit(left: str, right: str) -> bool:
-    """True when names match after one deletion plus ≤1 confusable substitution.
+    """True when names match after one deletion plus ≤2 confusable substitutions.
 
     Independent case: ``PATRICIA`` vs ``FATRCIA`` — delete ``I``, then P↔F.
+    v12.2 residual: ``KTIIMP`` vs ``KLUMP`` — delete ``I``, then T↔L and I↔U.
     Deletion is limited to a single vowel/confusable glyph so we do not collapse
     unrelated surnames.
     """
@@ -917,9 +925,33 @@ def _names_differ_by_confusable_edit(left: str, right: str) -> bool:
         if len(peeled) != len(shorter):
             continue
         diffs = [(x, y) for x, y in zip(peeled, shorter) if x != y]
-        if len(diffs) == 1 and frozenset(diffs[0]) in _NAME_CONFUSABLE_PAIRS:
+        if (
+            1 <= len(diffs) <= 2
+            and all(frozenset(pair) in _NAME_CONFUSABLE_PAIRS for pair in diffs)
+        ):
             return True
     return False
+
+
+def _names_differ_by_tokenwise_confusable(left: str, right: str) -> bool:
+    """True when same-arity core tokens each match under confusable rules.
+
+    Independent-300 v12.2: ``KLUMP COLLEEN`` vs ``KTIIMP COTTEEN`` — per-token
+    OCR twins (KLUMP≈KTIIMP, COLLEEN≈COTTEEN), not a true identity conflict.
+    """
+    a = _core_name_tokens(_name_tokens(left))
+    b = _core_name_tokens(_name_tokens(right))
+    if len(a) < 2 or len(a) != len(b) or a == b:
+        return False
+    for x, y in zip(a, b):
+        if x == y:
+            continue
+        if _token_pair_equivalent(x, y):
+            continue
+        if _names_differ_by_confusable_edit(x, y):
+            continue
+        return False
+    return True
 
 
 def prefer_name_without_confusable_insertion(
@@ -1015,6 +1047,9 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
         if _names_differ_by_confusable_substitution(left, right):
             return True
         if _names_differ_by_confusable_edit(left, right):
+            return True
+        # Per-token OCR twins with same arity (KLUMP COLLEEN ≈ KTIIMP COTTEEN).
+        if _names_differ_by_tokenwise_confusable(left, right):
             return True
         # Token-prefix (missing middle name on one engine) is not a true conflict.
         if prefer_longer_name_prefix(left, [right]) is not None:

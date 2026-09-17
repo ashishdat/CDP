@@ -207,3 +207,14 @@ def test_honest_empty_charge_not_invented():
     )
     assert result.decision.value in {"ESCALATE", "REVIEW", "ABSTAIN"}
     assert result.selected_value in (None, "")
+
+
+def test_authority_v12_2_insured_patient_ocr_twins():
+    """Independent-300 v12.2: insured_name CONFLICT was OCR twin of patient_name."""
+    assert are_equivalent("insured_name", "STERN SCART.ET", "STERN SOARTET")
+    assert are_equivalent("insured_name", "KLUMP. COLLEEN", "KTIIMP COTTEEN")
+    assert are_equivalent("insured_name", "KLUMP COLLEEN", "KIIMP COT.LEEN")
+    # Short fragment insured vs strong patient remains equivalent (fragment path).
+    assert are_equivalent("insured_name", "FUENTESPEDRO", "2 DD")
+    # Unrelated names stay conflicts.
+    assert not are_equivalent("insured_name", "DOCTNIKCS DOUDAN", "POSTIMNYCZ BOHDAN")

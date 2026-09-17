@@ -256,6 +256,87 @@ def decide(extraction, family):
                     candidate['value'] = check_value
             candidate['validation_results'] = tuple(validation['reason'])
             candidates.append(TypeAdapter(OCRCandidate).validate_python(candidate))
+        # v12.2 gap: insured_name CONFLICT / short-fragment when patient_name is a
+        # strong accepted SELF twin. Inject the observed patient ink as a
+        # competitor so fragment / confusable relief can prefer it (no invention).
+        if name == 'insured_name':
+            from packages.candidate_reconciliation.reconciler import (
+                _name_is_strong_person,
+                _name_is_short_fragment,
+                _names_differ_by_confusable_edit,
+                _names_differ_by_confusable_insertion,
+                _names_differ_by_confusable_substitution,
+                _names_differ_by_tokenwise_confusable,
+                _names_differ_by_token_order,
+                _names_differ_by_optional_middle_initial,
+                _canonical_person_name,
+            )
+            patient_val = str(values.get('patient_name') or '').strip()
+            if patient_val and _name_is_strong_person(patient_val):
+                already = {
+                    str(c.value or '').strip().casefold()
+                    for c in candidates
+                    if (c.value or '').strip()
+                }
+                if patient_val.casefold() not in already:
+                    def _soft_twin(left: str, right: str) -> bool:
+                        a, b = _canonical_person_name(left), _canonical_person_name(right)
+                        if bool(a) and a == b:
+                            return True
+                        return any(
+                            fn(left, right)
+                            for fn in (
+                                _names_differ_by_confusable_substitution,
+                                _names_differ_by_confusable_insertion,
+                                _names_differ_by_confusable_edit,
+                                _names_differ_by_tokenwise_confusable,
+                                _names_differ_by_token_order,
+                                _names_differ_by_optional_middle_initial,
+                            )
+                        )
+
+                    insured_vals = [
+                        str(c.value or '').strip()
+                        for c in candidates
+                        if (c.value or '').strip()
+                    ]
+                    soft_twin = any(_soft_twin(patient_val, v) for v in insured_vals)
+                    fragment_pair = any(
+                        _name_is_short_fragment(v) for v in insured_vals
+                    )
+                    all_weak = bool(insured_vals) and all(
+                        _name_is_short_fragment(v) or len(v) <= 4
+                        for v in insured_vals
+                    )
+                    top = insured_vals[0] if insured_vals else ''
+                    top_weak = bool(top) and (
+                        _name_is_short_fragment(top) or len(top) <= 4
+                    )
+                    if (
+                        soft_twin
+                        or fragment_pair
+                        or all_weak
+                        or top_weak
+                        or not insured_vals
+                    ):
+                        from packages.domain.common import BoundingBox
+                        base_box = candidates[0].bounding_box if candidates else None
+                        candidates.append(OCRCandidate(
+                            value=patient_val,
+                            raw_value=patient_val,
+                            engine='paddleocr',
+                            model_name='claim_cross_field',
+                            model_version='v12.2-self-twin',
+                            preprocessing_variant='PATIENT_NAME_SELF_TWIN',
+                            raw_confidence=0.9,
+                            calibrated_confidence=0.9,
+                            bounding_box=base_box or BoundingBox(
+                                x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
+                            ),
+                            latency_ms=0.0,
+                            evidence_reference='PATIENT_NAME_SELF_TWIN',
+                            preprocessing_version='v12.2-self-twin',
+                        ))
         # Prefer LINE_TOTALS derived amount over empty / invalid / deferred box-28 OCR.
         prefer_derived = bool(derived) and (
             not check.passed

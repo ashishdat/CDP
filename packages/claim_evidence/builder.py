@@ -334,10 +334,49 @@ class ClaimEvidenceBuilder:
         ).upper()
         patient = self._name(values.get("patient_name"))
         insured = self._name(values.get("insured_name"))
+        # Soft OCR-twin match for SELF E6 — confusable twins only, not short-
+        # fragment / surname-only crops (DUDAN vs POSTIMNYCZ BOHDAN).
+        from packages.candidate_reconciliation.reconciler import (
+            _canonical_person_name,
+            _names_differ_by_confusable_edit,
+            _names_differ_by_confusable_insertion,
+            _names_differ_by_confusable_substitution,
+            _names_differ_by_tokenwise_confusable,
+            _names_differ_by_token_order,
+            _names_differ_by_optional_middle_initial,
+        )
+
+        def _soft_self_match(left: str, right: str) -> bool:
+            if not (left or "").strip() or not (right or "").strip():
+                return False
+            a, b = _canonical_person_name(left), _canonical_person_name(right)
+            if bool(a) and a == b:
+                return True
+            if _names_differ_by_confusable_substitution(left, right):
+                return True
+            if _names_differ_by_confusable_insertion(left, right):
+                return True
+            if _names_differ_by_confusable_edit(left, right):
+                return True
+            if _names_differ_by_tokenwise_confusable(left, right):
+                return True
+            if _names_differ_by_token_order(left, right):
+                return True
+            if _names_differ_by_optional_middle_initial(left, right):
+                return True
+            return False
+
+        names_match = bool(patient) and bool(insured) and (
+            patient == insured
+            or _soft_self_match(
+                str(values.get("patient_name") or ""),
+                str(values.get("insured_name") or ""),
+            )
+        )
         # CMS-1500 often leaves relationship unmarked while patient and insured
         # names match exactly; treat that as inferred SELF for E6 only.
         inferred_self = False
-        if relationship not in {"SELF", "18", "01"} and patient and insured and patient == insured:
+        if relationship not in {"SELF", "18", "01"} and names_match:
             relationship = "SELF"
             inferred_self = True
         if relationship in {"SELF", "18", "01"} and patient and insured:
@@ -351,8 +390,9 @@ class ClaimEvidenceBuilder:
                 ],
                 "relationship": relationship,
                 "inferred_self_from_matching_names": inferred_self,
+                "soft_name_match": names_match and patient != insured,
             }
-            target = evidence if patient == insured else contradictions
+            target = evidence if names_match else contradictions
             target.append(
                 self._item(
                     claim_id,
