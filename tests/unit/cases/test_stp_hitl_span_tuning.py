@@ -75,6 +75,17 @@ def test_cms1500_dob_token_assembly_and_rejects_garbage():
     assert "19/90" not in bad.selected_text
 
 
+def test_dob_midstream_letter_treated_as_separator_not_digit():
+    """Blind HITL: OCR emits '01i081996' where i is a damaged slash, not a 1."""
+    from packages.extraction_recovery.field_cascade import semantic_accept
+
+    for raw in ("01i081996", "01i08 1996", "01l081996"):
+        selected = select_field_span(raw, "DATE", "patient_dob")
+        assert selected.selected_text == "01/08/1996", raw
+        ok, reason = semantic_accept("patient_dob", selected.selected_text)
+        assert ok and reason == "DATE_SHAPED", raw
+
+
 def test_currency_npi_bleed_yields_empty_for_hitl():
     selected = select_field_span("L\nNPI", "CURRENCY", "total_charge")
     assert selected.selected_text == ""

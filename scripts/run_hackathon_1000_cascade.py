@@ -364,10 +364,10 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_OCR_WORKER_POOL", "1")
     env.setdefault("CDP_APP_WORKER_POOL", "1")
     # Latency bar: claim mean ≤30s. TrOCR DOB residual ON with process singleton
-    # + skip-if-local-shaped (only handwriting/ambiguous gaps fire). Azure DI
-    # residuals stay OFF (cost). Charge residual OFF unless accuracy path.
+    # + skip-if-local-shaped (only handwriting/ambiguous gaps fire). Azure DI DOB
+    # crop residual ON as post-TrOCR fallback (rare; ~1–3s). Charge residual OFF.
     env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
-    env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "0")
+    env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "1")
     env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
     env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
     env.setdefault("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED", "1")
@@ -868,7 +868,8 @@ def main() -> int:
     _product = {
         "CDP_TROCR_DOB_RESIDUAL": "1",
         "CDP_LEARNED_MATCHER": "1",
-        "CDP_AZURE_DI_DOB_RESIDUAL": "0",
+        # Crop-scoped Azure DI only after local+TrOCR DOB miss (rare; ~1–3s).
+        "CDP_AZURE_DI_DOB_RESIDUAL": "1",
         "CDP_AZURE_DI_CHARGE_RESIDUAL": "0",
         "CDP_AZURE_DI_PAGE_CORNERS": "0",
         "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",

@@ -17,6 +17,10 @@ Prior blind run (`hackathon_100_new_cascade_v12`): **48% STP**, **37% REG**, 15%
 
 **6/8 → TRUE_STP**, mean **15.9s**. Remaining 2 are honest catastrophic REG.
 
-## Full retest
+## Full retest (partial — superseded by v12.3j)
 
-`evaluation_results/hackathon_100c_blind_cascade_v12_3i` — offset 350, limit 100, workers=1, v12.3i product defaults (trail-aware near-miss, TrOCR DOB, LightGlue singleton).
+`evaluation_results/hackathon_100c_blind_cascade_v12_3i` — offset 350, limit 100, workers=1.
+
+Stopped at **23/100**: **91% STP**, **0% REG**, 2 HITL (both `patient_dob` `AMBIGUOUS_DIGIT_FRAGMENTS`), mean **16.9s**.
+
+Remaining HITL pattern: OCR `01i081996` / `01i08 1996` where mid-stream `i` was mapped to digit `1` (poison 9-digit stream) instead of a damaged slash. Fixed in **v12.3j** (letter-as-separator compact + Azure DI DOB crop after TrOCR miss).

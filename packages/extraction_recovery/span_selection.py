@@ -411,9 +411,13 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
     # Apply confusables (including CJK) before stripping non-alnum so glyphs like
     # 了→7 survive into the compact digit stream. Strip MM/DD/YY headers first so
     # D→0 cannot invent zeros from cell labels.
+    #
+    # Also try a separator-drop stream: mid-digit letters (i/l/|/f) are often
+    # damaged slashes ("01i081996" → "01081996"), not extra digits. Mapping them
+    # through confusables yields a 9-digit poison stream ("011081996") that
+    # never calendar-uniquely parses.
     header_safe = _dob_header_safe_text(text)
-    normalized_text = header_safe.translate(_OCR_CONFUSABLES)
-    compact = re.sub(r"\D", "", _normalize_digit_token(re.sub(r"[^0-9A-Za-z]", "", normalized_text)))
+
     def _yy_to_yyyy(yy: str) -> str:
         # Align with reconciler / evidence normalization / GT scorer:
         # YY>=30 → 19xx, else 20xx. The prior <=36→20xx pivot minted future
@@ -421,64 +425,92 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         n = int(yy)
         return f"{1900 + n:04d}" if n >= 30 else f"{2000 + n:04d}"
 
-    # Prefer digit streams that look like MM DD YY / MM DD YYYY / YYYY MM DD.
-    if len(compact) == 6:
-        return _valid(compact[:2], compact[2:4], _yy_to_yyyy(compact[4:]))
-    if len(compact) == 8:
-        if int(compact[:4]) > 1900:
-            got = _valid(compact[4:6], compact[6:8], compact[:4])
-            if got:
-                return got
-        got = _valid(compact[:2], compact[2:4], compact[4:])
-        if got:
-            return got
-        # Leading-1 loss on 19xx years: MMDD9911 → MMDD1991 (observed ink only).
-        year = compact[4:]
-        if int(year) > 2100 and year[0] == "9":
-            repaired = "1" + year[:3]
-            got = _valid(compact[:2], compact[2:4], repaired)
-            if got:
-                return got
-    # Seven digits: prefer MMDDYYY century repair (0319983 → 03/19/1983), then
-    # MMDD1YY edge-on-year (0929196 → 09/29/1996), then mid-stream insert / peels.
-    if len(compact) == 7:
-        yyy = compact[4:]
-        if yyy[0] in "89" and 1900 <= int("1" + yyy) <= 2100:
-            got = _valid(compact[:2], compact[2:4], "1" + yyy)
-            if got:
-                return got
-        # Leading edge-1 on a 2-digit year (…196 → 96 → 1996), matching token path.
-        if compact[4] == "1":
-            got = _valid(compact[:2], compact[2:4], _yy_to_yyyy(compact[5:7]))
-            if got:
-                return got
-        inserted = compact[:4] + "1" + compact[4:]
-        got = _valid(inserted[:2], inserted[2:4], inserted[4:])
-        if got:
-            return got
-        for candidate in (compact[1:], compact[:-1]):
-            if len(candidate) == 6:
-                got = _valid(candidate[:2], candidate[2:4], _yy_to_yyyy(candidate[4:]))
+    def _compact_from(raw: str) -> str:
+        normalized_text = raw.translate(_OCR_CONFUSABLES)
+        return re.sub(
+            r"\D",
+            "",
+            _normalize_digit_token(re.sub(r"[^0-9A-Za-z]", "", normalized_text)),
+        )
+
+    compact_primary = _compact_from(header_safe)
+    # Drop single letters / slash-like glyphs between digits before digit mapping.
+    sep_dropped = re.sub(r"(?<=\d)[A-Za-z|./\\](?=\d)", "", header_safe)
+    compact_sep = _compact_from(sep_dropped) if sep_dropped != header_safe else ""
+
+    def _parse_compact(compact: str) -> str | None:
+        if not compact:
+            return None
+        # Prefer digit streams that look like MM DD YY / MM DD YYYY / YYYY MM DD.
+        if len(compact) == 6:
+            return _valid(compact[:2], compact[2:4], _yy_to_yyyy(compact[4:]))
+        if len(compact) == 8:
+            if int(compact[:4]) > 1900:
+                got = _valid(compact[4:6], compact[6:8], compact[:4])
                 if got:
                     return got
-    if len(compact) == 9 and compact[0] == "1":
-        got = _valid(compact[1:3], compact[3:5], compact[5:9])
-        if got:
-            return got
-    # Nine digits from trailing-edge MM/DD peels: 051291196 → 05|29|1196 invalid,
-    # but after peeling trailing ones on heads → handled in token path; compact
-    # may still see 05291196 (8) via token peels first.
-    # Ten digits: leading-edge day + leading-edge year + trailing month
-    # (e.g. "1161194607" → 1|16|1|1946|07 → 07/16/1946). Observed ink only.
-    if (
-        len(compact) == 10
-        and compact[0] == "1"
-        and compact[3] == "1"
-        and 1900 <= int(compact[4:8]) <= 2100
-    ):
-        got = _valid(compact[8:10], compact[1:3], compact[4:8])
-        if got:
-            return got
+            got = _valid(compact[:2], compact[2:4], compact[4:])
+            if got:
+                return got
+            # Leading-1 loss on 19xx years: MMDD9911 → MMDD1991 (observed ink only).
+            year = compact[4:]
+            if int(year) > 2100 and year[0] == "9":
+                repaired = "1" + year[:3]
+                got = _valid(compact[:2], compact[2:4], repaired)
+                if got:
+                    return got
+            return None
+        # Seven digits: prefer MMDDYYY century repair (0319983 → 03/19/1983), then
+        # MMDD1YY edge-on-year (0929196 → 09/29/1996), then mid-stream insert / peels.
+        if len(compact) == 7:
+            yyy = compact[4:]
+            if yyy[0] in "89" and 1900 <= int("1" + yyy) <= 2100:
+                got = _valid(compact[:2], compact[2:4], "1" + yyy)
+                if got:
+                    return got
+            # Leading edge-1 on a 2-digit year (…196 → 96 → 1996), matching token path.
+            if compact[4] == "1":
+                got = _valid(compact[:2], compact[2:4], _yy_to_yyyy(compact[5:7]))
+                if got:
+                    return got
+            inserted = compact[:4] + "1" + compact[4:]
+            got = _valid(inserted[:2], inserted[2:4], inserted[4:])
+            if got:
+                return got
+            for candidate in (compact[1:], compact[:-1]):
+                if len(candidate) == 6:
+                    got = _valid(candidate[:2], candidate[2:4], _yy_to_yyyy(candidate[4:]))
+                    if got:
+                        return got
+            return None
+        if len(compact) == 9 and compact[0] == "1":
+            got = _valid(compact[1:3], compact[3:5], compact[5:9])
+            if got:
+                return got
+            return None
+        # Nine digits from trailing-edge MM/DD peels: 051291196 → 05|29|1196 invalid,
+        # but after peeling trailing ones on heads → handled in token path; compact
+        # may still see 05291196 (8) via token peels first.
+        # Ten digits: leading-edge day + leading-edge year + trailing month
+        # (e.g. "1161194607" → 1|16|1|1946|07 → 07/16/1946). Observed ink only.
+        if (
+            len(compact) == 10
+            and compact[0] == "1"
+            and compact[3] == "1"
+            and 1900 <= int(compact[4:8]) <= 2100
+        ):
+            got = _valid(compact[8:10], compact[1:3], compact[4:8])
+            if got:
+                return got
+        return None
+
+    primary = _parse_compact(compact_primary)
+    if primary:
+        return primary
+    if compact_sep and compact_sep != compact_primary:
+        sep_hit = _parse_compact(compact_sep)
+        if sep_hit:
+            return sep_hit
     return None
 
 
