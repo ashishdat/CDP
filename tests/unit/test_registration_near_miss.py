@@ -212,6 +212,36 @@ def test_perspective_recovery_any_uses_trail():
     assert should_attempt_perspective_recovery_any([other, mild]) is True
 
 
+def test_learned_matcher_any_ignores_later_non_catastrophic():
+    from packages.recovery.registration_near_miss import should_attempt_learned_matcher_any
+
+    catastrophic = {
+        "rejection_reason": (
+            "low_coverage,unsafe_rotation,unsafe_perspective_distortion,"
+            "invalid_transformed_corners"
+        ),
+        "inlier_count": 11,
+        "inlier_ratio": 0.20,
+        "coverage_ratio": 0.06,
+        "scale_change": 1.2,
+        "rotation_degrees": 14.0,
+        "perspective_distortion": 4.9,
+        "corner_validity": False,
+    }
+    later_mild = {
+        "rejection_reason": "unsafe_perspective_distortion",
+        "inlier_count": 11,
+        "inlier_ratio": 0.22,
+        "coverage_ratio": 0.16,
+        "scale_change": 0.96,
+        "rotation_degrees": 0.3,
+        "perspective_distortion": 0.41,
+        "corner_validity": True,
+    }
+    assert should_attempt_learned_matcher_any([catastrophic, later_mild]) is True
+    assert should_attempt_learned_matcher_any([later_mild]) is False
+
+
 def test_edge_deskew_and_rotate_preserve_mode():
     from PIL import Image
 

@@ -1,0 +1,51 @@
+{
+  "title": "Hackathon-1000 new samples \u2014 partial 84/100 (v12 cascade)",
+  "run": "evaluation_results/hackathon_100_new_cascade_v12",
+  "cohort": "hackathon docs[350:450] (disjoint from Independent-300 docs[50:350])",
+  "n": 84,
+  "partial": true,
+  "metrics": {
+    "true_stp": {
+      "count": 39,
+      "rate": 0.4642857142857143
+    },
+    "field_hitl": {
+      "count": 14,
+      "rate": 0.16666666666666666
+    },
+    "registration_hitl": {
+      "count": 31,
+      "rate": 0.36904761904761907
+    },
+    "combined_hitl": {
+      "count": 45,
+      "rate": 0.5357142857142857
+    },
+    "stage_failure": {
+      "count": 0,
+      "rate": null
+    },
+    "exact_accuracy_agent_gt": {
+      "exact": null,
+      "n": null,
+      "rate": null,
+      "status": "UNAVAILABLE_NO_AGENT_GT_FOR_NEW_COHORT"
+    },
+    "perfect_claim_exact": {
+      "exact": null,
+      "n": null,
+      "rate": null,
+      "status": "UNAVAILABLE_NO_AGENT_GT_FOR_NEW_COHORT"
+    },
+    "false_accepts": {
+      "count": null,
+      "rate": null,
+      "status": "UNAVAILABLE_NO_AGENT_GT_FOR_NEW_COHORT"
+    }
+  },
+  "disposition_counts": {
+    "REGISTRATION_FAILED": 31,
+    "TRUE_STP": 39,
+    "HITL": 14
+  }
+}

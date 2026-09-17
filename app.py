@@ -48,7 +48,9 @@ def register_classified_document(images, routing, registry, selection=None):
         content_corroboration_eligible,
         should_attempt_azure_di_page_corners,
         should_attempt_document_quad_recovery,
+        should_attempt_document_quad_recovery_any,
         should_attempt_learned_matcher,
+        should_attempt_learned_matcher_any,
         should_attempt_near_miss_boost,
         should_attempt_near_miss_boost_any,
         should_attempt_orientation_recovery_any,
@@ -598,9 +600,14 @@ def register_classified_document(images, routing, registry, selection=None):
         # geometry still warps the original page (not the rectified crop).
         if (
             not accepted
-            and evidence is not None
-            and should_attempt_document_quad_recovery(evidence)
             and "DOCUMENT_QUAD_RECOVERY" not in recovery_strategies
+            and (
+                should_attempt_document_quad_recovery_any(orientation_evidence_trail)
+                or (
+                    evidence is not None
+                    and should_attempt_document_quad_recovery(evidence)
+                )
+            )
         ):
             if aligned is not None:
                 _preserve_corroboration_candidate(aligned, evidence)
@@ -701,9 +708,13 @@ def register_classified_document(images, routing, registry, selection=None):
         # Catastrophic Step 6: SuperPoint + LightGlue (local — avoids Azure $).
         if (
             not accepted
-            and evidence is not None
-            and should_attempt_learned_matcher(evidence)
             and "LEARNED_MATCHER" not in recovery_strategies
+            and (
+                should_attempt_learned_matcher_any(orientation_evidence_trail)
+                or (
+                    evidence is not None and should_attempt_learned_matcher(evidence)
+                )
+            )
         ):
             from packages.recovery.azure_di_meter import learned_matcher_enabled
 
@@ -733,9 +744,14 @@ def register_classified_document(images, routing, registry, selection=None):
         # Catastrophic Step 7: Azure DI page corners (billable — opt-in).
         if (
             not accepted
-            and evidence is not None
-            and should_attempt_azure_di_page_corners(evidence)
             and "AZURE_DI_PAGE_CORNERS" not in recovery_strategies
+            and (
+                should_attempt_document_quad_recovery_any(orientation_evidence_trail)
+                or (
+                    evidence is not None
+                    and should_attempt_azure_di_page_corners(evidence)
+                )
+            )
         ):
             from packages.recovery.azure_di_meter import (
                 azure_di_page_corners_enabled,

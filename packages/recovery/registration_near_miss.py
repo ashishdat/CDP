@@ -19,7 +19,9 @@ DEFAULT_MIN_INLIERS = 8
 DEFAULT_MIN_COVERAGE = 0.12
 # Mild perspective: above policy 0.02 but still form-like (not torn pages).
 # Attempt ceiling allows deskew/affine retry; content corroboration stays tighter.
-MILD_PERSPECTIVE_ATTEMPT_MAX = 0.20
+# Blind-100 HJHO.* often land ~0.2–0.45 distortion with strong inliers — still
+# recoverable via edge-deskew before LightGlue.
+MILD_PERSPECTIVE_ATTEMPT_MAX = 0.50
 MILD_PERSPECTIVE_CONTENT_MAX = 0.08
 MILD_PERSPECTIVE_MAX = MILD_PERSPECTIVE_ATTEMPT_MAX  # classifier attempt band
 
@@ -301,9 +303,28 @@ def should_attempt_learned_matcher(evidence: Any) -> bool:
     return should_attempt_document_quad_recovery(evidence)
 
 
+def should_attempt_learned_matcher_any(
+    evidences: list[Any] | tuple[Any, ...] | None,
+) -> bool:
+    """True when any ladder attempt was catastrophic enough for LightGlue."""
+    for evidence in evidences or ():
+        if evidence is not None and should_attempt_learned_matcher(evidence):
+            return True
+    return False
+
+
 def should_attempt_azure_di_page_corners(evidence: Any) -> bool:
     """Authorize Azure DI polygon→quad residual after local / LightGlue miss."""
     return should_attempt_document_quad_recovery(evidence)
+
+
+def should_attempt_document_quad_recovery_any(
+    evidences: list[Any] | tuple[Any, ...] | None,
+) -> bool:
+    for evidence in evidences or ():
+        if evidence is not None and should_attempt_document_quad_recovery(evidence):
+            return True
+    return False
 
 
 def should_attempt_orientation_recovery(evidence: Any) -> bool:
