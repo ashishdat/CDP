@@ -855,6 +855,31 @@ def main() -> int:
     parser.add_argument("--no-resume", action="store_false", dest="resume")
     args = parser.parse_args()
 
+    # Stamp STP product defaults onto os.environ before pools spawn. Stale shell
+    # exports from a prior latency smoke (e.g. CDP_TROCR_DOB_RESIDUAL=0) would
+    # otherwise win over ``_stage_env`` setdefault and suppress DOB/REG recovery.
+    # Set CDP_CASCADE_RESPECT_ENV=1 to keep caller exports as-is.
+    _respect = (os.environ.get("CDP_CASCADE_RESPECT_ENV") or "").strip().casefold() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    _product = {
+        "CDP_TROCR_DOB_RESIDUAL": "1",
+        "CDP_LEARNED_MATCHER": "1",
+        "CDP_AZURE_DI_DOB_RESIDUAL": "0",
+        "CDP_AZURE_DI_CHARGE_RESIDUAL": "0",
+        "CDP_AZURE_DI_PAGE_CORNERS": "0",
+        "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",
+        "CDP_OCR_NAME_CONFIRM_MIN_CONF": "0.80",
+    }
+    for key, value in _product.items():
+        if _respect:
+            os.environ.setdefault(key, value)
+        else:
+            os.environ[key] = value
+
     out_dir = args.out_dir if args.out_dir.is_absolute() else ROOT / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
     ledger = out_dir / "results.jsonl"

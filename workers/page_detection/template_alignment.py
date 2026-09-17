@@ -295,7 +295,7 @@ def _sift_alignment(
     best_matrix = None
     best_mask = None
     best_inliers = -1
-    for _ in range(3):
+    for _ in range(7):
         matrix, mask = cv2.findHomography(
             src,
             dst,

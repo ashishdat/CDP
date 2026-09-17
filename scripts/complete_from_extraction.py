@@ -263,6 +263,7 @@ def decide(extraction, family):
             from packages.candidate_reconciliation.reconciler import (
                 _name_is_strong_person,
                 _name_is_short_fragment,
+                _name_label_contaminated,
                 _names_differ_by_confusable_edit,
                 _names_differ_by_confusable_insertion,
                 _names_differ_by_confusable_substitution,
@@ -308,15 +309,21 @@ def decide(extraction, family):
                         _name_is_short_fragment(v) or len(v) <= 4
                         for v in insured_vals
                     )
+                    all_label = bool(insured_vals) and all(
+                        _name_label_contaminated(v) for v in insured_vals
+                    )
                     top = insured_vals[0] if insured_vals else ''
                     top_weak = bool(top) and (
                         _name_is_short_fragment(top) or len(top) <= 4
                     )
+                    top_label = bool(top) and _name_label_contaminated(top)
                     if (
                         soft_twin
                         or fragment_pair
                         or all_weak
+                        or all_label
                         or top_weak
+                        or top_label
                         or not insured_vals
                     ):
                         from packages.domain.common import BoundingBox
