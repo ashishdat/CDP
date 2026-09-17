@@ -20,6 +20,8 @@ def test_charge_digit_drop_twins_from_agent_gt():
     assert prefer_currency_without_digit_drop("701.00", "70.00") == "701.00"
     # Unrelated amounts are not twins.
     assert prefer_currency_without_digit_drop("270.00", "1364.00") is None
+    # Trailing-zero padding is not a recovered digit (DI hallucination).
+    assert prefer_currency_without_digit_drop("701.00", "7010.00") is None
 
 
 def test_name_ocr_ghost_mi_prefers_shorter():

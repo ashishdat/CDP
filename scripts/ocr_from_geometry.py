@@ -278,6 +278,17 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             ]
             if confs and max(confs) < 0.88:
                 shaped = False
+        # Service-line / box-28 charges: always run confirmation. Agent-GT
+        # showed paddle truncates trailing digits that rapid recovers
+        # (157 paddle vs 1571 rapid on the same cell).
+        if shaped and name_key in {
+            'charges',
+            'charge_amount',
+            'total_charge',
+            'total_charges',
+            'amount_paid',
+        }:
+            shaped = False
         if not shaped:
             confirm = router.route(
                 OCRRouteRequest(
@@ -443,6 +454,9 @@ def _is_currency_digit_drop_twin(left: object, right: object) -> bool:
     Agent-GT residual (Independent-300): CHARGE_DIGITS_FAST drops a trailing
     digit — ``1571.00`` → ``157.00``, ``701.00`` → ``70.00``. Prefer the longer
     digit string when both are currency-shaped.
+
+    Reject trailing-zero padding (``701`` vs ``7010``) — Azure DI hallucination,
+    not a recovered digit.
     """
     a, b = _currency_digit_string(left), _currency_digit_string(right)
     if not a or not b or a == b:
@@ -451,7 +465,13 @@ def _is_currency_digit_drop_twin(left: object, right: object) -> bool:
     if not longer.startswith(shorter):
         return False
     # Allow 1–2 dropped digits (common tess whitelist miss on trailing ink).
-    return 1 <= (len(longer) - len(shorter)) <= 2
+    if not (1 <= (len(longer) - len(shorter)) <= 2):
+        return False
+    extra = longer[len(shorter) :]
+    # Pure trailing zeros are padding, not recovered charge digits.
+    if extra and set(extra) <= {"0"}:
+        return False
+    return True
 
 
 def prefer_currency_without_digit_drop(primary: object, competitor: object) -> str | None:
@@ -574,27 +594,46 @@ def recognize_service_lines(image, router, template):
 
     def _currency_value(raw_text, candidates):
         import re as _re
-        value = next((c.get('value') for c in candidates if (c.get('value') or '').strip()), None)
-        if value is None and raw_text:
-            # Fall back to span-shaped raw when candidates were empty/rejected.
-            value = raw_text
-        if value is None:
+        # Prefer longer digit-drop twin across engines (rapid 1571 > paddle 157).
+        shaped_vals = []
+        for c in candidates or []:
+            seed = (c.get('value') or '').strip() or (c.get('raw_value') or '').strip()
+            if not seed:
+                continue
+            cleaned = seed.strip()
+            if _re.search(r'[A-Za-z]', cleaned) and not _re.search(r'\d', cleaned):
+                continue
+            if not _re.search(r'\d', cleaned):
+                continue
+            if _re.search(r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()):
+                continue
+            m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
+            if not m:
+                continue
+            amount = m.group(0).lstrip('$')
+            if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
+                amount = f'{amount}.00'
+            shaped_vals.append(amount)
+        if not shaped_vals and raw_text:
+            cleaned = str(raw_text).strip()
+            if _re.search(r'\d', cleaned) and not _re.search(
+                r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()
+            ):
+                m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
+                if m:
+                    amount = m.group(0).lstrip('$')
+                    if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
+                        amount = f'{amount}.00'
+                    shaped_vals.append(amount)
+        if not shaped_vals:
             return None
-        cleaned = value.strip()
-        if _re.search(r'[A-Za-z]', cleaned) and not _re.search(r'\d', cleaned):
-            return None
-        if not _re.search(r'\d', cleaned):
-            return None
-        if _re.search(r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()):
-            return None
-        # Prefer explicit decimals; accept whole dollars from the charge column.
-        m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
-        if not m:
-            return None
-        amount = m.group(0).lstrip('$')
-        if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
-            amount = f'{amount}.00'
-        return amount
+        best = shaped_vals[0]
+        for other in shaped_vals[1:]:
+            preferred = prefer_currency_without_digit_drop(best, other)
+            if preferred:
+                best = preferred
+            # else keep best (non-twin disagreement — first engine wins)
+        return best
 
     for row_index in range(table.max_rows):
         y0 = table.table_y0 + header_offset + row_index * table.row_height_px
@@ -628,21 +667,10 @@ def recognize_service_lines(image, router, template):
         for x0, x1 in charge_windows:
             bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
             if fast:
-                candidates, attempts, reason = _recognize_charge_digits_only(image, bbox)
-            else:
+                # Agent-GT retest: tess CHARGE_DIGITS_FAST truncates (1571→157)
+                # even when paddle agrees on the truncated form — so paddle/rapid
+                # is primary under STP fast; tess digits only fill empty cells.
                 candidates, attempts, reason = _recognize_one(
-                    image, 'charges', bbox, router, charge_col.field_type)
-            raw = candidates[0].get('raw_value') if candidates else ''
-            value = _currency_value(raw, candidates)
-            fast_value = value
-            verified_value = None
-            local_conflict = False
-            # Fast digit path truncates trailing charge digits (1571→157). When
-            # a value is observed, verify with paddle/rapid and prefer the
-            # longer digit-drop twin — agent GT showed 27/27 charge misses on
-            # Independent-300 were CHARGE_DIGITS_FAST regressions vs full OCR.
-            if fast and value and router is not None:
-                v_cands, v_attempts, v_reason = _recognize_one(
                     image,
                     'charges',
                     bbox,
@@ -650,37 +678,34 @@ def recognize_service_lines(image, router, template):
                     charge_col.field_type,
                     engine_order=('paddleocr', 'rapidocr'),
                 )
-                attempts = list(attempts or []) + list(v_attempts or [])
-                v_raw = v_cands[0].get('raw_value') if v_cands else ''
-                v_value = _currency_value(v_raw, v_cands)
-                verified_value = v_value
-                if v_value:
-                    preferred = prefer_currency_without_digit_drop(value, v_value)
-                    if preferred and preferred != value:
-                        value = preferred
-                        raw = v_raw or raw
-                        candidates = v_cands or candidates
-                        reason = f'{reason}|CHARGE_DIGIT_DROP_RECOVERED:{v_reason}'
-                    elif preferred is None and v_value != value:
-                        # Non-twin disagreement: trust full OCR over tess digits.
-                        local_conflict = True
-                        value = v_value
-                        raw = v_raw or raw
-                        candidates = v_cands or candidates
-                        reason = f'{reason}|CHARGE_FAST_VERIFIED:{v_reason}'
-            # Azure DI charge-crop last resort: local empty after fast(+verify),
-            # or non-twin fast/verify conflict. Never full-page.
+                raw = candidates[0].get('raw_value') if candidates else ''
+                value = _currency_value(raw, candidates)
+                if not value:
+                    d_cands, d_attempts, d_reason = _recognize_charge_digits_only(
+                        image, bbox
+                    )
+                    attempts = list(attempts or []) + list(d_attempts or [])
+                    d_raw = d_cands[0].get('raw_value') if d_cands else ''
+                    d_value = _currency_value(d_raw, d_cands)
+                    if d_value:
+                        candidates, raw, value = d_cands, d_raw, d_value
+                        reason = f'{d_reason}|AFTER_PADDLE_EMPTY'
+            else:
+                candidates, attempts, reason = _recognize_one(
+                    image, 'charges', bbox, router, charge_col.field_type)
+                raw = candidates[0].get('raw_value') if candidates else ''
+                value = _currency_value(raw, candidates)
+            # Azure DI only to corroborate a short/ambiguous local amount or to
+            # fill a live row — never on blank leading cells (cost blow-up).
             need_di = False
             di_gap = 'CHARGE_LOCAL_EXHAUSTED'
-            if not value:
-                need_di = True
-            elif local_conflict:
-                need_di = True
-                di_gap = 'CHARGE_DIGIT_CONFLICT'
-            elif fast and fast_value and not verified_value:
-                # Fast-only read with no paddle/rapid corroboration — ask DI.
+            dollar_digits = _currency_digit_string(value) if value else ''
+            if value and len(dollar_digits) <= 3:
+                # Short amounts are the digit-drop residue class vs GT.
                 need_di = True
                 di_gap = 'AMBIGUOUS_CHARGE_DIGITS'
+            elif not value and not probe_empty:
+                need_di = True
             if need_di:
                 di_value, di_raw, di_cands, di_reason = _maybe_azure_di_charge_crop(
                     image, bbox, gap_class=di_gap
@@ -688,30 +713,29 @@ def recognize_service_lines(image, router, template):
                 if di_value:
                     if value:
                         preferred = prefer_currency_without_digit_drop(value, di_value)
-                        if preferred:
+                        # Only accept DI when it recovers dropped digits (longer
+                        # twin). Non-twin DI must not override local paddle.
+                        if preferred and preferred == di_value and preferred != value:
                             value = preferred
-                            if preferred == di_value:
-                                raw = di_raw or raw
-                                if di_cands:
-                                    candidates = list(candidates or []) + list(di_cands)
-                                reason = f'{reason}|{di_reason}|CHARGE_DI_DIGIT_DROP'
-                        else:
-                            # Conflict unresolved — prefer currency-shaped DI.
-                            value = di_value
                             raw = di_raw or raw
                             if di_cands:
                                 candidates = list(candidates or []) + list(di_cands)
-                            reason = f'{reason}|{di_reason}|CHARGE_DI_TIEBREAK'
+                            reason = f'{reason}|{di_reason}|CHARGE_DI_DIGIT_DROP'
+                            attempts = list(attempts or []) + [{
+                                'engine': 'azure_document_intelligence_read',
+                                'reason': di_reason,
+                                'observation': {'text': di_raw or di_value},
+                            }]
                     else:
                         value = di_value
                         raw = di_raw or raw
                         candidates = list(candidates or []) + list(di_cands or [])
                         reason = di_reason or 'CHARGE_AZURE_DI_CROP'
-                    attempts = list(attempts or []) + [{
-                        'engine': 'azure_document_intelligence_read',
-                        'reason': di_reason,
-                        'observation': {'text': di_raw or di_value},
-                    }]
+                        attempts = list(attempts or []) + [{
+                            'engine': 'azure_document_intelligence_read',
+                            'reason': di_reason,
+                            'observation': {'text': di_raw or di_value},
+                        }]
             score = 0
             if value:
                 score = 3 if '.' in value else 2
