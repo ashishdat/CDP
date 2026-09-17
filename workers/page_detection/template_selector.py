@@ -5,6 +5,7 @@ from math import isfinite
 
 from packages.domain.enums import ClaimFormType
 from workers.page_detection.anchor_matching import verify_anchors
+from workers.page_detection.page_classification import is_separator
 from workers.page_detection.grid_signature import compute_grid_signature, signature_similarity
 from workers.page_detection.registration_telemetry import registration_context
 from workers.page_detection.router import (
@@ -63,7 +64,10 @@ class TemplateSelector:
             if not templates:
                 return TemplateSelection(None, 0.0, "UNKNOWN_DOCUMENT_TYPE", [])
         pairs = [(template, page, image) for template in templates
-                 for page, image in enumerate(images, 1)]
+                 for page, image in enumerate(images, 1)
+                 if not is_separator(text_lines.get(page, []))]
+        if not pairs:
+            return TemplateSelection(None, 0.0, "NON_PROCESSABLE", [])
         candidates = [{"template_id": template.template_id, "template_version": template.version,
                        "page_number": page, "scores": {}, "reasons": []}
                       for template, page, _ in pairs]

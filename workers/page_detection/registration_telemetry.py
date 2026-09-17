@@ -79,6 +79,10 @@ def failed(reason, **data):
 def traced_registration(function):
     @wraps(function)
     def execute(*args, **kwargs):
+        from dataclasses import replace
+        from workers.page_detection.registration_strategy import ACTIVE_MACHINE, RegistrationStateMachine
+        machine = RegistrationStateMachine()
+        machine_token = ACTIVE_MACHINE.set(machine)
         trace = RegistrationTrace()
         collection = COLLECTION.get()
         if collection is not None:
@@ -88,21 +92,30 @@ def traced_registration(function):
         trace.emit("Anchor Detection", "SKIPPED", reason="Not executed by image registration")
         try:
             result = function(*args, **kwargs)
+            if result.accepted:
+                machine.enter('SUCCESS')
+            else:
+                machine.fail(result.evidence.rejection_reason if result.evidence else 'No result evidence')
+            result = replace(result, registration_state=machine.snapshot())
             evidence = result.evidence.model_dump(mode="json") if result.evidence else None
             trace.end("SUCCESS" if result.accepted else "FAILED",
                       None if result.accepted else (evidence or {}).get("rejection_reason"),
                       evidence=evidence)
-            trace.emit("Registration Finished", "SUCCESS" if result.accepted else "FAILED",
+            trace.emit("Registration Finished", "SUCCESS" if result.accepted else machine.failure_reason,
+                       registration_state=machine.snapshot(),
                        reason=None if result.accepted else (evidence or {}).get("rejection_reason"),
                        latency=(trace.clock() - trace.started) * 1000, evidence=evidence)
             return result
         except Exception as exc:
-            trace.end("FAILED", type(exc).__name__)
-            trace.emit("Registration Finished", "FAILED", reason=type(exc).__name__,
+            machine.fail(type(exc).__name__)
+            trace.end(machine.failure_reason, type(exc).__name__)
+            trace.emit("Registration Finished", machine.failure_reason, reason=type(exc).__name__,
+                       registration_state=machine.snapshot(),
                        latency=(trace.clock() - trace.started) * 1000)
             raise
         finally:
             ACTIVE.reset(token)
+            ACTIVE_MACHINE.reset(machine_token)
     return execute
 
 

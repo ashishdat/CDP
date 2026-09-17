@@ -12,6 +12,7 @@ from PIL import Image
 
 from packages.domain.registration import RegistrationEvidence
 from workers.page_detection import registration_telemetry as telemetry
+from workers.page_detection import registration_strategy as strategy
 from workers.page_detection.registration_coverage import (
     capture_inliers,
     capture_keypoints,
@@ -71,6 +72,7 @@ class AlignmentResult:
     compatibility: TemplateCompatibilityEvidence | None = None
     cheap_evidence: RegistrationEvidence | None = None
     sift_attempted: bool = False
+    registration_state: dict | None = None
 
 
 def _gray(image: Image.Image) -> np.ndarray:
@@ -180,6 +182,7 @@ def _sift_alignment(
     candidate: np.ndarray, reference: np.ndarray, policy: RegistrationPolicy
 ) -> AlignmentResult:
     started = perf_counter()
+    strategy.enter("CORRESPONDENCE_CHECK")
     telemetry.stage("Feature Matching", algorithm="sift_flann_ransac_homography")
     sift = cv2.SIFT_create(nfeatures=policy.sift_features)
     before_source = len(sift.detect(candidate, None))
@@ -249,6 +252,13 @@ def _sift_alignment(
                      ransac_inputs={"source_points": src.tolist(), "template_points": dst.tolist(),
                                     "reprojection_threshold": policy.ransac_reprojection_threshold},
                      reason="Inputs captured after one-to-one template filtering, before existing homography call")
+    spatial = strategy.correspondence_evidence(src, dst)
+    if not spatial['valid']:
+        machine = strategy.ACTIVE_MACHINE.get()
+        if machine is not None:
+            machine.record('REJECTED', correspondence_evidence=spatial)
+        return _failure('sift_flann_ransac_homography', 'degenerate_correspondences', **common)
+    strategy.enter("HOMOGRAPHY", correspondence_evidence=spatial)
     telemetry.stage("Homography", matched_features=len(good))
     matrix, mask = cv2.findHomography(src, dst, cv2.RANSAC, policy.ransac_reprojection_threshold)
     if matrix is None or mask is None:
@@ -258,6 +268,7 @@ def _sift_alignment(
             (perf_counter() - started) * 1000,
             **common,
         )
+    strategy.enter("SAFETY")
     inliers = mask.ravel().astype(bool)
     capture_inliers(good, inliers, kp_source, kp_template)
     inlier_count = int(inliers.sum())
@@ -390,38 +401,26 @@ def align_to_reference(
     enforce_compatibility_precheck: bool = False,
     compatibility_evidence: TemplateCompatibilityEvidence | None = None,
 ) -> AlignmentResult:
+    strategy.enter("ASSET_CHECK")
+    if candidate is None or reference is None:
+        return _failure('asset_check', 'REFERENCE_OR_SOURCE_IMAGE_UNAVAILABLE')
     selected = policy or DEFAULT_REGISTRATION_POLICY
     observe_coverage("Input image", candidate, reference, preprocessing="Before grayscale conversion")
     candidate_arr, reference_arr = _gray(candidate), _gray(reference)
+    strategy.enter("LINEAGE_CHECK")
     compatibility = compatibility_evidence or assess_template_compatibility(
         candidate, reference, family=family
     )
+    if compatibility.status == TemplateCompatibilityStatus.INCOMPATIBLE:
+        rejected = _failure('template_compatibility_precheck', 'template_lineage_mismatch')
+        return AlignmentResult(**{**rejected.__dict__, 'compatibility': compatibility})
+    # Cheap edge alignment estimates translation/scale, not a correspondence homography.
+    strategy.enter("CORRESPONDENCE_CHECK", applicability='SIFT branch only')
+    strategy.enter("SAFETY", algorithm='edge_phase_correlation')
     cheap = _cheap_alignment(candidate_arr, reference_arr, selected)
     if cheap.success:
-        return AlignmentResult(
-            **{
-                **cheap.__dict__,
-                "compatibility": compatibility,
-                "cheap_evidence": cheap.evidence,
-            }
-        )
-    if (
-        enforce_compatibility_precheck
-        and compatibility.status == TemplateCompatibilityStatus.INCOMPATIBLE
-    ):
-        telemetry.stage("Acceptance", algorithm="template_compatibility_precheck")
-        rejected = _failure(
-            "template_compatibility_precheck",
-            "template_lineage_mismatch",
-        )
-        return AlignmentResult(
-            **{
-                **rejected.__dict__,
-                "compatibility": compatibility,
-                "cheap_evidence": cheap.evidence,
-                "sift_attempted": False,
-            }
-        )
+        return AlignmentResult(**{**cheap.__dict__, 'compatibility': compatibility,
+                                  'cheap_evidence': cheap.evidence})
     sift = _sift_alignment(candidate_arr, reference_arr, selected)
     return AlignmentResult(
         **{

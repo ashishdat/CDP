@@ -134,7 +134,7 @@ def resolve_registered_geometry(images, registration, registry):
             'warnings': ['NO_FOREGROUND is an empty geometry result, not an OCR or validation decision']}
 
 def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs",
-                document_type=None):
+                document_type=None, classification_only=False):
     """Decode one entire TIFF in memory, then invoke existing runtime routing.
 
     This assembly stops at the first missing integration. It does not replace
@@ -203,11 +203,29 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
                 observed_lines[id(image)] = lines
                 return lines
 
+        from workers.page_detection.page_classification import classify_page, write_classification_report
         registry = TemplateRegistry.load_from_directory()
+        classifier = ClassificationTextExtractor(psm=11)
+        templates = [t for family in ClaimFormType for t in registry.all_for_form_type(family)]
+        page_classifications = [classify_page(image, classifier.extract(image), templates, page)
+                                for page, image in enumerate(images, 1)]
+        state["page_classifications"] = [asdict(item) for item in page_classifications]
+        write_classification_report(page_classifications, output)
+        if classification_only:
+            state["stages"][stage] = "SUCCESS"
+            state["latency_ms"][stage] = (perf_counter() - started) * 1000
+            state["status"] = "SUCCESS"
+            state["stop_after"] = "classification"
+            return output / "document.json", state
+
+        class CachedClassificationTextExtractor:
+            def extract(self, image):
+                return observed_lines[id(image)]
+
         cms = registry.latest_for_form_type(ClaimFormType.CMS1500)
         ub = registry.latest_for_form_type(ClaimFormType.UB04)
         router = PageRoutingService(
-            cms_template=cms, ub_template=ub, text_extractor=ClassificationTextExtractor(psm=11),
+            cms_template=cms, ub_template=ub, text_extractor=CachedClassificationTextExtractor(),
             cms_reference_image=registry.load_reference_image(cms),
             ub_reference_image=registry.load_reference_image(ub),
         )
@@ -301,10 +319,11 @@ def main():
     parser.add_argument("--output-root", default="runs")
     parser.add_argument("--document-type", choices=("CMS1500", "UB04", "UNSTRUCTURED"),
                         help="Explicit operator-supplied document type; never inferred from filename")
+    parser.add_argument("--classification-only", action="store_true")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     path, state = process_one(args.dataset, document=args.document, output_root=args.output_root,
-                              document_type=args.document_type)
+                              document_type=args.document_type, classification_only=args.classification_only)
     print(path.resolve())
     return 0 if state["status"] == "SUCCESS" else 1
 

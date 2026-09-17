@@ -21,9 +21,9 @@ def test_live_events_order_serialization_failures_and_missing_stages(tmp_path):
     events = traces[0].events
     assert events[0]["stage"] == "Registration Started"
     assert events[-1]["stage"] == "Registration Finished"
-    assert events[-1]["status"] == "FAILED"
+    assert events[-1]["status"] == "LineageFailure"
     assert [event["sequence"] for event in events] == list(range(1, len(events) + 1))
-    assert any(event["status"] == "FAILED" and event["reason"] for event in events)
+    assert any(event["status"] == "LineageFailure" for event in events)
     assert all(set(FIELDS) <= event.keys() for event in events)
     assert all(event["latency"] >= 0 for event in events)
     assert events[1]["status"] == "SKIPPED"
@@ -32,7 +32,7 @@ def test_live_events_order_serialization_failures_and_missing_stages(tmp_path):
     assert "Homography" in payload["traces"][0]["missing_events"]
     report = build_report({"registration_trace": payload})
     assert report["attempt_count"] == 1
-    assert report["attempts"][0]["first_failing_stage"] == "Feature Matching"
+    assert result.registration_state["RegistrationState"] == "LINEAGE_CHECK"
 
 
 def test_latency_uses_monotonic_clock():
@@ -43,11 +43,11 @@ def test_latency_uses_monotonic_clock():
     assert trace.events[-1]["latency"] == 125.0
 
 
-def test_exception_emits_finish_and_preserves_exception():
-    with collect_traces() as traces, pytest.raises(AttributeError):
-        align_to_reference(None, None)
-    assert traces[0].events[-1]["reason"] == "AttributeError"
-    assert traces[0].events[-1]["status"] == "FAILED"
+def test_missing_asset_emits_typed_failure():
+    with collect_traces() as traces:
+        result = align_to_reference(None, None)
+    assert result.registration_state['FailureReason'] == 'AssetFailure'
+    assert traces[0].events[-1]['status'] == 'AssetFailure'
 
 
 def test_reports_do_not_reconstruct_old_registration_scores():
@@ -99,9 +99,12 @@ def test_event_is_emitted_before_feature_engine_executes(monkeypatch):
         assert ACTIVE.get().events[-1]["status"] == "STARTED"
         raise RuntimeError("engine failure")
 
+    from types import SimpleNamespace
+    monkeypatch.setattr(template_alignment, 'assess_template_compatibility',
+                        lambda *a, **k: SimpleNamespace(status='COMPATIBLE'))
     monkeypatch.setattr(template_alignment.cv2, "SIFT_create", fail_at_feature_engine)
     with (Image.new("L", (100, 100), 255) as image, collect_traces() as traces,
           pytest.raises(RuntimeError, match="engine failure")):
         align_to_reference(image, image)
     assert traces[0].events[-2]["stage"] == "Feature Matching"
-    assert traces[0].events[-2]["status"] == "FAILED"
+    assert traces[0].events[-2]["status"] == "CorrespondenceFailure"

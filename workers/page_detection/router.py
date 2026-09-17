@@ -29,6 +29,7 @@ from packages.domain.enums import BundleType, ClassificationMethod, PageRole
 from packages.domain.registration import RegistrationEvidence
 from packages.templates.models import Template
 from workers.page_detection.anchor_matching import AnchorMatchResult, verify_anchors
+from workers.page_detection.page_classification import is_separator
 from workers.page_detection.grid_signature import (
     GridSignature,
     compute_grid_signature,
@@ -130,6 +131,11 @@ class PageRoutingService:
         # families. Previously a non-CMS page was passed through PaddleOCR
         # twice (CMS check, then UB check), doubling peak work and memory.
         anchor_lines = self._extract_anchor_lines(image)
+        if is_separator(anchor_lines or []):
+            return PageRoutingResult(
+                bundle_type=BundleType.D_UNSTRUCTURED, selected_page_number=None, template=None,
+                page_roles={1: PageRole.ATTACHMENT}, page_scores={}, needs_review=False,
+                reason_codes=["NON_PROCESSABLE", "DOCUMENT_SEPARATOR"])
         if self._enable_router_v3 and anchor_lines is not None:
             return self._canonical_single_page(image, anchor_lines)
         cms_anchors = self._anchor_score(anchor_lines, self._cms_template)
@@ -317,7 +323,12 @@ class PageRoutingService:
         scores: dict[int, PageCandidateScore] = {}
 
         for index, image in enumerate(images, start=1):
-            anchors = self._anchor_score(self._extract_anchor_lines(image), self._cms_template)
+            lines = self._extract_anchor_lines(image)
+            if is_separator(lines or []):
+                scores[index] = PageCandidateScore(index, ClassificationMethod.ANCHOR_PHRASE,
+                                                   0.0, ["NON_PROCESSABLE", "DOCUMENT_SEPARATOR"])
+                continue
+            anchors = self._anchor_score(lines, self._cms_template)
             if anchors is not None and anchors.confidence > 0:
                 scores[index] = PageCandidateScore(
                     page_number=index,
@@ -403,6 +414,8 @@ class PageRoutingService:
             decisions=[]
             for page_number,image in enumerate(images,start=1):
                 lines=self._extract_anchor_lines(image) or []
+                if is_separator(lines):
+                    continue
                 decisions.append((page_number,self._multi_signal_router.route(image,lines)))
             standards=[item for item in decisions if item[1].route in {
                 MultiSignalRoute.CMS1500,MultiSignalRoute.UB04}]
