@@ -278,9 +278,10 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             ]
             if confs and max(confs) < 0.88:
                 shaped = False
-        # Service-line / box-28 charges: always run confirmation. Agent-GT
-        # showed paddle truncates trailing digits that rapid recovers
-        # (157 paddle vs 1571 rapid on the same cell).
+        # Service-line / box-28 charges: paddle often truncates trailing digits
+        # that rapid recovers (157 vs 1571). Force confirm ONLY on short amounts
+        # (digit-drop risk). Always-confirm regressed Independent-300 wall from
+        # ~128s p50 (v12.2) to ~243s p50 — far above the cascade speed bar.
         if shaped and name_key in {
             'charges',
             'charge_amount',
@@ -288,7 +289,17 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             'total_charges',
             'amount_paid',
         }:
-            shaped = False
+            primary_val = next(
+                (
+                    str(c.get('value') or c.get('raw_value') or '').strip()
+                    for c in candidates
+                    if (c.get('value') or c.get('raw_value') or '').strip()
+                ),
+                '',
+            )
+            digits = _currency_digit_string(primary_val)
+            if digits and len(digits) <= 3:
+                shaped = False
         if not shaped:
             confirm = router.route(
                 OCRRouteRequest(
@@ -588,9 +599,9 @@ def recognize_service_lines(image, router, template):
     ]
     fast = _ocr_fast_mode()
     if fast:
-        # Primary + one alternate window is enough for STP E6; 4 windows × paddle
-        # × tess was the dominant multi-minute bottleneck under 4 workers.
-        charge_windows = charge_windows[:2]
+        # One charge x-window under STP fast — second window doubled OCR wall
+        # with little lift once paddle→conditional-rapid is in place.
+        charge_windows = charge_windows[:1]
 
     def _currency_value(raw_text, candidates):
         import re as _re

@@ -33,4 +33,15 @@ CDP_REGISTRATION_ORIENTATION_VLM=1  # gated VLM orientation hint before fail-clo
 
 Solo OCR benchmark (one claim, stp_critical): **~11.4s → ~7.2s** after selective + Paddle-primary.
 
+Cascade claim wall (Independent-300, 3 workers, this VM):
+
+| Run | p50 elapsed | Notes |
+| --- | ---: | --- |
+| v12.2 | ~128s | selective + paddle-primary (prod-ish bar) |
+| v12.3 early | ~243s | always dual-engine on charges (regressed) |
+| Target | **≤ v12.2 p50** | conditional rapid confirm on short charges only |
+
+Charge confirm policy: force rapid only when primary currency has **≤3 dollar digits**
+(digit-drop risk). Longer amounts stay single-engine under selective confirm.
+
 Inference-scoped lock lets registration+warp overlap across workers while still serializing heavy OCR.
