@@ -25,11 +25,18 @@ Accuracy ≠ STP: labels measure value exactness; STP also needs AUTO dispositio
 4. **Abstain honesty** — no GT for unreadable DOB; Azure/TrOCR may add GOLD later when ink resolves.
 5. **Prefer GOLD** for calibration; SILVER charges from v11 line-sum are the charge oracle that exposed the fast-digit regression.
 
-## Shipped residuals (this pass)
+## Shipped residuals
 
 1. **Charge digit-drop recovery** — after `CHARGE_DIGITS_FAST`, verify with paddle/rapid; prefer longer digit-drop twin (`157`←`1571`) or full-OCR on non-twin disagreement.
-2. **OCR ghost MI preference** — prefer name without lone `I/1/L/T` MI when engines disagree.
-3. **GT scorer soft-match** — optional MI + ghost MI count as exact vs labels.
+2. **Azure DI charge-crop residual** — if local still empty / conflict / uncorroborated fast-only, one `prebuilt-read` crop on the charge cell (`CDP_AZURE_DI_CHARGE_RESIDUAL=1`). Currency-shaped crops accept via `CDP_AZURE_DI_CHARGE_ACCEPT=1`. Full-page corners stay off.
+3. **OCR ghost MI preference** — prefer name without lone `I/1/L/T` MI when engines disagree.
+4. **GT scorer soft-match** — optional MI + ghost MI count as exact vs labels.
+
+### Charge ladder (cost-aware)
+
+```
+CHARGE_DIGITS_FAST → paddle/rapid verify → Azure DI charge crop → HITL
+```
 
 ## Next lifts (ordered by GT leverage)
 

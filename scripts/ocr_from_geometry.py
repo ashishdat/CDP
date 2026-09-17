@@ -523,6 +523,32 @@ def _recognize_charge_digits_only(image, bbox):
     return candidates, attempts, 'CHARGE_DIGITS_FAST'
 
 
+def _maybe_azure_di_charge_crop(image, bbox, *, gap_class='CHARGE_LOCAL_EXHAUSTED'):
+    """Last-resort Azure DI prebuilt-read on one charge cell crop.
+
+    Returns (value, raw, candidates_list, reason). Empty when disabled / miss.
+    """
+    try:
+        from packages.extraction_recovery.charge_azure_di_residual import (
+            azure_di_charge_residual_enabled,
+            residual_candidate_dict,
+            try_charge_azure_di_crop,
+        )
+    except Exception:
+        return None, None, [], 'CHARGE_DI_IMPORT_ERROR'
+    if not azure_di_charge_residual_enabled():
+        return None, None, [], 'CHARGE_DI_DISABLED'
+    result = try_charge_azure_di_crop(
+        image, bbox, field_name='charges', gap_class=gap_class
+    )
+    if not result.attempted or not result.currency_shaped or not result.value:
+        return None, None, [], result.reason
+    if result.review_only:
+        return None, None, [], result.reason
+    cand = residual_candidate_dict(result, bbox=bbox, image_size=image.size)
+    return result.value, result.raw_value or result.value, ([cand] if cand else []), result.reason
+
+
 def recognize_service_lines(image, router, template):
     """OCR CMS-1500 service-line charge cells for claim-total E6 confirmation."""
     table = getattr(template, 'service_line_region', None) if template is not None else None
@@ -608,6 +634,9 @@ def recognize_service_lines(image, router, template):
                     image, 'charges', bbox, router, charge_col.field_type)
             raw = candidates[0].get('raw_value') if candidates else ''
             value = _currency_value(raw, candidates)
+            fast_value = value
+            verified_value = None
+            local_conflict = False
             # Fast digit path truncates trailing charge digits (1571→157). When
             # a value is observed, verify with paddle/rapid and prefer the
             # longer digit-drop twin — agent GT showed 27/27 charge misses on
@@ -624,6 +653,7 @@ def recognize_service_lines(image, router, template):
                 attempts = list(attempts or []) + list(v_attempts or [])
                 v_raw = v_cands[0].get('raw_value') if v_cands else ''
                 v_value = _currency_value(v_raw, v_cands)
+                verified_value = v_value
                 if v_value:
                     preferred = prefer_currency_without_digit_drop(value, v_value)
                     if preferred and preferred != value:
@@ -633,10 +663,55 @@ def recognize_service_lines(image, router, template):
                         reason = f'{reason}|CHARGE_DIGIT_DROP_RECOVERED:{v_reason}'
                     elif preferred is None and v_value != value:
                         # Non-twin disagreement: trust full OCR over tess digits.
+                        local_conflict = True
                         value = v_value
                         raw = v_raw or raw
                         candidates = v_cands or candidates
                         reason = f'{reason}|CHARGE_FAST_VERIFIED:{v_reason}'
+            # Azure DI charge-crop last resort: local empty after fast(+verify),
+            # or non-twin fast/verify conflict. Never full-page.
+            need_di = False
+            di_gap = 'CHARGE_LOCAL_EXHAUSTED'
+            if not value:
+                need_di = True
+            elif local_conflict:
+                need_di = True
+                di_gap = 'CHARGE_DIGIT_CONFLICT'
+            elif fast and fast_value and not verified_value:
+                # Fast-only read with no paddle/rapid corroboration — ask DI.
+                need_di = True
+                di_gap = 'AMBIGUOUS_CHARGE_DIGITS'
+            if need_di:
+                di_value, di_raw, di_cands, di_reason = _maybe_azure_di_charge_crop(
+                    image, bbox, gap_class=di_gap
+                )
+                if di_value:
+                    if value:
+                        preferred = prefer_currency_without_digit_drop(value, di_value)
+                        if preferred:
+                            value = preferred
+                            if preferred == di_value:
+                                raw = di_raw or raw
+                                if di_cands:
+                                    candidates = list(candidates or []) + list(di_cands)
+                                reason = f'{reason}|{di_reason}|CHARGE_DI_DIGIT_DROP'
+                        else:
+                            # Conflict unresolved — prefer currency-shaped DI.
+                            value = di_value
+                            raw = di_raw or raw
+                            if di_cands:
+                                candidates = list(candidates or []) + list(di_cands)
+                            reason = f'{reason}|{di_reason}|CHARGE_DI_TIEBREAK'
+                    else:
+                        value = di_value
+                        raw = di_raw or raw
+                        candidates = list(candidates or []) + list(di_cands or [])
+                        reason = di_reason or 'CHARGE_AZURE_DI_CROP'
+                    attempts = list(attempts or []) + [{
+                        'engine': 'azure_document_intelligence_read',
+                        'reason': di_reason,
+                        'observation': {'text': di_raw or di_value},
+                    }]
             score = 0
             if value:
                 score = 3 if '.' in value else 2
@@ -707,6 +782,20 @@ def recognize_service_lines(image, router, template):
                 value = _currency_value(raw, candidates)
                 if value:
                     break
+            if not value and bbox is not None:
+                di_value, di_raw, di_cands, di_reason = _maybe_azure_di_charge_crop(
+                    image, bbox, gap_class='CHARGE_LOCAL_EXHAUSTED'
+                )
+                if di_value:
+                    value = di_value
+                    raw = di_raw or ''
+                    candidates = list(candidates or []) + list(di_cands or [])
+                    reason = f'{reason}|{di_reason}' if reason else di_reason
+                    attempts = list(attempts or []) + [{
+                        'engine': 'azure_document_intelligence_read',
+                        'reason': di_reason,
+                        'observation': {'text': di_raw or di_value},
+                    }]
             if not value:
                 if lines:
                     break

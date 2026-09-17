@@ -25,10 +25,14 @@ registration_azure_di_corners_enabled: false
 registration_vlm_corners_enabled: false
 # Azure Document Intelligence Read remains available after TrOCR miss.
 azure_document_intelligence_enabled: true
-azure_document_intelligence_invoke_when: LOCAL_OCR_EXHAUSTED_AFTER_TROCR_OR_REGISTRATION_CORNERS
+azure_document_intelligence_invoke_when: LOCAL_OCR_EXHAUSTED_AFTER_TROCR_OR_REGISTRATION_CORNERS_OR_CHARGE_CROP
 azure_document_intelligence_model: prebuilt-read
-# DOB crop residual may accept locally via TrOCR; Azure DI crop stays review-only.
+# DOB crop residual may accept locally via TrOCR; Azure DI crop stays review-only
+# until CDP_AZURE_DI_DOB_ACCEPT / CDP_AZURE_DI_CHARGE_ACCEPT promote shaped crops.
 azure_document_intelligence_review_only_until_promoted: true
+# Charge cell crops: local fast+paddle/rapid first; Azure DI last (billable crop).
+# Disable with CDP_AZURE_DI_CHARGE_RESIDUAL=0. Full-page corners stay off.
+azure_di_charge_crop_residual_enabled: true
 textract_enabled: true
 textract_invoke_when: LOCAL_OCR_EXHAUSTED_AND_BLOCKS_STP_AFTER_AZURE_DI
 textract_api: DetectDocumentText

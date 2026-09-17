@@ -109,6 +109,38 @@ def plan_field_escalation(
             review_only=True,
         )
 
+    if gap in {
+        "CHARGE_LOCAL_EXHAUSTED",
+        "CHARGE_DIGIT_CONFLICT",
+        "AMBIGUOUS_CHARGE_DIGITS",
+    } or (
+        field in {"total_charge", "total_charges", "charges", "charge_amount"}
+        and gap == "AMBIGUOUS_DIGIT_FRAGMENTS"
+    ):
+        # Service-line / box-28 crop residual after local fast+paddle/rapid.
+        # Prefer Azure DI crop (cheap) over Docling/full-page; never common path.
+        charge_di_on = bool(policy.get("azure_document_intelligence_enabled", False))
+        # Env can disable charge crops independently of DOB/corners.
+        import os
+
+        env_off = (os.environ.get("CDP_AZURE_DI_CHARGE_RESIDUAL") or "1").strip().casefold() in {
+            "0",
+            "false",
+            "no",
+            "off",
+        }
+        if charge_di_on and not env_off and not azure_di_attempted:
+            return EscalationDecision(
+                EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ,
+                "Charge cell residual — Azure DI prebuilt-read crop after local verify",
+                review_only=di_review_only,
+            )
+        return EscalationDecision(
+            EscalationTool.REACT_FIELD_HITL,
+            "Charge residual without Azure DI — field-scoped human entry",
+            review_only=True,
+        )
+
     if gap == "EMPTY_FINANCIAL_INK" or (
         field in {"total_charge", "total_charges", "charges"} and empty_financial_ink
     ):

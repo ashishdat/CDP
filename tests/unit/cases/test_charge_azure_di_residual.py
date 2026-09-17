@@ -1,0 +1,160 @@
+"""Crop-scoped Azure DI charge residual tests."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from PIL import Image
+
+from packages.extraction_recovery.charge_azure_di_residual import (
+    ChargeAzureDiResidualResult,
+    is_charge_local_residual,
+    maybe_attach_charge_azure_di_to_field_row,
+    promote_currency_shaped,
+    residual_candidate_dict,
+    run_charge_azure_di_residual,
+    try_charge_azure_di_crop,
+)
+from packages.tool_escalation import EscalationTool, plan_field_escalation
+from scripts.ocr_from_geometry import prefer_currency_without_digit_drop
+
+
+@dataclass
+class _FakeCropEngine:
+    text: str
+
+    def recognize_crop(
+        self, crop: Image.Image, field_name: str
+    ) -> ChargeAzureDiResidualResult:
+        assert crop.size[0] > 0 and crop.size[1] > 0
+        assert field_name in {"charges", "total_charge"}
+        return ChargeAzureDiResidualResult(
+            attempted=True,
+            configured=True,
+            review_only=True,
+            value=self.text,
+            raw_value=self.text,
+            currency_shaped=True,
+            reason="AZURE_DI_CURRENCY_SHAPED_REVIEW_ONLY",
+            validation_results=("SHADOW_REVIEW_ONLY",),
+        )
+
+
+def test_is_charge_local_residual_gates():
+    assert is_charge_local_residual(
+        field_name="charges",
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        local_accepted=False,
+    )
+    assert not is_charge_local_residual(
+        field_name="charges",
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        local_accepted=True,
+    )
+    assert not is_charge_local_residual(
+        field_name="patient_dob",
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        local_accepted=False,
+    )
+
+
+def test_planner_selects_azure_di_for_charge_crop():
+    decision = plan_field_escalation(
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        field_name="charges",
+        regional_ocr_attempted=True,
+        azure_di_attempted=False,
+    )
+    assert decision.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
+
+
+def test_planner_charge_conflict_before_docling():
+    decision = plan_field_escalation(
+        gap_class="CHARGE_DIGIT_CONFLICT",
+        field_name="total_charge",
+        regional_ocr_attempted=True,
+        empty_financial_ink=True,
+        azure_di_attempted=False,
+    )
+    assert decision.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
+
+
+def test_run_charge_azure_di_with_injected_engine(monkeypatch):
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
+    img = Image.new("RGB", (200, 80), color=(255, 255, 255))
+    result = run_charge_azure_di_residual(
+        image=img,
+        bbox=(10, 10, 180, 70),
+        field_name="charges",
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        engine=_FakeCropEngine("1571.00"),
+    )
+    assert result.attempted is True
+    assert result.currency_shaped is True
+    promoted = promote_currency_shaped(result)
+    assert promoted.review_only is False
+    assert promoted.value == "1571.00"
+    cand = residual_candidate_dict(promoted)
+    assert cand is not None
+    assert cand["engine"] == "azure_document_intelligence_read"
+
+
+def test_try_charge_digit_drop_vs_local():
+    """DI longer twin preferred over truncated local fast read."""
+    preferred = prefer_currency_without_digit_drop("157.00", "1571.00")
+    assert preferred == "1571.00"
+
+
+def test_attach_skips_accepted_local_charge():
+    img = Image.new("RGB", (200, 80), color=(255, 255, 255))
+    row = {
+        "field": "total_charge",
+        "canonical_region": [10, 10, 180, 70],
+        "ocr_region": [10, 10, 180, 70],
+        "candidates": [{"value": "270.00", "engine": "paddleocr"}],
+        "cascade": {"accepted": True, "accept_reason": "LINE_TOTALS"},
+    }
+    updated = maybe_attach_charge_azure_di_to_field_row(
+        row,
+        image=img,
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        engine=_FakeCropEngine("1364.00"),
+    )
+    assert updated["azure_di_residual"]["reason"] == "NOT_CHARGE_LOCAL_RESIDUAL"
+
+
+def test_attach_promotes_currency_shaped_on_miss(monkeypatch):
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
+    img = Image.new("RGB", (200, 80), color=(255, 255, 255))
+    row = {
+        "field": "charges",
+        "canonical_region": [10, 10, 180, 70],
+        "ocr_region": [10, 10, 180, 70],
+        "candidates": [],
+        "cascade": {"accepted": False, "accept_reason": "EMPTY"},
+    }
+    updated = maybe_attach_charge_azure_di_to_field_row(
+        row,
+        image=img,
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        engine=_FakeCropEngine("701.00"),
+    )
+    assert updated["azure_di_residual"]["attempted"] is True
+    assert updated["azure_di_residual"]["currency_shaped"] is True
+    assert updated["cascade"]["accepted"] is True
+    assert any(
+        c.get("engine") == "azure_document_intelligence_read"
+        for c in updated["candidates"]
+    )
+
+
+def test_try_charge_disabled(monkeypatch):
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
+    img = Image.new("RGB", (200, 80), color=(255, 255, 255))
+    result = try_charge_azure_di_crop(
+        img, (10, 10, 180, 70), engine=_FakeCropEngine("100.00")
+    )
+    assert result.attempted is False
+    assert result.reason == "AZURE_DI_CHARGE_RESIDUAL_DISABLED"

@@ -256,6 +256,8 @@ def _stage_env() -> dict[str, str]:
     # Cost defaults: local residuals on; full-page Azure DI corners off unless set.
     env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
     env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "1")  # crop-only after TrOCR miss
+    env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")  # crop-only after local charge verify
+    env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")  # accept currency-shaped charge crops
     env.setdefault("CDP_LEARNED_MATCHER", "1")  # local — avoids Azure $
     env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")  # billable full-page; opt-in
     env.setdefault(
