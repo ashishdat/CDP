@@ -46,14 +46,20 @@ def register_classified_document(images, routing, registry, selection=None):
         assess_evidence_near_miss,
         best_orientation_rotation_degrees,
         content_corroboration_eligible,
+        should_attempt_document_quad_recovery,
         should_attempt_near_miss_boost,
         should_attempt_orientation_recovery_any,
         should_attempt_perspective_recovery,
     )
     from packages.recovery.orientation_hint import ordered_orientation_attempts
+    from packages.recovery.document_quad import (
+        compose_source_to_template,
+        detect_document_quad,
+    )
     from packages.recovery.planner import Strategy
     from workers.page_detection.registration_telemetry import registration_context
     from workers.page_detection.template_alignment import (
+        AlignmentResult,
         align_near_miss_boosted,
         align_perspective_recovery,
         align_to_reference,
@@ -566,6 +572,110 @@ def register_classified_document(images, routing, registry, selection=None):
                     best_orient,
                     "orientation_recovery",
                     "ORIENTATION_ROTATE_RETRY",
+                )
+
+        # Catastrophic Step 5: document-quad crop → re-SIFT; compose H so
+        # geometry still warps the original page (not the rectified crop).
+        if (
+            not accepted
+            and evidence is not None
+            and should_attempt_document_quad_recovery(evidence)
+            and "DOCUMENT_QUAD_RECOVERY" not in recovery_strategies
+        ):
+            if aligned is not None:
+                _preserve_corroboration_candidate(aligned, evidence)
+                if (
+                    best_corroboration_aligned is not aligned
+                    and aligned.warped is not None
+                ):
+                    aligned.warped.close()
+                aligned = None
+            quad = detect_document_quad(source)
+            if quad is not None:
+                try:
+                    with registration_context(
+                        template_id=template.template_id, page_number=page_number
+                    ):
+                        cropped_aligned = align_to_reference(
+                            quad.rectified,
+                            reference,
+                            family=template.form_type.value,
+                            enforce_compatibility_precheck=False,
+                        )
+                    if (
+                        cropped_aligned.homography is not None
+                        and cropped_aligned.warped is not None
+                    ):
+                        import cv2
+                        import numpy as np
+
+                        composed = compose_source_to_template(
+                            quad.source_to_rectified,
+                            cropped_aligned.homography,
+                        )
+                        # Rebuild warp from the original page with composed H.
+                        size = (
+                            template.reference_dimensions.width_px,
+                            template.reference_dimensions.height_px,
+                        )
+                        source_gray = np.asarray(source.convert("L"), dtype=np.uint8)
+                        warped_arr = cv2.warpPerspective(
+                            source_gray, composed, size, borderValue=255
+                        )
+                        if cropped_aligned.warped is not None:
+                            cropped_aligned.warped.close()
+                        evidence_out = cropped_aligned.evidence
+                        if evidence_out is not None:
+                            evidence_out = evidence_out.model_copy(
+                                update={
+                                    "algorithm": "document_quad_then_sift",
+                                    "transform_matrix": composed.tolist(),
+                                }
+                            )
+                        composed_aligned = AlignmentResult(
+                            cropped_aligned.success,
+                            cropped_aligned.alignment_score,
+                            cropped_aligned.good_match_count,
+                            composed,
+                            Image.fromarray(warped_arr),
+                            "document_quad_then_sift",
+                            cropped_aligned.inlier_ratio,
+                            cropped_aligned.reprojection_error,
+                            cropped_aligned.accepted,
+                            evidence_out,
+                            cropped_aligned.compatibility,
+                            cropped_aligned.cheap_evidence,
+                            cropped_aligned.sift_attempted,
+                        )
+                        _apply_alignment_result(
+                            composed_aligned,
+                            "document_quad_recovery",
+                            "DOCUMENT_QUAD_RECOVERY",
+                        )
+                        attempts[-1]["quad_area_ratio"] = quad.area_ratio
+                        attempts[-1]["quad_reason"] = quad.reason
+                    else:
+                        if cropped_aligned.warped is not None:
+                            cropped_aligned.warped.close()
+                        recovery_strategies.append("DOCUMENT_QUAD_RECOVERY")
+                        attempts.append(
+                            {
+                                "attempt": "document_quad_recovery",
+                                "accepted": False,
+                                "reason": "DOCUMENT_QUAD_ALIGN_FAILED",
+                                "quad_area_ratio": quad.area_ratio,
+                            }
+                        )
+                finally:
+                    quad.rectified.close()
+            else:
+                recovery_strategies.append("DOCUMENT_QUAD_RECOVERY")
+                attempts.append(
+                    {
+                        "attempt": "document_quad_recovery",
+                        "accepted": False,
+                        "reason": "DOCUMENT_QUAD_NOT_FOUND",
+                    }
                 )
 
         # Content corroboration (near-miss ratio or mild perspective).

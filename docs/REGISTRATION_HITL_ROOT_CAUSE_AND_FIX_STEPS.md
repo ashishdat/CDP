@@ -110,13 +110,18 @@ Wire into `hackathon_*_partial.json` `by_bundle` like field blockers.
 
 ## Alternate tech stack (if SIFT ceiling)
 
-| Option | Role |
-|--------|------|
-| Current SIFT+RANSAC + enhance ladder | Production baseline |
-| LightGlue / SuperPoint | Learned matches for skewed scans |
-| LoFTR | Dense correspondence when SIFT sparse |
-| Template edge NCC + ECC | Cheap refine after coarse H |
-| Human registration HITL | Residual catastrophic / no-form |
+| Option | Role | Status |
+|--------|------|--------|
+| Current SIFT+RANSAC + enhance ladder | Production baseline | Shipped |
+| **Document-quad crop → re-SIFT** | Phone-framed catastrophic warps (invalid corners / low coverage) | **Shipped** (`packages/recovery/document_quad.py`) |
+| LightGlue / SuperPoint | Learned matches for skewed full-bleed scans | Future (needs `[ml]` matcher extra) |
+| LoFTR | Dense correspondence when SIFT sparse | Future |
+| Gated gpt-4o page corners | VLM corner hint when local quad misses | Policy flag `registration_vlm_corners_enabled` |
+| Template edge NCC + ECC | Cheap refine after coarse H | Partial (affine-first path) |
+| Human registration HITL | Residual catastrophic / no-form | Fail-closed Track A |
+
+Catastrophic escalation order: document-quad → (optional gpt-4o corners) → Track A HITL.
+Do **not** globally soften Acceptance gates; learned matchers must still clear the same policy.
 
 ## Expected impact (this ledger)
 

@@ -248,6 +248,29 @@ def should_attempt_perspective_recovery(evidence: Any) -> bool:
     return assess_evidence_near_miss(evidence).is_mild_perspective
 
 
+def should_attempt_document_quad_recovery(evidence: Any) -> bool:
+    """Authorize document-quad crop retry for catastrophic / multi-gate warps.
+
+    Targets phone-framed captures where SIFT against the full frame fails with
+    invalid corners / unsafe perspective / low coverage. Does not apply to
+    ratio-only near-miss (handled by boost) or mild perspective (deskew path).
+    """
+    assessment = assess_evidence_near_miss(evidence)
+    if assessment.gap_class == "CATASTROPHIC_TRANSFORM":
+        return True
+    # Multi-token perspective failures that never qualified as mild.
+    if assessment.gap_class == "PERSPECTIVE_UNSAFE" and not assessment.is_mild_perspective:
+        tokens = set(assessment.reason_tokens)
+        if tokens & {
+            "invalid_transformed_corners",
+            "unsafe_scale_change",
+            "low_coverage",
+            "insufficient_inliers",
+        }:
+            return True
+    return False
+
+
 def should_attempt_orientation_recovery(evidence: Any) -> bool:
     return assess_evidence_near_miss(evidence).is_orientation_candidate
 
