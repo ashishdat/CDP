@@ -20,7 +20,7 @@ import threading
 import time
 import zipfile
 from collections import Counter
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -44,6 +44,50 @@ CRITICAL = (
 )
 AUTO = {"AUTO_ACCEPTED", "REFERENCE_CONFIRMED"}
 CASCADE_ENGINES = ("paddleocr", "rapidocr", "tesseract", "tesseract_digits")
+
+
+def _ocr_pool_enabled() -> bool:
+    raw = (os.environ.get("CDP_OCR_WORKER_POOL") or "1").strip().casefold()
+    return raw not in {"0", "false", "no", "off"}
+
+
+def _ocr_pool_job(geometry_dir: str, output_dir: str) -> tuple[int, str]:
+    """Long-lived pool worker entry — keeps Paddle/Rapid warm across claims."""
+    try:
+        from scripts.ocr_from_geometry import run as ocr_run
+
+        result = ocr_run(geometry_dir, output_dir)
+        status = result.get("status")
+        payload = json.dumps(
+            {
+                "status": status,
+                "fields": len(result.get("fields") or []),
+                "candidates": sum(
+                    len(row.get("candidates") or [])
+                    for row in (result.get("fields") or [])
+                ),
+            }
+        )
+        return (0 if status == "COMPLETED" else 1, payload)
+    except Exception as exc:  # noqa: BLE001
+        return (1, f"{type(exc).__name__}: {exc}")
+
+
+def _shutdown_ocr_pool(pool: ProcessPoolExecutor | None) -> None:
+    """Terminate OCR workers — Paddle/ORT atexit finalizers can hang on join."""
+    if pool is None:
+        return
+    try:
+        pool.shutdown(wait=False, cancel_futures=True)
+    except TypeError:
+        pool.shutdown(wait=False)
+    processes = getattr(pool, "_processes", None) or {}
+    for proc in list(processes.values()):
+        try:
+            if proc.is_alive():
+                proc.terminate()
+        except Exception:  # noqa: BLE001, S110
+            pass
 
 
 def _utc_now() -> str:
@@ -368,6 +412,7 @@ def _process_one(
     dataset_yaml: Path,
     document_type: str,
     keep_heavy: bool,
+    ocr_executor: Any = None,
 ) -> dict[str, Any]:
     claim_id = _claim_slug(document)
     claim_out = out_dir / "claims" / claim_id
@@ -474,7 +519,23 @@ def _process_one(
         ),
     ]
     for stage_name, cmd in stages:
-        if stage_name == "ocr":
+        if stage_name == "ocr" and ocr_executor is not None:
+            logs.mkdir(parents=True, exist_ok=True)
+            log_path = logs / "ocr.log"
+            try:
+                with _ocr_process_lock():
+                    rc, tail = ocr_executor.submit(
+                        _ocr_pool_job,
+                        str(geometry_dir),
+                        str(claim_out / "ocr"),
+                    ).result()
+            except Exception as exc:  # noqa: BLE001
+                rc, tail = 1, f"{type(exc).__name__}: {exc}"
+            try:
+                log_path.write_text(tail or "", encoding="utf-8")
+            except OSError:
+                pass
+        elif stage_name == "ocr":
             with _ocr_process_lock():
                 rc, tail = _run_stage(cmd, logs / f"{stage_name}.log")
         else:
@@ -752,47 +813,66 @@ def main() -> int:
     )
 
     rows_new: list[dict[str, Any]] = []
-    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
-        futures = {
-            pool.submit(
-                _process_one,
-                document=document,
-                out_dir=out_dir,
-                dataset_yaml=args.dataset,
-                document_type=args.document_type,
-                keep_heavy=args.keep_heavy,
-            ): document
-            for document in pending
-        }
-        for i, fut in enumerate(as_completed(futures), start=1):
-            document = futures[fut]
-            try:
-                row = fut.result()
-            except Exception as exc:  # noqa: BLE001
-                row = {
-                    "finished": True,
-                    "claim_id": _claim_slug(document),
-                    "document": document,
-                    "bundle_id": _bundle_id(document),
-                    "group_id": _group_id(document),
-                    "registration_ok": False,
-                    "completed": False,
-                    "true_stp": False,
-                    "disposition": "WORKER_ERROR",
-                    "error": f"{type(exc).__name__}: {exc}",
-                    "ts": _utc_now(),
-                }
-            _append_ledger(ledger, row, lock)
-            rows_new.append(row)
-            if i % 5 == 0 or i == len(futures):
-                stp = sum(1 for r in rows_new if r.get("true_stp"))
-                reg = sum(1 for r in rows_new if r.get("registration_ok"))
-                print(
-                    f"progress {i}/{len(futures)} newest={row.get('claim_id')} "
-                    f"batch_reg={reg}/{len(rows_new)} batch_true_stp={stp}/{len(rows_new)} "
-                    f"disp={row.get('disposition')}",
-                    flush=True,
-                )
+    # Apply stage env to this process so OCR pool workers inherit paddle-primary etc.
+    for key, value in _stage_env().items():
+        os.environ[key] = value
+    ocr_executor: ProcessPoolExecutor | None = None
+    if _ocr_pool_enabled() and pending:
+        ocr_workers = max(1, min(int(args.workers), len(pending)))
+        print(
+            f"ocr_worker_pool=on workers={ocr_workers} "
+            f"(amortize Paddle/Rapid cold start across claims)",
+            flush=True,
+        )
+        ocr_executor = ProcessPoolExecutor(
+            max_workers=ocr_workers,
+            mp_context=__import__("multiprocessing").get_context("spawn"),
+        )
+    try:
+        with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
+            futures = {
+                pool.submit(
+                    _process_one,
+                    document=document,
+                    out_dir=out_dir,
+                    dataset_yaml=args.dataset,
+                    document_type=args.document_type,
+                    keep_heavy=args.keep_heavy,
+                    ocr_executor=ocr_executor,
+                ): document
+                for document in pending
+            }
+            for i, fut in enumerate(as_completed(futures), start=1):
+                document = futures[fut]
+                try:
+                    row = fut.result()
+                except Exception as exc:  # noqa: BLE001
+                    row = {
+                        "finished": True,
+                        "claim_id": _claim_slug(document),
+                        "document": document,
+                        "bundle_id": _bundle_id(document),
+                        "group_id": _group_id(document),
+                        "registration_ok": False,
+                        "completed": False,
+                        "true_stp": False,
+                        "disposition": "WORKER_ERROR",
+                        "error": f"{type(exc).__name__}: {exc}",
+                        "ts": _utc_now(),
+                    }
+                _append_ledger(ledger, row, lock)
+                rows_new.append(row)
+                if i % 5 == 0 or i == len(futures):
+                    stp = sum(1 for r in rows_new if r.get("true_stp"))
+                    reg = sum(1 for r in rows_new if r.get("registration_ok"))
+                    print(
+                        f"progress {i}/{len(futures)} newest={row.get('claim_id')} "
+                        f"batch_reg={reg}/{len(rows_new)} batch_true_stp={stp}/{len(rows_new)} "
+                        f"disp={row.get('disposition')}",
+                        flush=True,
+                    )
+    finally:
+        _shutdown_ocr_pool(ocr_executor)
 
     all_rows: list[dict[str, Any]] = []
     if ledger.exists():
