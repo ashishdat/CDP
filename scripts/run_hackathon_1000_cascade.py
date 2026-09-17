@@ -371,9 +371,12 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
     env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
     env.setdefault("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED", "1")
-    # SuperPoint/LightGlue pulls torch — keep for catastrophic REG only; opt-out
-    # with CDP_LEARNED_MATCHER=0 when chasing the tightest latency bar.
-    env.setdefault("CDP_LEARNED_MATCHER", "1")
+    # SuperPoint/LightGlue pulls torch into the long-lived app worker (~6–8s
+    # REG + OCR drag on subsequent claims). Default OFF for ≤30s/doc latency
+    # bar; set =1 for catastrophic REG recovery (accuracy path).
+    env.setdefault("CDP_LEARNED_MATCHER", "0")
+    # Name Rapid confirm gate (was 0.88 — nearly always confirmed).
+    env.setdefault("CDP_OCR_NAME_CONFIRM_MIN_CONF", "0.80")
     env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")  # billable full-page; opt-in
     env.setdefault(
         "CDP_AZURE_DI_METER_PATH",

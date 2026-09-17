@@ -312,7 +312,15 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
         name_key = (name or '').casefold()
         if shaped and name_key in {'patient_name', 'insured_name'}:
             conf = _name_confirm_confidence(attempts, candidates)
-            if conf < 0.88:
+            # 0.88 forced Rapid on nearly every name (~1s each). 0.80 still
+            # catches weak paddle reads while protecting ≤30s/doc mean.
+            try:
+                name_min = float(
+                    (os.environ.get("CDP_OCR_NAME_CONFIRM_MIN_CONF") or "0.80").strip()
+                )
+            except ValueError:
+                name_min = 0.80
+            if conf < name_min:
                 shaped = False
         # Service-line / box-28 charges: paddle often truncates trailing digits
         # that rapid recovers (157 vs 1571). Force confirm ONLY on short amounts

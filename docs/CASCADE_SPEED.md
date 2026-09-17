@@ -22,12 +22,15 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 | `CDP_TROCR_DOB_RESIDUAL` | `0` | Local TrOCR DOB residual (off for ≤30s/doc latency bar) |
 | `CDP_AZURE_DI_CHARGE_RESIDUAL` | `0` | Charge Azure DI crop (off for ≤30s/doc latency bar) |
 | `CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED` | `1` | Skip TrOCR/DI when local OCR already date-shaped |
-| `CDP_LEARNED_MATCHER` | `1` | SuperPoint+LightGlue for catastrophic REG (local) |
+| `CDP_LEARNED_MATCHER` | `0` | SuperPoint+LightGlue off (torch ~6–8s REG + OCR drag); set `1` for accuracy |
+| `CDP_OCR_NAME_CONFIRM_MIN_CONF` | `0.80` | Rapid name confirm only when primary conf below this |
 | `CDP_AZURE_DI_PAGE_CORNERS` | `0` | Full-page Azure DI corners (billable; off by default) |
 
 **Latency bar (this VM):** claim mean **≤30s**. Achieved at **`--workers 1`** with residuals
-off + app/OCR pools (~10s mean smoke). `--workers 2+` thrash SIFT/OCR and push mean ~40s+.
-For accuracy residuals: `CDP_TROCR_DOB_RESIDUAL=1 CDP_AZURE_DI_DOB_RESIDUAL=1 CDP_AZURE_DI_CHARGE_RESIDUAL=1`.
+off, learned matcher off, app/OCR pools (~10s mean smoke). `--workers 2+` thrash SIFT/OCR
+and push mean ~40s+. Hard REG docs that formerly loaded LightGlue ran 25–33s; disabling it
+fail-closes those claims faster without torch pollution.
+For accuracy residuals: `CDP_TROCR_DOB_RESIDUAL=1 CDP_AZURE_DI_DOB_RESIDUAL=1 CDP_AZURE_DI_CHARGE_RESIDUAL=1 CDP_LEARNED_MATCHER=1`.
 
 Override examples:
 
@@ -56,7 +59,7 @@ Charge confirm policy: force rapid only when primary currency has **≤3 dollar 
 (digit-drop risk). Longer amounts stay single-engine under selective confirm.
 
 Name confirm: use mean confidence of tokens length ≥3 so a weak MI fragment does not
-force Rapid.
+force Rapid. Gate defaults to conf **&lt; 0.80** (`CDP_OCR_NAME_CONFIRM_MIN_CONF`).
 
 Inference-scoped lock lets registration+warp overlap across workers while still serializing heavy OCR.
 Post-OCR rank/validate/assemble/complete run in one `finish_from_ocr` subprocess.
