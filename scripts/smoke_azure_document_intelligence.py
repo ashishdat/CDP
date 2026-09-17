@@ -44,8 +44,11 @@ def main() -> int:
     except AzureDocumentIntelligenceConfigurationError as exc:
         print("status", "CONFIG_ERROR", str(exc))
         return 2
-    # Azure DI rejects tiny crops (InvalidContentDimensions); keep smoke ≥ ~50px.
+    # Azure DI rejects tiny / empty crops (InvalidContentDimensions).
+    from PIL import ImageDraw
+
     img = Image.new("RGB", (400, 120), "white")
+    ImageDraw.Draw(img).text((24, 44), "03/15/1968", fill=(0, 0, 0))
     request = OCRRequest(
         document_id="di-smoke",
         page_number=1,
