@@ -695,17 +695,38 @@ def recognize_service_lines(image, router, template):
                     image, 'charges', bbox, router, charge_col.field_type)
                 raw = candidates[0].get('raw_value') if candidates else ''
                 value = _currency_value(raw, candidates)
-            # Azure DI only to corroborate a short/ambiguous local amount or to
-            # fill a live row — never on blank leading cells (cost blow-up).
+            # Azure DI only when local OCR left the cell empty on a live row,
+            # or when dual engines disagree as non-twins. Do NOT call DI merely
+            # because an amount is short — that billed every $25–$999 cell on
+            # Independent-300 and cratered throughput.
             need_di = False
             di_gap = 'CHARGE_LOCAL_EXHAUSTED'
-            dollar_digits = _currency_digit_string(value) if value else ''
-            if value and len(dollar_digits) <= 3:
-                # Short amounts are the digit-drop residue class vs GT.
+            engine_vals = []
+            for c in candidates or []:
+                ev = None
+                seed = (c.get('value') or c.get('raw_value') or '').strip()
+                if seed:
+                    # lightweight shape
+                    import re as _re_e
+                    m = _re_e.search(
+                        r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?',
+                        seed,
+                    )
+                    if m:
+                        ev = m.group(0).lstrip('$')
+                        if '.' not in ev and _re_e.fullmatch(r'\d{2,6}', ev):
+                            ev = f'{ev}.00'
+                if ev:
+                    engine_vals.append(ev)
+            unique_vals = list(dict.fromkeys(engine_vals))
+            if not value and not probe_empty:
                 need_di = True
-                di_gap = 'AMBIGUOUS_CHARGE_DIGITS'
-            elif not value and not probe_empty:
-                need_di = True
+                di_gap = 'CHARGE_LOCAL_EXHAUSTED'
+            elif len(unique_vals) >= 2:
+                a, b = unique_vals[0], unique_vals[1]
+                if prefer_currency_without_digit_drop(a, b) is None and a != b:
+                    need_di = True
+                    di_gap = 'CHARGE_DIGIT_CONFLICT'
             if need_di:
                 di_value, di_raw, di_cands, di_reason = _maybe_azure_di_charge_crop(
                     image, bbox, gap_class=di_gap
