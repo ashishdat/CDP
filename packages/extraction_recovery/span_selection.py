@@ -110,7 +110,11 @@ _NAME_BOILERPLATE = re.compile(
     re.IGNORECASE,
 )
 
-_DOB_HEADER_TOKENS = frozenset({"MM", "DD", "YY", "YYYY", "YYY", "SEX"})
+_DOB_HEADER_TOKENS = frozenset({
+    "MM", "DD", "YY", "YYYY", "YYY", "SEX",
+    # OCR garbles of MM/DD cell headers on noisy scans.
+    "MIM", "M1M", "NIIM", "MN", "NN", "NIN", "MIIM", "MNM",
+})
 
 
 _OCR_CONFUSABLES = str.maketrans({
@@ -306,7 +310,19 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             else:
                 month, day, year = first, third, second
         else:
-            month, day, year = first, second, third
+            # YY MM DD after header strip ("YY 74 MM 03/12" → 74 03 12).
+            # Only when first cannot be a month ( >12 ) so MM DD YY stays preferred.
+            if (
+                re.fullmatch(r"\d{2}", first)
+                and int(first) > 12
+                and re.fullmatch(r"\d{1,2}", second)
+                and 1 <= int(second) <= 12
+                and re.fullmatch(r"\d{1,2}", third)
+                and 1 <= int(third) <= 31
+            ):
+                month, day, year = second, third, first
+            else:
+                month, day, year = first, second, third
         # Drop a leading edge glyph on month/day (e.g. "112" → "12").
         if len(month) == 3 and month[0] == "1" and 1 <= int(month[1:]) <= 12:
             month = month[1:]

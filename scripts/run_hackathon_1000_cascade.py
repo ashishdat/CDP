@@ -556,6 +556,51 @@ def _process_one(
         disposition = "REGISTRATION_FAILED"
         if rc != 0 and reason == "geometry_missing":
             disposition = "APP_FAILURE"
+        # Hard blind: some REG pages are freeform (no CMS grid). Template
+        # geometry cannot recover — fall back to Azure DI page text (+ optional
+        # gpt-4o text agent) for critical fields instead of a geometry VLM.
+        unstructured_meta: dict[str, Any] | None = None
+        if disposition == "REGISTRATION_FAILED":
+            try:
+                from packages.extraction_recovery.unstructured_reg_fallback import (
+                    run_unstructured_reg_fallback,
+                    unstructured_reg_fallback_enabled,
+                )
+            except Exception:
+                run_unstructured_reg_fallback = None  # type: ignore
+                unstructured_reg_fallback_enabled = lambda: False  # type: ignore
+            if unstructured_reg_fallback_enabled() and run_unstructured_reg_fallback is not None:
+                page_image = None
+                try:
+                    # Prefer zip bytes via existing dataset helper if present.
+                    from zipfile import ZipFile
+                    from io import BytesIO
+                    from PIL import Image as _PILImage
+
+                    zip_path = Path(os.environ.get("CDP_HACKATHON_ZIP") or ROOT / "data" / "Hackathon - 1000 Claims.zip")
+                    if zip_path.exists():
+                        with ZipFile(zip_path) as zf:
+                            page_image = _PILImage.open(BytesIO(zf.read(document))).convert("RGB")
+                except Exception:
+                    page_image = None
+                if page_image is not None:
+                    fb = run_unstructured_reg_fallback(page_image)
+                    unstructured_meta = {
+                        "attempted": fb.attempted,
+                        "reason": fb.reason,
+                        "agent_used": fb.agent_used,
+                        "fields": dict(fb.fields),
+                    }
+                    # STP only when all critical blockers we care about shaped.
+                    required = {"patient_name", "patient_dob", "insured_id_number", "total_charge"}
+                    if required.issubset(fb.fields):
+                        disposition = "TRUE_STP"
+                    elif fb.fields:
+                        disposition = "HITL"
+                    try:
+                        page_image.close()
+                    except Exception:
+                        pass
         row = {
             "finished": True,
             "claim_id": claim_id,
@@ -563,14 +608,28 @@ def _process_one(
             "bundle_id": _bundle_id(document),
             "group_id": _group_id(document),
             "registration_ok": False,
-            "completed": False,
-            "true_stp": False,
+            "completed": disposition in {"TRUE_STP", "HITL"},
+            "true_stp": disposition == "TRUE_STP",
             "disposition": disposition,
             "registration_reason": reason,
+            "hitl_track": "UNSTRUCTURED_DI" if unstructured_meta and disposition == "HITL" else None,
+            "critical_blockers": (
+                [
+                    f
+                    for f in ("patient_name", "patient_dob", "insured_id_number", "total_charge")
+                    if f not in (unstructured_meta or {}).get("fields", {})
+                ]
+                if disposition == "HITL" and unstructured_meta
+                else None
+            ),
+            "unstructured_reg_fallback": unstructured_meta,
             "app_returncode": rc,
             "error": tail if disposition == "APP_FAILURE" else None,
             "elapsed_sec": round(time.time() - started, 3),
             "ts": _utc_now(),
+            "strategy_id": "field-cascade-v11+unstructured-reg-fallback"
+            if unstructured_meta and unstructured_meta.get("attempted")
+            else "field-cascade-v11",
         }
         _write_json(claim_out / "result.json", row)
         return row
@@ -876,6 +935,9 @@ def main() -> int:
         "CDP_AZURE_DI_PAGE_CORNERS": "1",
         "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",
         "CDP_OCR_NAME_CONFIRM_MIN_CONF": "0.80",
+        # Freeform REG pages: DI page text + optional gpt-4o text agent.
+        "CDP_UNSTRUCTURED_REG_FALLBACK": "1",
+        "CDP_UNSTRUCTURED_REG_AGENT": "1",
     }
     for key, value in _product.items():
         if _respect:
