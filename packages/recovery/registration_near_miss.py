@@ -244,8 +244,33 @@ def should_attempt_near_miss_boost(evidence: Any) -> bool:
     return assess_evidence_near_miss(evidence).is_near_miss
 
 
+def should_attempt_near_miss_boost_any(
+    evidences: list[Any] | tuple[Any, ...] | None,
+) -> bool:
+    """True when any ladder attempt landed in the near-miss band.
+
+    Later enhance/lineage attempts often reclassify as CATASTROPHIC and would
+    skip boost even though an earlier attempt was ratio-only near-miss
+    (Independent-300 STP→REG regressions when only the latest evidence gated).
+    """
+    for evidence in evidences or ():
+        if evidence is not None and should_attempt_near_miss_boost(evidence):
+            return True
+    return False
+
+
 def should_attempt_perspective_recovery(evidence: Any) -> bool:
     return assess_evidence_near_miss(evidence).is_mild_perspective
+
+
+def should_attempt_perspective_recovery_any(
+    evidences: list[Any] | tuple[Any, ...] | None,
+) -> bool:
+    """True when any ladder attempt showed mild-perspective recovery signal."""
+    for evidence in evidences or ():
+        if evidence is not None and should_attempt_perspective_recovery(evidence):
+            return True
+    return False
 
 
 def should_attempt_document_quad_recovery(evidence: Any) -> bool:

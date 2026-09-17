@@ -363,18 +363,18 @@ def _stage_env() -> dict[str, str]:
     # Long-lived workers amortize cold start (override with =0 for subprocess-per-claim).
     env.setdefault("CDP_OCR_WORKER_POOL", "1")
     env.setdefault("CDP_APP_WORKER_POOL", "1")
-    # Latency bar: claim mean ≤30s on this VM. TrOCR/Azure DI residuals are the
-    # dominant wall (~150s+ when they fire / load torch). Default OFF for STP
-    # cascade; set =1 for accuracy-oriented residual recovery.
-    env.setdefault("CDP_TROCR_DOB_RESIDUAL", "0")
+    # Latency bar: claim mean ≤30s. TrOCR DOB residual ON with process singleton
+    # + skip-if-local-shaped (only handwriting/ambiguous gaps fire). Azure DI
+    # residuals stay OFF (cost). Charge residual OFF unless accuracy path.
+    env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
     env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "0")
     env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
     env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
     env.setdefault("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED", "1")
-    # SuperPoint/LightGlue pulls torch into the long-lived app worker (~6–8s
-    # REG + OCR drag on subsequent claims). Default OFF for ≤30s/doc latency
-    # bar; set =1 for catastrophic REG recovery (accuracy path).
-    env.setdefault("CDP_LEARNED_MATCHER", "0")
+    # SuperPoint+LightGlue for catastrophic REG — process-lifetime singleton
+    # amortizes cold load; trail-aware near-miss recovers most STP regressions
+    # without torch. Keep ON for STP; opt-out with =0 for pure latency smoke.
+    env.setdefault("CDP_LEARNED_MATCHER", "1")
     # Name Rapid confirm gate (was 0.88 — nearly always confirmed).
     env.setdefault("CDP_OCR_NAME_CONFIRM_MIN_CONF", "0.80")
     env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")  # billable full-page; opt-in

@@ -289,7 +289,29 @@ def _sift_alignment(
                                     "reprojection_threshold": policy.ransac_reprojection_threshold},
                      reason="Inputs captured after one-to-one template filtering, before existing homography call")
     telemetry.stage("Homography", matched_features=len(good))
-    matrix, mask = cv2.findHomography(src, dst, cv2.RANSAC, policy.ransac_reprojection_threshold)
+    # RANSAC is stochastic near the acceptance boundary (Independent-300 saw
+    # primary 12-inlier accepts flip to 8-inlier rejects across runs). Take the
+    # best of a few draws with tighter confidence so STP is stable.
+    best_matrix = None
+    best_mask = None
+    best_inliers = -1
+    for _ in range(3):
+        matrix, mask = cv2.findHomography(
+            src,
+            dst,
+            cv2.RANSAC,
+            policy.ransac_reprojection_threshold,
+            maxIters=5000,
+            confidence=0.999,
+        )
+        if matrix is None or mask is None:
+            continue
+        n_in = int(mask.ravel().sum())
+        if n_in > best_inliers:
+            best_inliers = n_in
+            best_matrix = matrix
+            best_mask = mask
+    matrix, mask = best_matrix, best_mask
     if matrix is None or mask is None:
         return _failure(
             "sift_flann_ransac_homography",
@@ -749,7 +771,7 @@ def align_learned_matcher(
     candidate_arr, reference_arr = _gray(candidate), _gray(reference)
     compatibility = assess_template_compatibility(candidate, reference, family=family)
     started = perf_counter()
-    matcher = extractor or SuperPointLightGlueExtractor()
+    matcher = extractor or SuperPointLightGlueExtractor.shared()
     try:
         corr = matcher.extract(candidate, reference)
     except RuntimeError as exc:

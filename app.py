@@ -50,8 +50,10 @@ def register_classified_document(images, routing, registry, selection=None):
         should_attempt_document_quad_recovery,
         should_attempt_learned_matcher,
         should_attempt_near_miss_boost,
+        should_attempt_near_miss_boost_any,
         should_attempt_orientation_recovery_any,
         should_attempt_perspective_recovery,
+        should_attempt_perspective_recovery_any,
     )
     from packages.recovery.orientation_hint import ordered_orientation_attempts
     from packages.recovery.document_quad import (
@@ -467,14 +469,23 @@ def register_classified_document(images, routing, registry, selection=None):
 
         if (
             not accepted
-            and evidence is not None
-            and should_attempt_near_miss_boost(evidence)
-            and aligned is not None
-            and aligned.warped is not None
-            and aligned.homography is not None
+            and (
+                should_attempt_near_miss_boost_any(orientation_evidence_trail)
+                or (
+                    evidence is not None and should_attempt_near_miss_boost(evidence)
+                )
+            )
         ):
-            _preserve_corroboration_candidate(aligned, evidence)
-            aligned = None  # ownership transferred to corroboration preserve
+            # Boost re-runs SIFT on the source page — do not require the latest
+            # failed attempt to still hold a warped buffer (trail-aware gate).
+            if aligned is not None:
+                _preserve_corroboration_candidate(aligned, evidence)
+                if (
+                    best_corroboration_aligned is not aligned
+                    and aligned.warped is not None
+                ):
+                    aligned.warped.close()
+                aligned = None
             boost_source = enhance_for_registration_strong(source)
             try:
                 with registration_context(
@@ -494,8 +505,13 @@ def register_classified_document(images, routing, registry, selection=None):
         # Perspective Step 3: edge-deskew preprocess + affine-first / boosted SIFT.
         if (
             not accepted
-            and evidence is not None
-            and should_attempt_perspective_recovery(evidence)
+            and (
+                should_attempt_perspective_recovery_any(orientation_evidence_trail)
+                or (
+                    evidence is not None
+                    and should_attempt_perspective_recovery(evidence)
+                )
+            )
         ):
             if aligned is not None:
                 _preserve_corroboration_candidate(aligned, evidence)

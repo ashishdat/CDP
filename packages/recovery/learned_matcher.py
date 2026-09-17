@@ -31,6 +31,8 @@ class CorrespondenceExtractor(Protocol):
 class SuperPointLightGlueExtractor:
     """Lazy SuperPoint detector + LightGlue matcher (cvg/LightGlue)."""
 
+    _SHARED: "SuperPointLightGlueExtractor | None" = None
+
     def __init__(
         self,
         *,
@@ -43,6 +45,13 @@ class SuperPointLightGlueExtractor:
         self._device = device
         self._extractor = extractor
         self._matcher = matcher
+
+    @classmethod
+    def shared(cls) -> "SuperPointLightGlueExtractor":
+        """Process-lifetime singleton — amortize torch/SuperPoint cold load."""
+        if cls._SHARED is None:
+            cls._SHARED = cls()
+        return cls._SHARED
 
     def _load(self) -> None:
         if self._extractor is not None and self._matcher is not None:

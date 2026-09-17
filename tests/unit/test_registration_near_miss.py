@@ -7,8 +7,10 @@ from packages.recovery.registration_near_miss import (
     classify_registration_gap,
     content_corroboration_eligible,
     should_attempt_near_miss_boost,
+    should_attempt_near_miss_boost_any,
     should_attempt_orientation_recovery,
     should_attempt_perspective_recovery,
+    should_attempt_perspective_recovery_any,
 )
 from packages.recovery.registration_recovery import (
     enhance_for_registration_edge_deskew,
@@ -151,6 +153,63 @@ def test_evidence_dict_wrapper():
     }
     assert should_attempt_near_miss_boost(evidence) is True
     assert assess_evidence_near_miss(evidence).gap_class == "NEAR_MISS_INLIER_RATIO"
+
+
+def test_near_miss_boost_any_ignores_later_catastrophic():
+    """Later catastrophic enhance must not erase an earlier near-miss signal."""
+    near = {
+        "rejection_reason": "low_inlier_ratio",
+        "inlier_count": 11,
+        "inlier_ratio": 0.0909,
+        "coverage_ratio": 0.374,
+        "scale_change": 0.94,
+        "rotation_degrees": 0.1,
+        "perspective_distortion": 0.007,
+        "corner_validity": True,
+    }
+    catastrophic = {
+        "rejection_reason": (
+            "insufficient_inliers,low_inlier_ratio,low_coverage,"
+            "unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,"
+            "invalid_transformed_corners"
+        ),
+        "inlier_count": 6,
+        "inlier_ratio": 0.07,
+        "coverage_ratio": 0.06,
+        "scale_change": 0.4,
+        "rotation_degrees": 80.0,
+        "perspective_distortion": 0.6,
+        "corner_validity": False,
+    }
+    assert should_attempt_near_miss_boost(near) is True
+    assert should_attempt_near_miss_boost(catastrophic) is False
+    assert should_attempt_near_miss_boost_any([near, catastrophic]) is True
+    assert should_attempt_near_miss_boost_any([catastrophic]) is False
+
+
+def test_perspective_recovery_any_uses_trail():
+    mild = {
+        "rejection_reason": "low_inlier_ratio,unsafe_perspective_distortion",
+        "inlier_count": 10,
+        "inlier_ratio": 0.097,
+        "coverage_ratio": 0.196,
+        "scale_change": 0.942,
+        "rotation_degrees": 1.41,
+        "perspective_distortion": 0.044,
+        "corner_validity": True,
+    }
+    other = {
+        "rejection_reason": "insufficient_inliers",
+        "inlier_count": 3,
+        "inlier_ratio": 0.05,
+        "coverage_ratio": 0.05,
+        "scale_change": 0.9,
+        "rotation_degrees": 1.0,
+        "perspective_distortion": 0.01,
+        "corner_validity": True,
+    }
+    assert should_attempt_perspective_recovery(mild) is True
+    assert should_attempt_perspective_recovery_any([other, mild]) is True
 
 
 def test_edge_deskew_and_rotate_preserve_mode():

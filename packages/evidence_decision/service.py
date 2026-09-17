@@ -123,6 +123,10 @@ class EvidenceDecisionService:
                 "insured_id_number",
                 "member_id",
                 "subscriber_id",
+                # TESSERACT_FILL:NAME_SHAPED — do not strip governed name fills
+                # as CANDIDATE_ENGINE_NOT_AUTHORIZED (Independent-300 EJG7.030).
+                "patient_name",
+                "insured_name",
             }:
                 allowed_families.add(engine_family("tesseract"))
             # Crop-scoped residuals for handwriting DOB (local TrOCR / Azure DI)
