@@ -20,7 +20,17 @@ Independent-300 v12.3g early mean ~15s was under bar, but hard-REG claims
 (~6–8s REG) then elevated Rapid confirm counts. LightGlue also polluted the
 long-lived app worker.
 
-## Smoke
+## Smoke (5 docs, workers=1)
 
-Same 5 Independent docs, `--workers 1`, residuals off, learned matcher off
-(cascade defaults).
+| Doc | v12.3g | v12.3h | Disposition |
+| --- | ---: | ---: | --- |
+| M048DJJM.046 | 33.1s | **14.3s** | REGISTRATION_FAILED (was HITL via LightGlue) |
+| M048DJJM.047 | 26.8s | **11.4s** | REGISTRATION_FAILED (was TRUE_STP via LightGlue) |
+| M048DJJM.048 | 29.5s | **11.2s** | REGISTRATION_FAILED (was HITL) |
+| M048DJKH.001 | ~9s | **11.3s** | TRUE_STP |
+| M048DJKH.002 | ~7s | **6.6s** | TRUE_STP |
+
+**Mean 11.0s / p50 11.3s / max 14.3s** — under ≤30s bar.
+
+Tradeoff: catastrophic REG no longer recovered by LightGlue → more
+`REGISTRATION_FAILED` HITL, much lower wall on those claims.
