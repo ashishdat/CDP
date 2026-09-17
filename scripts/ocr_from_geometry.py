@@ -100,6 +100,9 @@ _maybe_attach_dob_azure_di_residuals = _maybe_attach_dob_handwriting_residuals
 
 # STP evaluation can limit OCR to critical fields (+ service lines for E6).
 # Set CDP_OCR_FIELD_SCOPE=stp_critical to skip non-blocking ROIs (~5× less OCR).
+# diagnosis_codes / federal_tax_id are template-required but do not block True STP
+# under current claim policy (HUMAN_REVIEW_REQUIRED without critical_blockers) —
+# OCR'ing them costs ~0.7s/claim for no STP gain.
 _STP_CRITICAL_FIELDS = frozenset({
     "patient_dob",
     "total_charge",
@@ -107,9 +110,6 @@ _STP_CRITICAL_FIELDS = frozenset({
     "patient_name",
     "insured_id_number",
     "insured_name",
-    # Template required_fields that can block completion if never OCR'd.
-    "diagnosis_codes",
-    "federal_tax_id",
 })
 
 

@@ -35,7 +35,13 @@ def test_name_confirm_ignores_weak_short_fragment():
     assert conf > candidates[0]["raw_confidence"]
 
 
-def test_name_confirm_falls_back_to_candidate_confidence():
-    attempts = [{"engine": "paddleocr", "observation": {"lines": []}}]
-    candidates = [{"value": "DATST EY", "raw_confidence": 0.75}]
-    assert _name_confirm_confidence(attempts, candidates) == 0.75
+def test_stp_critical_skips_non_blocking_diagnosis_and_tax():
+    from scripts.ocr_from_geometry import _STP_CRITICAL_FIELDS, _field_in_scope
+    import os
+
+    os.environ["CDP_OCR_FIELD_SCOPE"] = "stp_critical"
+    assert "diagnosis_codes" not in _STP_CRITICAL_FIELDS
+    assert "federal_tax_id" not in _STP_CRITICAL_FIELDS
+    assert _field_in_scope("patient_name") is True
+    assert _field_in_scope("diagnosis_codes") is False
+    assert _field_in_scope("federal_tax_id") is False

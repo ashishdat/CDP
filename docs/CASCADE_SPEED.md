@@ -16,6 +16,7 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 | `CDP_OCR_LOCK_SCOPE` | `inference` | Flock Paddle/Rapid only (prep overlaps). `process` = entire OCR subprocess |
 | `CDP_OCR_LOCK_ENGINES` | `paddleocr,rapidocr` | Engines that take the inference flock (Tesseract digits stay unlocked) |
 | `CDP_OCR_WORKER_POOL` | `1` | Long-lived OCR processes amortize Paddle/Rapid cold start across claims |
+| `CDP_APP_WORKER_POOL` | `1` | Long-lived app/registration processes amortize imports + template SIFT |
 | `CDP_REGISTRATION_VERBOSE_TELEMETRY` | `0` | Skip multi-MB keypoint/match dumps + full-image SHA256 |
 | `CDP_AZURE_DI_DOB_RESIDUAL` | `1` | After TrOCR miss, crop-scoped Azure DI (billable; small crop) |
 | `CDP_TROCR_DOB_RESIDUAL` | `1` | Local TrOCR DOB residual before Azure DI |

@@ -51,6 +51,11 @@ def _ocr_pool_enabled() -> bool:
     return raw not in {"0", "false", "no", "off"}
 
 
+def _app_pool_enabled() -> bool:
+    raw = (os.environ.get("CDP_APP_WORKER_POOL") or "1").strip().casefold()
+    return raw not in {"0", "false", "no", "off"}
+
+
 def _ocr_pool_job(geometry_dir: str, output_dir: str) -> tuple[int, str]:
     """Long-lived pool worker entry — keeps Paddle/Rapid warm across claims."""
     try:
@@ -73,8 +78,38 @@ def _ocr_pool_job(geometry_dir: str, output_dir: str) -> tuple[int, str]:
         return (1, f"{type(exc).__name__}: {exc}")
 
 
-def _shutdown_ocr_pool(pool: ProcessPoolExecutor | None) -> None:
-    """Terminate OCR workers — Paddle/ORT atexit finalizers can hang on join."""
+def _app_pool_job(
+    dataset_yaml: str,
+    document: str,
+    document_type: str,
+    output_root: str,
+) -> tuple[int, str]:
+    """Long-lived registration worker — amortize imports + template SIFT cache."""
+    import logging
+
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(levelname)s %(message)s",
+        force=True,
+    )
+    logging.getLogger("cdp.registration.telemetry").setLevel(logging.ERROR)
+    try:
+        from app import process_one
+
+        _path, state = process_one(
+            dataset_yaml,
+            document=document,
+            output_root=output_root,
+            document_type=document_type or None,
+        )
+        status = state.get("status")
+        return (0 if status == "SUCCESS" else 1, json.dumps({"status": status}))
+    except Exception as exc:  # noqa: BLE001
+        return (1, f"{type(exc).__name__}: {exc}")
+
+
+def _shutdown_process_pool(pool: ProcessPoolExecutor | None) -> None:
+    """Terminate pool workers — Paddle/ORT atexit finalizers can hang on join."""
     if pool is None:
         return
     try:
@@ -89,6 +124,12 @@ def _shutdown_ocr_pool(pool: ProcessPoolExecutor | None) -> None:
         except Exception:  # noqa: BLE001, S110
             pass
 
+
+def _spawn_pool(n_workers: int) -> ProcessPoolExecutor:
+    return ProcessPoolExecutor(
+        max_workers=max(1, n_workers),
+        mp_context=__import__("multiprocessing").get_context("spawn"),
+    )
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -300,6 +341,9 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_OCR_LOCK_SCOPE", "inference")
     # Skip multi-MB keypoint/match dumps + full-image SHA256 on registration.
     env.setdefault("CDP_REGISTRATION_VERBOSE_TELEMETRY", "0")
+    # Long-lived workers amortize cold start (override with =0 for subprocess-per-claim).
+    env.setdefault("CDP_OCR_WORKER_POOL", "1")
+    env.setdefault("CDP_APP_WORKER_POOL", "1")
     # Cost defaults: local residuals on; full-page Azure DI corners off unless set.
     env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
     env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "1")  # crop-only after TrOCR miss
@@ -413,6 +457,7 @@ def _process_one(
     document_type: str,
     keep_heavy: bool,
     ocr_executor: Any = None,
+    app_executor: Any = None,
 ) -> dict[str, Any]:
     claim_id = _claim_slug(document)
     claim_out = out_dir / "claims" / claim_id
@@ -421,23 +466,40 @@ def _process_one(
     claim_out.mkdir(parents=True, exist_ok=True)
     started = time.time()
     logs = claim_out / "logs"
+    logs.mkdir(parents=True, exist_ok=True)
     app_out = claim_out / "application"
 
-    rc, tail = _run_stage(
-        [
-            sys.executable,
-            str(ROOT / "app.py"),
-            "--dataset",
-            str(dataset_yaml),
-            "--document",
-            document,
-            "--document-type",
-            document_type,
-            "--output-root",
-            str(app_out),
-        ],
-        logs / "app.log",
-    )
+    if app_executor is not None:
+        try:
+            rc, tail = app_executor.submit(
+                _app_pool_job,
+                str(dataset_yaml),
+                document,
+                document_type,
+                str(app_out),
+            ).result()
+        except Exception as exc:  # noqa: BLE001
+            rc, tail = 1, f"{type(exc).__name__}: {exc}"
+        try:
+            (logs / "app.log").write_text(tail or "", encoding="utf-8")
+        except OSError:
+            pass
+    else:
+        rc, tail = _run_stage(
+            [
+                sys.executable,
+                str(ROOT / "app.py"),
+                "--dataset",
+                str(dataset_yaml),
+                "--document",
+                document,
+                "--document-type",
+                document_type,
+                "--output-root",
+                str(app_out),
+            ],
+            logs / "app.log",
+        )
 
     geometry_hits = list(app_out.glob("**/GeometryResult.json"))
     if not geometry_hits:
@@ -813,21 +875,26 @@ def main() -> int:
     )
 
     rows_new: list[dict[str, Any]] = []
-    # Apply stage env to this process so OCR pool workers inherit paddle-primary etc.
+    # Apply stage env to this process so OCR/app pool workers inherit knobs.
     for key, value in _stage_env().items():
         os.environ[key] = value
+    pool_workers = max(1, min(int(args.workers), len(pending))) if pending else 1
     ocr_executor: ProcessPoolExecutor | None = None
-    if _ocr_pool_enabled() and pending:
-        ocr_workers = max(1, min(int(args.workers), len(pending)))
+    app_executor: ProcessPoolExecutor | None = None
+    if _app_pool_enabled() and pending:
         print(
-            f"ocr_worker_pool=on workers={ocr_workers} "
+            f"app_worker_pool=on workers={pool_workers} "
+            f"(amortize registration imports + template SIFT)",
+            flush=True,
+        )
+        app_executor = _spawn_pool(pool_workers)
+    if _ocr_pool_enabled() and pending:
+        print(
+            f"ocr_worker_pool=on workers={pool_workers} "
             f"(amortize Paddle/Rapid cold start across claims)",
             flush=True,
         )
-        ocr_executor = ProcessPoolExecutor(
-            max_workers=ocr_workers,
-            mp_context=__import__("multiprocessing").get_context("spawn"),
-        )
+        ocr_executor = _spawn_pool(pool_workers)
     try:
         with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
             futures = {
@@ -839,6 +906,7 @@ def main() -> int:
                     document_type=args.document_type,
                     keep_heavy=args.keep_heavy,
                     ocr_executor=ocr_executor,
+                    app_executor=app_executor,
                 ): document
                 for document in pending
             }
@@ -872,7 +940,8 @@ def main() -> int:
                         flush=True,
                     )
     finally:
-        _shutdown_ocr_pool(ocr_executor)
+        _shutdown_process_pool(ocr_executor)
+        _shutdown_process_pool(app_executor)
 
     all_rows: list[dict[str, Any]] = []
     if ledger.exists():
