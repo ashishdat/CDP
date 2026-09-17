@@ -1,0 +1,249 @@
+{
+  "title": "Independent Samples \u2014 300 (v12.2 learning retest)",
+  "run": "hackathon_300_cascade_v12_2",
+  "n": 300,
+  "offset": 50,
+  "commit_learning_fixes": "4f2c7f2",
+  "learnings": [
+    "DOB YY pivot aligned with reconciler (>=30 \u2192 19xx) + future\u219219xx repair",
+    "Weak person-name selective confirm when primary conf < 0.88",
+    "OCR periods no longer invent Last, First separators"
+  ],
+  "metrics": {
+    "n": 300,
+    "true_stp": {
+      "count": 203,
+      "rate": 0.676667
+    },
+    "field_hitl": {
+      "count": 24,
+      "rate": 0.08
+    },
+    "registration_hitl": {
+      "count": 73,
+      "rate": 0.243333
+    },
+    "combined_hitl": {
+      "count": 97,
+      "rate": 0.323333
+    }
+  },
+  "baselines": {
+    "v11_cascade": {
+      "n": 300,
+      "true_stp": {
+        "count": 118,
+        "rate": 0.393333
+      },
+      "field_hitl": {
+        "count": 107,
+        "rate": 0.356667
+      },
+      "registration_hitl": {
+        "count": 75,
+        "rate": 0.25
+      },
+      "combined_hitl": {
+        "count": 182,
+        "rate": 0.606667
+      }
+    },
+    "v12_decision_reprocess": {
+      "true_stp": {
+        "count": 170,
+        "rate": 0.566667
+      },
+      "field_hitl": {
+        "count": 55,
+        "rate": 0.183333
+      },
+      "registration_hitl": {
+        "count": 75,
+        "rate": 0.25
+      },
+      "combined_hitl": {
+        "count": 130,
+        "rate": 0.433333
+      }
+    },
+    "v12_1_partial_stopped": {
+      "n": 213,
+      "true_stp": {
+        "count": 145,
+        "rate": 0.680751
+      },
+      "field_hitl": {
+        "count": 18,
+        "rate": 0.084507
+      },
+      "registration_hitl": {
+        "count": 50,
+        "rate": 0.234742
+      },
+      "combined_hitl": {
+        "count": 68,
+        "rate": 0.319249
+      },
+      "note": "Stopped mid-run for v12.2 learning retest"
+    }
+  },
+  "delta_vs_v11": {
+    "true_stp": 85,
+    "field_hitl": -83,
+    "registration_hitl": -2,
+    "flipped_to_true_stp": 87,
+    "regressions": 2
+  },
+  "delta_vs_v12_decision_reprocess": {
+    "true_stp": 33,
+    "true_stp_rate_pp": 11.0,
+    "field_hitl": -31,
+    "registration_hitl": -2
+  },
+  "vs_v12_1_partial_overlap": {
+    "overlap_n": 213,
+    "v12_1_stp": 145,
+    "v12_2_stp_on_same": 145,
+    "delta_stp": 0
+  },
+  "regressions": [
+    {
+      "document": "Group A/M048EJG7.009",
+      "disposition": "REGISTRATION_FAILED",
+      "registration_ok": false,
+      "registration_reason": "low_inlier_ratio,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+      "critical_blockers": null
+    },
+    {
+      "document": "Group A/M048HJBI.006",
+      "disposition": "REGISTRATION_FAILED",
+      "registration_ok": false,
+      "registration_reason": "insufficient_inliers,low_inlier_ratio,low_coverage,unsafe_scale_change,unsafe_rotation,unsafe_perspective_distortion,invalid_transformed_corners",
+      "critical_blockers": null
+    }
+  ],
+  "learning_claim_outcomes": {
+    "Group A/M048EJG7.002": {
+      "v11_stp": true,
+      "v12_2_stp": true,
+      "disposition": "TRUE_STP",
+      "patient_dob": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "1930-09-01",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "DATE_VALID",
+          "FORMAT_VALID",
+          "DATE_UNIQUE_CALENDAR_CORROBORATED"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "BELDIN BONNIE",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "MEMBER_RELATIONSHIP_CONFIRMED",
+          "NAME_STRONG_PERSON_THRESHOLD_RELIEF"
+        ]
+      },
+      "critical_blockers": []
+    },
+    "Group A/M048EJGE.012": {
+      "v11_stp": false,
+      "v12_2_stp": true,
+      "disposition": "TRUE_STP",
+      "patient_dob": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "1934-01-01",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "DATE_VALID",
+          "FORMAT_VALID",
+          "DATE_UNIQUE_CALENDAR_CORROBORATED"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "DE LUDE. TAYLOR",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "NAME_STRONG_PERSON_THRESHOLD_RELIEF"
+        ]
+      },
+      "critical_blockers": []
+    },
+    "Group A/M048EJGE.020": {
+      "v11_stp": false,
+      "v12_2_stp": false,
+      "disposition": "HITL",
+      "patient_dob": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "1930-12-21",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "DATE_VALID",
+          "FORMAT_VALID",
+          "DATE_UNIQUE_CALENDAR_CORROBORATED"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "STERN SCART.ET",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "NAME_STRONG_PERSON_THRESHOLD_RELIEF",
+          "NAME_CONFLICT_RELIEVED"
+        ]
+      },
+      "critical_blockers": []
+    },
+    "Group A/M048EJGE.022": {
+      "v11_stp": true,
+      "v12_2_stp": true,
+      "disposition": "TRUE_STP",
+      "patient_dob": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "2016-01-06",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "DATE_VALID",
+          "FORMAT_VALID",
+          "DATE_UNIQUE_CALENDAR_CORROBORATED"
+        ]
+      },
+      "patient_name": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "TOHNSON RATSTRY",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "FORMAT_VALID",
+          "NAME_STRONG_PERSON_THRESHOLD_RELIEF"
+        ]
+      },
+      "critical_blockers": []
+    }
+  },
+  "field_hitl_blockers": {
+    "patient_dob": 18,
+    "insured_id_number": 5,
+    "patient_name": 1
+  },
+  "summary_excerpt": {
+    "true_stp": 203,
+    "disposition_counts": {
+      "HITL": 24,
+      "TRUE_STP": 203,
+      "REGISTRATION_FAILED": 73
+    },
+    "generated_at": "2026-09-17T00:21:49.438083+00:00",
+    "workers": 3
+  },
+  "target": {
+    "description": "Beat full-300 v12 decision-reprocess STP 56.7%",
+    "met": true
+  },
+  "generated_at": "2026-09-17T00:28:38.642085+00:00"
+}
