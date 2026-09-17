@@ -62,6 +62,70 @@ def test_azure_di_backend_polls_prebuilt_read():
     assert any("prebuilt-read:analyze" in url for url in calls)
 
 
+def test_parse_azure_di_retry_after_from_body_and_header():
+    from workers.cascade.azure_di_backend import parse_azure_di_retry_after_seconds
+
+    body = (
+        'Requests ... F0 pricing tier. Please retry after 55 seconds. '
+        "To increase your rate limit switch to a paid tier."
+    )
+    assert parse_azure_di_retry_after_seconds(body) == 55.0
+    assert (
+        parse_azure_di_retry_after_seconds(
+            "no hint",
+            headers={"Retry-After": "12"},
+            default=55.0,
+        )
+        == 12.0
+    )
+    assert parse_azure_di_retry_after_seconds("no hint", default=55.0) == 55.0
+
+
+def test_azure_di_backend_retries_poll_on_http_429():
+    """F0 tier 429 on GetAnalyzeResult should sleep then succeed."""
+    from urllib.error import HTTPError
+
+    sleeps: list[float] = []
+    poll_calls = {"n": 0}
+
+    def opener(request, timeout=30):
+        if request.get_method() == "POST":
+            return _FakeResponse(
+                headers={"Operation-Location": "https://di.example/ops/1"},
+            )
+        poll_calls["n"] += 1
+        if poll_calls["n"] == 1:
+            raise HTTPError(
+                "https://di.example/ops/1",
+                429,
+                "Too Many Requests",
+                hdrs=None,
+                fp=BytesIO(
+                    b'{"error":{"code":"429","message":'
+                    b'"Please retry after 55 seconds."}}'
+                ),
+            )
+        payload = {
+            "status": "succeeded",
+            "analyzeResult": {"content": "ok", "pages": []},
+        }
+        return _FakeResponse(body=json.dumps(payload).encode("utf-8"))
+
+    backend = AzureDocumentIntelligenceReadBackend(
+        "https://di.example",
+        "secret",
+        opener=opener,
+        poll_interval_seconds=0,
+        rate_limit_retries=2,
+        rate_limit_wait_seconds=55.0,
+        sleeper=sleeps.append,
+    )
+    evidence = backend.analyze(b"\x89PNG")
+    assert evidence.text == "ok"
+    assert sleeps == [55.0]
+    assert poll_calls["n"] == 2
+
+
 def test_factory_fails_closed_without_gates():
     settings = Settings(
         _env_file=None,

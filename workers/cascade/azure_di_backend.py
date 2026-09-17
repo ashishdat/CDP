@@ -2,16 +2,80 @@
 
 Uses the Document Intelligence analyze API with polling. Credentials stay in
 Settings / env — never logged or persisted on candidates.
+
+F0 (free) tiers rate-limit Analyze / GetAnalyzeResult with HTTP 429. We sleep
+for the server-requested backoff (default ~55s) and retry a bounded number of
+times so last-resort page-corners can complete instead of terminal REG.
 """
 
 from __future__ import annotations
 
+import os
+import re
 import time
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from workers.cascade.azure_read_adapter import AzureReadEvidence
+
+# Azure F0 message typically says "Please retry after 55 seconds."
+_DEFAULT_429_WAIT_SECONDS = 55.0
+_RETRY_AFTER_RE = re.compile(
+    r"retry\s+after\s+(\d+(?:\.\d+)?)\s*second",
+    re.IGNORECASE,
+)
+
+
+def _env_float(name: str, default: float) -> float:
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return float(raw)
+    except ValueError:
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    raw = (os.environ.get(name) or "").strip()
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+def parse_azure_di_retry_after_seconds(
+    body: str,
+    *,
+    headers: Any | None = None,
+    default: float = _DEFAULT_429_WAIT_SECONDS,
+) -> float:
+    """Extract backoff seconds from Retry-After header or Azure 429 body text."""
+    if headers is not None:
+        raw = None
+        try:
+            raw = headers.get("Retry-After") or headers.get("retry-after")
+        except Exception:  # noqa: BLE001
+            raw = None
+        if raw is not None and str(raw).strip():
+            try:
+                return max(1.0, float(str(raw).strip()))
+            except ValueError:
+                pass
+    match = _RETRY_AFTER_RE.search(body or "")
+    if match:
+        try:
+            return max(1.0, float(match.group(1)))
+        except ValueError:
+            pass
+    return max(1.0, float(default))
+
+
+def _is_rate_limit_http(exc: HTTPError) -> bool:
+    return int(getattr(exc, "code", 0) or 0) == 429
 
 
 class AzureDocumentIntelligenceReadBackend:
@@ -25,9 +89,12 @@ class AzureDocumentIntelligenceReadBackend:
         api_version: str = "2024-11-30",
         model_id: str = "prebuilt-read",
         timeout_seconds: float = 30.0,
-    poll_interval_seconds: float = 0.2,
-    max_polls: int = 30,
+        poll_interval_seconds: float = 0.2,
+        max_polls: int = 30,
         opener=None,
+        rate_limit_retries: int | None = None,
+        rate_limit_wait_seconds: float | None = None,
+        sleeper=None,
     ) -> None:
         self._endpoint = endpoint.rstrip("/")
         self._api_key = api_key
@@ -37,6 +104,18 @@ class AzureDocumentIntelligenceReadBackend:
         self._poll_interval = poll_interval_seconds
         self._max_polls = max_polls
         self._opener = opener or urlopen
+        # Default 2 retries ⇒ up to 3 attempts (initial + 2 waits) for F0 429.
+        self._rate_limit_retries = (
+            int(rate_limit_retries)
+            if rate_limit_retries is not None
+            else _env_int("CDP_AZURE_DI_429_RETRIES", 2)
+        )
+        self._rate_limit_wait_seconds = (
+            float(rate_limit_wait_seconds)
+            if rate_limit_wait_seconds is not None
+            else _env_float("CDP_AZURE_DI_429_WAIT_SECONDS", _DEFAULT_429_WAIT_SECONDS)
+        )
+        self._sleeper = sleeper or time.sleep
 
     def analyze(self, image_bytes: bytes) -> AzureReadEvidence:
         if not image_bytes:
@@ -51,36 +130,58 @@ class AzureDocumentIntelligenceReadBackend:
         operation = self._start_analyze(image_bytes)
         return self._poll_result(operation)
 
+    def _sleep_rate_limit(self, body: str, headers: Any | None = None) -> None:
+        wait = parse_azure_di_retry_after_seconds(
+            body,
+            headers=headers,
+            default=self._rate_limit_wait_seconds,
+        )
+        self._sleeper(wait)
+
     def _start_analyze(self, image_bytes: bytes) -> str:
         url = (
             f"{self._endpoint}/documentintelligence/documentModels/"
             f"{self._model_id}:analyze?api-version={self._api_version}"
         )
-        request = Request(
-            url,
-            data=image_bytes,
-            method="POST",
-            headers={
-                "Ocp-Apim-Subscription-Key": self._api_key,
-                "Content-Type": "application/octet-stream",
-            },
-        )
-        try:
-            with self._opener(request, timeout=self._timeout) as response:
-                location = response.headers.get("operation-location") or response.headers.get(
-                    "Operation-Location"
+        attempts = max(0, self._rate_limit_retries) + 1
+        last_exc: Exception | None = None
+        for attempt in range(attempts):
+            request = Request(
+                url,
+                data=image_bytes,
+                method="POST",
+                headers={
+                    "Ocp-Apim-Subscription-Key": self._api_key,
+                    "Content-Type": "application/octet-stream",
+                },
+            )
+            try:
+                with self._opener(request, timeout=self._timeout) as response:
+                    location = response.headers.get(
+                        "operation-location"
+                    ) or response.headers.get("Operation-Location")
+                    if not location:
+                        raise RuntimeError("Azure DI analyze missing operation-location")
+                    return location
+            except HTTPError as exc:
+                body = exc.read()[:500].decode("utf-8", "replace")
+                last_exc = RuntimeError(
+                    f"Azure DI analyze HTTP {exc.code}: {body}"
                 )
-                if not location:
-                    raise RuntimeError("Azure DI analyze missing operation-location")
-                return location
-        except HTTPError as exc:
-            body = exc.read()[:300].decode("utf-8", "replace")
-            raise RuntimeError(f"Azure DI analyze HTTP {exc.code}: {body}") from exc
-        except URLError as exc:
-            raise RuntimeError(f"Azure DI analyze transport error: {exc}") from exc
+                last_exc.__cause__ = exc
+                if _is_rate_limit_http(exc) and attempt + 1 < attempts:
+                    self._sleep_rate_limit(body, headers=getattr(exc, "headers", None))
+                    continue
+                raise last_exc from exc
+            except URLError as exc:
+                raise RuntimeError(f"Azure DI analyze transport error: {exc}") from exc
+        assert last_exc is not None
+        raise last_exc
 
     def _poll_result(self, operation_url: str) -> dict[str, Any]:
-        for _ in range(self._max_polls):
+        rate_limit_retries_left = max(0, self._rate_limit_retries)
+        polls = 0
+        while polls < self._max_polls:
             request = Request(
                 operation_url,
                 method="GET",
@@ -92,14 +193,20 @@ class AzureDocumentIntelligenceReadBackend:
 
                     payload = json.loads(response.read().decode("utf-8"))
             except HTTPError as exc:
-                body = exc.read()[:300].decode("utf-8", "replace")
+                body = exc.read()[:500].decode("utf-8", "replace")
+                if _is_rate_limit_http(exc) and rate_limit_retries_left > 0:
+                    rate_limit_retries_left -= 1
+                    self._sleep_rate_limit(body, headers=getattr(exc, "headers", None))
+                    # Do not burn a poll slot on a throttled read — retry same poll.
+                    continue
                 raise RuntimeError(f"Azure DI poll HTTP {exc.code}: {body}") from exc
+            polls += 1
             status = str(payload.get("status") or "").lower()
             if status in {"succeeded", "failed", "canceled", "cancelled"}:
                 if status != "succeeded":
                     raise RuntimeError(f"Azure DI analyze ended with status={status}")
                 return payload
-            time.sleep(self._poll_interval)
+            self._sleeper(self._poll_interval)
         raise RuntimeError("Azure DI analyze timed out waiting for result")
 
     def _to_evidence(self, payload: dict[str, Any]) -> AzureReadEvidence:
@@ -115,7 +222,11 @@ class AzureDocumentIntelligenceReadBackend:
             for line in page.get("lines") or []:
                 if "confidence" in line:
                     confidences.append(float(line["confidence"]))
-        confidence = sum(confidences) / len(confidences) if confidences else (0.7 if content else 0.0)
+        confidence = (
+            sum(confidences) / len(confidences)
+            if confidences
+            else (0.7 if content else 0.0)
+        )
         return AzureReadEvidence(content, confidence, handwritten)
 
 

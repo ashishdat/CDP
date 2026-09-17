@@ -173,11 +173,17 @@ def run_azure_di_page_corners(
     try:
         payload = analyzer.analyze_raw(stream.getvalue())
     except Exception as exc:  # noqa: BLE001
+        detail = str(exc).replace("\n", " ").strip()
+        if len(detail) > 160:
+            detail = detail[:157] + "..."
+        reason = f"AZURE_DI_ERROR:{type(exc).__name__}"
+        if detail:
+            reason = f"{reason}:{detail}"
         return AzureDiPageCornersResult(
             attempted=True,
             configured=True,
             quad=None,
-            reason=f"AZURE_DI_ERROR:{type(exc).__name__}",
+            reason=reason,
         )
 
     points = _collect_ink_points(payload, (width_px, height_px))
