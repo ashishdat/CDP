@@ -129,7 +129,26 @@ def _spawn_pool(n_workers: int) -> ProcessPoolExecutor:
     return ProcessPoolExecutor(
         max_workers=max(1, n_workers),
         mp_context=__import__("multiprocessing").get_context("spawn"),
+        initializer=_pool_worker_silence_stdio,
     )
+
+
+def _pool_worker_silence_stdio() -> None:
+    """Keep ProcessPool workers from flooding the parent stdout pipe.
+
+    TrOCR/transformers warnings on inherited stdout filled the tee pipe and
+    blocked the cascade main thread (~27 claims finished but never ledgered).
+    """
+    import os
+    import sys
+
+    try:
+        devnull = open(os.devnull, "w", encoding="utf-8")
+        sys.stdout = devnull  # type: ignore[assignment]
+        sys.stderr = devnull  # type: ignore[assignment]
+    except OSError:
+        pass
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -933,12 +952,19 @@ def main() -> int:
                 if i % 5 == 0 or i == len(futures):
                     stp = sum(1 for r in rows_new if r.get("true_stp"))
                     reg = sum(1 for r in rows_new if r.get("registration_ok"))
-                    print(
+                    msg = (
                         f"progress {i}/{len(futures)} newest={row.get('claim_id')} "
                         f"batch_reg={reg}/{len(rows_new)} batch_true_stp={stp}/{len(rows_new)} "
-                        f"disp={row.get('disposition')}",
-                        flush=True,
+                        f"disp={row.get('disposition')}"
                     )
+                    # Always land progress on disk (survives stdout pipe stalls).
+                    try:
+                        (out_dir / "progress.txt").write_text(
+                            msg + f"\n{ _utc_now() }\n", encoding="utf-8"
+                        )
+                    except OSError:
+                        pass
+                    print(msg, flush=True)
     finally:
         _shutdown_process_pool(ocr_executor)
         _shutdown_process_pool(app_executor)
