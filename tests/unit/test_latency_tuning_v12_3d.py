@@ -51,3 +51,22 @@ def test_stp_critical_skips_non_blocking_diagnosis_and_tax():
     assert _field_in_scope("patient_name") is True
     assert _field_in_scope("diagnosis_codes") is False
     assert _field_in_scope("federal_tax_id") is False
+
+
+def test_shared_trocr_adapter_is_singleton():
+    from workers.unstructured_extraction.trocr_adapter import get_shared_trocr_adapter
+
+    a = get_shared_trocr_adapter(model_name="microsoft/trocr-base-handwritten", device="cpu")
+    b = get_shared_trocr_adapter(model_name="microsoft/trocr-base-handwritten", device="cpu")
+    assert a is b
+
+
+def test_dob_planner_does_not_blanket_match_calibration_gap():
+    from packages.tool_escalation import EscalationTool, plan_field_escalation
+
+    decision = plan_field_escalation(
+        gap_class="CALIBRATION_HITL",
+        field_name="patient_dob",
+        trocr_attempted=False,
+    )
+    assert decision.tool != EscalationTool.TROCR

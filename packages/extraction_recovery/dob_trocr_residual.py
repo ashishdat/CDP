@@ -190,7 +190,6 @@ def run_dob_trocr_residual(
 
         try:
             from packages.settings import get_settings
-            from workers.unstructured_extraction.trocr_adapter import TrOCRAdapter
         except Exception as exc:  # noqa: BLE001
             return DobTrOCRResidualResult(
                 attempted=False,
@@ -203,7 +202,9 @@ def run_dob_trocr_residual(
             )
 
         cfg = settings or get_settings()
-        adapter = TrOCRAdapter(
+        from workers.unstructured_extraction.trocr_adapter import get_shared_trocr_adapter
+
+        adapter = get_shared_trocr_adapter(
             model_name=getattr(cfg, "trocr_model_name", None)
             or "microsoft/trocr-base-handwritten",
             device=getattr(cfg, "trocr_device", "auto") or "auto",

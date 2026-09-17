@@ -20,6 +20,7 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 | `CDP_REGISTRATION_VERBOSE_TELEMETRY` | `0` | Skip multi-MB keypoint/match dumps + full-image SHA256 |
 | `CDP_AZURE_DI_DOB_RESIDUAL` | `1` | After TrOCR miss, crop-scoped Azure DI (billable; small crop) |
 | `CDP_TROCR_DOB_RESIDUAL` | `1` | Local TrOCR DOB residual before Azure DI |
+| `CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED` | `1` | Skip TrOCR/DI when local OCR already date-shaped |
 | `CDP_LEARNED_MATCHER` | `1` | SuperPoint+LightGlue for catastrophic REG (local) |
 | `CDP_AZURE_DI_PAGE_CORNERS` | `0` | Full-page Azure DI corners (billable; off by default) |
 

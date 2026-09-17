@@ -51,7 +51,14 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
     from packages.extraction_recovery.dob_trocr_residual import (
         maybe_attach_dob_trocr_to_field_row,
     )
+    from packages.extraction_recovery.field_cascade import semantic_accept
     from packages.extraction_recovery.gap_taxonomy import classify_field_gap
+
+    # Default on: if local cascade already has a date-shaped value, skip TrOCR/DI.
+    # Those rejects are policy/conflict — handwriting residual cannot help and
+    # TrOCR cold-load costs ~30–150s on CPU.
+    skip_shaped = (os.environ.get("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED") or "1").strip().casefold()
+    skip_if_local_shaped = skip_shaped not in {"0", "false", "no", "off"}
 
     updated = []
     for row in rows:
@@ -64,11 +71,19 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
             updated.append(row)
             continue
         observed = ""
+        local_date_shaped = False
         for cand in row.get("candidates") or []:
             text = str(cand.get("value") or "").strip()
-            if text:
+            if not text:
+                continue
+            if not observed:
                 observed = text
+            if semantic_accept(name, text)[0]:
+                local_date_shaped = True
                 break
+        if skip_if_local_shaped and local_date_shaped:
+            updated.append(row)
+            continue
         gap = classify_field_gap(
             name,
             observed_text=observed,

@@ -3,10 +3,35 @@
 from __future__ import annotations
 
 import math
+import threading
 from dataclasses import dataclass
 from typing import Any, Protocol
 
 from PIL import Image
+
+_ADAPTER_LOCK = threading.Lock()
+_ADAPTER_CACHE: dict[tuple[str, str, float], "TrOCRAdapter"] = {}
+
+
+def get_shared_trocr_adapter(
+    *,
+    model_name: str | None = "microsoft/trocr-base-handwritten",
+    device: str = "auto",
+    min_confidence: float = 0.55,
+) -> "TrOCRAdapter":
+    """Process-wide TrOCR singleton — avoids reloading weights on every residual."""
+    key = (str(model_name or ""), str(device or "auto"), float(min_confidence))
+    with _ADAPTER_LOCK:
+        hit = _ADAPTER_CACHE.get(key)
+        if hit is not None:
+            return hit
+        adapter = TrOCRAdapter(
+            model_name=model_name,
+            device=device,
+            min_confidence=min_confidence,
+        )
+        _ADAPTER_CACHE[key] = adapter
+        return adapter
 
 
 @dataclass(frozen=True)

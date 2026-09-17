@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import threading
+from typing import Any
+
 from packages.settings import Settings
 from workers.cascade.azure_di_backend import (
     AzureDocumentIntelligenceReadBackend,
@@ -9,6 +12,9 @@ from workers.cascade.azure_di_backend import (
 )
 from workers.cascade.azure_read_adapter import AzureReadShadowEngine
 from workers.unstructured_extraction.cloud_handwriting import CropOnlyCloudProvider
+
+_ENGINE_LOCK = threading.Lock()
+_ENGINE_CACHE: dict[tuple[Any, ...], AzureReadShadowEngine] = {}
 
 
 class AzureDocumentIntelligenceConfigurationError(RuntimeError):
@@ -61,19 +67,31 @@ def build_azure_read_engine(settings: Settings) -> AzureReadShadowEngine:
         raise AzureDocumentIntelligenceConfigurationError(
             "Azure DI requires PHI contract, region, and provider authorization"
         )
-    backend = AzureDocumentIntelligenceReadBackend(
+    cache_key = (
         endpoint or "",
         api_key or "",
-        api_version=settings.azure_document_intelligence_api_version,
-        timeout_seconds=settings.cloud_handwriting_timeout_seconds,
+        settings.azure_document_intelligence_api_version,
+        float(settings.cloud_handwriting_timeout_seconds or 0),
     )
-    return AzureReadShadowEngine(
-        backend=backend,
-        authorized=True,
-        region_approved=True,
-        phi_contract_approved=True,
-        provider_version=settings.azure_document_intelligence_api_version,
-    )
+    with _ENGINE_LOCK:
+        hit = _ENGINE_CACHE.get(cache_key)
+        if hit is not None:
+            return hit
+        backend = AzureDocumentIntelligenceReadBackend(
+            endpoint or "",
+            api_key or "",
+            api_version=settings.azure_document_intelligence_api_version,
+            timeout_seconds=settings.cloud_handwriting_timeout_seconds,
+        )
+        engine = AzureReadShadowEngine(
+            backend=backend,
+            authorized=True,
+            region_approved=True,
+            phi_contract_approved=True,
+            provider_version=settings.azure_document_intelligence_api_version,
+        )
+        _ENGINE_CACHE[cache_key] = engine
+        return engine
 
 
 def build_azure_di_cloud_handwriting_provider(settings: Settings) -> CropOnlyCloudProvider:
