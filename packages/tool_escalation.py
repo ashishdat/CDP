@@ -4,11 +4,12 @@ Maps honest HITL gap classes onto the production stack:
 
   OpenCV SIFT/FLANN/RANSAC → RapidOCR → Paddle/Tesseract selective
     → Pydantic validators
-    → (gated) Docling / Azure Document Intelligence Read / Azure gpt-4o / Textract
+    → (gated) TrOCR → Docling / Azure Document Intelligence Read / Azure gpt-4o / Textract
     → React field-level HITL
 
-Cloud / Docling never run on the common path. Azure DI and gpt-4o stay
-review-only until an untouched holdout promotes a route.
+Cloud / Docling never run on the common path. Local TrOCR is preferred for
+DOB handwriting residuals; Azure DI and gpt-4o stay review-only until an
+untouched holdout promotes a route.
 """
 
 from __future__ import annotations
@@ -25,6 +26,8 @@ from packages.docling_policy import DoclingRouteInput, should_run_docling
 
 class EscalationTool(StrEnum):
     DOCLING = "docling"
+    TROCR = "trocr"
+    DOCUMENT_QUAD_RECOVERY = "document_quad_recovery"
     AZURE_DOCUMENT_INTELLIGENCE_READ = "azure_document_intelligence_read"
     AZURE_GPT4O = "azure_gpt4o"
     TEXTRACT_DETECT_DOCUMENT_TEXT = "aws_textract_detect_document_text"
@@ -56,19 +59,40 @@ def plan_field_escalation(
     table_detected: bool = False,
     template_extraction_failed: bool = False,
     document_category: str | None = None,
+    trocr_attempted: bool = False,
     azure_di_attempted: bool = False,
+    document_quad_attempted: bool = False,
     policy: dict | None = None,
 ) -> EscalationDecision:
     """Pick the next gated tool after local Rapid→Paddle/Tesseract exhaustion."""
     policy = policy or load_secondary_policy()
     gap = (gap_class or "").upper()
     field = (field_name or "").casefold()
+    trocr_enabled = bool(policy.get("trocr_enabled", True))
+    trocr_review_only = bool(policy.get("trocr_review_only_until_promoted", False))
     di_enabled = bool(policy.get("azure_document_intelligence_enabled", False))
     di_review_only = bool(
         policy.get("azure_document_intelligence_review_only_until_promoted", True)
     )
 
-    if gap in {"REGISTRATION_HITL", "REGISTRATION_FAILED"}:
+    if gap in {"REGISTRATION_HITL", "REGISTRATION_FAILED", "CATASTROPHIC_TRANSFORM"}:
+        # Catastrophic multi-gate warps: try document-quad crop before HITL.
+        # Learned matchers (LightGlue/LoFTR) stay future; gpt-4o corners gated.
+        quad_enabled = bool(policy.get("document_quad_recovery_enabled", True))
+        if quad_enabled and not document_quad_attempted:
+            return EscalationDecision(
+                EscalationTool.DOCUMENT_QUAD_RECOVERY,
+                "Catastrophic warp — document-quad crop then re-SIFT",
+                review_only=False,
+            )
+        if policy.get("azure_ai_cascade_enabled") and policy.get(
+            "registration_vlm_corners_enabled", False
+        ):
+            return EscalationDecision(
+                EscalationTool.AZURE_GPT4O,
+                "Catastrophic warp — gated gpt-4o page-corner hint",
+                review_only=bool(policy.get("azure_review_only_until_promoted", True)),
+            )
         return EscalationDecision(
             EscalationTool.OPENCV_REGISTRATION_HITL,
             "OpenCV SIFT/FLANN/RANSAC recovery exhausted — fail-closed Track A",
@@ -117,6 +141,13 @@ def plan_field_escalation(
         "patient_dob",
         "date_of_birth",
     }:
+        # Prefer local TrOCR over Azure DI for DOB handwriting residuals.
+        if trocr_enabled and not trocr_attempted:
+            return EscalationDecision(
+                EscalationTool.TROCR,
+                "Handwriting residual — local TrOCR crop read",
+                review_only=trocr_review_only,
+            )
         if di_enabled and not azure_di_attempted:
             return EscalationDecision(
                 EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ,
@@ -131,7 +162,7 @@ def plan_field_escalation(
             )
         return EscalationDecision(
             EscalationTool.REACT_FIELD_HITL,
-            "Handwriting residual without Azure — React field HITL",
+            "Handwriting residual without TrOCR/Azure — React field HITL",
             review_only=True,
         )
 

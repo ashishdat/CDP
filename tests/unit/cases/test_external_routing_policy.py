@@ -66,12 +66,21 @@ def test_tool_escalation_maps_gaps_to_stack():
         gap_class="HANDWRITING_UNREADABLE",
         field_name="patient_dob",
     )
-    assert dob.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
-    assert dob.review_only is True
+    assert dob.tool == EscalationTool.TROCR
+    assert dob.review_only is False
+
+    dob_after_trocr = plan_field_escalation(
+        gap_class="HANDWRITING_UNREADABLE",
+        field_name="patient_dob",
+        trocr_attempted=True,
+    )
+    assert dob_after_trocr.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
+    assert dob_after_trocr.review_only is True
 
     dob_after_di = plan_field_escalation(
         gap_class="HANDWRITING_UNREADABLE",
         field_name="patient_dob",
+        trocr_attempted=True,
         azure_di_attempted=True,
     )
     assert dob_after_di.tool == EscalationTool.AZURE_GPT4O
@@ -80,7 +89,14 @@ def test_tool_escalation_maps_gaps_to_stack():
         gap_class="REGISTRATION_FAILED",
         field_name="*",
     )
-    assert reg.tool == EscalationTool.OPENCV_REGISTRATION_HITL
+    assert reg.tool == EscalationTool.DOCUMENT_QUAD_RECOVERY
+
+    reg_after_quad = plan_field_escalation(
+        gap_class="REGISTRATION_FAILED",
+        field_name="*",
+        document_quad_attempted=True,
+    )
+    assert reg_after_quad.tool == EscalationTool.OPENCV_REGISTRATION_HITL
 
     charge_no_docling = plan_field_escalation(
         gap_class="EMPTY_FINANCIAL_INK",

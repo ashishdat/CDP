@@ -34,13 +34,22 @@ from packages.ocr_router import OCRRouter, OCRRouteRequest
 from packages.templates.registry import TemplateRegistry
 
 
-def _maybe_attach_dob_azure_di_residuals(rows, image):
-    """Crop-scoped Azure DI for DOB handwriting residuals (off common path)."""
-    enabled = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "1").strip().casefold()
-    if enabled in {"0", "false", "no", "off"}:
+def _maybe_attach_dob_handwriting_residuals(rows, image):
+    """Crop-scoped TrOCR (preferred) then Azure DI for DOB handwriting residuals."""
+    trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "1").strip().casefold()
+    azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "1").strip().casefold()
+    if trocr_on in {"0", "false", "no", "off"} and azure_on in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }:
         return rows
     from packages.extraction_recovery.dob_azure_di_residual import (
         maybe_attach_dob_azure_di_to_field_row,
+    )
+    from packages.extraction_recovery.dob_trocr_residual import (
+        maybe_attach_dob_trocr_to_field_row,
     )
     from packages.extraction_recovery.gap_taxonomy import classify_field_gap
 
@@ -67,12 +76,26 @@ def _maybe_attach_dob_azure_di_residuals(rows, image):
             reason_codes=[],
         )
         gap_class = gap.gap_class if gap is not None else "HANDWRITING_UNREADABLE"
-        updated.append(
-            maybe_attach_dob_azure_di_to_field_row(
-                row, image=image, gap_class=gap_class
+        current = row
+        if trocr_on not in {"0", "false", "no", "off"}:
+            current = maybe_attach_dob_trocr_to_field_row(
+                current, image=image, gap_class=gap_class
             )
-        )
+            trocr_meta = current.get("trocr_residual") or {}
+            if trocr_meta.get("date_shaped") and not trocr_meta.get("review_only"):
+                updated.append(current)
+                continue
+        if azure_on not in {"0", "false", "no", "off"}:
+            # TrOCR already tried (or disabled); Azure DI is the cloud fallback.
+            current = maybe_attach_dob_azure_di_to_field_row(
+                current, image=image, gap_class=gap_class
+            )
+        updated.append(current)
     return updated
+
+
+# Back-compat alias for callers/tests that still use the Azure-only name.
+_maybe_attach_dob_azure_di_residuals = _maybe_attach_dob_handwriting_residuals
 
 
 # STP evaluation can limit OCR to critical fields (+ service lines for E6).
@@ -1188,7 +1211,7 @@ def run(directory, output):
             router = OCRRouter(lambda attempt: True)
             recognize_regions(canonical, geometry, router, save, template=template)
             report['service_lines'] = recognize_service_lines(canonical, router, template)
-            report['fields'] = _maybe_attach_dob_azure_di_residuals(
+            report['fields'] = _maybe_attach_dob_handwriting_residuals(
                 report['fields'], canonical
             )
         report['status'] = 'COMPLETED'
