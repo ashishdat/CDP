@@ -1,16 +1,24 @@
 """When box-28 OCR is empty, invalid, or strongly contradicts observed lines,
 prefer LINE_TOTALS_RECONCILED from service-line ink (never invent amounts).
 
-AUTO on line-sum alone is fail-closed: require dual-engine line agreement,
-currency-shaped box-28 / DI corroboration, or single-line paddle+rapid+gpt-4o
-consensus (blind-150: DI quota left SINGLE_LINE_REQUIRES_DI as the STP hole).
+AUTO on line-sum is fail-closed. GPT-4o never independently promotes a critical
+charge field. Eligible paths:
+
+  - ≥2 independent usable local OCR families agree (exact / $1 only; no digit-drop);
+  - one usable local OCR + independently produced Azure DI agree (dual-engine);
+  - one usable local OCR + GPT-4o agree (exact / $1 only) when the selected value
+    was independently produced and provenance proves independence;
+  - service-line sum corroborated by independently extracted box-28 / DI
+    (``amounts_corroborate``, which may use digit-drop twins — box-28/DI only).
+
+Shell / form-noise locals are not corroboration. Shared crop, parent evidence,
+or independence_group lineage means candidates are not independent → HITL.
 """
 
 from __future__ import annotations
 
 import re
 from decimal import Decimal, InvalidOperation
-
 
 _CHARGE_FIELDS = ("total_charge", "total_charges", "charges", "charge_amount")
 _INDEPENDENT_ENGINES = frozenset({"paddleocr", "rapidocr", "azure_document_intelligence_read"})
@@ -69,7 +77,7 @@ def is_implausible_charge_total(amount: object) -> bool:
         return True
     # Six+ digit dollars without cents separators are almost always ROI bleed.
     digits = _currency_digit_string(amount)
-    return len(digits) >= 6 and parsed >= Decimal("100000")
+    return len(digits) >= 6 and parsed >= Decimal(100000)
 
 
 def is_implausible_corroborator(value: object, line_total: object) -> bool:
@@ -81,13 +89,11 @@ def is_implausible_corroborator(value: object, line_total: object) -> bool:
     if amount is None or total is None or total <= 0:
         return False
     # >3× or <1/3 the observed line-sum and off by >$50 → form noise / truncated cell.
-    ratio_hi = total * Decimal("3")
-    ratio_lo = total / Decimal("3")
-    if amount > ratio_hi and abs(amount - total) > Decimal("50"):
+    ratio_hi = total * Decimal(3)
+    ratio_lo = total / Decimal(3)
+    if amount > ratio_hi and abs(amount - total) > Decimal(50):
         return True
-    if amount < ratio_lo and abs(amount - total) > Decimal("50"):
-        return True
-    return False
+    return bool(amount < ratio_lo and abs(amount - total) > Decimal(50))
 
 
 def should_defer_box28_to_line_sum(
@@ -138,9 +144,7 @@ def is_currency_digit_drop_twin(left: object, right: object) -> bool:
     if not (1 <= (len(longer) - len(shorter)) <= 2):
         return False
     extra = longer[len(shorter) :]
-    if extra and set(extra) <= {"0"}:
-        return False
-    return True
+    return not (extra and set(extra) <= {"0"})
 
 
 def amounts_within_tolerance(
@@ -159,7 +163,13 @@ def amounts_within_tolerance(
 
 
 def amounts_corroborate(left: object, right: object) -> bool:
-    """Box-28 / DI may AUTO-confirm line-sum when equal, twin, or within tolerance."""
+    """Box-28 / DI path only: equal, within tolerance, or digit-drop twin.
+
+    Do NOT use for dual-engine or gpt-4o+local AUTO promotion — those paths
+    require exact / $1 via ``amounts_within_tolerance(..., relative=0)``.
+    Digit-drop (e.g. ``13``↔``131``) is intentional here so independently
+    extracted box-28 / Azure DI can still corroborate a line-sum.
+    """
     if parse_currency(left) is None or parse_currency(right) is None:
         return False
     if amounts_within_tolerance(left, right):
@@ -184,6 +194,77 @@ def _engine_family(engine: object) -> str:
     return name
 
 
+def candidate_independence_key(cand: object) -> tuple:
+    """Explicit evidence lineage for independence checks.
+
+    Captures producing_engine, source crop, preprocessing path, candidate value,
+    confidence, parent_evidence_id, and independence_group when present.
+    """
+    if not isinstance(cand, dict):
+        return ()
+    engine = cand.get("producing_engine") or cand.get("engine") or ""
+    crop = cand.get("source_crop_id") or cand.get("source_crop") or ""
+    prep = cand.get("preprocessing_path") or cand.get("preprocessing_variant") or ""
+    value = cand.get("value") if cand.get("value") is not None else cand.get("candidate_value")
+    conf = (
+        cand.get("confidence")
+        if cand.get("confidence") is not None
+        else cand.get("calibrated_confidence")
+        if cand.get("calibrated_confidence") is not None
+        else cand.get("raw_confidence")
+    )
+    parent = cand.get("parent_evidence_id") or ""
+    group = cand.get("independence_group") or ""
+    return (
+        str(engine).strip(),
+        str(crop).strip(),
+        str(prep).strip(),
+        str(value if value is not None else "").strip(),
+        str(conf if conf is not None else "").strip(),
+        str(parent).strip(),
+        str(group).strip(),
+    )
+
+
+def candidates_are_independent(a: object, b: object) -> bool:
+    """False when candidates share crop, parent, or independence_group lineage.
+
+    Same source crop, same upstream OCR output lineage (parent_evidence_id),
+    or the same non-empty independence_group must not count as independent
+    corroboration for critical charge AUTO.
+    """
+    if not isinstance(a, dict) or not isinstance(b, dict):
+        return False
+    parent_a = str(a.get("parent_evidence_id") or "").strip()
+    parent_b = str(b.get("parent_evidence_id") or "").strip()
+    if parent_a and parent_b and parent_a == parent_b:
+        return False
+    # Local derived from the gpt-4o evidence id itself.
+    gpt_id = str(b.get("evidence_id") or "").strip()
+    if parent_a and gpt_id and parent_a == gpt_id:
+        return False
+    local_id = str(a.get("evidence_id") or "").strip()
+    if parent_b and local_id and parent_b == local_id:
+        return False
+    group_a = str(a.get("independence_group") or "").strip()
+    group_b = str(b.get("independence_group") or "").strip()
+    if group_a and group_b and group_a == group_b:
+        return False
+    crop_a = str(a.get("source_crop_id") or a.get("source_crop") or "").strip()
+    crop_b = str(b.get("source_crop_id") or b.get("source_crop") or "").strip()
+    return not (crop_a and crop_b and crop_a == crop_b)
+
+
+def _candidate_amount(cand: dict) -> Decimal | None:
+    text = cand.get("value")
+    if text is None or not str(text).strip():
+        return None
+    parsed = parse_currency(text)
+    if parsed is None or is_implausible_charge_total(parsed):
+        return None
+    return parsed
+
+
 def _candidate_amounts_by_family(
     candidates: list[dict] | None,
     *,
@@ -204,11 +285,8 @@ def _candidate_amounts_by_family(
             continue
         if family in by_engine:
             continue
-        text = cand.get("value")
-        if text is None or not str(text).strip():
-            continue
-        parsed = parse_currency(text)
-        if parsed is None or is_implausible_charge_total(parsed):
+        parsed = _candidate_amount(cand)
+        if parsed is None:
             continue
         by_engine[family] = parsed
     return by_engine
@@ -217,6 +295,69 @@ def _candidate_amounts_by_family(
 def _shaped_candidate_amounts(candidates: list[dict] | None) -> dict[str, Decimal]:
     """Map independent engine family → first currency-shaped amount."""
     return _candidate_amounts_by_family(candidates, families=_INDEPENDENT_ENGINES)
+
+
+def _first_candidate_for_family(
+    candidates: list[dict] | None,
+    family: str,
+) -> dict | None:
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        if _engine_family(cand.get("engine") or cand.get("producing_engine")) != family:
+            continue
+        if _candidate_amount(cand) is None:
+            continue
+        return cand
+    return None
+
+
+def _selected_provenance_engine(line: dict) -> str:
+    """Best-effort producing engine for the selected line charge.
+
+    Explicit provenance wins. Fallback prefers a non-gpt-4o candidate that
+    matches the selected amount so candidate order cannot falsely attribute
+    an independently produced local value to gpt-4o.
+    """
+    for key in ("producing_engine", "engine", "selected_engine", "provenance_engine"):
+        raw = line.get(key)
+        if raw:
+            return str(raw)
+    prov = line.get("provenance")
+    if isinstance(prov, dict):
+        for key in ("producing_engine", "engine", "source_engine"):
+            raw = prov.get(key)
+            if raw:
+                return str(raw)
+    target = parse_currency(line.get("charges") or line.get("charge_amount"))
+    if target is None:
+        return ""
+    target_txt = format_currency(target)
+    gpt_match = ""
+    for cand in line.get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        parsed = _candidate_amount(cand)
+        if parsed is None:
+            continue
+        if not _exact_or_dollar_agree(target_txt, format_currency(parsed)):
+            continue
+        engine = str(cand.get("producing_engine") or cand.get("engine") or "")
+        if _engine_family(engine) != _GPT4O_FAMILY:
+            return engine
+        if not gpt_match:
+            gpt_match = engine
+    return gpt_match
+
+
+def _exact_or_dollar_agree(left: object, right: object) -> bool:
+    """Strict AUTO agreement: exact or within $1 — never digit-drop twins."""
+    return amounts_within_tolerance(
+        left,
+        right,
+        absolute=Decimal("1.00"),
+        relative=Decimal(0),
+    )
 
 
 def line_has_dual_engine_agreement(line: dict) -> bool:
@@ -231,58 +372,75 @@ def line_has_dual_engine_agreement(line: dict) -> bool:
     values = list(amounts.values())
     primary = values[0]
     return all(
-        amounts_within_tolerance(
-            format_currency(primary),
-            format_currency(other),
-            absolute=Decimal("1.00"),
-            relative=Decimal("0"),
-        )
+        _exact_or_dollar_agree(format_currency(primary), format_currency(other))
         for other in values[1:]
     )
 
 
 def line_has_gpt4o_local_consensus(line: dict) -> bool:
-    """gpt-4o + ≥1 usable local agree with the selected line charge.
+    """gpt-4o + ≥1 independent usable local agree with the selected charge.
 
-    Agreement uses ``amounts_corroborate`` (exact / $1 / digit-drop twin) so
-    ``622``↔``6225`` and ``13``↔``130`` count when the selected amount is the
-    twin that gpt-4o supports. Locals that are tiny/implausible vs gpt-4o are
-    ignored (form-ruling ``2.00`` vs real ``200.00``).
+    Agreement uses exact / $1 only (``relative=0``) — digit-drop twins do NOT
+    promote via this path. Blank shells and form-noise locals are not usable
+    corroboration; missing usable locals → False (no gpt-4o-only fallback).
+
+    Candidates that share ``parent_evidence_id``, non-empty ``independence_group``,
+    or ``source_crop_id`` with the gpt-4o reading are not independent. If the
+    selected value's provenance is gpt-4o family and no independent local
+    agrees, fail closed.
     """
     if not isinstance(line, dict):
         return False
     target = parse_currency(line.get("charges") or line.get("charge_amount"))
     if target is None or is_implausible_charge_total(target):
         return False
-    families = _LOCAL_ENGINES | {_GPT4O_FAMILY}
-    amounts = _candidate_amounts_by_family(line.get("candidates"), families=families)
-    gpt = amounts.get(_GPT4O_FAMILY)
-    if gpt is None:
-        return False
     target_txt = format_currency(target)
-    gpt_txt = format_currency(gpt)
-    if not amounts_corroborate(target_txt, gpt_txt):
+    candidates = [c for c in (line.get("candidates") or []) if isinstance(c, dict)]
+
+    gpt_cand = _first_candidate_for_family(candidates, _GPT4O_FAMILY)
+    if gpt_cand is None:
         return False
-    usable_locals: list[str] = []
+    gpt_amt = _candidate_amount(gpt_cand)
+    if gpt_amt is None:
+        return False
+    gpt_txt = format_currency(gpt_amt)
+    if not _exact_or_dollar_agree(target_txt, gpt_txt):
+        return False
+
+    selected_engine = _selected_provenance_engine(line)
+    selected_is_gpt4o = bool(selected_engine) and _engine_family(selected_engine) == _GPT4O_FAMILY
+    # Selected value must be independently produced — gpt-4o provenance alone
+    # must never AUTO-promote a critical charge (circular consensus).
+    if selected_is_gpt4o:
+        return False
+
+    usable_locals: list[tuple[str, dict, Decimal]] = []
     for fam in _LOCAL_ENGINES:
-        if fam not in amounts:
+        local_cand = _first_candidate_for_family(candidates, fam)
+        if local_cand is None:
             continue
-        local_txt = format_currency(amounts[fam])
+        local_amt = _candidate_amount(local_cand)
+        if local_amt is None:
+            continue
+        local_txt = format_currency(local_amt)
         # Ignore form-noise locals that are implausible vs the gpt-4o read.
         if is_implausible_corroborator(local_txt, gpt_txt):
             continue
-        if is_suspicious_tiny_total(amounts[fam]) and not is_suspicious_tiny_total(gpt):
+        if is_suspicious_tiny_total(local_amt) and not is_suspicious_tiny_total(gpt_amt):
             continue
-        usable_locals.append(fam)
+        if not candidates_are_independent(local_cand, gpt_cand):
+            continue
+        usable_locals.append((fam, local_cand, local_amt))
+
     if not usable_locals:
-        # Locals were all form-noise vs gpt-4o (e.g. ``2.00`` vs ``200.00``) —
-        # accept gpt-4o-only when it matches the selected line amount.
-        had_local_shell = any(fam in amounts for fam in _LOCAL_ENGINES)
-        return had_local_shell and amounts_corroborate(target_txt, gpt_txt)
+        # No usable independent local — GPT-4o must never promote alone.
+        return False
+
     agreeing = [
         fam
-        for fam in usable_locals
-        if amounts_corroborate(target_txt, format_currency(amounts[fam]))
+        for fam, _cand, amt in usable_locals
+        if _exact_or_dollar_agree(target_txt, format_currency(amt))
+        and _exact_or_dollar_agree(gpt_txt, format_currency(amt))
     ]
     if not agreeing:
         return False
@@ -334,14 +492,16 @@ def line_sum_auto_eligible(
 ) -> tuple[bool, str]:
     """Gate LINE_TOTALS E6 AUTO (fail-closed).
 
-    Eligible when (charge tech stack v12.3p):
-      - single-/multi-line gpt-4o + local consensus on every charge line, or
+    Eligible when (charge tech stack):
+      - every charge line has independent gpt-4o + usable local consensus
+        (exact / $1; selected value not gpt-4o-only), or
       - plausible currency-shaped box-28 / DI corroborates the line sum, or
       - multi-line (≥2) and every line has exact dual-engine agreement.
 
     gpt-4o+local is checked *before* box-28 conflict so weak digits-first box-28
     (222 vs line 200) cannot veto a strong line consensus. Junk box-28 soup is
     ignored. Single-line paddle+rapid alone remains insufficient (hard-15 FA).
+    GPT-4o never independently promotes critical charges.
     """
     total = line_sum_total(service_lines)
     if total is None:
@@ -378,6 +538,6 @@ def line_sum_auto_eligible(
         return False, "NO_LINE_CHARGES"
     if observed == 1:
         return False, "SINGLE_LINE_REQUIRES_DI"
-    if agreed >= observed and observed >= 2:
+    if agreed >= observed >= 2:
         return True, "DUAL_ENGINE_LINE_AGREEMENT"
     return False, "MULTI_LINE_UNCORROBORATED"

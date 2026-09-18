@@ -2,9 +2,13 @@ from decimal import Decimal
 
 from packages.claim_evidence.line_sum_authority import (
     amounts_corroborate,
+    candidate_independence_key,
+    candidates_are_independent,
     is_implausible_charge_total,
     is_implausible_corroborator,
     is_suspicious_tiny_total,
+    line_has_dual_engine_agreement,
+    line_has_gpt4o_local_consensus,
     line_sum_auto_eligible,
     line_sum_total,
     should_defer_box28_to_line_sum,
@@ -30,6 +34,21 @@ def test_implausible_box28_digit_soup():
     assert not is_implausible_corroborator("222.00", "200.00")  # near-miss stays
     ok, reason = semantic_accept("total_charge", "208408.00")
     assert not ok and reason == "CURRENCY_IMPLAUSIBLE_TOTAL"
+
+
+def test_form_ruling_noise_charge_ignored_not_auto():
+    """Form-ruling digit soup (208408) must not AUTO via junk corroboration."""
+    lines = [
+        {
+            "charges": "200.00",
+            "producing_engine": "paddleocr",
+            "candidates": [{"value": "200.00", "engine": "paddleocr"}],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(lines, corroborating_values=["208408.00"])
+    assert not ok
+    assert reason == "SINGLE_LINE_REQUIRES_DI"
+    assert is_implausible_charge_total("208408")
 
 
 def test_defer_when_box28_empty_or_tiny():
@@ -62,10 +81,247 @@ def test_single_line_defers_wild_box28_contradiction():
 
 
 def test_amounts_corroborate_tolerance_and_digit_twin():
+    """Digit-drop twins remain valid on the box-28 / DI corroboration path only."""
     assert amounts_corroborate("400.00", "400.00")
     assert amounts_corroborate("157.00", "1571.00")
     assert not amounts_corroborate("270.00", "424.00")
     assert not amounts_corroborate("600.00", "1600.00")
+
+
+def test_candidate_independence_helpers():
+    key = candidate_independence_key(
+        {
+            "producing_engine": "paddleocr",
+            "source_crop_id": "crop-a",
+            "preprocessing_path": "deskew",
+            "value": "200.00",
+            "confidence": 0.9,
+            "parent_evidence_id": "ev-1",
+            "independence_group": "PADDLE_FAMILY",
+        }
+    )
+    assert key[0] == "paddleocr"
+    assert key[1] == "crop-a"
+    assert key[5] == "ev-1"
+    assert key[6] == "PADDLE_FAMILY"
+
+    a = {"engine": "paddleocr", "parent_evidence_id": "shared", "value": "200.00"}
+    b = {"engine": "azure_gpt4o_crop", "parent_evidence_id": "shared", "value": "200.00"}
+    assert not candidates_are_independent(a, b)
+
+    c = {"engine": "paddleocr", "source_crop_id": "same-crop", "value": "200.00"}
+    d = {"engine": "azure_gpt4o_crop", "source_crop_id": "same-crop", "value": "200.00"}
+    assert not candidates_are_independent(c, d)
+
+    e = {"engine": "paddleocr", "independence_group": "CLOUD_AI_FAMILY", "value": "200.00"}
+    f = {"engine": "azure_gpt4o_crop", "independence_group": "CLOUD_AI_FAMILY", "value": "200.00"}
+    assert not candidates_are_independent(e, f)
+
+    g = {
+        "engine": "paddleocr",
+        "source_crop_id": "crop-1",
+        "independence_group": "PADDLE_FAMILY",
+        "value": "200.00",
+    }
+    h = {
+        "engine": "azure_gpt4o_crop",
+        "source_crop_id": "crop-2",
+        "independence_group": "CLOUD_AI_FAMILY",
+        "value": "200.00",
+    }
+    assert candidates_are_independent(g, h)
+
+
+def test_gpt4o_only_with_unusable_local_not_eligible():
+    """GPT-4o agrees with its own selected value but local OCR unusable → HITL."""
+    line = {
+        "charges": "200.00",
+        "producing_engine": "azure_gpt4o_crop",
+        "candidates": [
+            {"value": "2.00", "engine": "paddleocr"},  # form-noise shell
+            {"value": "200.00", "engine": "azure_gpt4o_crop"},
+        ],
+    }
+    assert not line_has_gpt4o_local_consensus(line)
+    ok, reason = line_sum_auto_eligible([line])
+    assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
+
+
+def test_gpt4o_plus_blank_local_shell_not_eligible():
+    line = {
+        "charges": "200.00",
+        "producing_engine": "azure_gpt4o_crop",
+        "candidates": [
+            {"value": "", "engine": "paddleocr"},
+            {"value": "200.00", "engine": "azure_gpt4o_crop"},
+        ],
+    }
+    assert not line_has_gpt4o_local_consensus(line)
+    ok, reason = line_sum_auto_eligible([line])
+    assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
+
+
+def test_gpt4o_and_local_same_parent_evidence_not_eligible():
+    line = {
+        "charges": "200.00",
+        "producing_engine": "paddleocr",
+        "candidates": [
+            {
+                "value": "200.00",
+                "engine": "paddleocr",
+                "parent_evidence_id": "upstream-1",
+                "source_crop_id": "crop-a",
+            },
+            {
+                "value": "200.00",
+                "engine": "azure_gpt4o_crop",
+                "parent_evidence_id": "upstream-1",
+                "source_crop_id": "crop-b",
+            },
+        ],
+    }
+    assert not candidates_are_independent(
+        line["candidates"][0], line["candidates"][1]
+    )
+    assert not line_has_gpt4o_local_consensus(line)
+    ok, reason = line_sum_auto_eligible([line])
+    assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
+
+
+def test_local_and_gpt4o_disagree_not_eligible():
+    line = {
+        "charges": "200.00",
+        "producing_engine": "paddleocr",
+        "candidates": [
+            {"value": "350.00", "engine": "paddleocr"},
+            {"value": "200.00", "engine": "azure_gpt4o_crop"},
+        ],
+    }
+    assert not line_has_gpt4o_local_consensus(line)
+    ok, reason = line_sum_auto_eligible([line])
+    assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
+
+
+def test_digit_drop_twins_not_dual_engine_or_gpt4o_consensus():
+    """13 vs 131 must not AUTO without authoritative box-28 / DI signal."""
+    twin_dual = {
+        "charges": "131.00",
+        "candidates": [
+            {"value": "13.00", "engine": "paddleocr"},
+            {"value": "131.00", "engine": "rapidocr"},
+        ],
+    }
+    assert not line_has_dual_engine_agreement(twin_dual)
+
+    twin_gpt = {
+        "charges": "131.00",
+        "producing_engine": "paddleocr",
+        "candidates": [
+            {"value": "13.00", "engine": "paddleocr"},
+            {"value": "131.00", "engine": "azure_gpt4o_crop"},
+        ],
+    }
+    assert not line_has_gpt4o_local_consensus(twin_gpt)
+
+    twin_gpt_selected_long = {
+        "charges": "6430.00",
+        "producing_engine": "azure_gpt4o_crop",
+        "candidates": [
+            {"value": "643.00", "engine": "paddleocr"},
+            {"value": "6430.00", "engine": "azure_gpt4o_crop"},
+        ],
+    }
+    assert not line_has_gpt4o_local_consensus(twin_gpt_selected_long)
+
+    multi = [
+        twin_dual,
+        {
+            "charges": "4.00",
+            "candidates": [
+                {"value": "4.00", "engine": "paddleocr"},
+                {"value": "4.00", "engine": "rapidocr"},
+            ],
+        },
+    ]
+    ok, reason = line_sum_auto_eligible(multi)
+    assert not ok and reason == "MULTI_LINE_UNCORROBORATED"
+
+
+def test_multi_line_one_uncorroborated():
+    lines = [
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "200.00", "engine": "paddleocr"},
+                {"value": "200.00", "engine": "rapidocr"},
+            ],
+        },
+        {
+            "charges": "150.00",
+            "candidates": [{"value": "150.00", "engine": "paddleocr"}],
+        },
+    ]
+    ok, reason = line_sum_auto_eligible(lines)
+    assert not ok and reason == "MULTI_LINE_UNCORROBORATED"
+
+
+def test_plausible_incorrect_box28_vs_line_sum_conflict():
+    bare = [{"charges": "424.00", "candidates": [{"value": "424.00", "engine": "paddleocr"}]}]
+    ok, reason = line_sum_auto_eligible(bare, corroborating_values=["270.00"])
+    assert not ok and reason == "BOX28_OR_DI_CONFLICT"
+
+
+def test_dual_engine_paddle_rapid_exact_agree():
+    dual = [
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "200.00", "engine": "paddleocr"},
+                {"value": "200.00", "engine": "rapidocr"},
+            ],
+        },
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "200.00", "engine": "paddleocr"},
+                {"value": "200.00", "engine": "rapidocr"},
+            ],
+        },
+    ]
+    assert line_has_dual_engine_agreement(dual[0])
+    ok, reason = line_sum_auto_eligible(dual)
+    assert ok and reason == "DUAL_ENGINE_LINE_AGREEMENT"
+
+
+def test_usable_local_plus_independent_gpt4o_exact_agree():
+    """Usable paddle + independent gpt4o on independently selected local value."""
+    line = {
+        "charges": "200.00",
+        "producing_engine": "paddleocr",
+        "candidates": [
+            {
+                "value": "200.00",
+                "engine": "paddleocr",
+                "source_crop_id": "local-crop",
+                "independence_group": "PADDLE_FAMILY",
+            },
+            {
+                "value": "200.00",
+                "engine": "azure_gpt4o_crop",
+                "source_crop_id": "gpt-crop",
+                "independence_group": "CLOUD_AI_FAMILY",
+            },
+        ],
+    }
+    assert line_has_gpt4o_local_consensus(line)
+    ok, reason = line_sum_auto_eligible([line])
+    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+
+
+def test_box28_exact_corroborates_line_sum():
+    bare = [{"charges": "424.00", "candidates": [{"value": "424.00", "engine": "paddleocr"}]}]
+    ok, reason = line_sum_auto_eligible(bare, corroborating_values=["424.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
 
 def test_line_sum_auto_requires_dual_engine_or_di():
@@ -87,27 +343,29 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ok, reason = line_sum_auto_eligible(single_dual)
     assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
 
-    # paddle+rapid+gpt-4o consensus unlocks single-line AUTO (DI quota hole).
+    # paddle+rapid+gpt-4o consensus unlocks single-line AUTO when selected is local.
     single_triple = [
         {
             "charges": "200.00",
+            "producing_engine": "paddleocr",
             "candidates": [
-                {"value": "200.00", "engine": "paddleocr"},
-                {"value": "200.00", "engine": "rapidocr"},
-                {"value": "200.00", "engine": "azure_gpt4o_crop"},
+                {"value": "200.00", "engine": "paddleocr", "source_crop_id": "c1"},
+                {"value": "200.00", "engine": "rapidocr", "source_crop_id": "c2"},
+                {"value": "200.00", "engine": "azure_gpt4o_crop", "source_crop_id": "c3"},
             ],
         }
     ]
     ok, reason = line_sum_auto_eligible(single_triple)
     assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
 
-    # gpt-4o + paddle alone (rapid empty) is enough — common on this slice.
+    # gpt-4o + paddle alone (rapid empty) is enough when selected is local.
     single_gpt_paddle = [
         {
             "charges": "200.00",
+            "producing_engine": "paddleocr",
             "candidates": [
-                {"value": "200.00", "engine": "paddleocr"},
-                {"value": "200.00", "engine": "azure_gpt4o_crop"},
+                {"value": "200.00", "engine": "paddleocr", "source_crop_id": "c1"},
+                {"value": "200.00", "engine": "azure_gpt4o_crop", "source_crop_id": "c2"},
             ],
         }
     ]
@@ -118,6 +376,7 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     conflict_local = [
         {
             "charges": "200.00",
+            "producing_engine": "paddleocr",
             "candidates": [
                 {"value": "350.00", "engine": "paddleocr"},
                 {"value": "200.00", "engine": "azure_gpt4o_crop"},
@@ -143,26 +402,29 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     multi_gpt = [
         {
             "charges": "200.00",
+            "producing_engine": "paddleocr",
             "candidates": [
-                {"value": "200.00", "engine": "paddleocr"},
-                {"value": "200.00", "engine": "azure_gpt4o_crop"},
+                {"value": "200.00", "engine": "paddleocr", "source_crop_id": "a1"},
+                {"value": "200.00", "engine": "azure_gpt4o_crop", "source_crop_id": "a2"},
             ],
         },
         {
             "charges": "200.00",
+            "producing_engine": "rapidocr",
             "candidates": [
-                {"value": "200.00", "engine": "rapidocr"},
-                {"value": "200.00", "engine": "azure_gpt4o_crop"},
+                {"value": "200.00", "engine": "rapidocr", "source_crop_id": "b1"},
+                {"value": "200.00", "engine": "azure_gpt4o_crop", "source_crop_id": "b2"},
             ],
         },
     ]
     ok, reason = line_sum_auto_eligible(multi_gpt)
     assert ok and reason == "MULTI_LINE_GPT4O_LOCAL"
 
-    # Digit-drop twin gpt-4o↔local counts as consensus on the selected amount.
+    # Digit-drop twin gpt-4o↔local is NOT consensus (exact/$1 only on this path).
     twin_gpt = [
         {
             "charges": "6430.00",
+            "producing_engine": "azure_gpt4o_crop",
             "candidates": [
                 {"value": "643.00", "engine": "paddleocr"},
                 {"value": "6430.00", "engine": "azure_gpt4o_crop"},
@@ -170,7 +432,7 @@ def test_line_sum_auto_requires_dual_engine_or_di():
         }
     ]
     ok, reason = line_sum_auto_eligible(twin_gpt)
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
 
     dual = [
         {
@@ -191,20 +453,22 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ok, reason = line_sum_auto_eligible(dual)
     assert ok and reason == "DUAL_ENGINE_LINE_AGREEMENT"
 
-    # paddle + gpt-4o on every line is now MULTI_LINE_GPT4O_LOCAL (tech stack).
+    # paddle + gpt-4o on every line is MULTI_LINE_GPT4O_LOCAL when selected is local.
     paddle_gpt4o = [
         {
             "charges": "485.00",
+            "producing_engine": "paddleocr",
             "candidates": [
-                {"value": "485.00", "engine": "paddleocr"},
-                {"value": "485.00", "engine": "azure_gpt4o_crop"},
+                {"value": "485.00", "engine": "paddleocr", "source_crop_id": "p1"},
+                {"value": "485.00", "engine": "azure_gpt4o_crop", "source_crop_id": "g1"},
             ],
         },
         {
             "charges": "485.00",
+            "producing_engine": "paddleocr",
             "candidates": [
-                {"value": "485.00", "engine": "paddleocr"},
-                {"value": "485.00", "engine": "azure_gpt4o_crop"},
+                {"value": "485.00", "engine": "paddleocr", "source_crop_id": "p2"},
+                {"value": "485.00", "engine": "azure_gpt4o_crop", "source_crop_id": "g2"},
             ],
         },
     ]
