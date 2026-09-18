@@ -94,7 +94,10 @@ Until then: **hold 500**.
 
 ## Immediate next engineering slice
 
-1. Export the 15-doc IDs + 46 field labels from UI run history into a frozen list under `evaluation_data/hard15_*`.  
+1. ~~Export the 15-doc IDs + 46 field labels~~ → frozen at `evaluation_data/hard15_v12_3o/`  
+   (`field_truth.json`, `field_labels.csv`, `LABELS.md`, `charge_labels_vs_v12_3h.json`).  
+   UI run history was not in-repo; labeled core reconstructed as the 11-doc / 46-label  
+   agent-GT subset matching reported agreement **36/46 (78.3%)** and charge **2/9**.  
 2. Run cascade + `score_hackathon_gt_accuracy` on that freeze.  
 3. Charge miss triage → ship charge corroboration tighten.  
 4. Confirm ID/name/DOB relief fires on remaining HITL blockers.  

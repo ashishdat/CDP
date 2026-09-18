@@ -37,6 +37,8 @@ dist/
 !/evaluation_data/README.md
 !/evaluation_data/hackathon_agent_gt/
 !/evaluation_data/hackathon_agent_gt/**
+!/evaluation_data/hard15_v12_3o/
+!/evaluation_data/hard15_v12_3o/**
 
 # Generated/local bundle executions and scratch reports
 /bundle_runs/
