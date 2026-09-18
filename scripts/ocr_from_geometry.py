@@ -35,15 +35,15 @@ from packages.templates.registry import TemplateRegistry
 
 
 def _maybe_attach_dob_handwriting_residuals(rows, image):
-    """Crop-scoped TrOCR (preferred) then Azure DI for DOB handwriting residuals."""
+    """Crop-scoped TrOCR → Azure DI → gpt-4o for DOB; gpt-4o for weak/chrome ID."""
     trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "1").strip().casefold()
     azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "1").strip().casefold()
-    if trocr_on in {"0", "false", "no", "off"} and azure_on in {
-        "0",
-        "false",
-        "no",
-        "off",
-    }:
+    gpt4o_on = (os.environ.get("CDP_GPT4O_CROP_RESIDUAL") or "1").strip().casefold()
+    if (
+        trocr_on in {"0", "false", "no", "off"}
+        and azure_on in {"0", "false", "no", "off"}
+        and gpt4o_on in {"0", "false", "no", "off"}
+    ):
         return rows
     from packages.extraction_recovery.dob_azure_di_residual import (
         maybe_attach_dob_azure_di_to_field_row,
@@ -53,6 +53,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
     )
     from packages.extraction_recovery.field_cascade import semantic_accept
     from packages.extraction_recovery.gap_taxonomy import classify_field_gap
+    from packages.extraction_recovery.gpt4o_crop_residual import (
+        maybe_attach_gpt4o_crop_to_field_row,
+    )
 
     # Default on: if local cascade already has a date-shaped value, skip TrOCR/DI.
     # Those rejects are policy/conflict — handwriting residual cannot help and
@@ -63,7 +66,16 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
     updated = []
     for row in rows:
         name = str(row.get("field") or "")
-        if name.casefold() not in {"patient_dob", "date_of_birth"}:
+        key = name.casefold()
+        if key in {"insured_id_number", "member_id", "subscriber_id"}:
+            if gpt4o_on not in {"0", "false", "no", "off"}:
+                updated.append(
+                    maybe_attach_gpt4o_crop_to_field_row(row, image=image, gap_class=None)
+                )
+            else:
+                updated.append(row)
+            continue
+        if key not in {"patient_dob", "date_of_birth"}:
             updated.append(row)
             continue
         cascade = row.get("cascade") or {}
@@ -103,6 +115,14 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
         if azure_on not in {"0", "false", "no", "off"}:
             # TrOCR already tried (or disabled); Azure DI is the cloud fallback.
             current = maybe_attach_dob_azure_di_to_field_row(
+                current, image=image, gap_class=gap_class
+            )
+            di_meta = current.get("azure_di_residual") or {}
+            if di_meta.get("date_shaped") and not di_meta.get("review_only"):
+                updated.append(current)
+                continue
+        if gpt4o_on not in {"0", "false", "no", "off"}:
+            current = maybe_attach_gpt4o_crop_to_field_row(
                 current, image=image, gap_class=gap_class
             )
         updated.append(current)

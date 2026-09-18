@@ -938,6 +938,9 @@ def main() -> int:
         # Freeform REG pages: DI page text + optional gpt-4o text agent.
         "CDP_UNSTRUCTURED_REG_FALLBACK": "1",
         "CDP_UNSTRUCTURED_REG_AGENT": "1",
+        # FIELD_INK DOB/ID after TrOCR+DI: crop-only gpt-4o (bakeoff v12.3n).
+        "CDP_GPT4O_CROP_RESIDUAL": "1",
+        "CDP_GPT4O_CROP_ACCEPT": "1",
     }
     for key, value in _product.items():
         if _respect:
