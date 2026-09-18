@@ -51,6 +51,9 @@ def test_registry_enforces_explicit_route_lifecycle():
     assert {route.field for route in registry.routes_for_mode("runtime")} == {
         "federal_tax_no",
         "insured_id_number",
+        "insured_name",
+        "patient_dob",
+        "patient_name",
         "provider_npi",
         "total_charge",
     }

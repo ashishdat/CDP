@@ -254,11 +254,12 @@ def test_insured_name_route_authority_present():
 
     from packages.route_registry.registry import RouteRegistry
     registry = RouteRegistry.load(Path("config/ocr_field_routes.yaml"))
-    # Governed production set excludes name routes; evaluation may still measure them.
-    assert registry.find("insured_name", "CMS1500", mode="runtime") is None
-    route = registry.find("insured_name", "CMS1500", mode="evaluation")
+    route = registry.find("insured_name", "CMS1500", mode="runtime")
     assert route is not None
-    assert route.status.value == "EVALUATION_ONLY"
+    assert route.status.value == "PRODUCTION_APPROVED"
+    assert route.primary_engine == "rapidocr"
+    assert route.confirmation_engine == "paddleocr"
+    assert route.route_id == "ANY.insured_name.rapidocr.paddleocr.v1"
 
 def test_dob_assembles_trailing_letter_bleed_and_three_digit_year():
     from packages.extraction_recovery.span_selection import select_field_span

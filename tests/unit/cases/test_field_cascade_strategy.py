@@ -13,8 +13,8 @@ from packages.extraction_recovery.field_cascade import (
 
 def test_route_engines_prefer_governed_primary_then_confirmation():
     engines = load_route_engines("patient_dob")
-    assert engines[0] == "paddleocr"
-    assert engines[1] == "rapidocr"
+    assert engines[0] == "rapidocr"
+    assert engines[1] == "paddleocr"
 
 
 def test_semantic_accept_date_currency_name_id():

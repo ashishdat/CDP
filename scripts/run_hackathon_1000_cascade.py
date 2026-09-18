@@ -150,6 +150,11 @@ def _pool_worker_silence_stdio() -> None:
             os.dup2(devnull.fileno(), sys.stderr.fileno())
     except OSError:
         pass
+    # Spawn workers do not inherit the parent process's in-memory factories.
+    # Without this, Azure DI charge residual raises AZURE_DI_FACTORY_UNCONFIGURED.
+    from workers.ocr_engine_factories import wire_package_ocr_providers
+
+    wire_package_ocr_providers()
 
 
 def _utc_now() -> str:
