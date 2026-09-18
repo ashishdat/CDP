@@ -1,5 +1,9 @@
 """When box-28 OCR is empty, invalid, or strongly contradicts observed lines,
-prefer LINE_TOTALS_RECONCILED from service-line ink (never invent amounts)."""
+prefer LINE_TOTALS_RECONCILED from service-line ink (never invent amounts).
+
+AUTO on line-sum alone is fail-closed: require dual-engine line agreement or
+currency-shaped box-28 / DI corroboration within tolerance (hard-15 gate).
+"""
 
 from __future__ import annotations
 
@@ -8,6 +12,7 @@ from decimal import Decimal, InvalidOperation
 
 
 _CHARGE_FIELDS = ("total_charge", "total_charges", "charges", "charge_amount")
+_INDEPENDENT_ENGINES = frozenset({"paddleocr", "rapidocr", "azure_document_intelligence_read"})
 
 
 def parse_currency(value: object) -> Decimal | None:
@@ -18,6 +23,10 @@ def parse_currency(value: object) -> Decimal | None:
         return Decimal(re.sub(r"[^0-9.-]", "", raw))
     except (InvalidOperation, ValueError):
         return None
+
+
+def format_currency(amount: Decimal) -> str:
+    return format(amount.quantize(Decimal("0.01")), "f")
 
 
 def observed_line_charges(service_lines: list[dict] | None) -> list[Decimal]:
@@ -33,7 +42,7 @@ def observed_line_charges(service_lines: list[dict] | None) -> list[Decimal]:
 
 def is_suspicious_tiny_total(amount: Decimal) -> bool:
     """Match field-cascade CURRENCY_SUSPICIOUS_TINY (single digit before cents)."""
-    text = format(amount.quantize(Decimal("0.01")), "f")
+    text = format_currency(amount)
     return bool(re.fullmatch(r"[0-9]\.\d{2}", text))
 
 
@@ -71,4 +80,152 @@ def line_sum_total(service_lines: list[dict] | None) -> str | None:
     charges = observed_line_charges(service_lines)
     if not charges:
         return None
-    return format(sum(charges, Decimal(0)).quantize(Decimal("0.01")), "f")
+    return format_currency(sum(charges, Decimal(0)))
+
+
+def _currency_digit_string(amount: object) -> str:
+    text = str(amount or "").strip().lstrip("$").replace(",", "")
+    if not text:
+        return ""
+    if "." in text:
+        text = text.split(".", 1)[0]
+    return re.sub(r"\D", "", text)
+
+
+def is_currency_digit_drop_twin(left: object, right: object) -> bool:
+    """True when one reading is a truncated digit-prefix of the other (1–2 digits)."""
+    a, b = _currency_digit_string(left), _currency_digit_string(right)
+    if not a or not b or a == b:
+        return False
+    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
+    if not longer.startswith(shorter):
+        return False
+    if not (1 <= (len(longer) - len(shorter)) <= 2):
+        return False
+    extra = longer[len(shorter) :]
+    if extra and set(extra) <= {"0"}:
+        return False
+    return True
+
+
+def amounts_within_tolerance(
+    left: object,
+    right: object,
+    *,
+    absolute: Decimal = Decimal("1.00"),
+    relative: Decimal = Decimal("0.05"),
+) -> bool:
+    a, b = parse_currency(left), parse_currency(right)
+    if a is None or b is None:
+        return False
+    diff = abs(a - b)
+    target = max(abs(a), abs(b), Decimal(1))
+    return diff <= max(absolute, target * relative)
+
+
+def amounts_corroborate(left: object, right: object) -> bool:
+    """Box-28 / DI may AUTO-confirm line-sum when equal, twin, or within tolerance."""
+    if parse_currency(left) is None or parse_currency(right) is None:
+        return False
+    if amounts_within_tolerance(left, right):
+        return True
+    return is_currency_digit_drop_twin(left, right)
+
+
+def _engine_family(engine: object) -> str:
+    name = str(engine or "").strip().casefold()
+    if "azure" in name or "document_intelligence" in name:
+        return "azure_document_intelligence_read"
+    if "rapid" in name:
+        return "rapidocr"
+    if "paddle" in name:
+        return "paddleocr"
+    if "tesseract" in name:
+        return "tesseract"
+    return name
+
+
+def _shaped_candidate_amounts(candidates: list[dict] | None) -> dict[str, Decimal]:
+    """Map independent engine family → first currency-shaped amount."""
+    by_engine: dict[str, Decimal] = {}
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        family = _engine_family(cand.get("engine") or cand.get("producing_engine"))
+        if family not in _INDEPENDENT_ENGINES or family in by_engine:
+            continue
+        parsed = parse_currency(cand.get("value") or cand.get("raw_value"))
+        if parsed is None:
+            continue
+        by_engine[family] = parsed
+    return by_engine
+
+
+def line_has_dual_engine_agreement(line: dict) -> bool:
+    """True when ≥2 independent engines agree (exact / twin / tight tolerance)."""
+    amounts = _shaped_candidate_amounts(line.get("candidates") if isinstance(line, dict) else None)
+    if len(amounts) < 2:
+        return False
+    values = list(amounts.values())
+    primary = values[0]
+    return all(
+        amounts_corroborate(format_currency(primary), format_currency(other))
+        for other in values[1:]
+    )
+
+
+def dual_engine_line_fraction(service_lines: list[dict] | None) -> tuple[int, int]:
+    """Return (agreed_lines, observed_charge_lines)."""
+    agreed = 0
+    observed = 0
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        has_charge = any(parse_currency(line.get(k)) is not None for k in _CHARGE_FIELDS)
+        if not has_charge:
+            continue
+        observed += 1
+        if line_has_dual_engine_agreement(line):
+            agreed += 1
+    return agreed, observed
+
+
+def line_sum_auto_eligible(
+    service_lines: list[dict] | None,
+    *,
+    box28_value: object = None,
+    corroborating_values: list[object] | None = None,
+) -> tuple[bool, str]:
+    """Gate LINE_TOTALS E6 AUTO (fail-closed).
+
+    Eligible when:
+      - currency-shaped box-28 / DI corroborates the line sum, or
+      - every observed line charge has dual-engine agreement (single- or multi-line).
+
+    Otherwise return False so completion keeps the derived amount for REVIEW
+    instead of false STP.
+    """
+    total = line_sum_total(service_lines)
+    if total is None:
+        return False, "NO_LINE_CHARGES"
+
+    corroborators = []
+    for value in [box28_value, *(corroborating_values or [])]:
+        parsed = parse_currency(value)
+        if parsed is None or is_suspicious_tiny_total(parsed):
+            continue
+        corroborators.append(value)
+    if corroborators:
+        if any(amounts_corroborate(total, value) for value in corroborators):
+            return True, "BOX28_OR_DI_CORROBORATED"
+        # Currency-shaped box-28 / DI disagrees with line-sum → HITL, not false STP.
+        return False, "BOX28_OR_DI_CONFLICT"
+
+    agreed, observed = dual_engine_line_fraction(service_lines)
+    if observed == 0:
+        return False, "NO_LINE_CHARGES"
+    if agreed >= observed and observed >= 1:
+        return True, "DUAL_ENGINE_LINE_AGREEMENT"
+    if observed == 1:
+        return False, "SINGLE_LINE_UNCORROBORATED"
+    return False, "MULTI_LINE_UNCORROBORATED"

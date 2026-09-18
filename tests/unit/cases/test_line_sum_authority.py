@@ -1,7 +1,9 @@
 from decimal import Decimal
 
 from packages.claim_evidence.line_sum_authority import (
+    amounts_corroborate,
     is_suspicious_tiny_total,
+    line_sum_auto_eligible,
     line_sum_total,
     should_defer_box28_to_line_sum,
 )
@@ -40,3 +42,41 @@ def test_single_line_defers_wild_box28_contradiction():
     assert should_defer_box28_to_line_sum("22.00", lines)
     assert line_sum_total(lines) == "305.00"
 
+
+def test_amounts_corroborate_tolerance_and_digit_twin():
+    assert amounts_corroborate("400.00", "400.00")
+    assert amounts_corroborate("157.00", "1571.00")
+    assert not amounts_corroborate("270.00", "424.00")
+    assert not amounts_corroborate("600.00", "1600.00")
+
+
+def test_line_sum_auto_requires_dual_engine_or_di():
+    bare = [{"charges": "424.00", "candidates": [{"value": "424.00", "engine": "paddleocr"}]}]
+    ok, reason = line_sum_auto_eligible(bare)
+    assert not ok
+    assert reason == "SINGLE_LINE_UNCORROBORATED"
+
+    dual = [
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "200.00", "engine": "paddleocr"},
+                {"value": "200.00", "engine": "rapidocr"},
+            ],
+        },
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "200.00", "engine": "paddleocr"},
+                {"value": "200.00", "engine": "rapidocr"},
+            ],
+        },
+    ]
+    ok, reason = line_sum_auto_eligible(dual)
+    assert ok and reason == "DUAL_ENGINE_LINE_AGREEMENT"
+
+    ok, reason = line_sum_auto_eligible(bare, corroborating_values=["424.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
+
+    ok, reason = line_sum_auto_eligible(bare, corroborating_values=["270.00"])
+    assert not ok and reason == "BOX28_OR_DI_CONFLICT"

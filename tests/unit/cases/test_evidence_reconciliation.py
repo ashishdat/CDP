@@ -131,18 +131,42 @@ def test_criticality_policy_is_externalized():
 
 
 def test_line_totals_e6_can_authorize_total_charge_without_second_engine():
-    """Phase 2: observed line-sum E6 is financial authority for empty box-28."""
+    """Phase 2: corroborated line-sum E6 is financial authority for empty box-28."""
     result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
         "total_charge",
         [_candidate("400.00", "rapidocr")],
         CriticalityLevel.C3,
-        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID", "LINE_TOTALS_RECONCILED"},
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_CORROBORATED",
+        },
         document_family="CMS1500",
         enforce_legacy_evidence_policy=False,
     )
     assert result.decision == Decision.ACCEPT
     assert result.selected_value == "400.00"
     assert "LINE_TOTALS_RECONCILED" in result.rationale_codes
+    assert "LINE_TOTALS_CORROBORATED" in result.rationale_codes
+
+
+def test_line_totals_without_corroboration_does_not_financial_auto():
+    """Bare LINE_TOTALS (no dual-engine / DI) must not E6-AUTO critical charge."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [_candidate("424.00", "rapidocr")],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "FORMAT_VALID",
+            "LINE_TOTALS_UNCORROBORATED",
+            "LINE_TOTALS_GATE:MULTI_LINE_UNCORROBORATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision != Decision.ACCEPT
+    assert "LINE_TOTALS_CORROBORATED" not in result.rationale_codes
 
 
 def test_identity_corroborated_threshold_relief_for_insured_id():

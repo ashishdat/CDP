@@ -1589,7 +1589,7 @@ class EvidenceReconciler:
                     "CROSS_DOCUMENT_AGREEMENT",
                     "FINANCIAL_RECONCILIATION_VALID",
                     "CLAIM_TOTAL_CONFIRMED",
-                    "LINE_TOTALS_RECONCILED",
+                    "LINE_TOTALS_CORROBORATED",
                     "DATE_RELATIONSHIP_CONFIRMED",
                     "DOB_SERVICE_DATE_CONSISTENT",
                     "MEMBER_IDENTITY_CONSISTENT",
@@ -1608,12 +1608,21 @@ class EvidenceReconciler:
         financial_authority = bool(
             self.allow_authoritative_financial_e6
             and field_name in {"total_charge", "total_charges"}
-            and deterministic
-            & {
-                "CLAIM_TOTAL_CONFIRMED",
-                "FINANCIAL_RECONCILIATION_VALID",
-                "LINE_TOTALS_RECONCILED",
-            }
+            and (
+                bool(
+                    deterministic
+                    & {
+                        "CLAIM_TOTAL_CONFIRMED",
+                        "FINANCIAL_RECONCILIATION_VALID",
+                    }
+                )
+                # Bare LINE_TOTALS_RECONCILED is observed ink only — AUTO requires
+                # dual-engine line agreement or box-28/DI corroboration (hard-15).
+                or (
+                    "LINE_TOTALS_RECONCILED" in deterministic
+                    and "LINE_TOTALS_CORROBORATED" in deterministic
+                )
+            )
         )
         # A verified reference is an independent E5 authority, not an OCR
         # calibration shortcut. Exact candidate/reference agreement may use

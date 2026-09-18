@@ -143,7 +143,7 @@ def test_attach_corroborates_accepted_local_charge(monkeypatch):
         "canonical_region": [10, 10, 180, 70],
         "ocr_region": [10, 10, 180, 70],
         "candidates": [{"value": "315.00", "engine": "paddleocr"}],
-        "cascade": {"accepted": True, "accept_reason": "LINE_TOTALS"},
+        "cascade": {"accepted": True, "accept_reason": "LINE_TOTALS", "value": "315.00"},
     }
     updated = maybe_attach_charge_azure_di_to_field_row(
         row,
@@ -160,6 +160,32 @@ def test_attach_corroborates_accepted_local_charge(monkeypatch):
         and c.get("value") == "353.00"
         for c in updated["candidates"]
     )
+    # Non-twin DI must not silently override local LINE_TOTALS accept.
+    assert "LOCAL_CONFLICT_REVIEW" in updated["azure_di_residual"]["reason"]
+    assert updated["cascade"].get("value") == "315.00"
+
+
+def test_attach_promotes_di_when_it_twins_local(monkeypatch):
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_CORROBORATE", "1")
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
+    img = Image.new("RGB", (200, 80), color=(255, 255, 255))
+    row = {
+        "field": "total_charge",
+        "canonical_region": [10, 10, 180, 70],
+        "ocr_region": [10, 10, 180, 70],
+        "candidates": [{"value": "157.00", "engine": "paddleocr"}],
+        "cascade": {"accepted": True, "accept_reason": "LINE_TOTALS", "value": "157.00"},
+    }
+    updated = maybe_attach_charge_azure_di_to_field_row(
+        row,
+        image=img,
+        gap_class=None,
+        engine=_FakeCropEngine("1571.00"),
+        corroborate=True,
+    )
+    assert updated["cascade"]["accepted"] is True
+    assert updated["cascade"]["value"] == "1571.00"
 
 
 def test_attach_promotes_currency_shaped_on_miss(monkeypatch):

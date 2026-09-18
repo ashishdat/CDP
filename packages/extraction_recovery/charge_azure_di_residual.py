@@ -467,12 +467,38 @@ def maybe_attach_charge_azure_di_to_field_row(
         cands.append(candidate)
         updated["candidates"] = cands
         if not effective_review_only and promoted.currency_shaped and promoted.value:
-            cascade_out = dict(cascade)
-            cascade_out["accepted"] = True
-            cascade_out["accept_reason"] = f"AZURE_DI_RESIDUAL:{promoted.reason}"
-            cascade_out["value"] = promoted.value
-            updated["cascade"] = cascade_out
-            updated["status"] = "OBSERVED"
+            local_value = str(cascade.get("value") or "").strip()
+            if not local_value:
+                for prior in cands[:-1]:
+                    seed = str(prior.get("value") or prior.get("raw_value") or "").strip()
+                    if seed:
+                        local_value = seed
+                        break
+            # Promote DI to accepted only when it fills empty ink or corroborates
+            # local / line-sum (tolerance or digit-drop twin). Non-twin conflict
+            # stays as a competing candidate for HITL — never silent override.
+            promote_accept = True
+            if local_accepted and local_value:
+                try:
+                    from packages.claim_evidence.line_sum_authority import (
+                        amounts_corroborate,
+                    )
+                except Exception:  # noqa: BLE001
+                    amounts_corroborate = None  # type: ignore[assignment]
+                if amounts_corroborate is not None and not amounts_corroborate(
+                    local_value, promoted.value
+                ):
+                    promote_accept = False
+                    updated["azure_di_residual"]["reason"] = (
+                        f"{promoted.reason}|LOCAL_CONFLICT_REVIEW"
+                    )
+            if promote_accept:
+                cascade_out = dict(cascade)
+                cascade_out["accepted"] = True
+                cascade_out["accept_reason"] = f"AZURE_DI_RESIDUAL:{promoted.reason}"
+                cascade_out["value"] = promoted.value
+                updated["cascade"] = cascade_out
+                updated["status"] = "OBSERVED"
     return updated
 
 

@@ -181,7 +181,11 @@ def decide(extraction, family):
     service_lines = extraction.get('service_lines') or []
     # Prefer observed service-line Σ when box-28 is empty, suspicious-tiny, or
     # strongly contradicts multi-line charges (uncalibrated OCR soup).
-    from packages.claim_evidence.line_sum_authority import should_defer_box28_to_line_sum
+    from packages.claim_evidence.line_sum_authority import (
+        line_sum_auto_eligible,
+        parse_currency,
+        should_defer_box28_to_line_sum,
+    )
     for charge_field in ('total_charge', 'total_charges'):
         if charge_field in values and should_defer_box28_to_line_sum(
             values.get(charge_field), service_lines
@@ -198,6 +202,49 @@ def decide(extraction, family):
         for field_name in item.metadata.get('supported_fields', []):
             if item.value:
                 derived_totals[field_name] = item.value
+
+    def _charge_corroborators(field_payload: dict) -> list[str]:
+        """Currency-shaped box-28 / Azure DI / non-derived OCR amounts."""
+        found: list[str] = []
+        seen: set[str] = set()
+
+        def _add(raw: object) -> None:
+            text = str(raw or '').strip()
+            if not text or text in seen:
+                return
+            if parse_currency(text) is None:
+                return
+            seen.add(text)
+            found.append(text)
+
+        _add(field_payload.get('normalized_value'))
+        for row in ([field_payload.get('ranked_candidate')] if field_payload.get('ranked_candidate') else []) + list(
+            field_payload.get('alternatives') or []
+        ):
+            if not row:
+                continue
+            ocr = row.get('ocr_candidate') or {}
+            engine = str(ocr.get('engine') or '').casefold()
+            variant = str(ocr.get('preprocessing_variant') or '').casefold()
+            if 'derived_from_observed_line' in variant or 'phase2-line-sum' in variant:
+                continue
+            _add(ocr.get('value') or ocr.get('raw_value'))
+            if 'azure' in engine or 'document_intelligence' in engine:
+                _add(ocr.get('value') or ocr.get('raw_value'))
+        residual = field_payload.get('azure_di_residual') or {}
+        if residual.get('currency_shaped'):
+            _add(residual.get('value'))
+        return found
+
+    line_sum_gate: dict[str, tuple[bool, str]] = {}
+    for field_name, amount in list(derived_totals.items()):
+        field_payload = next((f for f in fields if f.get('field_name') == field_name), {}) or {}
+        eligible, reason = line_sum_auto_eligible(
+            service_lines,
+            box28_value=None,
+            corroborating_values=_charge_corroborators(field_payload),
+        )
+        line_sum_gate[field_name] = (eligible, reason)
     for field_name, amount in derived_totals.items():
         current = values.get(field_name)
         if current is None or not str(current).strip():
@@ -362,7 +409,7 @@ def decide(extraction, family):
             base_box = None
             if candidates:
                 base_box = candidates[0].bounding_box
-            candidates = [OCRCandidate(
+            derived_candidate = OCRCandidate(
                 value=derived,
                 raw_value=derived,
                 engine='rapidocr',
@@ -375,12 +422,45 @@ def decide(extraction, family):
                 latency_ms=0.0,
                 evidence_reference='LINE_TOTALS_RECONCILED',
                 preprocessing_version='phase2-line-sum',
-            )]
+            )
+            # Keep currency-shaped box-28 / DI competitors so conflicts HITL
+            # instead of wiping independent ink with a lone line-sum AUTO.
+            retained = []
+            for cand in candidates:
+                text = str(cand.value or cand.raw_value or '').strip()
+                if not text or parse_currency(text) is None:
+                    continue
+                variant = str(cand.preprocessing_variant or '').casefold()
+                if 'derived_from_observed_line' in variant:
+                    continue
+                retained.append(cand)
+            candidates = [derived_candidate] + retained
             check = deterministic.evaluate(name, derived, claim_values=values)
-            # Financial E6 is the deterministic authority for the derived total.
-            check.evidence = set(check.evidence) | {'LINE_TOTALS_RECONCILED', 'HARD_VALIDATION_PASSED'}
-            check.cross_field_evidence = set(check.cross_field_evidence) | {'LINE_TOTALS_RECONCILED'}
-            check.passed = True
+            eligible, gate_reason = line_sum_gate.get(name, (False, 'UNSET'))
+            if eligible:
+                # Financial E6 only when dual-engine lines or DI/box-28 corroborate.
+                check.evidence = set(check.evidence) | {
+                    'LINE_TOTALS_RECONCILED',
+                    'LINE_TOTALS_CORROBORATED',
+                    'HARD_VALIDATION_PASSED',
+                }
+                check.cross_field_evidence = set(check.cross_field_evidence) | {
+                    'LINE_TOTALS_RECONCILED',
+                    'LINE_TOTALS_CORROBORATED',
+                }
+                check.passed = True
+            else:
+                # Observed line-sum stays as a candidate for review — no E6 AUTO.
+                check.evidence = set(check.evidence) | {
+                    'LINE_TOTALS_UNCORROBORATED',
+                    f'LINE_TOTALS_GATE:{gate_reason}',
+                }
+                check.cross_field_evidence = set(check.cross_field_evidence) | {
+                    'LINE_TOTALS_UNCORROBORATED',
+                }
+                # Fail-closed: do not treat uncorroborated line-sum as hard-valid E6.
+                if name in {'total_charge', 'total_charges'} and not retained:
+                    check.passed = False
             checks[name] = check.model_dump(mode='json')
         localization = localizations.get(name)
         decisions.append(services.evidence_decision.decide(DecisionContext(
