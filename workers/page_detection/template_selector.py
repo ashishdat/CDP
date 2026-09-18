@@ -41,16 +41,45 @@ class TemplateSelector:
         self.registry = registry
 
     @staticmethod
-    def _choose(candidates, scores, reason):
+    def _preferred_template_versions() -> dict[str, str]:
+        """Pin collapse to the active release (default extraction-v2 → cms1500@02-12).
+
+        Lexicographic ``latest`` would prefer ``03`` over ``02-12`` while the
+        canonical registration package remains V2-only, causing false
+        DISCOVERY/geometry failures. Explicit release selection overrides.
+        """
+        try:
+            from packages.release_freeze import load_release_manifest
+            from packages.release_selection import active_release_from_env
+
+            manifest = load_release_manifest(active_release_from_env())
+            versions = manifest.get("template_versions") or {}
+            return {str(k): str(v) for k, v in versions.items()}
+        except Exception:
+            return {"cms1500": "02-12", "ub04": "2014"}
+
+    @classmethod
+    def _choose(cls, candidates, scores, reason):
         if len(scores) > 1:
             # Dual-loaded release templates (e.g. CMS-1500 v02-12 + v03) share
-            # anchors/pages. Collapse same template_id+page to the latest version
-            # before declaring multipage / multi-family ambiguity.
+            # anchors/pages. Collapse same template_id+page to the release-pinned
+            # version (not lexicographic latest) before declaring ambiguity.
+            preferred = cls._preferred_template_versions()
             collapsed: dict[tuple[str, int | None], tuple[dict, float]] = {}
             for candidate, score in scores:
                 key = (candidate["template_id"], candidate.get("page_number"))
                 previous = collapsed.get(key)
-                if previous is None or candidate["template_version"] > previous[0]["template_version"]:
+                if previous is None:
+                    collapsed[key] = (candidate, score)
+                    continue
+                want = preferred.get(candidate["template_id"])
+                prev_ver = previous[0]["template_version"]
+                cur_ver = candidate["template_version"]
+                if want is not None:
+                    if cur_ver == want and prev_ver != want:
+                        collapsed[key] = (candidate, score)
+                    # else keep previous (already preferred or neither matches)
+                elif cur_ver > prev_ver:
                     collapsed[key] = (candidate, score)
             scores = list(collapsed.values())
         if len(scores) > 1:
