@@ -860,6 +860,7 @@ def recognize_service_lines(image, router, template):
             # Independent-300 and cratered throughput.
             need_di = False
             di_gap = 'CHARGE_LOCAL_EXHAUSTED'
+            need_gpt4o_twin = False
             engine_vals = []
             for c in candidates or []:
                 ev = None
@@ -886,6 +887,9 @@ def recognize_service_lines(image, router, template):
                 if prefer_currency_without_digit_drop(a, b) is None and a != b:
                     need_di = True
                     di_gap = 'CHARGE_DIGIT_CONFLICT'
+                else:
+                    # Digit-drop twins (13 vs 131): still ask gpt-4o to pick ink.
+                    need_gpt4o_twin = True
             if need_di:
                 di_value, di_raw, di_cands, di_reason = _maybe_azure_di_charge_crop(
                     image, bbox, gap_class=di_gap
@@ -916,8 +920,8 @@ def recognize_service_lines(image, router, template):
                             'reason': di_reason,
                             'observation': {'text': di_raw or di_value},
                         }]
-            # gpt-4o line-charge residual: empty after DI, or single-engine local
-            # (hard-15 digit errors where paddle alone reads 222 vs 233).
+            # gpt-4o line-charge residual: empty after DI, single-engine local,
+            # or digit-drop twins (hard-15 charge hole).
             need_gpt4o = False
             gpt4o_on = (os.environ.get('CDP_GPT4O_CROP_RESIDUAL') or '1').strip().casefold()
             if gpt4o_on not in {'0', 'false', 'no', 'off'}:
@@ -925,8 +929,10 @@ def recognize_service_lines(image, router, template):
                     need_gpt4o = True
                 elif value and len(unique_vals) < 2:
                     need_gpt4o = True
+                elif need_gpt4o_twin:
+                    need_gpt4o = True
                 elif need_di and not any(
-                    str(c.get('engine') or '').casefold().find('document_intelligence') >= 0
+                    'document_intelligence' in str(c.get('engine') or '').casefold()
                     for c in (candidates or [])
                 ):
                     # DI was needed but did not contribute a candidate.

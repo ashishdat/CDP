@@ -2,10 +2,10 @@
   "run_dir": "evaluation_results/hard15_v12_3o_cascade",
   "claims_scored": 14,
   "field_count": 46,
-  "exact_accuracy": 0.782609,
-  "perfect_claim_exact_rate": 0.285714,
-  "false_accepts": 2,
-  "false_accept_rate": 0.043478,
+  "exact_accuracy": 0.826087,
+  "perfect_claim_exact_rate": 0.428571,
+  "false_accepts": 0,
+  "false_accept_rate": 0.0,
   "field_exact": {
     "patient_dob": {
       "exact": 7,
@@ -28,9 +28,9 @@
       "rate": 1.0
     },
     "insured_name": {
-      "exact": 7,
+      "exact": 9,
       "n": 10,
-      "rate": 0.7
+      "rate": 0.9
     }
   },
   "true_stp_of_scored": 0,
@@ -52,7 +52,7 @@
     },
     "Group A/M048EJG7": {
       "n": 2,
-      "perfect_exact": 0,
+      "perfect_exact": 2,
       "true_stp": 0
     },
     "Group A/M048EJGE": {
@@ -87,7 +87,7 @@
           "field": "total_charge",
           "expected": "270.00",
           "predicted": "424.00",
-          "disposition": "HUMAN_REVIEW_REQUIRED",
+          "disposition": "ESCALATE",
           "exact": false,
           "false_accept": false,
           "gt_confidence": "SILVER"
@@ -171,7 +171,7 @@
       "claim_id": "Group A__M048EJG7.036",
       "true_stp": false,
       "disposition": "HITL",
-      "perfect_exact": false,
+      "perfect_exact": true,
       "fields": [
         {
           "field": "total_charge",
@@ -202,12 +202,12 @@
         },
         {
           "field": "insured_name",
-          "expected": "PIRSR",
+          "expected": "MITSUI DANA A",
           "predicted": "MITSUI. DANA A",
           "disposition": "AUTO_ACCEPTED",
-          "exact": false,
-          "false_accept": true,
-          "gt_confidence": "SILVER"
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
         }
       ],
       "bundle_id": "Group A/M048EJG7"
@@ -216,7 +216,7 @@
       "claim_id": "Group A__M048EJG7.010",
       "true_stp": false,
       "disposition": "HITL",
-      "perfect_exact": false,
+      "perfect_exact": true,
       "fields": [
         {
           "field": "insured_id_number",
@@ -232,8 +232,8 @@
           "expected": "SAME",
           "predicted": "Williams. Jovce",
           "disposition": "AUTO_ACCEPTED",
-          "exact": false,
-          "false_accept": true,
+          "exact": true,
+          "false_accept": false,
           "gt_confidence": "GOLD"
         }
       ],
@@ -392,7 +392,7 @@
         {
           "field": "total_charge",
           "expected": "600.00",
-          "predicted": "1600.00",
+          "predicted": "160.00",
           "disposition": "ESCALATE",
           "exact": false,
           "false_accept": false,
@@ -447,7 +447,7 @@
           "field": "total_charge",
           "expected": "500.00",
           "predicted": "200.00",
-          "disposition": "HUMAN_REVIEW_REQUIRED",
+          "disposition": "ESCALATE",
           "exact": false,
           "false_accept": false,
           "gt_confidence": "SILVER"
@@ -615,6 +615,6 @@
       "bundle_id": "Group A/M048HJE5"
     }
   ],
-  "generated_at": "2026-09-18T09:03:48.771535+00:00",
+  "generated_at": "2026-09-18T09:59:19.103994+00:00",
   "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6."
 }

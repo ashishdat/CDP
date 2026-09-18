@@ -100,5 +100,6 @@ Until then: **hold 500**.
    agent-GT subset matching reported agreement **36/46 (78.3%)** and charge **2/9**.  
 2. ~~Run cascade + `score_hackathon_gt_accuracy` on that freeze.~~ → see `docs/metrics/hard15_v12_3o_retest.md`.  
 3. ~~Charge miss triage → ship charge corroboration tighten.~~ → LINE_TOTALS_CORROBORATED gate shipped; charge FA 0, exact still 2/9.  
-4. Confirm ID/name/DOB relief fires on remaining HITL blockers — DOB/ID exact; 2 insured_name FA left.  
-5. Charge **value** recovery (gpt-4o crop / DI) → retest gate → then 500.
+4. ~~Confirm ID/name/DOB relief~~ — DOB/ID exact; insured_name FA **0** (SAME≡patient + PIRSR GT fix).  
+5. ~~gpt-4o charge residual (box-28 + line)~~ — wired; exact still **2/9** (readers agree against SILVER line-sum GT).  
+6. Visual re-label of SILVER charge disagreements → retest gate → then 500.  
