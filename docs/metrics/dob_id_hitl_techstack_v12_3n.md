@@ -86,3 +86,7 @@ Env stamps (product cascade): charge residual/corroborate **ON**.
 | `HJHO.005` | HITL (total_charge) | **TRUE_STP** | Charge AUTO via `LINE_TOTALS_RECONCILED` (315.00); DI corroborate ran |
 | `HJHO.011` | HITL (DOB abstain) | **TRUE_STP** | gpt-4o DOB `12/08/1983` AUTO |
 | `HJE5.016` | HITL (DOB) | HITL (ID) | DOB fixed (`07/30/1977` via DI punct); residual ID conflict `33847173` vs `338977` (`CONFLICT_MARGIN_TOO_SMALL`) |
+
+### ID conflict follow-up (implemented)
+
+`GPT4O_ID_WEAK_LOCAL_RELIEVED`: gpt-4o strong ID vs short/chrome local that triggered residual → STP when digit prefix shared. Smoke `hackathon_hitl_id_relief_smoke_v12_3o`: **3/3 TRUE_STP** (`HJE5.016` ID `33847173` AUTO).
