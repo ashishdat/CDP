@@ -414,12 +414,15 @@ def run_gpt4o_crop_residual(
     elif name in _CHARGE_FIELDS:
         ftype = "currency"
         desc = (
-            "CMS-1500 box 28 total charge amount. Read the handwritten or typed "
-            "dollar amount only (e.g. 233.00). Ignore labels like TOTAL CHARGE, "
-            "NPI, and diagnosis pointers. Prefer the full amount with cents."
+            "CMS-1500 charge amount cell (box 28 total or service-line charges). "
+            "Read the handwritten or typed dollar amount only from the ink "
+            "(e.g. 233.00). Ignore labels like TOTAL CHARGE, NPI, diagnosis "
+            "pointers, and any suggested prior OCR values if they disagree "
+            "with the visible digits. Prefer the full amount with cents. "
+            "Abstain if the crop has no amount ink."
         )
-        if prior:
-            desc += " Prior OCR saw: " + " | ".join(prior[:4]) + "."
+        # Do not append prior OCR for charges — priors anchored wrong digit
+        # reads (222 vs 233) and false dual-engine corroboration.
     else:
         desc = (
             "Handwritten or typed CMS-1500 box 1a insured/member ID. "

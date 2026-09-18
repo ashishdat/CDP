@@ -932,13 +932,8 @@ def recognize_service_lines(image, router, template):
                     # DI was needed but did not contribute a candidate.
                     need_gpt4o = True
             if need_gpt4o:
-                prior = [
-                    str(c.get('value') or c.get('raw_value') or '').strip()
-                    for c in (candidates or [])
-                    if (c.get('value') or c.get('raw_value'))
-                ]
                 g_value, g_raw, g_cands, g_reason = _maybe_gpt4o_charge_crop(
-                    image, bbox, prior_candidates=prior
+                    image, bbox, prior_candidates=None
                 )
                 if g_value:
                     from packages.claim_evidence.line_sum_authority import (

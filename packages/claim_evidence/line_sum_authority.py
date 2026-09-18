@@ -134,6 +134,10 @@ def amounts_corroborate(left: object, right: object) -> bool:
 
 def _engine_family(engine: object) -> str:
     name = str(engine or "").strip().casefold()
+    # gpt-4o is a residual reader, not an independent OCR engine for LINE_TOTALS
+    # dual-engine AUTO (paddle+gpt4o agreeing on the same wrong amount → FA).
+    if "gpt4o" in name or "gpt-4o" in name:
+        return "azure_gpt4o_crop"
     if "azure" in name or "document_intelligence" in name:
         return "azure_document_intelligence_read"
     if "rapid" in name:

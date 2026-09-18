@@ -88,6 +88,26 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ok, reason = line_sum_auto_eligible(dual)
     assert ok and reason == "DUAL_ENGINE_LINE_AGREEMENT"
 
+    # paddle + gpt-4o residual agreeing is NOT independent dual-engine AUTO.
+    paddle_gpt4o = [
+        {
+            "charges": "485.00",
+            "candidates": [
+                {"value": "485.00", "engine": "paddleocr"},
+                {"value": "485.00", "engine": "azure_gpt4o_crop"},
+            ],
+        },
+        {
+            "charges": "485.00",
+            "candidates": [
+                {"value": "485.00", "engine": "paddleocr"},
+                {"value": "485.00", "engine": "azure_gpt4o_crop"},
+            ],
+        },
+    ]
+    ok, reason = line_sum_auto_eligible(paddle_gpt4o)
+    assert not ok and reason == "MULTI_LINE_UNCORROBORATED"
+
     ok, reason = line_sum_auto_eligible(bare, corroborating_values=["424.00"])
     assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
