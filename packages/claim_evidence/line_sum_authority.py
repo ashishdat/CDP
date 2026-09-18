@@ -162,14 +162,23 @@ def _shaped_candidate_amounts(candidates: list[dict] | None) -> dict[str, Decima
 
 
 def line_has_dual_engine_agreement(line: dict) -> bool:
-    """True when ≥2 independent engines agree (exact / twin / tight tolerance)."""
+    """True when ≥2 independent engines agree on the same currency amount.
+
+    Exact / $1 tolerance only — digit-drop twins are NOT dual-engine agreement
+    for LINE_TOTALS AUTO (13↔131 class false accepts on hard-15).
+    """
     amounts = _shaped_candidate_amounts(line.get("candidates") if isinstance(line, dict) else None)
     if len(amounts) < 2:
         return False
     values = list(amounts.values())
     primary = values[0]
     return all(
-        amounts_corroborate(format_currency(primary), format_currency(other))
+        amounts_within_tolerance(
+            format_currency(primary),
+            format_currency(other),
+            absolute=Decimal("1.00"),
+            relative=Decimal("0"),
+        )
         for other in values[1:]
     )
 
@@ -200,10 +209,10 @@ def line_sum_auto_eligible(
 
     Eligible when:
       - currency-shaped box-28 / DI corroborates the line sum, or
-      - every observed line charge has dual-engine agreement (single- or multi-line).
+      - multi-line (≥2) and every line charge has exact dual-engine agreement.
 
-    Otherwise return False so completion keeps the derived amount for REVIEW
-    instead of false STP.
+    Single-line dual-engine agreement alone is NOT enough — hard-15 showed
+    paddle+rapid both reading the same wrong amount (222 vs 233, 200 vs 22).
     """
     total = line_sum_total(service_lines)
     if total is None:
@@ -224,8 +233,8 @@ def line_sum_auto_eligible(
     agreed, observed = dual_engine_line_fraction(service_lines)
     if observed == 0:
         return False, "NO_LINE_CHARGES"
-    if agreed >= observed and observed >= 1:
-        return True, "DUAL_ENGINE_LINE_AGREEMENT"
     if observed == 1:
-        return False, "SINGLE_LINE_UNCORROBORATED"
+        return False, "SINGLE_LINE_REQUIRES_DI"
+    if agreed >= observed and observed >= 2:
+        return True, "DUAL_ENGINE_LINE_AGREEMENT"
     return False, "MULTI_LINE_UNCORROBORATED"

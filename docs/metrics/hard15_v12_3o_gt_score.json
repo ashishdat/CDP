@@ -1,0 +1,620 @@
+{
+  "run_dir": "evaluation_results/hard15_v12_3o_cascade",
+  "claims_scored": 14,
+  "field_count": 46,
+  "exact_accuracy": 0.782609,
+  "perfect_claim_exact_rate": 0.285714,
+  "false_accepts": 2,
+  "false_accept_rate": 0.043478,
+  "field_exact": {
+    "patient_dob": {
+      "exact": 7,
+      "n": 7,
+      "rate": 1.0
+    },
+    "total_charge": {
+      "exact": 2,
+      "n": 9,
+      "rate": 0.222222
+    },
+    "patient_name": {
+      "exact": 9,
+      "n": 9,
+      "rate": 1.0
+    },
+    "insured_id_number": {
+      "exact": 11,
+      "n": 11,
+      "rate": 1.0
+    },
+    "insured_name": {
+      "exact": 7,
+      "n": 10,
+      "rate": 0.7
+    }
+  },
+  "true_stp_of_scored": 0,
+  "by_bundle": {
+    "Group A/M048DJJM": {
+      "n": 1,
+      "perfect_exact": 0,
+      "true_stp": 0
+    },
+    "Group A/M048DJKH": {
+      "n": 1,
+      "perfect_exact": 0,
+      "true_stp": 0
+    },
+    "Group A/M048DJKN": {
+      "n": 2,
+      "perfect_exact": 0,
+      "true_stp": 0
+    },
+    "Group A/M048EJG7": {
+      "n": 2,
+      "perfect_exact": 0,
+      "true_stp": 0
+    },
+    "Group A/M048EJGE": {
+      "n": 2,
+      "perfect_exact": 0,
+      "true_stp": 0
+    },
+    "Group A/M048EJI2": {
+      "n": 2,
+      "perfect_exact": 0,
+      "true_stp": 0
+    },
+    "Group A/M048HJBI": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M048HJE5": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 0
+    }
+  },
+  "claims": [
+    {
+      "claim_id": "Group A__M048DJJM.036",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "total_charge",
+          "expected": "270.00",
+          "predicted": "424.00",
+          "disposition": "HUMAN_REVIEW_REQUIRED",
+          "exact": false,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "patient_name",
+          "expected": "CHANAUICNI ARUA. M",
+          "predicted": "ChanauIcni Arua. M",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "917395185",
+          "predicted": "917395185",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "insured_name",
+          "expected": "CRMAUIANI . AIAY . M",
+          "predicted": "crmauiani . Aiay . M",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        }
+      ],
+      "bundle_id": "Group A/M048DJJM"
+    },
+    {
+      "claim_id": "Group A__M048EJGE.021",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "patient_dob",
+          "expected": "2003-12-31",
+          "predicted": "2003-12-31",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "total_charge",
+          "expected": "400.00",
+          "predicted": "400.00",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "130259074",
+          "predicted": "130259074",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_name",
+          "expected": "ROONE ANTOTNME",
+          "predicted": "ROONEANTOTNEWME",
+          "disposition": "HUMAN_REVIEW_REQUIRED",
+          "exact": false,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        }
+      ],
+      "bundle_id": "Group A/M048EJGE"
+    },
+    {
+      "claim_id": "Group A__M048EJG7.036",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "total_charge",
+          "expected": "165.00",
+          "predicted": "165.00",
+          "disposition": "ESCALATE",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "patient_name",
+          "expected": "MITSUI DANA A",
+          "predicted": "MITSUI. DANA A",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "7267",
+          "predicted": "7267",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_name",
+          "expected": "PIRSR",
+          "predicted": "MITSUI. DANA A",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": false,
+          "false_accept": true,
+          "gt_confidence": "SILVER"
+        }
+      ],
+      "bundle_id": "Group A/M048EJG7"
+    },
+    {
+      "claim_id": "Group A__M048EJG7.010",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "insured_id_number",
+          "expected": "964637680",
+          "predicted": "964637680",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_name",
+          "expected": "SAME",
+          "predicted": "Williams. Jovce",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": false,
+          "false_accept": true,
+          "gt_confidence": "GOLD"
+        }
+      ],
+      "bundle_id": "Group A/M048EJG7"
+    },
+    {
+      "claim_id": "Group A__M048HJBI.014",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": true,
+      "fields": [
+        {
+          "field": "patient_name",
+          "expected": "RODRIGUEZ OLGA M",
+          "predicted": "RODRIGUEZ OLGA M",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "127523766",
+          "predicted": "127523766",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        }
+      ],
+      "bundle_id": "Group A/M048HJBI"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.004",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "patient_dob",
+          "expected": "1995-09-22",
+          "predicted": "1995-09-22",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "total_charge",
+          "expected": "233.00",
+          "predicted": "222.00",
+          "disposition": "ESCALATE",
+          "exact": false,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "patient_name",
+          "expected": "COHEN SHERI L",
+          "predicted": "COHEN SHERI L",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "118183302",
+          "predicted": "118183302",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_name",
+          "expected": "COHEN SHERI L",
+          "predicted": "COHEN SHERI L",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        }
+      ],
+      "bundle_id": "Group A/M048DJKH"
+    },
+    {
+      "claim_id": "Group A__M048DJKN.003",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "patient_dob",
+          "expected": "1966-12-24",
+          "predicted": "1966-12-24",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "total_charge",
+          "expected": "22.00",
+          "predicted": "200.00",
+          "disposition": "ESCALATE",
+          "exact": false,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "patient_name",
+          "expected": "WATSON APRIL",
+          "predicted": "WATSON. APRIL",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "971644534",
+          "predicted": "971644534",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_name",
+          "expected": "WATSON APRIL",
+          "predicted": "WATSON. APRIL",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        }
+      ],
+      "bundle_id": "Group A/M048DJKN"
+    },
+    {
+      "claim_id": "Group A__M048DJKN.009",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "patient_dob",
+          "expected": "1984-06-02",
+          "predicted": "1984-06-02",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "total_charge",
+          "expected": "600.00",
+          "predicted": "1600.00",
+          "disposition": "ESCALATE",
+          "exact": false,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "patient_name",
+          "expected": "THOMAS TAZ",
+          "predicted": "THOMAS TAZ",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "901516801",
+          "predicted": "901516801",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_name",
+          "expected": "THOMAS DWAYNE",
+          "predicted": "THOMAS DWAYNE",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        }
+      ],
+      "bundle_id": "Group A/M048DJKN"
+    },
+    {
+      "claim_id": "Group A__M048EJGE.033",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "patient_dob",
+          "expected": "2020-01-29",
+          "predicted": "2020-01-29",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "total_charge",
+          "expected": "500.00",
+          "predicted": "200.00",
+          "disposition": "HUMAN_REVIEW_REQUIRED",
+          "exact": false,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "patient_name",
+          "expected": "STERNBERG BENJAMIN",
+          "predicted": "STERNBERG.BENJAMIN",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "921224280",
+          "predicted": "921224280",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_name",
+          "expected": "STERNBERG ERIC",
+          "predicted": "STERNBERG. ERIC",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        }
+      ],
+      "bundle_id": "Group A/M048EJGE"
+    },
+    {
+      "claim_id": "Group A__M048EJI2.017",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "patient_dob",
+          "expected": "1976-10-13",
+          "predicted": "1976-10-13",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "total_charge",
+          "expected": "135.00",
+          "predicted": "131.00",
+          "disposition": "ESCALATE",
+          "exact": false,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "patient_name",
+          "expected": "TEKIN KAROLEEN",
+          "predicted": "TEKIN KAROLEEN",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "957136397",
+          "predicted": "957136397",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_name",
+          "expected": "TEKIN CENGIZ",
+          "predicted": "TEKIN CENGIZ",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        }
+      ],
+      "bundle_id": "Group A/M048EJI2"
+    },
+    {
+      "claim_id": "Group A__M048EJI2.044",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": false,
+      "fields": [
+        {
+          "field": "patient_dob",
+          "expected": "1996-05-19",
+          "predicted": "1996-05-19",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "total_charge",
+          "expected": "970.00",
+          "predicted": "5821.00",
+          "disposition": "ESCALATE",
+          "exact": false,
+          "false_accept": false,
+          "gt_confidence": "SILVER"
+        },
+        {
+          "field": "patient_name",
+          "expected": "ARIAS JAKE",
+          "predicted": "Arias Jake",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_id_number",
+          "expected": "975742642",
+          "predicted": "975742642",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        },
+        {
+          "field": "insured_name",
+          "expected": "ARIAS JAKE",
+          "predicted": "Arias Jake",
+          "disposition": "AUTO_ACCEPTED",
+          "exact": true,
+          "false_accept": false,
+          "gt_confidence": "GOLD"
+        }
+      ],
+      "bundle_id": "Group A/M048EJI2"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.015",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": true,
+      "fields": [],
+      "bundle_id": "Group A/M048HJE5"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.016",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": true,
+      "fields": [],
+      "bundle_id": "Group A/M048HJE5"
+    },
+    {
+      "claim_id": "Group A__M048HJE5.019",
+      "true_stp": false,
+      "disposition": "HITL",
+      "perfect_exact": true,
+      "fields": [],
+      "bundle_id": "Group A/M048HJE5"
+    }
+  ],
+  "generated_at": "2026-09-18T09:03:48.771535+00:00",
+  "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6."
+}

@@ -54,7 +54,20 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     bare = [{"charges": "424.00", "candidates": [{"value": "424.00", "engine": "paddleocr"}]}]
     ok, reason = line_sum_auto_eligible(bare)
     assert not ok
-    assert reason == "SINGLE_LINE_UNCORROBORATED"
+    assert reason == "SINGLE_LINE_REQUIRES_DI"
+
+    # Single-line paddle+rapid agree is still insufficient without DI.
+    single_dual = [
+        {
+            "charges": "222.00",
+            "candidates": [
+                {"value": "222.00", "engine": "paddleocr"},
+                {"value": "222.00", "engine": "rapidocr"},
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(single_dual)
+    assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
 
     dual = [
         {
@@ -80,3 +93,23 @@ def test_line_sum_auto_requires_dual_engine_or_di():
 
     ok, reason = line_sum_auto_eligible(bare, corroborating_values=["270.00"])
     assert not ok and reason == "BOX28_OR_DI_CONFLICT"
+
+    # Digit-drop twin across engines is not dual-engine agreement for AUTO.
+    twin_line = [
+        {
+            "charges": "131.00",
+            "candidates": [
+                {"value": "13.00", "engine": "paddleocr"},
+                {"value": "131.00", "engine": "rapidocr"},
+            ],
+        },
+        {
+            "charges": "4.00",
+            "candidates": [
+                {"value": "4.00", "engine": "paddleocr"},
+                {"value": "4.00", "engine": "rapidocr"},
+            ],
+        },
+    ]
+    ok, reason = line_sum_auto_eligible(twin_line)
+    assert not ok and reason == "MULTI_LINE_UNCORROBORATED"

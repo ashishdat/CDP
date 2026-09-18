@@ -98,7 +98,7 @@ Until then: **hold 500**.
    (`field_truth.json`, `field_labels.csv`, `LABELS.md`, `charge_labels_vs_v12_3h.json`).  
    UI run history was not in-repo; labeled core reconstructed as the 11-doc / 46-label  
    agent-GT subset matching reported agreement **36/46 (78.3%)** and charge **2/9**.  
-2. Run cascade + `score_hackathon_gt_accuracy` on that freeze.  
-3. Charge miss triage → ship charge corroboration tighten.  
-4. Confirm ID/name/DOB relief fires on remaining HITL blockers.  
-5. Retest hard-15 against gate above → then 500.
+2. ~~Run cascade + `score_hackathon_gt_accuracy` on that freeze.~~ → see `docs/metrics/hard15_v12_3o_retest.md`.  
+3. ~~Charge miss triage → ship charge corroboration tighten.~~ → LINE_TOTALS_CORROBORATED gate shipped; charge FA 0, exact still 2/9.  
+4. Confirm ID/name/DOB relief fires on remaining HITL blockers — DOB/ID exact; 2 insured_name FA left.  
+5. Charge **value** recovery (gpt-4o crop / DI) → retest gate → then 500.
