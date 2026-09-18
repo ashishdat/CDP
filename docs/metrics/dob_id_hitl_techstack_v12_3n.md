@@ -50,3 +50,19 @@ local Rapid/Paddle/Tesseract (+ DOB digit-band / ID value-band)
 - Wired in `scripts/ocr_from_geometry.py` residual pass
 - Product stamps in `scripts/run_hackathon_1000_cascade.py`
 - Adapter reuse: `workers/vlm_fallback` (crop-only, temp 0, strict JSON)
+- **Evidence auth:** `packages/evidence_decision/service.py` allows `azure_gpt4o_crop` (`CLOUD_AI_FAMILY`) on `patient_dob` + `insured_id_number`
+
+## Auth smoke (6 prior FIELD_INK HITL docs)
+
+`evaluation_results/hackathon_dob_id_gpt4o_auth_smoke_v12_3n/` → **3/6 TRUE_STP**
+
+| Doc | Prior | After auth | Notes |
+| --- | --- | --- | --- |
+| `HJE5.019` | HITL (ID stripped) | **TRUE_STP** | gpt-4o ID `949774145` AUTO_ACCEPTED |
+| `HJHO.010` | HITL (ID) | **TRUE_STP** | gpt-4o ID `938332027` |
+| `HJHO.003` | HITL (DOB) | **TRUE_STP** | local DATE/ID shaped (no gpt-4o) |
+| `HJHO.005` | HITL (ID) | HITL | ID+DOB cleared; residual **total_charge** |
+| `HJE5.016` | HITL (DOB) | HITL | gpt-4o **abstain** on DOB; ID conflict margin |
+| `HJHO.011` | HITL (DOB) | HITL | gpt-4o **abstain** on DOB |
+
+Authorization is working for member ID. Remaining DOB HITL is model abstain / unshaped DI — not engine stripping.
