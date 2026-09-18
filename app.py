@@ -31,17 +31,14 @@ def register_classified_document(images, routing, registry, selection=None):
     one bounded CLAHE/denoise enhancement retry against the same template.
     """
     from packages.domain.enums import ClaimFormType
-    from packages.recovery.registration_content import validate_cms1500_registration_content
-    from packages.recovery.registration_recovery import (
-        decide_registration_recovery,
-        enhance_for_registration,
-        enhance_for_registration_strong,
-        enhance_for_registration_contrast_stretch,
-        enhance_for_registration_edge_deskew,
-        rotate_page_for_orientation,
-        should_attempt_second_preprocess,
-        evidence_grade_alignment_confidence,
+    from packages.recovery.azure_di_page_corners import run_azure_di_page_corners
+    from packages.recovery.document_quad import (
+        compose_source_to_template,
+        detect_document_quad,
     )
+    from packages.recovery.orientation_hint import ordered_orientation_attempts
+    from packages.recovery.planner import Strategy
+    from packages.recovery.registration_content import validate_cms1500_registration_content
     from packages.recovery.registration_near_miss import (
         assess_evidence_near_miss,
         best_orientation_rotation_degrees,
@@ -57,13 +54,16 @@ def register_classified_document(images, routing, registry, selection=None):
         should_attempt_perspective_recovery,
         should_attempt_perspective_recovery_any,
     )
-    from packages.recovery.orientation_hint import ordered_orientation_attempts
-    from packages.recovery.document_quad import (
-        compose_source_to_template,
-        detect_document_quad,
+    from packages.recovery.registration_recovery import (
+        decide_registration_recovery,
+        enhance_for_registration,
+        enhance_for_registration_contrast_stretch,
+        enhance_for_registration_edge_deskew,
+        enhance_for_registration_strong,
+        evidence_grade_alignment_confidence,
+        rotate_page_for_orientation,
+        should_attempt_second_preprocess,
     )
-    from packages.recovery.azure_di_page_corners import run_azure_di_page_corners
-    from packages.recovery.planner import Strategy
     from workers.page_detection.registration_telemetry import registration_context
     from workers.page_detection.template_alignment import (
         AlignmentResult,
@@ -986,6 +986,7 @@ def resolve_registered_geometry(images, registration, registry):
     """Consume only an accepted transform; resolve fields on the rectified page."""
     import cv2
     import numpy as np
+
     from packages.geometry.engine import GeometryEngine, GeometryRequest
     from packages.geometry.models import Box, Registration
 
@@ -1033,6 +1034,9 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
     production routing, fabricate registration, or report unexecuted stages as
     successful. Later stages remain skipped until their bindings are assembled.
     """
+    from workers.ocr_engine_factories import wire_package_ocr_providers
+
+    wire_package_ocr_providers()
     output = Path(output_root) / ("application-" + uuid4().hex)
     output.mkdir(parents=True, exist_ok=False)
     state = {
@@ -1093,8 +1097,21 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
 
         observed_lines = {}
         registry = TemplateRegistry.load_from_directory()
-        cms = registry.latest_for_form_type(ClaimFormType.CMS1500)
-        ub = registry.latest_for_form_type(ClaimFormType.UB04)
+        # Pin templates to the active release (default extraction-v2). Do not
+        # use lexicographic latest — cms1500@03 would outrank frozen @02-12
+        # while the canonical registration package remains V2-only.
+        from packages.release_selection import active_release_from_env
+        from packages.templates.registry import TemplateNotFoundError
+
+        release = active_release_from_env()
+        try:
+            cms = registry.get_for_release(ClaimFormType.CMS1500, release)
+        except TemplateNotFoundError:
+            cms = registry.get("cms1500", "02-12")
+        try:
+            ub = registry.get_for_release(ClaimFormType.UB04, release)
+        except TemplateNotFoundError:
+            ub = registry.latest_for_form_type(ClaimFormType.UB04)
 
         # Operator-supplied document type: skip full-page PSM-11 OCR used only
         # for form classification. TemplateSelector already honors document_type;

@@ -1,14 +1,13 @@
 # CMS-1500 (NUCC-approved, revision 02/12) -- "HEALTH INSURANCE CLAIM FORM".
+# V3 recalibrated ROIs for the NUCC 02/12 form (not the frozen V2 template).
 # Field regions are pixel coordinates against reference_dimensions, derived
-# by visual inspection of a real sample scan from the supplied dataset
-# (Group A, single-page Bundle A) -- see docs/DATASET_FINDINGS.md. These
-# are deliberately coarse (box-level, not character-level) and are meant
-# to be refined by an operator calibration pass; OpenCV alignment
-# (packages.templates + workers.page_detection) maps each incoming scan
-# onto this reference before any region is read, so small offsets here are
-# tolerated as long as the padding used by regional OCR is generous enough.
+# from operator recalibration against real sample scans -- see
+# docs/DATASET_FINDINGS.md. OpenCV alignment (packages.templates +
+# workers.page_detection) maps each incoming scan onto this reference
+# before any region is read, so small offsets here are tolerated as long
+# as the padding used by regional OCR is generous enough.
 template_id: cms1500
-version: "02-12"
+version: "03"
 form_type: CMS1500
 
 reference_dimensions:
@@ -17,7 +16,7 @@ reference_dimensions:
 
 # Optional: a real, operator-supplied clean/representative scan of this
 # form, path relative to this file. Drop one at
-# config/templates/reference_images/cms1500_v02_12.png (gitignored -- never
+# config/templates/reference_images/cms1500_v03.png (gitignored -- never
 # commit a real scan) to unlock real OpenCV alignment (grid-signature +
 # ORB/homography) in place of the anchor-phrase-only / rescale-only
 # fallback. Absent by default; nothing else here needs to change.
@@ -35,164 +34,164 @@ anchor_definitions:
 
 field_regions:
   - field_name: patient_last
-    x0: 55
-    y0: 350
-    x1: 625
-    y1: 390
+    x0: 30
+    y0: 402
+    x1: 667
+    y1: 459
     field_type: text
     postprocessor: person_name_last
   - field_name: patient_first
-    x0: 55
-    y0: 350
-    x1: 620
-    y1: 390
+    x0: 30
+    y0: 402
+    x1: 667
+    y1: 459
     field_type: text
     postprocessor: person_name_first
   - field_name: patient_addr1
-    x0: 55
-    y0: 410
-    x1: 625
-    y1: 448
+    x0: 30
+    y0: 459
+    x1: 667
+    y1: 523
     field_type: text
   - field_name: patient_city
-    x0: 55
-    y0: 475
-    x1: 555
-    y1: 512
+    x0: 30
+    y0: 523
+    x1: 500
+    y1: 584
     field_type: text
   - field_name: patient_state
-    x0: 555
-    y0: 475
-    x1: 635
-    y1: 512
+    x0: 500
+    y0: 523
+    x1: 667
+    y1: 584
     field_type: code
   - field_name: patient_zip
-    x0: 55
-    y0: 538
-    x1: 325
-    y1: 582
+    x0: 30
+    y0: 584
+    x1: 350
+    y1: 648
     field_type: code
   - field_name: rel_code
-    x0: 635
-    y0: 400
-    x1: 1015
-    y1: 448
+    x0: 667
+    y0: 459
+    x1: 1004
+    y1: 523
     field_type: checkbox
     postprocessor: cms_relationship
   - field_name: insured_addr1
-    x0: 1030
-    y0: 410
-    x1: 1695
-    y1: 448
+    x0: 1004
+    y0: 459
+    x1: 1690
+    y1: 523
     field_type: text
   - field_name: insured_city
-    x0: 1030
-    y0: 475
+    x0: 1004
+    y0: 523
     x1: 1495
-    y1: 512
+    y1: 584
     field_type: text
   - field_name: insured_state
     x0: 1495
-    y0: 475
+    y0: 523
     x1: 1630
-    y1: 512
+    y1: 584
     field_type: code
   - field_name: insured_zip
-    x0: 1030
-    y0: 538
+    x0: 1004
+    y0: 584
     x1: 1290
-    y1: 582
+    y1: 648
     field_type: code
   - field_name: insured_id_number
-    x0: 1015
-    y0: 255
-    x1: 1310
-    y1: 325
+    x0: 1028
+    y0: 337
+    x1: 1570
+    y1: 402
     field_type: text
   - field_name: patient_name
-    x0: 20
-    y0: 320
-    x1: 465
-    y1: 375
+    x0: 30
+    y0: 402
+    x1: 667
+    y1: 459
     field_type: text
   - field_name: patient_dob
-    x0: 475
-    y0: 320
-    x1: 720
-    y1: 375
+    x0: 672
+    y0: 424
+    x1: 871
+    y1: 457
     field_type: date
   - field_name: patient_sex
-    x0: 730
-    y0: 320
-    x1: 780
-    y1: 375
+    x0: 886
+    y0: 402
+    x1: 1004
+    y1: 459
     field_type: checkbox
   - field_name: insured_name
-    x0: 1015
-    y0: 320
-    x1: 1710
-    y1: 375
+    x0: 1004
+    y0: 402
+    x1: 1690
+    y1: 459
     field_type: text
   - field_name: patient_address
-    x0: 20
-    y0: 385
-    x1: 900
-    y1: 545
+    x0: 30
+    y0: 459
+    x1: 1004
+    y1: 648
     field_type: text
   - field_name: insured_address
-    x0: 1015
-    y0: 385
-    x1: 1710
-    y1: 545
+    x0: 1004
+    y0: 459
+    x1: 1690
+    y1: 648
     field_type: text
   - field_name: insured_policy_group
-    x0: 1015
-    y0: 580
-    x1: 1710
-    y1: 635
+    x0: 1004
+    y0: 648
+    x1: 1690
+    y1: 710
     field_type: text
   - field_name: diagnosis_codes
-    x0: 20
-    y0: 1320
+    x0: 30
+    y0: 1260
     x1: 1000
-    y1: 1445
+    y1: 1321
     field_type: code
   - field_name: federal_tax_id
-    x0: 20
-    y0: 1775
+    x0: 30
+    y0: 1750
     x1: 290
-    y1: 1830
+    y1: 1811
     field_type: tax_id
   - field_name: patient_account_no
     x0: 300
-    y0: 1775
+    y0: 1750
     x1: 555
-    y1: 1830
+    y1: 1811
     field_type: text
   - field_name: total_charge
-    x0: 1305
-    y0: 1775
-    x1: 1475
-    y1: 1830
+    x0: 1335
+    y0: 1755
+    x1: 1465
+    y1: 1810
     field_type: currency
   - field_name: amount_paid
-    x0: 1485
-    y0: 1775
+    x0: 1470
+    y0: 1750
     x1: 1630
-    y1: 1830
+    y1: 1811
     field_type: currency
   - field_name: billing_provider_info
     x0: 1015
-    y0: 1830
+    y0: 1811
     x1: 1710
     y1: 2025
     field_type: text
 
 service_line_region:
   table_x0: 20
-  table_y0: 1440
+  table_y0: 1385
   table_x1: 1710
-  table_y1: 1770
+  table_y1: 1750
   max_rows: 6
   row_height_px: 55
   columns:
@@ -239,15 +238,15 @@ service_line_region:
       y1: 0
       field_type: code
     - field_name: charges
-      x0: 940
+      x0: 1000
       y0: 0
-      x1: 1100
+      x1: 1145
       y1: 0
       field_type: currency
     - field_name: units
-      x0: 1100
+      x0: 1145
       y0: 0
-      x1: 1165
+      x1: 1210
       y1: 0
       field_type: text
     - field_name: rendering_provider_npi

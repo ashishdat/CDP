@@ -59,6 +59,12 @@ class RuntimeDecisionProfile(DomainModel):
         return path if path.is_absolute() else ROOT / path
 
     def verify_hashes(self) -> None:
+        # HISTORICAL_ONLY profiles archive past configuration hashes. Current
+        # files may have moved on; do not fail-closed against the live tree.
+        # Runtime selection and matches_runtime() still compare the pinned
+        # hash strings recorded in the historical manifest.
+        if self.profile_status is RuntimeProfileStatus.HISTORICAL_ONLY:
+            return
         for path_field, hash_field in (
             ("evidence_policy_path", "evidence_policy_sha256"),
             ("field_policy_path", "field_policy_sha256"),

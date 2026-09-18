@@ -1,0 +1,73 @@
+pipeline_version: extraction-v3
+status: CANDIDATE
+router_policy_version: router_frozen_v1
+reconciliation_version: reconciliation_v2.1
+template_versions:
+  cms1500: '03'
+  ub04: '2014'
+ocr_models:
+  primary:
+    engine: PaddleOCR
+    model: PP-OCRv4
+    runtime: paddleocr-2.x
+  secondary:
+    engine: Tesseract
+    model: field-specific-psm
+    runtime: external
+  handwriting:
+    engine: TrOCR
+    model: microsoft/trocr-base-handwritten
+    runtime: transformers-4.x
+    authority: REVIEW_ONLY_UNTIL_DOMAIN_HOLDOUT_PROMOTION
+  attachment_printed:
+    engine: TrOCR
+    model: microsoft/trocr-base-printed
+    authority: REVIEW_ONLY
+  optional_layout:
+    engine: Docling
+    status: PILOT_DISABLED
+handwriting_cascade_version: field-cascade-v1
+validation_rule_version: validation-v1
+output_projection_version: sentinel-projection-v1-pending-authorization
+release_timestamp: '2026-09-18T00:00:00+00:00'
+supersedes_after_promotion: extraction-v2
+configuration_hashes:
+  config/router_frozen_v1.yaml: 0580cca61387ccfcafba15ecc01cf9aa1bc16b9a91ea5da3b69222e5bce2a0c5
+  config/reconciliation_policy_v2.yaml: 7d5878bac0ea7298792374e350314449149c7ea05c237480476b8f72f9ee8785
+  config/templates/cms1500_v03.yaml: 75b818ac765d6d2b1a0322b23bc9cd8a1768ef2a34c9d1a1164367257e8c82f4
+  config/templates/ub04_v2014.yaml: 041aa18e4174915c05d9a26d76cd8afe497662d09c10b65d23d28205a2b84fc9
+  config/handwriting_model_families.yaml: 21bd674fbdd7fcc592f85f53cb2867de4a780e5238ff9baa85830515b41c81e8
+  config/validation/cms1500_thresholds.yaml: a577e63feb7c964449337cc91cb185700b9377762ff01a2df11bef3034fb3cd8
+  config/validation/ub04_thresholds.yaml: 81e5e678cbbfcf0bf62a54f05503045a1027d63a8919bfb2f81cac8d3582c20a
+  config/sentinel_projection_rules.yaml: 0e8c5bf1fedb16662184df2bcc585912a2ef34de5224e8994b69936df1cf9503
+  config/router_v3_freeze.json: 9b74e5769cc0c6b005075552c3ec0fe704021e01db13e1ff119e5d29ba81c5f6
+  config/evaluation/evaluation_contract_v3.yaml: f86fcfc6bbf3e232df9719bc66678dfd5b96be6996ad48c273206c8f5b862e48
+  config/evaluation/code_consensus_local_first_v3.yaml: bc74f8e7c25b64318fa7854856c7fe50fa9eda7cd6e9414c1ceefa6164a97455
+  config/evaluation/table_promotion_v3.yaml: 0f6452439927daf3a1e5d498186f0794d84046daddd0744fac1eea1bc39a5c68
+evaluation_split_version: evaluation_data/ground_truth.json:current
+baseline_metrics:
+  automated_accuracy: null
+  page_accuracy: null
+  wrong_page_fields: null
+  critical_false_accepts: null
+  reference_blocked_fields: null
+  human_review_required_fields: null
+  semantic_review_fields: null
+  final_validated_accuracy: null
+known_limitations:
+- Candidate only: not FROZEN until promotion gates pass with verified hashes and holdout evidence.
+- Charge-line false-accept (FA) gates still require validation; no production FA claim is made here.
+- CMS-1500 ROIs are V3 recalibrations; operators must pin CDP_RELEASE_MANIFEST / CDP_PIPELINE_RELEASE explicitly.
+- Authorized member/provider/address datasets are not configured.
+- Generic TrOCR handwriting output is non-authoritative.
+- Docling remains a disabled additive pilot.
+- Baseline metrics are intentionally unset until governed evaluation completes; do not treat nulls as zeros.
+change_control:
+  unversioned_changes_permitted: false
+  new_version_required_for:
+  - router
+  - reconciliation
+  - parser
+  - model
+  - validation_rule
+  - projection_rule
