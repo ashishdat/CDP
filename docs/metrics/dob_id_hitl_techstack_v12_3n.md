@@ -76,3 +76,13 @@ Authorization is working for member ID. Remaining DOB HITL is model abstain / un
 | `HJHO.005` charge | line-sum ≠ box-28 | `CDP_AZURE_DI_CHARGE_RESIDUAL=1` + `CDP_AZURE_DI_CHARGE_CORROBORATE=1` after local accept |
 
 Env stamps (product cascade): charge residual/corroborate **ON**.
+
+### Smoke retest (3 prior HITL docs)
+
+`evaluation_results/hackathon_hitl_fix_smoke_v12_3o/` → **2/3 TRUE_STP** (mean ~23s)
+
+| Doc | Prior (auth smoke) | After v12.3o | Notes |
+| --- | --- | --- | --- |
+| `HJHO.005` | HITL (total_charge) | **TRUE_STP** | Charge AUTO via `LINE_TOTALS_RECONCILED` (315.00); DI corroborate ran |
+| `HJHO.011` | HITL (DOB abstain) | **TRUE_STP** | gpt-4o DOB `12/08/1983` AUTO |
+| `HJE5.016` | HITL (DOB) | HITL (ID) | DOB fixed (`07/30/1977` via DI punct); residual ID conflict `33847173` vs `338977` (`CONFLICT_MARGIN_TOO_SMALL`) |
