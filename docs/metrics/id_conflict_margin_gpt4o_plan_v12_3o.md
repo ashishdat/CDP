@@ -87,8 +87,12 @@ If gpt-4o and the weak prior share **no** digit prefix (≥3) and edit distance 
 3. Visual spot-check ID crop (bbox `[1030,363,1568,401]`) before trusting STP economics
 4. Re-run prior 6-doc auth set — no regression on docs that already STP
 
-## Expected impact
+## Status
 
-- Unblocks this residual-vs-weak-local pattern (currently 1/1 in fix smoke; will grow as gpt-4o covers hard-150 ID HITL)
-- Leaves true same-length digit conflicts on HITL
-- Cost: one reconciler rule + ranking prior; no new model calls
+**Implemented** on `feature/cdp-v3`:
+
+- Reconciler relief + early prefer: `GPT4O_ID_WEAK_LOCAL_RELIEVED`
+- Shared-prefix safety gate (≥3 digits)
+- `independence_group("azure_gpt4o_crop")` → `CLOUD_AI_FAMILY`
+- Ranking engine reliability `azure_gpt4o_crop: 0.88` + ID residual prior in `rank_from_ocr.py`
+- Unit tests: `tests/unit/cases/test_gpt4o_id_weak_local_relief.py`
