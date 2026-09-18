@@ -34,3 +34,9 @@ Field auto: DOB/ID/name ≥96%; **total_charge 8%**.
 | TRUE_STP | 3 (6%) | **~29 (58%)** |
 
 Remaining HITL: single-line without gpt-4o local agree, multi-line uncorroborated, near-miss box-28 conflicts (e.g. 222 vs 200).
+
+## E2E retest (8 prior charge-HITL claims)
+
+`evaluation_results/hackathon_150_gapfix_retest/` — **5/8 TRUE_STP** (was 0/8).
+
+Flipped: IJN2.002/004/005/019, IJMP.009. Still HITL: multi-line uncorroborated / residual single-line without gpt-4o+local agree.
