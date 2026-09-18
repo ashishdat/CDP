@@ -46,3 +46,18 @@ def test_gt_scorer_soft_matches_optional_middle_initial():
     assert values_conflict_equivalent(
         "patient_name", "SOMBELON HARRY I P", "SOMBELON HARRY P"
     )
+
+
+def test_gt_scorer_same_marker_matches_patient_twin():
+    assert _exact(
+        "insured_name",
+        "Williams. Jovce",
+        "SAME",
+        patient_name="Williams. Jovce",
+    )
+    assert not _exact(
+        "insured_name",
+        "OTHER PERSON",
+        "SAME",
+        patient_name="Williams. Jovce",
+    )

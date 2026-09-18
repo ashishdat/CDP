@@ -286,3 +286,66 @@ def test_dob_cell_split_retry_after_full_box_abstain(monkeypatch):
     assert result.shaped is True
     assert result.reason == "GPT4O_CELL_SPLIT_SHAPED"
     assert "GPT4O_CELL_SPLIT" in result.validation_results
+
+
+def test_charge_needs_gpt4o_and_shapes_currency():
+    from packages.extraction_recovery.gpt4o_crop_residual import (
+        _shape_charge,
+        charge_needs_gpt4o,
+    )
+
+    assert charge_needs_gpt4o(
+        local_accepted=False, azure_di_shaped=False, gap_class="CHARGE_LOCAL_EXHAUSTED"
+    )
+    assert not charge_needs_gpt4o(
+        local_accepted=True, azure_di_shaped=False, gap_class="CHARGE_LOCAL_EXHAUSTED"
+    )
+    assert not charge_needs_gpt4o(
+        local_accepted=False, azure_di_shaped=True, gap_class="CHARGE_LOCAL_EXHAUSTED"
+    )
+    shaped, ok = _shape_charge("TOTAL CHARGE 233.00")
+    assert ok and shaped == "233.00"
+    shaped, ok = _shape_charge("1.00")
+    assert not ok
+
+
+def test_attach_charge_promotes_shaped_box28(monkeypatch):
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
+    img = Image.new("RGB", (240, 80), color=(255, 255, 255))
+    engine = _FakeEngine(
+        {
+            "total_charge": Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value="233.00",
+                raw_value="233.00",
+                shaped=True,
+                insufficient_evidence=False,
+                reason="GPT4O_SHAPED",
+                confidence=0.97,
+            )
+        }
+    )
+    # Force shaped=True through recognizer path (FakeEngine returns pre-shaped).
+    row = {
+        "field": "total_charge",
+        "canonical_region": [10, 10, 200, 70],
+        "ocr_region": [10, 10, 200, 70],
+        "candidates": [],
+        "cascade": {"accepted": False, "accept_reason": "EMPTY"},
+        "azure_di_residual": {
+            "currency_shaped": False,
+            "review_only": True,
+            "value": None,
+            "reason": "AZURE_DI_UNSHAPED",
+        },
+    }
+    updated = maybe_attach_gpt4o_crop_to_field_row(
+        row, image=img, gap_class="CHARGE_LOCAL_EXHAUSTED", engine=engine
+    )
+    assert updated["cascade"]["accepted"] is True
+    assert updated["cascade"]["value"] == "233.00"
+    assert updated["gpt4o_crop_residual"]["shaped"] is True
+    assert updated["candidates"][0]["engine"] == "azure_gpt4o_crop"

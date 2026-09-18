@@ -17,7 +17,7 @@ Total: **46** labels on **11** docs; **9** charges.
 - **total_charge**: `165.00` (SILVER, auto_accepted+line_sum)
 - **patient_name**: `MITSUI DANA A` (GOLD, multi_engine_consensus:paddleocr+rapidocr)
 - **insured_id_number**: `7267` (GOLD, multi_engine_consensus:paddleocr+rapidocr)
-- **insured_name**: `PIRSR` (SILVER, auto_accepted+hard_validation)
+- **insured_name**: `MITSUI DANA A` (GOLD, patient_self_twin; prior PIRSR was OCR fragment)
 
 ## `Group A__M048EJG7.010`
 - **insured_id_number**: `964637680` (GOLD, multi_engine_consensus:paddleocr+rapidocr)

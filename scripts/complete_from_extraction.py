@@ -187,9 +187,50 @@ def decide(extraction, family):
         should_defer_box28_to_line_sum,
     )
     for charge_field in ('total_charge', 'total_charges'):
-        if charge_field in values and should_defer_box28_to_line_sum(
-            values.get(charge_field), service_lines
-        ):
+        if charge_field not in values:
+            continue
+        field_payload = next(
+            (f for f in fields if f.get('field_name') == charge_field), {}
+        ) or {}
+        current_val = values.get(charge_field)
+        # Do not wipe currency-shaped Azure DI / gpt-4o box-28 in favor of a
+        # contradictory single-line OCR sum (hard-15: residual recovers ink).
+        preserve_azure_box28 = False
+        if current_val not in (None, ''):
+            for row in (
+                [field_payload.get('ranked_candidate')]
+                if field_payload.get('ranked_candidate')
+                else []
+            ) + list(field_payload.get('alternatives') or []):
+                if not row:
+                    continue
+                ocr = row.get('ocr_candidate') or {}
+                eng = str(ocr.get('engine') or '').casefold()
+                if 'gpt4o' not in eng and 'document_intelligence' not in eng:
+                    continue
+                text = str(ocr.get('value') or ocr.get('raw_value') or '').strip()
+                if not text or parse_currency(text) is None:
+                    continue
+                if parse_currency(text) == parse_currency(current_val):
+                    preserve_azure_box28 = True
+                    break
+            gpt4o = field_payload.get('gpt4o_crop_residual') or {}
+            if (
+                gpt4o.get('shaped')
+                and not gpt4o.get('review_only')
+                and parse_currency(gpt4o.get('value')) == parse_currency(current_val)
+            ):
+                preserve_azure_box28 = True
+            di = field_payload.get('azure_di_residual') or {}
+            if (
+                di.get('currency_shaped')
+                and not di.get('review_only')
+                and parse_currency(di.get('value')) == parse_currency(current_val)
+            ):
+                preserve_azure_box28 = True
+        if preserve_azure_box28:
+            continue
+        if should_defer_box28_to_line_sum(current_val, service_lines):
             values[charge_field] = None
     facts = ClaimEvidenceBuilder.load().build(claim_id=claim_id, document_family=family,
                                             claim_values=values, service_lines=service_lines)
@@ -234,6 +275,9 @@ def decide(extraction, family):
         residual = field_payload.get('azure_di_residual') or {}
         if residual.get('currency_shaped'):
             _add(residual.get('value'))
+        gpt4o = field_payload.get('gpt4o_crop_residual') or {}
+        if gpt4o.get('shaped') and not gpt4o.get('review_only'):
+            _add(gpt4o.get('value'))
         return found
 
     line_sum_gate: dict[str, tuple[bool, str]] = {}

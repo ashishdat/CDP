@@ -36,7 +36,7 @@ from packages.templates.registry import TemplateRegistry
 
 def _maybe_attach_dob_handwriting_residuals(rows, image):
     """Crop-scoped TrOCR → Azure DI → gpt-4o for DOB; gpt-4o for weak/chrome ID;
-    Azure DI charge crop (+corroboration) for box-28 totals.
+    Azure DI then gpt-4o currency crop for empty/unshaped box-28 totals.
     """
     trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "1").strip().casefold()
     azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "1").strip().casefold()
@@ -75,17 +75,30 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
         name = str(row.get("field") or "")
         key = name.casefold()
         if key in {"total_charge", "total_charges", "charges", "charge_amount"}:
+            current = row
             if charge_on not in {"0", "false", "no", "off"}:
-                updated.append(
-                    maybe_attach_charge_azure_di_to_field_row(
-                        row,
-                        image=image,
-                        gap_class="CHARGE_LOCAL_EXHAUSTED",
-                        corroborate=True,
-                    )
+                current = maybe_attach_charge_azure_di_to_field_row(
+                    current,
+                    image=image,
+                    gap_class="CHARGE_LOCAL_EXHAUSTED",
+                    corroborate=True,
                 )
-            else:
-                updated.append(row)
+                di_meta = current.get("azure_di_residual") or {}
+                if (
+                    di_meta.get("currency_shaped")
+                    and not di_meta.get("review_only")
+                    and di_meta.get("value")
+                ):
+                    updated.append(current)
+                    continue
+            # Box-28 empty/unshaped after local (+ optional DI): gpt-4o currency crop.
+            if gpt4o_on not in {"0", "false", "no", "off"}:
+                current = maybe_attach_gpt4o_crop_to_field_row(
+                    current,
+                    image=image,
+                    gap_class="CHARGE_LOCAL_EXHAUSTED",
+                )
+            updated.append(current)
             continue
         if key in {"insured_id_number", "member_id", "subscriber_id"}:
             if gpt4o_on not in {"0", "false", "no", "off"}:

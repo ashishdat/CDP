@@ -1,10 +1,11 @@
-"""Crop-scoped Azure gpt-4o residual for DOB / member-ID handwriting HITL.
+"""Crop-scoped Azure gpt-4o residual for DOB / member-ID / box-28 charge HITL.
 
 Runs only after local Rapid→Paddle/Tesseract (and DOB TrOCR→Azure DI) leave
 the field unshaped, ID-chrome contaminated, or with same-length digit
-conflicts between local engines. Crop-only evidence — never a full-page
-vision call. Accepts when the value is date-/ID-shaped and the model does
-not abstain.
+conflicts between local engines. For charges, runs when local + Azure DI leave
+box-28 empty/unshaped. Crop-only evidence — never a full-page vision call.
+Accepts when the value is date-/ID-/currency-shaped and the model does not
+abstain.
 
 Bakeoff (hard-150 FIELD_INK HITL, 26 docs): DOB shaped 16/17, ID shaped 14/14,
 mean ~2.0s/call. See docs/metrics/dob_id_hitl_techstack_v12_3n.md.
@@ -25,11 +26,25 @@ from packages.extraction_recovery.span_selection import select_field_span
 
 _DOB_FIELDS = frozenset({"patient_dob", "date_of_birth"})
 _ID_FIELDS = frozenset({"insured_id_number", "member_id", "subscriber_id"})
+_CHARGE_FIELDS = frozenset(
+    {"total_charge", "total_charges", "charges", "charge_amount"}
+)
 _ID_CHROME = re.compile(
     r"INSURED|NUMBER|PROGRAM|ITEM\s*1|1A\.|FOR\s*PROGRAM|PICA|LAST\s*NAME|MIDDLE",
     re.IGNORECASE,
 )
 _HANDWRITING_GAPS = frozenset({"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS", ""})
+_CHARGE_GAPS = frozenset(
+    {
+        "EMPTY_FINANCIAL_INK",
+        "CHARGE_LOCAL_EXHAUSTED",
+        "CHARGE_DIGIT_CONFLICT",
+        "AMBIGUOUS_DIGIT_FRAGMENTS",
+        "AMBIGUOUS_CHARGE_DIGITS",
+        "CALIBRATION_HITL",
+        "",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -103,6 +118,42 @@ def _shape_id(raw: str | None) -> tuple[str | None, bool]:
         return selected, False
     ok = bool(selected) and semantic_accept("insured_id_number", selected)[0]
     return selected, ok
+
+
+def _shape_charge(raw: str | None) -> tuple[str | None, bool]:
+    """Currency-shape box-28 / line charge ink from gpt-4o crop text."""
+    text = _normalize(raw)
+    if not text:
+        return None, False
+    span = select_field_span(text, "CURRENCY", "total_charge")
+    selected = _normalize(span.selected_text) or text
+    m = re.search(
+        r"\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?",
+        selected or "",
+    )
+    if not m:
+        return selected, False
+    amount = m.group(0).lstrip("$").replace(",", "")
+    if "." not in amount and re.fullmatch(r"\d{2,6}", amount):
+        amount = f"{amount}.00"
+    # Reject suspicious single-digit dollars (form-rule noise).
+    if re.fullmatch(r"[0-9]\.\d{2}", amount):
+        return amount, False
+    ok = bool(amount) and semantic_accept("total_charge", amount)[0]
+    return amount, ok
+
+
+def charge_needs_gpt4o(
+    *,
+    local_accepted: bool,
+    azure_di_shaped: bool,
+    gap_class: str | None = None,
+) -> bool:
+    """Run gpt-4o when local+DI left box-28 empty/unshaped (hard-15 charge hole)."""
+    if local_accepted or azure_di_shaped:
+        return False
+    gap = (gap_class or "").upper()
+    return gap in _CHARGE_GAPS
 
 
 def id_local_needs_gpt4o(value: str | None, *, accepted: bool) -> bool:
@@ -266,6 +317,8 @@ class _AzureGpt4oCropRecognizer:
                 shaped_val, shaped = _shape_dob(raw)
             elif name.casefold() in _ID_FIELDS:
                 shaped_val, shaped = _shape_id(raw)
+            elif name.casefold() in _CHARGE_FIELDS:
+                shaped_val, shaped = _shape_charge(raw)
             else:
                 shaped_val, shaped = raw, False
             insuff = bool(item.insufficient_evidence) or not raw
@@ -343,7 +396,7 @@ def run_gpt4o_crop_residual(
             reason="GPT4O_CROP_DISABLED",
         )
     name = (field_name or "").casefold()
-    if name not in _DOB_FIELDS and name not in _ID_FIELDS:
+    if name not in _DOB_FIELDS and name not in _ID_FIELDS and name not in _CHARGE_FIELDS:
         return Gpt4oCropResidualResult(
             attempted=False,
             configured=True,
@@ -358,6 +411,15 @@ def run_gpt4o_crop_residual(
     crop = _crop_image(image, bbox)
     if name in _DOB_FIELDS:
         ftype, desc = "date", _dob_description(prior)
+    elif name in _CHARGE_FIELDS:
+        ftype = "currency"
+        desc = (
+            "CMS-1500 box 28 total charge amount. Read the handwritten or typed "
+            "dollar amount only (e.g. 233.00). Ignore labels like TOTAL CHARGE, "
+            "NPI, and diagnosis pointers. Prefer the full amount with cents."
+        )
+        if prior:
+            desc += " Prior OCR saw: " + " | ".join(prior[:4]) + "."
     else:
         desc = (
             "Handwritten or typed CMS-1500 box 1a insured/member ID. "
@@ -496,7 +558,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
     gap_class: str | None = None,
     engine: Gpt4oCropRecognizer | None = None,
 ) -> dict[str, Any]:
-    """Attach gpt-4o crop residual for DOB (post DI) or weak/chrome ID."""
+    """Attach gpt-4o crop residual for DOB (post DI), weak/chrome ID, or charge."""
     updated = dict(field_row)
     name = str(field_row.get("field") or "")
     key = name.casefold()
@@ -511,6 +573,10 @@ def maybe_attach_gpt4o_crop_to_field_row(
         for c in (field_row.get("candidates") or [])
         if (c.get("value") or c.get("text"))
     ]
+    # Include DI residual as prior hint for charge/DOB.
+    di_meta = field_row.get("azure_di_residual") or {}
+    if di_meta.get("value"):
+        prior = [str(di_meta.get("value")), *prior]
 
     if key in _DOB_FIELDS:
         trocr = field_row.get("trocr_residual") or {}
@@ -534,6 +600,17 @@ def maybe_attach_gpt4o_crop_to_field_row(
             cascade_value,
             accepted=local_accepted,
             candidates=list(field_row.get("candidates") or []),
+        ):
+            return updated
+    elif key in _CHARGE_FIELDS:
+        di = field_row.get("azure_di_residual") or {}
+        di_shaped = bool(
+            di.get("currency_shaped") and not di.get("review_only") and di.get("value")
+        )
+        if not charge_needs_gpt4o(
+            local_accepted=local_accepted,
+            azure_di_shaped=di_shaped,
+            gap_class=gap_class or "CHARGE_LOCAL_EXHAUSTED",
         ):
             return updated
     else:
@@ -589,8 +666,38 @@ def maybe_attach_gpt4o_crop_to_field_row(
         updated["candidates"] = candidates
         if promoted.shaped and not promoted.review_only:
             cascade_out = dict(cascade)
-            cascade_out["accepted"] = True
-            cascade_out["accept_reason"] = f"GPT4O_CROP_RESIDUAL:{promoted.reason}"
-            updated["cascade"] = cascade_out
-            updated["status"] = "FIELD_ACCEPTED"
+            # Charge: only promote over empty local; keep line-sum conflicts for HITL.
+            promote_accept = True
+            if key in _CHARGE_FIELDS:
+                local_value = str(cascade.get("value") or "").strip()
+                if not local_value:
+                    for prior_c in candidates[1:]:
+                        seed = str(
+                            prior_c.get("value") or prior_c.get("raw_value") or ""
+                        ).strip()
+                        eng = str(prior_c.get("engine") or "").casefold()
+                        if "gpt4o" in eng:
+                            continue
+                        if seed:
+                            local_value = seed
+                            break
+                if local_value and local_accepted:
+                    try:
+                        from packages.claim_evidence.line_sum_authority import (
+                            amounts_corroborate,
+                        )
+
+                        if not amounts_corroborate(local_value, promoted.value):
+                            promote_accept = False
+                            updated["gpt4o_crop_residual"]["reason"] = (
+                                f"{promoted.reason}|LOCAL_CONFLICT_REVIEW"
+                            )
+                    except Exception:  # noqa: BLE001
+                        pass
+            if promote_accept:
+                cascade_out["accepted"] = True
+                cascade_out["accept_reason"] = f"GPT4O_CROP_RESIDUAL:{promoted.reason}"
+                cascade_out["value"] = promoted.value
+                updated["cascade"] = cascade_out
+                updated["status"] = "FIELD_ACCEPTED"
     return updated

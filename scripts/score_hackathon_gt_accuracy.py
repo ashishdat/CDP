@@ -111,7 +111,26 @@ def _strip_ocr_ghost_mi(value: object) -> str:
     return " ".join(toks)
 
 
-def _exact(field: str, predicted: object, expected: object) -> bool:
+_SAME_AS_PATIENT = frozenset(
+    {
+        "SAME",
+        "SAME AS PATIENT",
+        "SAME AS PT",
+        "SELF",
+        "SELF SAME",
+        "PT",
+        "PATIENT",
+    }
+)
+
+
+def _exact(
+    field: str,
+    predicted: object,
+    expected: object,
+    *,
+    patient_name: object | None = None,
+) -> bool:
     if expected in (None, "", "EMPTY", "NULL"):
         return str(predicted or "").strip() in {"", "None", "null"}
     if field in {"patient_dob", "date_of_birth"}:
@@ -119,6 +138,20 @@ def _exact(field: str, predicted: object, expected: object) -> bool:
     if field in {"insured_id_number", "member_id"}:
         return _canon_id(predicted) == _canon_id(expected)
     if field in {"patient_name", "insured_name"}:
+        # CMS self-reference marker in GT: resolved insured == patient is exact.
+        if (
+            field == "insured_name"
+            and str(expected or "").strip().upper() in _SAME_AS_PATIENT
+            and patient_name not in (None, "")
+        ):
+            if _canon_name(predicted) == _canon_name(patient_name):
+                return True
+            if _names_optional_middle_initial(predicted, patient_name):
+                return True
+            if _canon_name(_strip_ocr_ghost_mi(predicted)) == _canon_name(
+                _strip_ocr_ghost_mi(patient_name)
+            ):
+                return True
         if _canon_name(predicted) == _canon_name(expected):
             return True
         # Optional CMS middle initial is not an accuracy miss vs agent GT.
@@ -304,11 +337,18 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
         fields = result.get("fields") or {}
         claim_ok = True
         field_rows = []
+        patient_name_pred = (fields.get("patient_name") or {}).get("value")
+        patient_name_gt = ((truth.get("fields") or {}).get("patient_name") or {}).get(
+            "expected_value"
+        )
+        patient_for_same = patient_name_gt or patient_name_pred
         for name, meta in (truth.get("fields") or {}).items():
             expected = meta.get("expected_value")
             pred = (fields.get(name) or {}).get("value")
             disp = (fields.get(name) or {}).get("disp")
-            exact = _exact(name, pred, expected)
+            exact = _exact(
+                name, pred, expected, patient_name=patient_for_same
+            )
             field_total[name] += 1
             if exact:
                 field_exact[name] += 1

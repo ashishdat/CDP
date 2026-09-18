@@ -94,9 +94,9 @@
           "source": "multi_engine_consensus:paddleocr+rapidocr"
         },
         "insured_name": {
-          "expected_value": "PIRSR",
-          "confidence": "SILVER",
-          "source": "auto_accepted+hard_validation"
+          "expected_value": "MITSUI DANA A",
+          "confidence": "GOLD",
+          "source": "patient_self_twin; prior PIRSR was OCR fragment"
         }
       },
       "in_gt": true,
