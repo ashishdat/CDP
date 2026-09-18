@@ -35,15 +35,38 @@ dist/
 # Keep only the data-handling documentation in source control.
 /evaluation_data/*
 !/evaluation_data/README.md
-!/evaluation_data/hackathon_agent_gt/
-!/evaluation_data/hackathon_agent_gt/**
-!/evaluation_data/hard15_v12_3o/
-!/evaluation_data/hard15_v12_3o/**
+# Non-governed evaluation outputs (governed phase baselines may still be tracked
+# when explicitly allowlisted by scripts/check_architecture.py).
+/evaluation_results/**
+!/evaluation_results/phase7a13/
+!/evaluation_results/phase7a13/**
+!/evaluation_results/phase7a14/
+!/evaluation_results/phase7a14/**
+!/evaluation_results/phase7a14b/
+!/evaluation_results/phase7a14b/**
+!/evaluation_results/phase8_5/
+!/evaluation_results/phase8_5/**
+!/evaluation_results/phase8_6/
+!/evaluation_results/phase8_6/**
+!/evaluation_results/phase8_7/
+!/evaluation_results/phase8_7/**
+!/evaluation_results/phase8_8/
+!/evaluation_results/phase8_8/**
 
 # Generated/local bundle executions and scratch reports
+/runs/
 /bundle_runs/
 /scratchpad_reports/
 /test-artifacts/pytest-*/
+*.report.json
+/phase8_12_replay_report.json
+
+# Local model / HuggingFace caches
+.cache/
+.huggingface/
+**/huggingface/
+models--*/
+.torch/
 
 # Env / secrets. The broad pattern also catches accidental names such as
 # `.env.local`, `.env copy`, and nested test environment files.
