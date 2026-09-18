@@ -134,6 +134,16 @@ class EvidenceDecisionService:
             if context.field_name in {"patient_dob", "date_of_birth", "dob"}:
                 allowed_families.add(engine_family("trocr"))
                 allowed_families.add(engine_family("azure_document_intelligence_read"))
+                # gpt-4o crop residual (v12.3n) — same CLOUD_AI_FAMILY as DI Read;
+                # listed explicitly so DOB/ID authorization stays obvious in review.
+                allowed_families.add(engine_family("azure_gpt4o_crop"))
+            if context.field_name in {
+                "insured_id_number",
+                "member_id",
+                "subscriber_id",
+            }:
+                # Weak/chrome ID after local paddle/rapid — crop-only gpt-4o.
+                allowed_families.add(engine_family("azure_gpt4o_crop"))
             if context.field_name in {
                 "total_charge",
                 "total_charges",

@@ -115,3 +115,51 @@ def test_optional_low_criticality_field_is_non_blocking():
     assert decision.evidence_bundle is not None
     assert decision.evidence_bundle.route_status == "DISABLED"
     assert decision.evidence_bundle.route_id == "CMS1500.address_line_2.no-route"
+
+
+def test_gpt4o_crop_authorized_for_member_id_and_dob():
+    """v12.3n: azure_gpt4o_crop must not be stripped as ENGINE_NOT_AUTHORIZED."""
+    from packages.evidence.builder import engine_family
+
+    assert engine_family("azure_gpt4o_crop") == "CLOUD_AI_FAMILY"
+    service = EvidenceDecisionService(route_mode="evaluation")
+    id_decision = service.decide(context(
+        field_name="insured_id_number",
+        criticality=CriticalityLevel.C1,
+        candidates=[
+            candidate("paddleocr", "Mrieniian", 0.53),
+            candidate("azure_gpt4o_crop", "949774145", 0.99),
+        ],
+        registration_confidence=0.95,
+        structural_localization=structure("insured_id_number"),
+    ))
+    assert not any(
+        code.startswith("CANDIDATE_ENGINE_NOT_AUTHORIZED")
+        for code in id_decision.reason_codes
+    )
+    assert id_decision.selected_value == "949774145"
+    sources = {
+        item.source
+        for item in (id_decision.evidence_bundle.items if id_decision.evidence_bundle else [])
+    }
+    assert "azure_gpt4o_crop" in sources
+
+    dob_decision = service.decide(context(
+        field_name="patient_dob",
+        criticality=CriticalityLevel.C1,
+        candidates=[
+            candidate("rapidocr", "30:", 0.7),
+            candidate("azure_gpt4o_crop", "07/30/1977", 0.99),
+        ],
+        registration_confidence=0.95,
+        structural_localization=structure("patient_dob"),
+    ))
+    assert not any(
+        code.startswith("CANDIDATE_ENGINE_NOT_AUTHORIZED")
+        for code in dob_decision.reason_codes
+    )
+    dob_sources = {
+        item.source
+        for item in (dob_decision.evidence_bundle.items if dob_decision.evidence_bundle else [])
+    }
+    assert "azure_gpt4o_crop" in dob_sources
