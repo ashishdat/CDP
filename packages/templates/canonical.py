@@ -85,7 +85,25 @@ def load_canonical_image(package_dir: Path, template: Template) -> Image.Image:
     metadata = CanonicalTemplateMetadata.model_validate_json(metadata_path.read_text("utf-8"))
     if metadata.provenance not in ALLOWED_PROVENANCE or metadata.phi_status != "NO_PHI":
         raise CanonicalTemplateError("canonical template lacks approved non-PHI provenance")
-    if (metadata.template_id, metadata.form_version) != (template.template_id, template.version):
+    identity_ok = (metadata.template_id, metadata.form_version) == (
+        template.template_id,
+        template.version,
+    )
+    # CMS-1500 V3 is an ROI recalibration of the same NUCC 02/12 blank. Until a
+    # separate V3 canonical package is published, allow the frozen V2 blank when
+    # dimensions match exactly.
+    v3_shares_v2_blank = (
+        not identity_ok
+        and metadata.template_id == template.template_id == "cms1500"
+        and metadata.form_version == "02-12"
+        and template.version == "03"
+        and (metadata.width_px, metadata.height_px)
+        == (
+            template.reference_dimensions.width_px,
+            template.reference_dimensions.height_px,
+        )
+    )
+    if not identity_ok and not v3_shares_v2_blank:
         raise CanonicalTemplateError("canonical template identity does not match registry template")
     if sha256_file(image_path) != metadata.image_sha256:
         raise CanonicalTemplateError("canonical image checksum mismatch")
