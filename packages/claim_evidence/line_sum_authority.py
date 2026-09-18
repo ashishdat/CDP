@@ -80,9 +80,9 @@ def is_implausible_corroborator(value: object, line_total: object) -> bool:
     total = parse_currency(line_total)
     if amount is None or total is None or total <= 0:
         return False
-    # >5× or <1/5 the observed line-sum and off by >$50 → form noise / truncated cell.
-    ratio_hi = total * Decimal("5")
-    ratio_lo = total / Decimal("5")
+    # >3× or <1/3 the observed line-sum and off by >$50 → form noise / truncated cell.
+    ratio_hi = total * Decimal("3")
+    ratio_lo = total / Decimal("3")
     if amount > ratio_hi and abs(amount - total) > Decimal("50"):
         return True
     if amount < ratio_lo and abs(amount - total) > Decimal("50"):
@@ -242,11 +242,12 @@ def line_has_dual_engine_agreement(line: dict) -> bool:
 
 
 def line_has_gpt4o_local_consensus(line: dict) -> bool:
-    """gpt-4o + ≥1 local engine agree with the selected line charge; no local dissent.
+    """gpt-4o + ≥1 usable local agree with the selected line charge.
 
-    Stronger than dual-local alone (hard-15 FA class). Used for single-line AUTO
-    when box-28/DI is empty or quota-blocked. Rapid is often empty on these crops,
-    so requiring both paddle and rapid left a large SINGLE_LINE_REQUIRES_DI hole.
+    Agreement uses ``amounts_corroborate`` (exact / $1 / digit-drop twin) so
+    ``622``↔``6225`` and ``13``↔``130`` count when the selected amount is the
+    twin that gpt-4o supports. Locals that are tiny/implausible vs gpt-4o are
+    ignored (form-ruling ``2.00`` vs real ``200.00``).
     """
     if not isinstance(line, dict):
         return False
@@ -259,27 +260,34 @@ def line_has_gpt4o_local_consensus(line: dict) -> bool:
     if gpt is None:
         return False
     target_txt = format_currency(target)
-    if not amounts_within_tolerance(
-        target_txt, format_currency(gpt), absolute=Decimal("1.00"), relative=Decimal("0")
-    ):
+    gpt_txt = format_currency(gpt)
+    if not amounts_corroborate(target_txt, gpt_txt):
         return False
-    local_present = [fam for fam in _LOCAL_ENGINES if fam in amounts]
-    if not local_present:
-        return False
+    usable_locals: list[str] = []
+    for fam in _LOCAL_ENGINES:
+        if fam not in amounts:
+            continue
+        local_txt = format_currency(amounts[fam])
+        # Ignore form-noise locals that are implausible vs the gpt-4o read.
+        if is_implausible_corroborator(local_txt, gpt_txt):
+            continue
+        if is_suspicious_tiny_total(amounts[fam]) and not is_suspicious_tiny_total(gpt):
+            continue
+        usable_locals.append(fam)
+    if not usable_locals:
+        # Locals were all form-noise vs gpt-4o (e.g. ``2.00`` vs ``200.00``) —
+        # accept gpt-4o-only when it matches the selected line amount.
+        had_local_shell = any(fam in amounts for fam in _LOCAL_ENGINES)
+        return had_local_shell and amounts_corroborate(target_txt, gpt_txt)
     agreeing = [
         fam
-        for fam in local_present
-        if amounts_within_tolerance(
-            target_txt,
-            format_currency(amounts[fam]),
-            absolute=Decimal("1.00"),
-            relative=Decimal("0"),
-        )
+        for fam in usable_locals
+        if amounts_corroborate(target_txt, format_currency(amounts[fam]))
     ]
     if not agreeing:
         return False
-    # Any shaped local that disagrees with the selected amount → HITL.
-    return len(agreeing) == len(local_present)
+    # Any usable local that still disagrees with the selected amount → HITL.
+    return len(agreeing) == len(usable_locals)
 
 
 # Back-compat alias used in earlier docs/tests.
@@ -302,6 +310,22 @@ def dual_engine_line_fraction(service_lines: list[dict] | None) -> tuple[int, in
     return agreed, observed
 
 
+def gpt4o_local_line_fraction(service_lines: list[dict] | None) -> tuple[int, int]:
+    """Return (gpt4o+local consensus lines, observed charge lines)."""
+    agreed = 0
+    observed = 0
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        has_charge = any(parse_currency(line.get(k)) is not None for k in _CHARGE_FIELDS)
+        if not has_charge:
+            continue
+        observed += 1
+        if line_has_gpt4o_local_consensus(line):
+            agreed += 1
+    return agreed, observed
+
+
 def line_sum_auto_eligible(
     service_lines: list[dict] | None,
     *,
@@ -310,18 +334,30 @@ def line_sum_auto_eligible(
 ) -> tuple[bool, str]:
     """Gate LINE_TOTALS E6 AUTO (fail-closed).
 
-    Eligible when:
+    Eligible when (charge tech stack v12.3p):
+      - single-/multi-line gpt-4o + local consensus on every charge line, or
       - plausible currency-shaped box-28 / DI corroborates the line sum, or
-      - single-line gpt-4o + local consensus on the charge, or
-      - multi-line (≥2) and every line charge has exact dual-engine agreement.
+      - multi-line (≥2) and every line has exact dual-engine agreement.
 
-    Single-line paddle+rapid alone is NOT enough — hard-15 showed both reading
-    the same wrong amount. Junk box-28 (208408-class) is ignored so it cannot
-    force CONFLICT over a corroborated line-sum.
+    gpt-4o+local is checked *before* box-28 conflict so weak digits-first box-28
+    (222 vs line 200) cannot veto a strong line consensus. Junk box-28 soup is
+    ignored. Single-line paddle+rapid alone remains insufficient (hard-15 FA).
     """
     total = line_sum_total(service_lines)
     if total is None:
         return False, "NO_LINE_CHARGES"
+
+    lines = [ln for ln in (service_lines or []) if isinstance(ln, dict)]
+    charge_lines = [
+        ln
+        for ln in lines
+        if any(parse_currency(ln.get(k)) is not None for k in _CHARGE_FIELDS)
+    ]
+    gpt_agreed, gpt_observed = gpt4o_local_line_fraction(charge_lines)
+    if gpt_observed >= 1 and gpt_agreed >= gpt_observed:
+        if gpt_observed == 1:
+            return True, "SINGLE_LINE_GPT4O_LOCAL"
+        return True, "MULTI_LINE_GPT4O_LOCAL"
 
     corroborators = []
     for value in [box28_value, *(corroborating_values or [])]:
@@ -336,15 +372,6 @@ def line_sum_auto_eligible(
             return True, "BOX28_OR_DI_CORROBORATED"
         # Plausible currency-shaped box-28 / DI disagrees → HITL, not false STP.
         return False, "BOX28_OR_DI_CONFLICT"
-
-    lines = [ln for ln in (service_lines or []) if isinstance(ln, dict)]
-    charge_lines = [
-        ln
-        for ln in lines
-        if any(parse_currency(ln.get(k)) is not None for k in _CHARGE_FIELDS)
-    ]
-    if len(charge_lines) == 1 and line_has_gpt4o_local_consensus(charge_lines[0]):
-        return True, "SINGLE_LINE_GPT4O_LOCAL"
 
     agreed, observed = dual_engine_line_fraction(service_lines)
     if observed == 0:

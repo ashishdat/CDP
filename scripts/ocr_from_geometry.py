@@ -952,11 +952,20 @@ def recognize_service_lines(image, router, template):
                         candidates = list(candidates or []) + list(g_cands or [])
                         reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CROP'
                     elif amounts_corroborate(value, g_value):
-                        if g_cands:
-                            candidates = list(candidates or []) + list(g_cands)
-                        reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED'
+                        # Digit-drop twin: prefer the longer read when gpt-4o
+                        # recovered trailing digits (622→6225, 643→6430).
+                        preferred = prefer_currency_without_digit_drop(value, g_value)
+                        if preferred and preferred == g_value and preferred != value:
+                            value = g_value
+                            raw = g_raw or raw
+                            candidates = list(g_cands or []) + list(candidates or [])
+                            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_DIGIT_DROP'
+                        else:
+                            if g_cands:
+                                candidates = list(candidates or []) + list(g_cands)
+                            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED'
                     else:
-                        # Single-engine local vs shaped gpt-4o: prefer gpt-4o ink.
+                        # Non-twin local vs shaped gpt-4o: prefer gpt-4o ink.
                         value = g_value
                         raw = g_raw or raw
                         candidates = list(g_cands or []) + list(candidates or [])

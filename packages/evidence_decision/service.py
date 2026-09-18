@@ -152,6 +152,8 @@ class EvidenceDecisionService:
                 "amount_paid",
             }:
                 allowed_families.add(engine_family("azure_document_intelligence_read"))
+                # Charge tech stack v12.3p — gpt-4o crop residual on line/box-28.
+                allowed_families.add(engine_family("azure_gpt4o_crop"))
             eligible = [
                 candidate
                 for candidate in candidates

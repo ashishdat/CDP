@@ -23,8 +23,9 @@ def test_implausible_box28_digit_soup():
     assert is_implausible_charge_total("420840.00")
     assert not is_implausible_charge_total("2084.00")
     assert is_implausible_corroborator("208408.00", "200.00")
-    assert is_implausible_corroborator("2084.00", "200.00")  # >5× line-sum
-    assert is_implausible_corroborator("22.00", "400.00")  # <1/5 line-sum
+    assert is_implausible_corroborator("2084.00", "200.00")  # >3× line-sum
+    assert is_implausible_corroborator("22.00", "400.00")  # <1/3 line-sum
+    assert is_implausible_corroborator("900.00", "200.00")  # 4.5× noise
     assert not is_implausible_corroborator("210.00", "200.00")
     assert not is_implausible_corroborator("222.00", "200.00")  # near-miss stays
     ok, reason = semantic_accept("total_charge", "208408.00")
@@ -113,12 +114,12 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ok, reason = line_sum_auto_eligible(single_gpt_paddle)
     assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
 
-    # gpt-4o vs disagreeing local → still HITL.
+    # gpt-4o vs disagreeing near-range local → still HITL.
     conflict_local = [
         {
             "charges": "200.00",
             "candidates": [
-                {"value": "900.00", "engine": "paddleocr"},
+                {"value": "350.00", "engine": "paddleocr"},
                 {"value": "200.00", "engine": "azure_gpt4o_crop"},
             ],
         }
@@ -130,6 +131,45 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ok, reason = line_sum_auto_eligible(
         single_triple, corroborating_values=["208408.00"]
     )
+    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+
+    # Near-miss box-28 cannot veto gpt-4o+local line consensus.
+    ok, reason = line_sum_auto_eligible(
+        single_triple, corroborating_values=["222.00"]
+    )
+    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+
+    # Multi-line: every line gpt-4o+local → AUTO.
+    multi_gpt = [
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "200.00", "engine": "paddleocr"},
+                {"value": "200.00", "engine": "azure_gpt4o_crop"},
+            ],
+        },
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "200.00", "engine": "rapidocr"},
+                {"value": "200.00", "engine": "azure_gpt4o_crop"},
+            ],
+        },
+    ]
+    ok, reason = line_sum_auto_eligible(multi_gpt)
+    assert ok and reason == "MULTI_LINE_GPT4O_LOCAL"
+
+    # Digit-drop twin gpt-4o↔local counts as consensus on the selected amount.
+    twin_gpt = [
+        {
+            "charges": "6430.00",
+            "candidates": [
+                {"value": "643.00", "engine": "paddleocr"},
+                {"value": "6430.00", "engine": "azure_gpt4o_crop"},
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(twin_gpt)
     assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
 
     dual = [
