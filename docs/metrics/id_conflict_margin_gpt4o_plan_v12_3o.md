@@ -96,3 +96,7 @@ If gpt-4o and the weak prior share **no** digit prefix (≥3) and edit distance 
 - `independence_group("azure_gpt4o_crop")` → `CLOUD_AI_FAMILY`
 - Ranking engine reliability `azure_gpt4o_crop: 0.88` + ID residual prior in `rank_from_ocr.py`
 - Unit tests: `tests/unit/cases/test_gpt4o_id_weak_local_relief.py`
+
+### Smoke (`hackathon_hitl_id_relief_smoke_v12_3o`)
+
+**3/3 TRUE_STP** including `HJE5.016` (ID `33847173` AUTO with `GPT4O_ID_WEAK_LOCAL_RELIEVED`). Controls `HJHO.005` / `HJHO.011` remain STP.
