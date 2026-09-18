@@ -677,6 +677,57 @@ def _maybe_azure_di_charge_crop(image, bbox, *, gap_class='CHARGE_LOCAL_EXHAUSTE
     return result.value, result.raw_value or result.value, ([cand] if cand else []), result.reason
 
 
+def _maybe_gpt4o_charge_crop(image, bbox, *, prior_candidates=None):
+    """gpt-4o currency crop for service-line charge cells (hard-15 residual).
+
+    Returns (value, raw, candidates_list, reason). Empty on disable / abstain.
+    """
+    try:
+        from packages.extraction_recovery.gpt4o_crop_residual import (
+            gpt4o_crop_accept_enabled,
+            gpt4o_crop_residual_enabled,
+            residual_candidate_dict,
+            run_gpt4o_crop_residual,
+            Gpt4oCropResidualResult,
+        )
+    except Exception:
+        return None, None, [], 'CHARGE_GPT4O_IMPORT_ERROR'
+    if not gpt4o_crop_residual_enabled():
+        return None, None, [], 'CHARGE_GPT4O_DISABLED'
+    result = run_gpt4o_crop_residual(
+        image=image,
+        bbox=bbox,
+        field_name='charges',
+        prior_candidates=list(prior_candidates or []),
+    )
+    if not result.attempted or not result.shaped or not result.value:
+        return None, None, [], result.reason
+    accept = gpt4o_crop_accept_enabled()
+    if result.review_only and not accept:
+        return None, None, [], result.reason
+    promoted = result
+    if accept and result.review_only and result.shaped:
+        promoted = Gpt4oCropResidualResult(
+            attempted=result.attempted,
+            configured=result.configured,
+            review_only=False,
+            value=result.value,
+            raw_value=result.raw_value,
+            shaped=True,
+            insufficient_evidence=False,
+            reason='GPT4O_SHAPED_ACCEPTED',
+            engine=result.engine,
+            confidence=result.confidence,
+            validation_results=tuple(result.validation_results) or ('AZURE_GPT4O_CROP',),
+        )
+    cand = residual_candidate_dict(promoted, bbox=bbox, image_size=image.size)
+    return (
+        promoted.value,
+        promoted.raw_value or promoted.value,
+        ([cand] if cand else []),
+        promoted.reason,
+    )
+
 def recognize_service_lines(image, router, template):
     """OCR CMS-1500 service-line charge cells for claim-total E6 confirmation."""
     table = getattr(template, 'service_line_region', None) if template is not None else None
@@ -865,6 +916,55 @@ def recognize_service_lines(image, router, template):
                             'reason': di_reason,
                             'observation': {'text': di_raw or di_value},
                         }]
+            # gpt-4o line-charge residual: empty after DI, or single-engine local
+            # (hard-15 digit errors where paddle alone reads 222 vs 233).
+            need_gpt4o = False
+            gpt4o_on = (os.environ.get('CDP_GPT4O_CROP_RESIDUAL') or '1').strip().casefold()
+            if gpt4o_on not in {'0', 'false', 'no', 'off'}:
+                if not value and not probe_empty:
+                    need_gpt4o = True
+                elif value and len(unique_vals) < 2:
+                    need_gpt4o = True
+                elif need_di and not any(
+                    str(c.get('engine') or '').casefold().find('document_intelligence') >= 0
+                    for c in (candidates or [])
+                ):
+                    # DI was needed but did not contribute a candidate.
+                    need_gpt4o = True
+            if need_gpt4o:
+                prior = [
+                    str(c.get('value') or c.get('raw_value') or '').strip()
+                    for c in (candidates or [])
+                    if (c.get('value') or c.get('raw_value'))
+                ]
+                g_value, g_raw, g_cands, g_reason = _maybe_gpt4o_charge_crop(
+                    image, bbox, prior_candidates=prior
+                )
+                if g_value:
+                    from packages.claim_evidence.line_sum_authority import (
+                        amounts_corroborate,
+                    )
+
+                    if not value:
+                        value = g_value
+                        raw = g_raw or raw
+                        candidates = list(candidates or []) + list(g_cands or [])
+                        reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CROP'
+                    elif amounts_corroborate(value, g_value):
+                        if g_cands:
+                            candidates = list(candidates or []) + list(g_cands)
+                        reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED'
+                    else:
+                        # Single-engine local vs shaped gpt-4o: prefer gpt-4o ink.
+                        value = g_value
+                        raw = g_raw or raw
+                        candidates = list(g_cands or []) + list(candidates or [])
+                        reason = f'{reason}|{g_reason}|CHARGE_GPT4O_OVERRIDE'
+                    attempts = list(attempts or []) + [{
+                        'engine': 'azure_gpt4o_crop',
+                        'reason': g_reason,
+                        'observation': {'text': g_raw or g_value},
+                    }]
             score = 0
             if value:
                 score = 3 if '.' in value else 2
