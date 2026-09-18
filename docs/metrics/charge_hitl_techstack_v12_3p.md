@@ -53,3 +53,12 @@ CDP_GPT4O_CROP_RESIDUAL=1
 CDP_GPT4O_CROP_ACCEPT=1
 CDP_AZURE_DI_CHARGE_RESIDUAL=1
 ```
+
+## Results
+
+| Cohort | Before | After v12.3p |
+| --- | ---: | ---: |
+| Blind-150 stop (50) gate replay | 6% STP | **~94%** estimated |
+| Hard charge retest (10 prior HITL) | 0/10 | **9/10 TRUE_STP** |
+
+Residual HITL: `CONFLICT_MARGIN_TOO_SMALL` on multi-line corroboration (reconciler margin), not the line-sum gate.
