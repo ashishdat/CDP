@@ -12,9 +12,8 @@ def test_router_has_no_truth_business_or_direct_model_imports():
         "PIL",
         "packages.extraction_pipeline.models",
         "packages.extraction_pipeline.registry",
-        "workers.page_detection.text_extraction",
-        "workers.cascade.tesseract_adapter",
-        "workers.unstructured_extraction.trocr_adapter",
+        "packages.ocr_contracts",
+        "packages.ocr_runtime_lock",
     }
     for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
         if isinstance(node, ast.Import):

@@ -11,6 +11,7 @@ Resume-safe: JSONL ledger skips finished claim_ids.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import shutil
@@ -22,7 +23,7 @@ import zipfile
 from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -143,15 +144,16 @@ def _pool_worker_silence_stdio() -> None:
     import sys
 
     try:
-        devnull = open(os.devnull, "w", encoding="utf-8")
-        sys.stdout = devnull  # type: ignore[assignment]
-        sys.stderr = devnull  # type: ignore[assignment]
+        with open(os.devnull, "w", encoding="utf-8") as devnull:
+            # Dup over stdio fds so the redirect outlives this with-block.
+            os.dup2(devnull.fileno(), sys.stdout.fileno())
+            os.dup2(devnull.fileno(), sys.stderr.fileno())
     except OSError:
         pass
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _bundle_id(document: str) -> str:
@@ -175,7 +177,9 @@ def _probe_ocr_engines() -> dict[str, Any]:
     from PIL import Image, ImageDraw, ImageFont
 
     from packages.ocr_router import OCRRouter, OCRRouteRequest
+    from workers.ocr_engine_factories import wire_package_ocr_providers
 
+    wire_package_ocr_providers()
     image = Image.new("L", (220, 64), 255)
     draw = ImageDraw.Draw(image)
     try:
@@ -308,9 +312,8 @@ def _load_done(ledger: Path) -> set[str]:
 
 
 def _append_ledger(ledger: Path, row: dict[str, Any], lock: threading.Lock) -> None:
-    with lock:
-        with ledger.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(row, ensure_ascii=True) + "\n")
+    with lock, ledger.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(row, ensure_ascii=True) + "\n")
 
 
 def _claim_slug(document: str) -> str:
@@ -410,6 +413,7 @@ def _run_stage(cmd: list[str], log_path: Path) -> tuple[int, str]:
             stderr=subprocess.STDOUT,
             text=True,
             env=_stage_env(),
+            check=False,
         )
     tail = ""
     try:
@@ -567,22 +571,23 @@ def _process_one(
                     run_unstructured_reg_fallback,
                     unstructured_reg_fallback_enabled,
                 )
-            except Exception:
+            except ImportError:
                 run_unstructured_reg_fallback = None  # type: ignore
                 unstructured_reg_fallback_enabled = lambda: False  # type: ignore
             if unstructured_reg_fallback_enabled() and run_unstructured_reg_fallback is not None:
                 page_image = None
                 try:
                     # Prefer zip bytes via existing dataset helper if present.
-                    from zipfile import ZipFile
                     from io import BytesIO
+                    from zipfile import ZipFile
+
                     from PIL import Image as _PILImage
 
                     zip_path = Path(os.environ.get("CDP_HACKATHON_ZIP") or ROOT / "data" / "Hackathon - 1000 Claims.zip")
                     if zip_path.exists():
                         with ZipFile(zip_path) as zf:
                             page_image = _PILImage.open(BytesIO(zf.read(document))).convert("RGB")
-                except Exception:
+                except (OSError, ValueError, KeyError, RuntimeError):
                     page_image = None
                 if page_image is not None:
                     fb = run_unstructured_reg_fallback(page_image)
@@ -598,10 +603,8 @@ def _process_one(
                         disposition = "TRUE_STP"
                     elif fb.fields:
                         disposition = "HITL"
-                    try:
+                    with contextlib.suppress(OSError, AttributeError, ValueError):
                         page_image.close()
-                    except Exception:
-                        pass
         row = {
             "finished": True,
             "claim_id": claim_id,
@@ -896,6 +899,9 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
 
 
 def main() -> int:
+    from workers.ocr_engine_factories import wire_package_ocr_providers
+
+    wire_package_ocr_providers()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--zip", type=Path, default=DEFAULT_ZIP)
     parser.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)

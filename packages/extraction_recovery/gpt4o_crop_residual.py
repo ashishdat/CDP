@@ -13,11 +13,13 @@ mean ~2.0s/call. See docs/metrics/dob_id_hitl_techstack_v12_3n.md.
 
 from __future__ import annotations
 
+import contextlib
 import io
 import os
 import re
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
 from PIL import Image
 
@@ -45,6 +47,14 @@ _CHARGE_GAPS = frozenset(
         "",
     }
 )
+
+_build_gpt4o_vision_adapter: Callable[..., Any] | None = None
+
+
+def configure_gpt4o_vision_adapter_factory(factory: Callable[..., Any]) -> None:
+    """Composition root injects Azure OpenAI vision adapter construction."""
+    global _build_gpt4o_vision_adapter
+    _build_gpt4o_vision_adapter = factory
 
 
 @dataclass(frozen=True)
@@ -114,7 +124,7 @@ def _shape_id(raw: str | None) -> tuple[str | None, bool]:
     if len(alnum) < 5 or not re.search(r"\d", alnum):
         return selected, False
     # Reject label-bleed ghosts (NUMBER/PROGRAM fragments fused into alnum).
-    if re.search(r"N0?BER|NUMB|PROGRAM|INSURE|ITEM", alnum, re.I):
+    if re.search(r"N0?BER|NUMB|PROGRAM|INSURE|ITEM", alnum, re.IGNORECASE):
         return selected, False
     ok = bool(selected) and semantic_accept("insured_id_number", selected)[0]
     return selected, ok
@@ -166,9 +176,7 @@ def id_local_needs_gpt4o(value: str | None, *, accepted: bool) -> bool:
     alnum = re.sub(r"[^A-Za-z0-9]", "", text)
     if len(alnum) < 7:
         return True
-    if alnum.isalpha():
-        return True
-    return False
+    return bool(alnum.isalpha())
 
 
 def id_local_digit_conflict(candidates: list[Mapping[str, Any]] | None) -> bool:
@@ -253,7 +261,7 @@ def _crop_image(image: Image.Image, bbox: tuple[int, int, int, int]) -> Image.Im
 
 
 class _AzureGpt4oCropRecognizer:
-    """Production recognizer over workers.vlm_fallback Azure adapter."""
+    """Production recognizer over an injected Azure OpenAI vision adapter."""
 
     def __init__(self, adapter: Any | None = None) -> None:
         self._adapter = adapter
@@ -262,8 +270,12 @@ class _AzureGpt4oCropRecognizer:
         if self._adapter is not None:
             return self._adapter
         from packages.settings import Settings
-        from workers.vlm_fallback.adapter import AzureOpenAIVisionAdapter
 
+        if _build_gpt4o_vision_adapter is None:
+            raise RuntimeError(
+                "gpt-4o vision adapter factory not configured; "
+                "call configure_gpt4o_vision_adapter_factory from composition root"
+            )
         settings = Settings()
         if not settings.azure_ai_evaluation_enabled:
             raise RuntimeError("Azure gpt-4o evaluation disabled")
@@ -273,7 +285,7 @@ class _AzureGpt4oCropRecognizer:
             and settings.azure_ai_evaluation_deployment
         ):
             raise RuntimeError("Azure OpenAI credentials missing")
-        self._adapter = AzureOpenAIVisionAdapter(
+        self._adapter = _build_gpt4o_vision_adapter(
             endpoint=settings.azure_openai_endpoint,
             deployment=settings.azure_ai_evaluation_deployment,
             api_version=settings.azure_openai_api_version or "2024-10-21",
@@ -291,7 +303,7 @@ class _AzureGpt4oCropRecognizer:
         descriptions: Mapping[str, str],
         prior_candidates: Mapping[str, list[str]],
     ) -> Mapping[str, Gpt4oCropResidualResult]:
-        from workers.vlm_fallback.schema import VLMFieldRequest
+        from packages.vlm_schema import VLMFieldRequest
 
         adapter = self._ensure()
         pngs: dict[str, bytes] = {}
@@ -477,7 +489,7 @@ def run_gpt4o_crop_residual(
     # DOB abstain → MM/DD/YY cell-split retry (DI hint already in description).
     if name in _DOB_FIELDS and (result.insufficient_evidence or not result.shaped):
         cells = _dob_cell_bboxes(bbox)
-        try:
+        with contextlib.suppress(Exception):
             cell_imgs = [_crop_image(image, cell) for cell in cells]
             widths = [c.width for c in cell_imgs]
             height = max(c.height for c in cell_imgs)
@@ -508,8 +520,6 @@ def run_gpt4o_crop_residual(
                     validation_results=tuple(retry.validation_results)
                     + ("GPT4O_CELL_SPLIT",),
                 )
-        except Exception:  # noqa: BLE001
-            pass
     return result
 
 
@@ -685,7 +695,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
                             local_value = seed
                             break
                 if local_value and local_accepted:
-                    try:
+                    with contextlib.suppress(Exception):
                         from packages.claim_evidence.line_sum_authority import (
                             amounts_corroborate,
                         )
@@ -695,8 +705,6 @@ def maybe_attach_gpt4o_crop_to_field_row(
                             updated["gpt4o_crop_residual"]["reason"] = (
                                 f"{promoted.reason}|LOCAL_CONFLICT_REVIEW"
                             )
-                    except Exception:  # noqa: BLE001
-                        pass
             if promote_accept:
                 cascade_out["accepted"] = True
                 cascade_out["accept_reason"] = f"GPT4O_CROP_RESIDUAL:{promoted.reason}"

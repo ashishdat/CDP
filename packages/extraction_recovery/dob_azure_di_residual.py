@@ -7,16 +7,17 @@ SHADOW_REVIEW_ONLY until secondary policy promotes the route.
 
 from __future__ import annotations
 
+import contextlib
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
 from PIL import Image
 
 from packages.extraction_recovery.field_cascade import semantic_accept
 from packages.extraction_recovery.span_selection import select_field_span
 from packages.tool_escalation import EscalationTool, plan_field_escalation
-
 
 _DOB_FIELDS = frozenset({"patient_dob", "date_of_birth"})
 _HANDWRITING_GAPS = frozenset({"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS"})
@@ -77,7 +78,7 @@ def _shape_dob_text(field_name: str, raw: str | None) -> tuple[str | None, bool]
     span = select_field_span(text, "DATE", field_name)
     selected = _normalize_dob_text(span.selected_text) or text
     shaped = bool(selected) and semantic_accept(field_name, selected)[0]
-    return (selected if shaped else selected), shaped
+    return selected, shaped
 
 
 def _recognize_with_azure_read_engine(
@@ -124,7 +125,7 @@ def _recognize_with_azure_read_engine(
     try:
         candidates = read_engine.recognize(request)
     except Exception as exc:  # noqa: BLE001
-        try:
+        with contextlib.suppress(Exception):
             from packages.recovery.azure_di_meter import record_azure_di_call
 
             record_azure_di_call(
@@ -133,8 +134,6 @@ def _recognize_with_azure_read_engine(
                 ok=False,
                 detail=type(exc).__name__,
             )
-        except Exception:  # noqa: BLE001
-            pass
         return DobAzureDiResidualResult(
             attempted=True,
             configured=True,
@@ -144,7 +143,7 @@ def _recognize_with_azure_read_engine(
             date_shaped=False,
             reason=f"AZURE_DI_ERROR:{type(exc).__name__}",
         )
-    try:
+    with contextlib.suppress(Exception):
         from packages.recovery.azure_di_meter import record_azure_di_call
 
         record_azure_di_call(
@@ -153,8 +152,6 @@ def _recognize_with_azure_read_engine(
             ok=bool(candidates),
             detail="ok" if candidates else "empty",
         )
-    except Exception:  # noqa: BLE001
-        pass
     if not candidates:
         return DobAzureDiResidualResult(
             attempted=True,
@@ -175,7 +172,7 @@ def _recognize_with_azure_read_engine(
         attempted=True,
         configured=True,
         review_only=review_only,
-        value=value if shaped else value,
+        value=value,
         raw_value=raw,
         date_shaped=shaped,
         reason=(
@@ -248,12 +245,12 @@ def run_dob_azure_di_residual(
             )
 
         try:
-            from packages.settings import get_settings
-            from workers.cascade.azure_di_factory import (
+            from packages.azure_di_contracts import (
                 AzureDocumentIntelligenceConfigurationError,
                 azure_document_intelligence_configured,
                 build_azure_read_engine,
             )
+            from packages.settings import get_settings
         except Exception as exc:  # noqa: BLE001
             return DobAzureDiResidualResult(
                 attempted=False,
@@ -287,6 +284,16 @@ def run_dob_azure_di_residual(
                 raw_value=None,
                 date_shaped=False,
                 reason=f"AZURE_DI_CONFIG_ERROR:{exc}",
+            )
+        except RuntimeError as exc:
+            return DobAzureDiResidualResult(
+                attempted=False,
+                configured=False,
+                review_only=True,
+                value=None,
+                raw_value=None,
+                date_shaped=False,
+                reason=f"AZURE_DI_FACTORY_UNCONFIGURED:{exc}",
             )
         return _recognize_with_azure_read_engine(
             read_engine, crop, field_name, review_only=decision.review_only

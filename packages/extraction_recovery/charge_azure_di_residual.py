@@ -7,17 +7,18 @@ corners stay off; this is one cheap charge-cell crop (same pattern as DOB).
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
 from PIL import Image
 
 from packages.extraction_recovery.field_cascade import semantic_accept
 from packages.extraction_recovery.span_selection import select_field_span
 from packages.tool_escalation import EscalationTool, plan_field_escalation
-
 
 _CHARGE_FIELDS = frozenset(
     {"charges", "charge_amount", "total_charge", "total_charges", "amount_paid"}
@@ -168,7 +169,7 @@ def _recognize_with_azure_read_engine(
     try:
         candidates = read_engine.recognize(request)
     except Exception as exc:  # noqa: BLE001
-        try:
+        with contextlib.suppress(Exception):
             from packages.recovery.azure_di_meter import record_azure_di_call
 
             record_azure_di_call(
@@ -177,8 +178,6 @@ def _recognize_with_azure_read_engine(
                 ok=False,
                 detail=type(exc).__name__,
             )
-        except Exception:  # noqa: BLE001
-            pass
         return ChargeAzureDiResidualResult(
             attempted=True,
             configured=True,
@@ -188,7 +187,7 @@ def _recognize_with_azure_read_engine(
             currency_shaped=False,
             reason=f"AZURE_DI_ERROR:{type(exc).__name__}",
         )
-    try:
+    with contextlib.suppress(Exception):
         from packages.recovery.azure_di_meter import record_azure_di_call
 
         record_azure_di_call(
@@ -197,8 +196,6 @@ def _recognize_with_azure_read_engine(
             ok=bool(candidates),
             detail="ok" if candidates else "empty",
         )
-    except Exception:  # noqa: BLE001
-        pass
     if not candidates:
         return ChargeAzureDiResidualResult(
             attempted=True,
@@ -302,12 +299,12 @@ def run_charge_azure_di_residual(
             )
 
         try:
-            from packages.settings import get_settings
-            from workers.cascade.azure_di_factory import (
+            from packages.azure_di_contracts import (
                 AzureDocumentIntelligenceConfigurationError,
                 azure_document_intelligence_configured,
                 build_azure_read_engine,
             )
+            from packages.settings import get_settings
         except Exception as exc:  # noqa: BLE001
             return ChargeAzureDiResidualResult(
                 attempted=False,
@@ -341,6 +338,16 @@ def run_charge_azure_di_residual(
                 raw_value=None,
                 currency_shaped=False,
                 reason=f"AZURE_DI_CONFIG_ERROR:{exc}",
+            )
+        except RuntimeError as exc:
+            return ChargeAzureDiResidualResult(
+                attempted=False,
+                configured=False,
+                review_only=True,
+                value=None,
+                raw_value=None,
+                currency_shaped=False,
+                reason=f"AZURE_DI_FACTORY_UNCONFIGURED:{exc}",
             )
         return _recognize_with_azure_read_engine(
             read_engine, crop, field_name, review_only=decision.review_only

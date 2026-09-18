@@ -12,36 +12,19 @@ and field-processor logic is fully unit-testable with a fake.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Protocol
-
 from PIL import Image
 
+from packages.ocr_contracts import ModelNotAvailableError, TextExtractor, TextLine
 
-@dataclass(frozen=True)
-class TextLine:
-    text: str
-    x0: float
-    y0: float
-    x1: float
-    y1: float
-    confidence: float
-
-
-class TextExtractor(Protocol):
-    def extract(self, image: Image.Image) -> list[TextLine]:
-        """Full-page OCR, used for anchor-phrase verification."""
-        ...
-
-    def extract_region(
-        self, image: Image.Image, x0: int, y0: int, x1: int, y1: int
-    ) -> list[TextLine]:
-        """Regional OCR, used by standard_form_extraction on aligned pages."""
-        ...
-
-
-class ModelNotAvailableError(RuntimeError):
-    pass
+# Re-export contracts for back-compat with existing workers/tests imports.
+__all__ = [
+    "ModelNotAvailableError",
+    "PaddleOCRTextExtractor",
+    "RapidOCRFullPageTextExtractor",
+    "RapidOCRTextExtractor",
+    "TextExtractor",
+    "TextLine",
+]
 
 
 class RapidOCRTextExtractor:

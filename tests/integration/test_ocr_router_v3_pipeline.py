@@ -8,8 +8,8 @@ from packages.extraction_pipeline import (
     PipelineContext,
     StageRegistry,
 )
+from packages.ocr_contracts import TextLine
 from packages.ocr_router import ENGINE_ORDER, OCRObservation, OCRRouter, OCRRouteRequest
-from workers.page_detection.text_extraction import TextLine
 
 
 @pytest.mark.parametrize(
@@ -49,6 +49,7 @@ def test_pipeline_flag_rollback_preserves_legacy_identity(pipeline_enabled, ocr_
 
 def test_default_regional_factories_call_existing_adapters(monkeypatch):
     from workers.cascade import tesseract_adapter
+    from workers.ocr_engine_factories import build_default_ocr_engine_factories
     from workers.page_detection import text_extraction
 
     events = []
@@ -66,15 +67,17 @@ def test_default_regional_factories_call_existing_adapters(monkeypatch):
     monkeypatch.setattr(text_extraction, "PaddleOCRTextExtractor", adapter("paddleocr"))
     monkeypatch.setattr(tesseract_adapter, "TesseractTextExtractor", adapter("tesseract"))
     image = Image.new("L", (10, 10))
-    result = OCRRouter(lambda a: a.engine == "tesseract").route(
-        OCRRouteRequest(image, (2, 3, 8, 9))
-    )
+    result = OCRRouter(
+        lambda a: a.engine == "tesseract",
+        factories=build_default_ocr_engine_factories(),
+    ).route(OCRRouteRequest(image, (2, 3, 8, 9)))
     assert [event[0] for event in events] == list(ENGINE_ORDER[:3])
     assert all(event[1] is image and event[2] == (2, 3, 8, 9) for event in events)
     assert all(attempt.observation.lines[0] is line for attempt in result.attempts)
 
 
 def test_trocr_bridge_crops_once_and_respects_insufficient_evidence(monkeypatch):
+    from workers.ocr_engine_factories import handwriting_factory
     from workers.unstructured_extraction import trocr_adapter
 
     seen = []
@@ -85,10 +88,9 @@ def test_trocr_bridge_crops_once_and_respects_insufficient_evidence(monkeypatch)
             return trocr_adapter.TrOCRResult(" handwritten ", 0.4, True)
 
     monkeypatch.setattr(trocr_adapter, "TrOCRAdapter", Adapter)
-    from packages.ocr_router import _handwriting_factory
 
     factories = {name: lambda: lambda req: OCRObservation(()) for name in ENGINE_ORDER}
-    factories["trocr"] = _handwriting_factory
+    factories["trocr"] = handwriting_factory
     router = OCRRouter(lambda _: True, factories=factories)
     result = router.route(OCRRouteRequest(Image.new("L", (30, 20)), (5, 3, 25, 15), True))
     assert seen == [(20, 12)]
@@ -101,8 +103,8 @@ def test_trocr_bridge_crops_once_and_respects_insufficient_evidence(monkeypatch)
 def test_trocr_missing_dependency_is_distinct_from_inference_failure(
     monkeypatch, missing_dependency
 ):
-    from packages.ocr_router import _handwriting_factory
-    from workers.page_detection.text_extraction import ModelNotAvailableError
+    from packages.ocr_contracts import ModelNotAvailableError
+    from workers.ocr_engine_factories import handwriting_factory
     from workers.unstructured_extraction import trocr_adapter
 
     error = RuntimeError("adapter failed")
@@ -114,7 +116,7 @@ def test_trocr_missing_dependency_is_distinct_from_inference_failure(
             raise error
 
     monkeypatch.setattr(trocr_adapter, "TrOCRAdapter", Adapter)
-    recognizer = _handwriting_factory()
+    recognizer = handwriting_factory()
     request = OCRRouteRequest(Image.new("L", (5, 5)), (0, 0, 5, 5), True)
     expected = ModelNotAvailableError if missing_dependency else RuntimeError
     with pytest.raises(expected) as caught:
@@ -124,8 +126,8 @@ def test_trocr_missing_dependency_is_distinct_from_inference_failure(
 
 
 def test_missing_tesseract_executable_is_recorded_without_retry(monkeypatch):
-    from packages.ocr_router import _regional_factory
     from workers.cascade import tesseract_adapter
+    from workers.ocr_engine_factories import regional_factory
 
     class Extractor:
         def extract_region(self, image, *bbox):
@@ -133,7 +135,7 @@ def test_missing_tesseract_executable_is_recorded_without_retry(monkeypatch):
 
     monkeypatch.setattr(tesseract_adapter, "TesseractTextExtractor", Extractor)
     factories = {name: lambda: lambda req: OCRObservation(()) for name in ENGINE_ORDER}
-    factories["tesseract"] = lambda: _regional_factory("tesseract")
+    factories["tesseract"] = lambda: regional_factory("tesseract")
     result = OCRRouter(lambda _: True, factories=factories).route(
         OCRRouteRequest(Image.new("L", (5, 5)), (0, 0, 5, 5))
     )

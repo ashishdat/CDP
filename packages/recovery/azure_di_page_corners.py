@@ -128,12 +128,12 @@ def run_azure_di_page_corners(
 
     if analyzer is None:
         try:
-            from packages.settings import get_settings
-            from workers.cascade.azure_di_factory import (
+            from packages.azure_di_contracts import (
                 AzureDocumentIntelligenceConfigurationError,
                 azure_document_intelligence_configured,
                 build_azure_read_engine,
             )
+            from packages.settings import get_settings
         except Exception as exc:  # noqa: BLE001
             return AzureDiPageCornersResult(
                 attempted=False,
@@ -166,6 +166,14 @@ def run_azure_di_page_corners(
                 configured=False,
                 quad=None,
                 reason=f"AZURE_DI_CONFIG_ERROR:{exc}",
+            )
+        except RuntimeError as exc:
+            # Factory not wired from composition root.
+            return AzureDiPageCornersResult(
+                attempted=False,
+                configured=False,
+                quad=None,
+                reason=f"AZURE_DI_FACTORY_UNCONFIGURED:{exc}",
             )
 
     stream = io.BytesIO()

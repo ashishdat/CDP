@@ -8,8 +8,9 @@ reads are eligible for cascade accept (local model); unshaped results stay HITL.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
 from PIL import Image
 
@@ -17,9 +18,16 @@ from packages.extraction_recovery.field_cascade import semantic_accept
 from packages.extraction_recovery.span_selection import select_field_span
 from packages.tool_escalation import EscalationTool, plan_field_escalation
 
-
 _DOB_FIELDS = frozenset({"patient_dob", "date_of_birth"})
 _HANDWRITING_GAPS = frozenset({"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS"})
+
+_get_shared_trocr_adapter: Callable[..., Any] | None = None
+
+
+def configure_trocr_adapter_factory(factory: Callable[..., Any]) -> None:
+    """Composition root injects shared TrOCR adapter construction."""
+    global _get_shared_trocr_adapter
+    _get_shared_trocr_adapter = factory
 
 
 @dataclass(frozen=True)
@@ -201,10 +209,19 @@ def run_dob_trocr_residual(
                 reason=f"IMPORT_ERROR:{type(exc).__name__}",
             )
 
-        cfg = settings or get_settings()
-        from workers.unstructured_extraction.trocr_adapter import get_shared_trocr_adapter
+        if _get_shared_trocr_adapter is None:
+            return DobTrOCRResidualResult(
+                attempted=False,
+                configured=False,
+                review_only=False,
+                value=None,
+                raw_value=None,
+                date_shaped=False,
+                reason="TROCR_FACTORY_UNCONFIGURED",
+            )
 
-        adapter = get_shared_trocr_adapter(
+        cfg = settings or get_settings()
+        adapter = _get_shared_trocr_adapter(
             model_name=getattr(cfg, "trocr_model_name", None)
             or "microsoft/trocr-base-handwritten",
             device=getattr(cfg, "trocr_device", "auto") or "auto",

@@ -5,6 +5,10 @@ from __future__ import annotations
 import threading
 from typing import Any
 
+from packages.azure_di_contracts import (
+    AzureDocumentIntelligenceConfigurationError,
+    azure_document_intelligence_configured,
+)
 from packages.settings import Settings
 from workers.cascade.azure_di_backend import (
     AzureDocumentIntelligenceReadBackend,
@@ -16,9 +20,13 @@ from workers.unstructured_extraction.cloud_handwriting import CropOnlyCloudProvi
 _ENGINE_LOCK = threading.Lock()
 _ENGINE_CACHE: dict[tuple[Any, ...], AzureReadShadowEngine] = {}
 
-
-class AzureDocumentIntelligenceConfigurationError(RuntimeError):
-    pass
+# Re-export package contracts for back-compat with existing imports.
+__all__ = [
+    "AzureDocumentIntelligenceConfigurationError",
+    "azure_document_intelligence_configured",
+    "build_azure_di_cloud_handwriting_provider",
+    "build_azure_read_engine",
+]
 
 
 def _di_endpoint(settings: Settings) -> str | None:
@@ -27,17 +35,6 @@ def _di_endpoint(settings: Settings) -> str | None:
 
 def _di_key(settings: Settings) -> str | None:
     return settings.azure_document_intelligence_api_key or settings.cloud_handwriting_credential
-
-
-def azure_document_intelligence_configured(settings: Settings) -> bool:
-    return bool(
-        settings.azure_document_intelligence_enabled
-        and _di_endpoint(settings)
-        and _di_key(settings)
-        and settings.azure_document_intelligence_authorized
-        and settings.azure_document_intelligence_region_approved
-        and settings.azure_document_intelligence_phi_contract_approved
-    )
 
 
 def build_azure_read_engine(settings: Settings) -> AzureReadShadowEngine:

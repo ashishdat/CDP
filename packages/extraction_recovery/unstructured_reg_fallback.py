@@ -15,9 +15,11 @@ A vision geometry agent is the wrong tool here — there is no form to align.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Any
@@ -27,7 +29,6 @@ from PIL import Image
 from packages.extraction_recovery.field_cascade import semantic_accept
 from packages.extraction_recovery.span_selection import select_field_span
 
-
 _CRITICAL = (
     "patient_name",
     "insured_name",
@@ -35,6 +36,14 @@ _CRITICAL = (
     "insured_id_number",
     "total_charge",
 )
+
+_build_azure_review_adapter: Callable[[Any], Any] | None = None
+
+
+def configure_azure_review_adapter_factory(factory: Callable[[Any], Any]) -> None:
+    """Composition root injects Azure review VLM adapter construction."""
+    global _build_azure_review_adapter
+    _build_azure_review_adapter = factory
 
 
 @dataclass(frozen=True)
@@ -94,7 +103,7 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     id_candidates: list[str] = []
     for ln in lines:
         # Skip provider/tax lines; still mine mixed identity lines that mention city.
-        if re.search(r"\bnpi\b|\btax\b|buford|martin,?\s*inc|\bhealthcare\b", ln, re.I):
+        if re.search(r"\bnpi\b|\btax\b|buford|martin,?\s*inc|\bhealthcare\b", ln, re.IGNORECASE):
             continue
         for tok in re.findall(r"\b\d{7,12}\b", ln):
             if len(tok) == 10 and (tok.startswith("1") or tok[0] in "234567"):
@@ -111,7 +120,7 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         out["insured_id_number"] = id_candidates[0]
     for ln in lines[:25]:
         if "," in ln and re.search(r"[A-Za-z]{2,}", ln):
-            if re.search(r"united|healthcare|martin|buford|npi|cpt", ln, re.I):
+            if re.search(r"united|healthcare|martin|buford|npi|cpt", ln, re.IGNORECASE):
                 continue
             shaped, _ = _shape_field("patient_name", ln)
             if shaped:
@@ -119,7 +128,7 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 out.setdefault("insured_name", shaped)
                 break
     for ln in lines:
-        if re.search(r"\bF\d{2}", ln, re.I):
+        if re.search(r"\bF\d{2}", ln, re.IGNORECASE):
             continue
         for m in re.finditer(r"\$(\d{2,5}\.\d{2})\b|(\b\d{2,4}\.00\b)", ln):
             raw = m.group(1) or m.group(2)
@@ -144,24 +153,23 @@ def _agent_should_run(fields: dict[str, str]) -> bool:
     if len(id_digits) in {7, 10} or not (8 <= len(id_digits) <= 12):
         return True
     charge = fields.get("total_charge") or ""
-    if re.fullmatch(r"\$?\d{1,2}\.\d{2}", charge):
-        return True
-    return False
+    return bool(re.fullmatch(r"\$?\d{1,2}\.\d{2}", charge))
 
 
 def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> dict[str, str]:
     """gpt-4o text JSON extract from DI ink (no geometry, no invented pixels)."""
     try:
         from packages.settings import get_settings
-        from workers.vlm_fallback.factory import build_azure_review_adapter
-    except Exception:
+    except ImportError:
+        return {}
+    if _build_azure_review_adapter is None:
         return {}
     cfg = settings or get_settings()
     if not getattr(cfg, "azure_ai_evaluation_enabled", False):
         return {}
     try:
-        adapter = build_azure_review_adapter(cfg)
-    except Exception:
+        adapter = _build_azure_review_adapter(cfg)
+    except (OSError, ValueError, RuntimeError, TypeError, AttributeError, KeyError):
         return {}
 
     prompt = (
@@ -202,7 +210,7 @@ def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> 
         response.raise_for_status()
         content = response.json()["choices"][0]["message"]["content"]
         parsed = json.loads(content)
-    except Exception:
+    except (OSError, TimeoutError, ValueError, TypeError, KeyError, IndexError, json.JSONDecodeError):
         return {}
     out: dict[str, str] = {}
     if not isinstance(parsed, dict):
@@ -230,12 +238,12 @@ def run_unstructured_reg_fallback(
             reason="UNSTRUCTURED_REG_FALLBACK_DISABLED",
         )
     try:
-        from packages.settings import get_settings
-        from packages.recovery.azure_di_meter import record_azure_di_call
-        from workers.cascade.azure_di_factory import (
+        from packages.azure_di_contracts import (
             azure_document_intelligence_configured,
             build_azure_read_engine,
         )
+        from packages.recovery.azure_di_meter import record_azure_di_call
+        from packages.settings import get_settings
     except Exception as exc:  # noqa: BLE001
         return UnstructuredRegFallbackResult(
             attempted=False,
@@ -263,14 +271,12 @@ def run_unstructured_reg_fallback(
         payload = backend.analyze_raw(stream.getvalue())
         record_azure_di_call(kind="other", ok=True, detail="UNSTRUCTURED_REG_PAGE_READ")
     except Exception as exc:  # noqa: BLE001
-        try:
+        with contextlib.suppress(Exception):
             record_azure_di_call(
                 kind="other",
                 ok=False,
                 detail=f"UNSTRUCTURED_REG_ERROR:{type(exc).__name__}",
             )
-        except Exception:  # noqa: BLE001
-            pass
         return UnstructuredRegFallbackResult(
             attempted=True,
             configured=True,

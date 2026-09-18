@@ -33,7 +33,7 @@ from typing import Protocol
 import httpx
 
 from packages.retraining import CorrectionMemory
-from workers.vlm_fallback.schema import VLMFieldRequest, VLMFieldResult, build_response_json_schema
+from packages.vlm_schema import VLMFieldRequest, VLMFieldResult, build_response_json_schema
 
 
 class VLMDisabledError(RuntimeError):

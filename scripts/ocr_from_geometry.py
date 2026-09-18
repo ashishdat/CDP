@@ -3,6 +3,7 @@
 Run: python -m scripts.ocr_from_geometry GEOMETRY_DIRECTORY OUTPUT_DIRECTORY
 """
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -280,8 +281,9 @@ _PREPROCESS = None
 def _preprocessing_registry():
     global _PREPROCESS
     if _PREPROCESS is None:
-        from packages.ocr.preprocessing import PreprocessingRegistry
         from pathlib import Path
+
+        from packages.ocr.preprocessing import PreprocessingRegistry
         phase = Path('config/ocr_preprocessing_phase8_10.yaml')
         _PREPROCESS = PreprocessingRegistry.load(phase if phase.is_file() else None)
     return _PREPROCESS
@@ -490,7 +492,7 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
     ) and not any((c.get('value') or '').strip() for c in candidates):
         try:
             import pytesseract
-            from PIL import ImageOps, ImageEnhance
+            from PIL import ImageEnhance, ImageOps
             x0, y0, x1, y1 = (int(v) for v in bbox)
             crop = image.crop((x0, y0, x1, y1))
             up = crop.resize(
@@ -539,8 +541,8 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
                 }
                 candidates.append(payload)
                 break
-        except Exception:
-            pass
+        except (ImportError, OSError, ValueError, TypeError, AttributeError, RuntimeError) as _exc:
+            attempts.append({"engine": "tesseract_digits", "reason": f"EXCEPTION:{type(_exc).__name__}"})
     return candidates, attempts, routed.reason
 
 
@@ -577,9 +579,7 @@ def _is_currency_digit_drop_twin(left: object, right: object) -> bool:
         return False
     extra = longer[len(shorter) :]
     # Pure trailing zeros are padding, not recovered charge digits.
-    if extra and set(extra) <= {"0"}:
-        return False
-    return True
+    return not (extra and set(extra) <= {"0"})
 
 
 def prefer_currency_without_digit_drop(primary: object, competitor: object) -> str | None:
@@ -599,7 +599,7 @@ def _recognize_charge_digits_only(image, bbox):
     candidates = []
     try:
         import pytesseract
-        from PIL import ImageOps, ImageEnhance
+        from PIL import ImageEnhance, ImageOps
         x0, y0, x1, y1 = (int(v) for v in bbox)
         crop = image.crop((x0, y0, x1, y1))
         up = crop.resize(
@@ -646,8 +646,8 @@ def _recognize_charge_digits_only(image, bbox):
             }
             candidates.append(payload)
             break
-    except Exception:
-        pass
+    except (ImportError, OSError, ValueError, TypeError, AttributeError, RuntimeError) as _exc:
+        attempts.append({"engine": "tesseract_digits", "reason": f"EXCEPTION:{type(_exc).__name__}"})
     return candidates, attempts, 'CHARGE_DIGITS_FAST'
 
 
@@ -662,7 +662,7 @@ def _maybe_azure_di_charge_crop(image, bbox, *, gap_class='CHARGE_LOCAL_EXHAUSTE
             residual_candidate_dict,
             try_charge_azure_di_crop,
         )
-    except Exception:
+    except ImportError:
         return None, None, [], 'CHARGE_DI_IMPORT_ERROR'
     if not azure_di_charge_residual_enabled():
         return None, None, [], 'CHARGE_DI_DISABLED'
@@ -684,13 +684,13 @@ def _maybe_gpt4o_charge_crop(image, bbox, *, prior_candidates=None):
     """
     try:
         from packages.extraction_recovery.gpt4o_crop_residual import (
+            Gpt4oCropResidualResult,
             gpt4o_crop_accept_enabled,
             gpt4o_crop_residual_enabled,
             residual_candidate_dict,
             run_gpt4o_crop_residual,
-            Gpt4oCropResidualResult,
         )
-    except Exception:
+    except ImportError:
         return None, None, [], 'CHARGE_GPT4O_IMPORT_ERROR'
     if not gpt4o_crop_residual_enabled():
         return None, None, [], 'CHARGE_GPT4O_DISABLED'
@@ -925,11 +925,7 @@ def recognize_service_lines(image, router, template):
             need_gpt4o = False
             gpt4o_on = (os.environ.get('CDP_GPT4O_CROP_RESIDUAL') or '1').strip().casefold()
             if gpt4o_on not in {'0', 'false', 'no', 'off'}:
-                if not value and not probe_empty:
-                    need_gpt4o = True
-                elif value and len(unique_vals) < 2:
-                    need_gpt4o = True
-                elif need_gpt4o_twin:
+                if not value and not probe_empty or value and len(unique_vals) < 2 or need_gpt4o_twin:
                     need_gpt4o = True
                 elif need_di and not any(
                     'document_intelligence' in str(c.get('engine') or '').casefold()
@@ -1102,7 +1098,7 @@ def _dob_cell_bboxes(band):
 
 def _preprocess_dob_cell(crop):
     """Upscale + contrast for tight DOB digit cells (typed or handwritten)."""
-    from PIL import ImageOps, ImageEnhance
+    from PIL import ImageEnhance, ImageOps
     up = crop.resize((max(1, crop.width * 3), max(1, crop.height * 3)), Image.Resampling.LANCZOS)
     up = ImageOps.autocontrast(up)
     up = ImageEnhance.Contrast(up).enhance(1.6)
@@ -1148,7 +1144,7 @@ def _recognize_dob_cells(image, band, router, engines):
         best_digits = ''
         # Digit-only tesseract first — typed CMS DOB cells often resolve under whitelist.
         # Under STP fast mode, skip route engines when digits already assemble.
-        try:
+        with contextlib.suppress(ImportError, OSError, ValueError, TypeError, AttributeError, RuntimeError):
             import pytesseract
             for psm in _digit_psms_dob():
                 cfg = f'--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789'
@@ -1163,8 +1159,6 @@ def _recognize_dob_cells(image, band, router, engines):
                     best_digits = _consider(label, _digits_from(raw), raw, best_digits)
                     if best_digits:
                         break
-        except Exception:
-            pass
         if not best_digits or not _ocr_fast_mode():
             routed = router.route(
                 OCRRouteRequest(crop, (0, 0, crop.width, crop.height), engine_order=engines)
@@ -1447,9 +1441,9 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
         # held year/day fragments (digit_band / year_wide).
         if (not cascaded.accepted) and 'dob_cells' in post_miss_for(field['field']):
             from packages.extraction_recovery.field_cascade import (
-                load_route_engines,
                 CascadeResult,
                 CascadeStepResult,
+                load_route_engines,
             )
             engines = load_route_engines('patient_dob')
             cell_box = (int(cell['x0']), int(cell['y0']), int(cell['x1']), int(cell['y1']))
@@ -1591,6 +1585,9 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
 
 
 def run(directory, output):
+    from workers.ocr_engine_factories import wire_package_ocr_providers
+
+    wire_package_ocr_providers()
     directory, output = Path(directory), Path(output)
     output.mkdir(parents=True, exist_ok=False)
     geometry = json.loads((directory / 'GeometryResult.json').read_text())

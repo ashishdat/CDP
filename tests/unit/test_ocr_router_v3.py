@@ -3,13 +3,13 @@ from concurrent.futures import ThreadPoolExecutor
 import pytest
 from PIL import Image
 
+from packages.ocr_contracts import ModelNotAvailableError, TextLine
 from packages.ocr_router import (
     ENGINE_ORDER,
     OCRObservation,
     OCRRouter,
     OCRRouteRequest,
 )
-from workers.page_detection.text_extraction import ModelNotAvailableError, TextLine
 
 
 def request(handwriting=False, engine_order=None):

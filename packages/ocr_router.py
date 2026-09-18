@@ -9,9 +9,28 @@ from PIL import Image
 
 from packages.extraction_pipeline.models import FeatureFlag
 from packages.extraction_pipeline.registry import StageRegistration
-from workers.page_detection.text_extraction import ModelNotAvailableError, TextLine
+from packages.ocr_contracts import ModelNotAvailableError, TextLine
 
 ENGINE_ORDER = ("rapidocr", "paddleocr", "tesseract", "trocr")
+
+_ENGINE_FACTORIES: Mapping[str, Callable[[], "Recognizer"]] | None = None
+
+
+def configure_ocr_engine_factories(
+    factories: Mapping[str, Callable[[], "Recognizer"]],
+) -> None:
+    """Composition root registers concrete OCR engine factories."""
+    global _ENGINE_FACTORIES
+    _ENGINE_FACTORIES = dict(factories)
+
+
+def default_ocr_factories() -> Mapping[str, Callable[[], "Recognizer"]]:
+    if _ENGINE_FACTORIES is None:
+        raise RuntimeError(
+            "OCR engine factories not configured; "
+            "call configure_ocr_engine_factories from composition root"
+        )
+    return _ENGINE_FACTORIES
 
 
 @dataclass(frozen=True)
@@ -44,10 +63,10 @@ class OCRRouteRequest:
             if unknown:
                 raise ValueError(f"Unknown engines in engine_order: {sorted(unknown)}")
             object.__setattr__(self, "engine_order", order)
-        if self.min_usable is not None:
-            if type(self.min_usable) is not int or self.min_usable < 1:
-                raise ValueError("min_usable must be a positive int")
-
+        if self.min_usable is not None and (
+            type(self.min_usable) is not int or self.min_usable < 1
+        ):
+            raise ValueError("min_usable must be a positive int")
 
 
 @dataclass(frozen=True)
@@ -77,58 +96,6 @@ class OCRRoutingResult:
 Recognizer = Callable[[OCRRouteRequest], OCRObservation]
 
 
-def _regional_factory(engine: str) -> Recognizer:
-    if engine == "rapidocr":
-        from workers.page_detection.text_extraction import RapidOCRTextExtractor
-
-        extractor = RapidOCRTextExtractor()
-    elif engine == "paddleocr":
-        from workers.page_detection.text_extraction import PaddleOCRTextExtractor
-
-        extractor = PaddleOCRTextExtractor()
-    else:
-        from workers.cascade.tesseract_adapter import TesseractTextExtractor
-
-        extractor = TesseractTextExtractor()
-
-    def recognize(request: OCRRouteRequest) -> OCRObservation:
-        from packages.ocr_runtime_lock import ocr_inference_lock
-
-        try:
-            with ocr_inference_lock(engine):
-                lines = extractor.extract_region(request.image, *request.bbox)
-        except FileNotFoundError as exc:
-            if engine != "tesseract":
-                raise
-            raise ModelNotAvailableError("Tesseract executable unavailable") from exc
-        return OCRObservation(tuple(lines))
-
-    return recognize
-
-
-def _handwriting_factory() -> Recognizer:
-    from workers.unstructured_extraction.trocr_adapter import TrOCRAdapter
-
-    recognizer = TrOCRAdapter()
-
-    def recognize(request: OCRRouteRequest) -> OCRObservation:
-        try:
-            result = recognizer.recognize(request.image.crop(request.bbox))
-        except RuntimeError as exc:
-            # The existing TrOCR adapter wraps missing optional imports only.
-            if not isinstance(exc.__cause__, ImportError):
-                raise
-            raise ModelNotAvailableError("TrOCR dependencies unavailable") from exc
-        lines = (
-            ()
-            if result.text is None
-            else (TextLine(result.text, *request.bbox, result.confidence),)
-        )
-        return OCRObservation(lines, result.insufficient_evidence)
-
-    return recognize
-
-
 class OCRRouter:
     """Invoke RapidOCR -> Paddle -> Tesseract -> eligible TrOCR only as needed.
 
@@ -136,6 +103,9 @@ class OCRRouter:
     business-rule thresholds. Models are lazily constructed and reused. One
     router serializes calls because existing model adapters are stateful.
     Unexpected engine/policy exceptions propagate without retry or escalation.
+
+    Engine factories must be injected via ``factories=`` or registered with
+    ``configure_ocr_engine_factories`` from a composition root (workers).
     """
 
     def __init__(
@@ -148,14 +118,7 @@ class OCRRouter:
         if not callable(accept):
             raise ValueError("An acceptance policy is required")
         self._factories = (
-            dict(factories)
-            if factories is not None
-            else {
-                "rapidocr": lambda: _regional_factory("rapidocr"),
-                "paddleocr": lambda: _regional_factory("paddleocr"),
-                "tesseract": lambda: _regional_factory("tesseract"),
-                "trocr": _handwriting_factory,
-            }
+            dict(factories) if factories is not None else dict(default_ocr_factories())
         )
         if set(self._factories) != set(ENGINE_ORDER) or not all(
             callable(factory) for factory in self._factories.values()
@@ -208,9 +171,8 @@ class OCRRouter:
                 if not usable:
                     continue
                 usable_count += 1
-                if self._accept(attempt):
-                    if first_accepted is None:
-                        first_accepted = attempt
+                if self._accept(attempt) and first_accepted is None:
+                    first_accepted = attempt
                 if first_accepted is not None and usable_count >= required_usable:
                     return OCRRoutingResult(
                         first_accepted, tuple(attempts), "POLICY_SATISFIED"

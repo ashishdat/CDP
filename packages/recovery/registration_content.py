@@ -6,14 +6,16 @@ Rejects warps that place insurance-type text into patient identity boxes.
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
-import numpy as np
 from PIL import Image
 
 _INSURANCE_TOKENS = ("MEDICARE", "MEDICAID", "TRICARE", "CHAMPVA", "FECA")
 _NAME_LABEL_TOKENS = ("PATIENT", "NAME")
 _DOB_LABEL_TOKENS = ("BIRTH", "DATE", "MM", "DD", "YY")
+
+_region_ocr: Callable[[Image.Image, tuple[int, int, int, int]], str] | None = None
 
 
 @dataclass(frozen=True)
@@ -24,13 +26,21 @@ class ContentValidationResult:
     patient_dob_text: str = ""
 
 
-def _ocr_region(image: Image.Image, box: tuple[int, int, int, int]) -> str:
-    from workers.cascade.tesseract_adapter import TesseractTextExtractor
+def configure_registration_region_ocr(
+    factory: Callable[[Image.Image, tuple[int, int, int, int]], str],
+) -> None:
+    """Composition root injects regional OCR used for content landmark checks."""
+    global _region_ocr
+    _region_ocr = factory
 
-    x0, y0, x1, y1 = box
-    crop = image.crop((x0, y0, x1, y1))
-    lines = TesseractTextExtractor(psm=6).extract(crop)
-    return " ".join(str(line.text if hasattr(line, "text") else line) for line in lines).upper()
+
+def _ocr_region(image: Image.Image, box: tuple[int, int, int, int]) -> str:
+    if _region_ocr is None:
+        raise RuntimeError(
+            "Registration region OCR not configured; "
+            "call configure_registration_region_ocr from composition root"
+        )
+    return _region_ocr(image, box)
 
 
 def validate_cms1500_registration_content(
