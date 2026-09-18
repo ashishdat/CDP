@@ -100,3 +100,15 @@ If gpt-4o and the weak prior share **no** digit prefix (≥3) and edit distance 
 ### Smoke (`hackathon_hitl_id_relief_smoke_v12_3o`)
 
 **3/3 TRUE_STP** including `HJE5.016` (ID `33847173` AUTO with `GPT4O_ID_WEAK_LOCAL_RELIEVED`). Controls `HJHO.005` / `HJHO.011` remain STP.
+
+## Same-length digit conflicts → gpt-4o tie-break
+
+Yes — **gpt-4o crop** (not DI) is the right resolver. Azure DI Read is weaker on handwriting digit twins; gpt-4o already has crop residual + auth.
+
+| Step | Behavior |
+| --- | --- |
+| Gate | Fire gpt-4o when locals disagree on same-length shaped IDs (`id_local_digit_conflict`) |
+| Accept | gpt-4o matches ≥1 local → `GPT4O_ID_DIGIT_CONFLICT_TIEBREAK` |
+| Fail closed | gpt-4o third value / abstain → keep `CONFLICT_MARGIN_TOO_SMALL` |
+
+Unit: `test_gpt4o_tiebreak_same_length_digit_conflict` (909293380). Smoke `hackathon_id_digit_tiebreak_smoke_v12_3o`: DJJM.037 / HJCX.004 STP.

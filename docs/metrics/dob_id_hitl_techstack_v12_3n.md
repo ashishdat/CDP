@@ -87,6 +87,13 @@ Env stamps (product cascade): charge residual/corroborate **ON**.
 | `HJHO.011` | HITL (DOB abstain) | **TRUE_STP** | gpt-4o DOB `12/08/1983` AUTO |
 | `HJE5.016` | HITL (DOB) | HITL (ID) | DOB fixed (`07/30/1977` via DI punct); residual ID conflict `33847173` vs `338977` (`CONFLICT_MARGIN_TOO_SMALL`) |
 
-### ID conflict follow-up (implemented)
+### Same-length digit conflicts (implemented)
 
-`GPT4O_ID_WEAK_LOCAL_RELIEVED`: gpt-4o strong ID vs short/chrome local that triggered residual → STP when digit prefix shared. Smoke `hackathon_hitl_id_relief_smoke_v12_3o`: **3/3 TRUE_STP** (`HJE5.016` ID `33847173` AUTO).
+**Problem:** paddle `909295500` vs rapid `909293380` (and similar) stay HITL via `CONFLICT_MARGIN_TOO_SMALL` because neither is weak/chrome — gpt-4o never fired.
+
+**Fix (gpt-4o crop tie-break; DI not required):**
+
+1. Gate: `id_local_digit_conflict` → invoke gpt-4o when ≥2 same-length shaped local IDs disagree (confusable twins excluded).
+2. Reconcile: `GPT4O_ID_DIGIT_CONFLICT_TIEBREAK` when gpt-4o agrees with ≥1 local; keep HITL if gpt-4o invents a third value.
+
+Smoke `hackathon_id_digit_tiebreak_smoke_v12_3o`: `DJJM.037` + `HJCX.004` **TRUE_STP** (this run locals already agreed; conflict path covered by unit tests).
