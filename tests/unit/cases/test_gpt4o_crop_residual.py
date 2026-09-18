@@ -184,6 +184,52 @@ def test_attach_id_promotes_clean_member_id(monkeypatch):
     assert updated["candidates"][0]["value"] == "949774145"
 
 
+def test_attach_id_fires_on_same_length_digit_conflict(monkeypatch):
+    """Long shaped locals that disagree still invoke gpt-4o as tie-break."""
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
+    img = Image.new("RGB", (400, 80), color=(255, 255, 255))
+    engine = _FakeEngine(
+        {
+            "insured_id_number": Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value="909293380",
+                raw_value="909293380",
+                shaped=True,
+                insufficient_evidence=False,
+                reason="GPT4O_SHAPED",
+                confidence=0.97,
+            )
+        }
+    )
+    row = {
+        "field": "insured_id_number",
+        "canonical_region": [10, 10, 380, 70],
+        "ocr_region": [10, 10, 380, 70],
+        "candidates": [
+            {"value": "909295500", "engine": "paddleocr"},
+            {"value": "909293380", "engine": "rapidocr"},
+        ],
+        "cascade": {
+            "accepted": True,
+            "accept_reason": "ID_SHAPED",
+            "steps": [
+                {
+                    "accepted": True,
+                    "selected_value": "909293380",
+                    "variant_id": "id_value_band",
+                }
+            ],
+        },
+    }
+    updated = maybe_attach_gpt4o_crop_to_field_row(row, image=img, engine=engine)
+    assert updated["gpt4o_crop_residual"]["shaped"] is True
+    assert updated["candidates"][0]["value"] == "909293380"
+    assert "GPT4O_CROP_RESIDUAL" in updated["cascade"]["accept_reason"]
+
+
 def test_dob_cell_split_retry_after_full_box_abstain(monkeypatch):
     """HJHO.011-class: full-box abstain → MM/DD/YY strip retry shapes."""
     monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")

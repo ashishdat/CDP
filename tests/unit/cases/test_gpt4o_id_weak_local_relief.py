@@ -1,4 +1,4 @@
-"""gpt-4o ID residual vs weak-local conflict-margin relief (v12.3o)."""
+"""gpt-4o ID residual vs weak-local / digit-conflict relief (v12.3o)."""
 
 from packages.candidate_reconciliation import Decision, EvidenceReconciler
 from packages.candidate_reconciliation.reconciler import (
@@ -8,9 +8,13 @@ from packages.candidate_reconciliation.reconciler import (
 )
 from packages.criticality import CriticalityLevel
 from packages.domain.common import BoundingBox
+from packages.evidence.builder import engine_family
+from packages.extraction_recovery.gpt4o_crop_residual import (
+    id_local_digit_conflict,
+    id_needs_gpt4o,
+)
 from packages.ocr.contracts import OCRCandidate
 from packages.ocr.independence import independence_group
-from packages.evidence.builder import engine_family
 
 
 def _candidate(value: str, engine: str, confidence: float = 0.999) -> OCRCandidate:
@@ -43,6 +47,35 @@ def test_weak_local_gate_helpers():
     assert not _member_id_is_weak_for_gpt4o_gate("949774145")
     assert _member_ids_share_digit_prefix("33847173", "338977")
     assert not _member_ids_share_digit_prefix("909293380", "555555555")
+
+
+def test_id_local_digit_conflict_gate():
+    assert id_local_digit_conflict(
+        [
+            {"value": "909295500", "engine": "paddleocr"},
+            {"value": "909293380", "engine": "rapidocr"},
+        ]
+    )
+    # Confusable J↔U is not a digit conflict for the residual gate.
+    assert not id_local_digit_conflict(
+        [
+            {"value": "JSW000179858", "engine": "paddleocr"},
+            {"value": "USW000179858", "engine": "rapidocr"},
+        ]
+    )
+    assert id_needs_gpt4o(
+        "909293380",
+        accepted=True,
+        candidates=[
+            {"value": "909295500", "engine": "paddleocr"},
+            {"value": "909293380", "engine": "rapidocr"},
+        ],
+    )
+    assert not id_needs_gpt4o(
+        "949774145",
+        accepted=True,
+        candidates=[{"value": "949774145", "engine": "rapidocr"}],
+    )
 
 
 def test_gpt4o_vs_weak_local_id_conflict_relieved():
@@ -83,12 +116,58 @@ def test_weak_local_ranked_first_still_prefers_gpt4o():
     assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
 
 
-def test_genuine_same_length_digit_conflict_stays_hitl():
+def test_genuine_same_length_digit_conflict_stays_hitl_without_gpt4o():
     result = EvidenceReconciler().reconcile(
         "insured_id_number",
         [
             _candidate("909295500", "paddleocr", 0.975),
             _candidate("909293380", "rapidocr", 0.990),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        independent_agreement_values=set(),
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.REVIEW
+    assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
+
+
+def test_gpt4o_tiebreak_same_length_digit_conflict():
+    """DJJM.037-class: gpt-4o agrees with rapid → drop paddle twin."""
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("909295500", "paddleocr", 0.975),
+            _candidate("909293380", "rapidocr", 0.990),
+            _candidate("909293380", "azure_gpt4o_crop", 0.95),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        independent_agreement_values=set(),
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "909293380"
+    assert "GPT4O_ID_DIGIT_CONFLICT_TIEBREAK" in result.rationale_codes
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_gpt4o_alone_third_value_keeps_hitl():
+    """gpt-4o invents a third ID matching neither local → stay HITL."""
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("909295500", "paddleocr", 0.975),
+            _candidate("909293380", "rapidocr", 0.990),
+            _candidate("909291111", "azure_gpt4o_crop", 0.99),
         ],
         CriticalityLevel.C3,
         deterministic_evidence={

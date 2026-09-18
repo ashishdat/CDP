@@ -1334,6 +1334,7 @@ class EvidenceReconciler:
         early_name_relief = False
         early_id_relief = False
         early_gpt4o_id_relief = False
+        early_gpt4o_digit_tiebreak = False
         # Within a multi-engine name agreement group, prefer the display that
         # already lacks JI / digit-1 confusables (JIOSEPHINE → JOSEPHINE).
         if is_name_field and len(supporting) >= 1:
@@ -1494,6 +1495,41 @@ class EvidenceReconciler:
                     value = cand_val
                     supporting = items
                     early_gpt4o_id_relief = True
+                    break
+            # Prefer gpt-4o + local corroboration over a lone same-length digit twin.
+            if not early_gpt4o_id_relief and not early_id_relief:
+                top_canon = _canonical_member_id(str(value or ""))
+                for _norm, items in ranked[1:]:
+                    if not any(
+                        _is_azure_gpt4o_crop_engine(c.engine) for c, _, _ in items
+                    ):
+                        continue
+                    best = max(items, key=lambda row: row[1])
+                    cand_val = str(best[0].value or "")
+                    if not _member_id_is_shaped(cand_val):
+                        continue
+                    if _member_id_is_weak_for_gpt4o_gate(cand_val):
+                        continue
+                    alt_canon = _canonical_member_id(cand_val)
+                    if (
+                        not top_canon
+                        or not alt_canon
+                        or len(top_canon) != len(alt_canon)
+                        or len(alt_canon) < 7
+                    ):
+                        continue
+                    if values_conflict_equivalent(
+                        "insured_id_number", str(value), cand_val
+                    ):
+                        continue
+                    alt_local = {
+                        independence_group(c.engine) for c, _, _ in items
+                    } - {"CLOUD_AI_FAMILY", "AZURE_READ_FAMILY", "TESSERACT_FAMILY"}
+                    if not alt_local:
+                        continue
+                    value = cand_val
+                    supporting = items
+                    early_gpt4o_digit_tiebreak = True
                     break
         # Always emit compact member IDs so spaced/punctuated OCR ("4E80 VH6 HJ14")
         # matches FORMAT_VALID and downstream identity checks.
@@ -1841,6 +1877,7 @@ class EvidenceReconciler:
                     and not _member_id_is_weak_for_gpt4o_gate(str(value or ""))
                 )
                 gpt4o_weak_local_filtered = False
+                gpt4o_digit_tiebreak_filtered = False
                 filtered = []
                 for other in genuine:
                     if not _member_id_is_shaped(str(other)):
@@ -1865,10 +1902,30 @@ class EvidenceReconciler:
                     ):
                         gpt4o_weak_local_filtered = True
                         continue
+                    # gpt-4o tie-break on same-length digit conflicts: when gpt-4o
+                    # agrees with ≥1 local engine, drop the disagreeing twin.
+                    other_canon = _canonical_member_id(str(other))
+                    value_canon = _canonical_member_id(str(value or ""))
+                    primary_local = primary_support - {
+                        "CLOUD_AI_FAMILY",
+                        "AZURE_READ_FAMILY",
+                    }
+                    if (
+                        primary_is_gpt4o
+                        and primary_strong
+                        and primary_local
+                        and value_canon
+                        and other_canon
+                        and len(value_canon) == len(other_canon)
+                        and len(value_canon) >= 7
+                    ):
+                        gpt4o_digit_tiebreak_filtered = True
+                        continue
                     filtered.append(other)
                 genuine = filtered
             else:
                 gpt4o_weak_local_filtered = False
+                gpt4o_digit_tiebreak_filtered = False
             # Box-number / digit-only OCR is form chrome, not a name competitor.
             if is_name_field and _name_is_strong_person(str(value or "")):
                 genuine = [
@@ -1892,6 +1949,11 @@ class EvidenceReconciler:
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
                 )
                 reasons.append("GPT4O_ID_WEAK_LOCAL_RELIEVED")
+            elif early_gpt4o_digit_tiebreak:
+                decision = (
+                    Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
+                )
+                reasons.append("GPT4O_ID_DIGIT_CONFLICT_TIEBREAK")
             elif early_id_relief:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
@@ -1901,11 +1963,12 @@ class EvidenceReconciler:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
                 )
-                reasons.append(
-                    "GPT4O_ID_WEAK_LOCAL_RELIEVED"
-                    if gpt4o_weak_local_filtered
-                    else "EQUIVALENT_VALUE_CONFLICT_RELIEVED"
-                )
+                if gpt4o_digit_tiebreak_filtered:
+                    reasons.append("GPT4O_ID_DIGIT_CONFLICT_TIEBREAK")
+                elif gpt4o_weak_local_filtered:
+                    reasons.append("GPT4O_ID_WEAK_LOCAL_RELIEVED")
+                else:
+                    reasons.append("EQUIVALENT_VALUE_CONFLICT_RELIEVED")
             else:
                 separator_clean = None
                 name_clean = None
@@ -2050,6 +2113,8 @@ class EvidenceReconciler:
                 reasons.append("NAME_CONFLICT_RELIEVED")
             if early_gpt4o_id_relief:
                 reasons.append("GPT4O_ID_WEAK_LOCAL_RELIEVED")
+            if early_gpt4o_digit_tiebreak:
+                reasons.append("GPT4O_ID_DIGIT_CONFLICT_TIEBREAK")
             if early_id_relief:
                 reasons.append("MEMBER_ID_CONFUSABLE_INSERTION_RELIEVED")
         versions = (

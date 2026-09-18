@@ -1,9 +1,10 @@
 """Crop-scoped Azure gpt-4o residual for DOB / member-ID handwriting HITL.
 
 Runs only after local Rapid→Paddle/Tesseract (and DOB TrOCR→Azure DI) leave
-the field unshaped or ID-chrome contaminated. Crop-only evidence — never a
-full-page vision call. Accepts when the value is date-/ID-shaped and the
-model does not abstain.
+the field unshaped, ID-chrome contaminated, or with same-length digit
+conflicts between local engines. Crop-only evidence — never a full-page
+vision call. Accepts when the value is date-/ID-shaped and the model does
+not abstain.
 
 Bakeoff (hard-150 FIELD_INK HITL, 26 docs): DOB shaped 16/17, ID shaped 14/14,
 mean ~2.0s/call. See docs/metrics/dob_id_hitl_techstack_v12_3n.md.
@@ -117,6 +118,56 @@ def id_local_needs_gpt4o(value: str | None, *, accepted: bool) -> bool:
     if alnum.isalpha():
         return True
     return False
+
+
+def id_local_digit_conflict(candidates: list[Mapping[str, Any]] | None) -> bool:
+    """True when ≥2 same-length shaped local IDs disagree (genuine digit twins).
+
+    Example: paddle ``909295500`` vs rapid ``909293380``. Confusable-only twins
+    (O↔0, J↔U) are excluded — those already have reconcile relief.
+    """
+    if not candidates:
+        return False
+    from packages.candidate_reconciliation.reconciler import (
+        _canonical_member_id,
+        _member_id_is_shaped,
+        values_conflict_equivalent,
+    )
+
+    shaped: list[str] = []
+    for cand in candidates:
+        engine = str(cand.get("engine") or "")
+        if "gpt4o" in engine.casefold() or "gpt-4o" in engine.casefold():
+            continue
+        raw = cand.get("value") or cand.get("text")
+        text = str(raw or "").strip()
+        if not text or not _member_id_is_shaped(text):
+            continue
+        canon = _canonical_member_id(text)
+        if canon and canon not in shaped:
+            shaped.append(canon)
+    if len(shaped) < 2:
+        return False
+    for i, left in enumerate(shaped):
+        for right in shaped[i + 1 :]:
+            if len(left) != len(right) or len(left) < 7:
+                continue
+            if values_conflict_equivalent("insured_id_number", left, right):
+                continue
+            return True
+    return False
+
+
+def id_needs_gpt4o(
+    value: str | None,
+    *,
+    accepted: bool,
+    candidates: list[Mapping[str, Any]] | None = None,
+) -> bool:
+    """Weak/chrome local OR same-length digit conflict between local engines."""
+    if id_local_needs_gpt4o(value, accepted=accepted):
+        return True
+    return id_local_digit_conflict(candidates)
 
 
 def dob_needs_gpt4o(
@@ -308,16 +359,15 @@ def run_gpt4o_crop_residual(
     if name in _DOB_FIELDS:
         ftype, desc = "date", _dob_description(prior)
     else:
-        ftype, desc = (
-            "code",
+        desc = (
             "Handwritten or typed CMS-1500 box 1a insured/member ID. "
-            "Alphanumeric ID only — not phone, NPI, EIN, or printed labels."
-            + (
-                f" Prior OCR saw: {' | '.join(prior[:4])}."
-                if prior
-                else ""
-            ),
+            "Alphanumeric ID only — not phone, NPI, EIN, or printed labels. "
+            "Read every digit carefully; when prior OCR engines disagree on "
+            "digits, choose the ID that matches the ink."
         )
+        if prior:
+            desc += " Prior OCR saw: " + " | ".join(prior[:4]) + "."
+        ftype = "code"
     recognizer = engine or _AzureGpt4oCropRecognizer()
 
     def _call(
@@ -480,7 +530,11 @@ def maybe_attach_gpt4o_crop_to_field_row(
                 break
         if cascade_value is None and prior:
             cascade_value = prior[0]
-        if not id_local_needs_gpt4o(cascade_value, accepted=local_accepted):
+        if not id_needs_gpt4o(
+            cascade_value,
+            accepted=local_accepted,
+            candidates=list(field_row.get("candidates") or []),
+        ):
             return updated
     else:
         return updated
