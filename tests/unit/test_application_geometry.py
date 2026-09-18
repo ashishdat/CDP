@@ -1,8 +1,10 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
+
 import numpy as np
 import pytest
 from PIL import Image
+
 from app import resolve_registered_geometry
 
 

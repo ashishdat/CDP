@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from workers.page_detection.registration_telemetry import verbose_registration_telemetry
 from scripts.ocr_from_geometry import _name_confirm_confidence
+from workers.page_detection.registration_telemetry import verbose_registration_telemetry
 
 
 def test_verbose_telemetry_defaults_off(monkeypatch):
@@ -42,8 +42,9 @@ def test_name_confirm_falls_back_to_candidate_confidence():
 
 
 def test_stp_critical_skips_non_blocking_diagnosis_and_tax():
-    from scripts.ocr_from_geometry import _STP_CRITICAL_FIELDS, _field_in_scope
     import os
+
+    from scripts.ocr_from_geometry import _STP_CRITICAL_FIELDS, _field_in_scope
 
     os.environ["CDP_OCR_FIELD_SCOPE"] = "stp_critical"
     assert "diagnosis_codes" not in _STP_CRITICAL_FIELDS

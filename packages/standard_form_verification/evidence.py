@@ -1,7 +1,7 @@
 from pydantic import Field
 
-from packages.domain.common import DomainModel
 from packages.document_taxonomy.taxonomy import DocumentClass
+from packages.domain.common import DomainModel
 
 
 class StandardFormEvidence(DomainModel):

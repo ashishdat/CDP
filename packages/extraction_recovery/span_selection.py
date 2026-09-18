@@ -8,6 +8,7 @@ correct a value into validity.
 from __future__ import annotations
 
 import re
+from datetime import UTC
 
 from .contracts import SpanSelectionResult
 
@@ -250,9 +251,7 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             if re.fullmatch(r"\d{5}", tok) and tok[0] == "1" and 1900 <= int(tok[1:]) <= 2100:
                 return True
             # Century-clipped years observed on digit-band crops (983 → 1983).
-            if re.fullmatch(r"\d{3}", tok) and tok[0] in "89" and 1900 <= int("1" + tok) <= 2100:
-                return True
-            return False
+            return bool(re.fullmatch(r"\d{3}", tok) and tok[0] in "89" and 1900 <= int("1" + tok) <= 2100)
 
         # Digit-band OCR often inserts fragments between DD and YYYY
         # (e.g. "03 9 1 983 1 1"). Pull the yearish token forward.
@@ -393,19 +392,20 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             ):
                 try:
                     from datetime import date as _date
+                    from datetime import datetime
                     parsed = _date(int(year), int(month), int(day))
                 except ValueError:
                     pass
                 else:
-                    if parsed > _date.today() and year.startswith("20"):
+                    if parsed > datetime.now(UTC).date() and year.startswith("20"):
                         alt = str(int(year) - 100)
                         try:
                             repaired = _date(int(alt), int(month), int(day))
                         except ValueError:
                             repaired = None
-                        if repaired is not None and repaired <= _date.today():
+                        if repaired is not None and repaired <= datetime.now(UTC).date():
                             return f"{month}/{day}/{alt}"
-                    elif parsed <= _date.today():
+                    elif parsed <= datetime.now(UTC).date():
                         return f"{month}/{day}/{year}"
     def _valid(month: str, day: str, year: str) -> str | None:
         if not (
@@ -419,21 +419,22 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             return None
         try:
             from datetime import date as _date
+            from datetime import datetime
             parsed = _date(int(year), int(month), int(day))
         except ValueError:
             return None
         # Never emit a future DOB — 2-digit YY under a 20xx pivot (or OCR year
         # junk) must century-repair to 19xx when that stays calendar-valid.
-        if parsed > _date.today() and year.startswith("20"):
+        if parsed > datetime.now(UTC).date() and year.startswith("20"):
             alt = str(int(year) - 100)
             try:
                 repaired = _date(int(alt), int(month), int(day))
             except ValueError:
                 return None
-            if repaired <= _date.today():
+            if repaired <= datetime.now(UTC).date():
                 return f"{month}/{day}/{alt}"
             return None
-        if parsed > _date.today():
+        if parsed > datetime.now(UTC).date():
             return None
         return f"{month}/{day}/{year}"
 
@@ -899,7 +900,7 @@ def span_datatype_for_field(field_name: str, field_type: str) -> str:
     """Map template field_type + name to span-selection datatype."""
     name = (field_name or "").casefold()
     ftype = (field_type or "").casefold()
-    if ftype == "date" or name.endswith("_dob") or name.endswith("_date"):
+    if ftype == "date" or name.endswith(("_dob", "_date")):
         return "DATE"
     if ftype == "currency" or "charge" in name or "amount" in name or name.endswith("_paid"):
         return "CURRENCY"

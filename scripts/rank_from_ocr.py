@@ -63,7 +63,7 @@ def rank_saved(source, output):
                     ok, _ = semantic_accept(name, selected)
                     if ok:
                         semantic = 0.95
-                except Exception:
+                except (ImportError, TypeError, ValueError, AttributeError):
                     semantic = 0.0
                 engine_name = candidate['engine']
                 engine_rel = policy.reliability(

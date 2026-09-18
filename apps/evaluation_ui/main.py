@@ -5,11 +5,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-import httpx
 
 DIST_DIR = Path(__file__).resolve().parent / "dist"
 TRANSFORMATION_DIR = Path(__file__).resolve().parent.parent / "transformation_ui"
@@ -54,9 +54,9 @@ async def proxy_api(request: Request, path: str):
             status_code=resp.status_code,
             headers=resp_headers
         )
-    except Exception as exc:
+    except (OSError, httpx.HTTPError, TimeoutError, ValueError) as exc:
         return StreamingResponse(
-            iter([f'{{"error": "Ingestion API proxy error: {str(exc)}"}}'.encode()]),
+            iter([f'{{"error": "Ingestion API proxy error: {exc!s}"}}'.encode()]),
             status_code=502,
             media_type="application/json"
         )
@@ -93,9 +93,9 @@ async def proxy_review_api(request: Request, path: str):
             status_code=resp.status_code,
             headers=resp_headers
         )
-    except Exception as exc:
+    except (OSError, httpx.HTTPError, TimeoutError, ValueError) as exc:
         return StreamingResponse(
-            iter([f'{{"error": "Human Review API proxy error: {str(exc)}"}}'.encode()]),
+            iter([f'{{"error": "Human Review API proxy error: {exc!s}"}}'.encode()]),
             status_code=502,
             media_type="application/json"
         )
@@ -152,9 +152,31 @@ def get_evaluation_report():
     return {"error": "Report file not found"}
 
 
+_MISSING_DIST_MESSAGE = (
+    "Evaluation UI build unavailable: dist/index.html is missing. "
+    "Run `npm run build` in apps/evaluation_ui."
+)
+
+
 @app.get("/")
-def read_root():
-    return FileResponse(DIST_DIR / "index.html")
+def read_root(request: Request):
+    index = DIST_DIR / "index.html"
+    if not index.is_file():
+        accept = (request.headers.get("accept") or "").lower()
+        if "text/html" in accept and "application/json" not in accept:
+            return HTMLResponse(
+                content=(
+                    "<!doctype html><html><head><title>UI build unavailable</title></head>"
+                    f"<body><h1>Evaluation UI unavailable</h1><p>{_MISSING_DIST_MESSAGE}</p>"
+                    "</body></html>"
+                ),
+                status_code=503,
+            )
+        return JSONResponse(
+            {"error": "ui_build_unavailable", "detail": _MISSING_DIST_MESSAGE},
+            status_code=503,
+        )
+    return FileResponse(index)
 
 
 @app.get("/health")

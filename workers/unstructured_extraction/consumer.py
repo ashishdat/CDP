@@ -11,22 +11,25 @@ import yaml
 from sqlalchemy.orm import sessionmaker
 
 from apps.ingestion_api.db.repository import (
-    DocumentRepository, ExtractedFieldRepository, PageRepository, SqlAlchemyOutboxRepository,
+    DocumentRepository,
+    ExtractedFieldRepository,
+    PageRepository,
+    SqlAlchemyOutboxRepository,
 )
 from packages.domain.common import BoundingBox
 from packages.domain.enums import DocumentStatus, ExtractionMethod, ValidationStatus
 from packages.domain.extraction import ExtractedField, FieldEvidence
-from packages.evidence_decision import DecisionContext, EvidenceDecisionService
-from packages.evidence_decision.contracts import FieldDisposition
 from packages.events.bus import EventBus
 from packages.events.envelope import EventEnvelope
 from packages.events.outbox import OutboxRecord
 from packages.events.topics import Topic
-from packages.storage.object_store import ObjectStore
-from packages.layout_intelligence import BundleDLayoutEngine
+from packages.evidence_decision import DecisionContext, EvidenceDecisionService
+from packages.evidence_decision.contracts import FieldDisposition
 from packages.extraction_routing import ExtractionTarget, extraction_target
+from packages.layout_intelligence import BundleDLayoutEngine
 from packages.ocr.contracts import OCRCandidate
 from packages.runtime_profile import DecisionServiceFactory
+from packages.storage.object_store import ObjectStore
 from workers.page_detection.consumer import _load_image
 from workers.standard_form_extraction.field_processors import normalize
 from workers.unstructured_extraction.anchor_cropper import extract_anchor_crops
@@ -206,10 +209,11 @@ def main() -> None:
     from packages.observability import configure_logging
     from packages.settings import get_settings
     from packages.storage.object_store import ObjectStoreSettings
-    from workers.page_detection.text_extraction import PaddleOCRTextExtractor
     from workers.cascade.instrumented_text_extractor import (
-        CachedInstrumentedTextExtractor, JsonlOCRAuditSink,
+        CachedInstrumentedTextExtractor,
+        JsonlOCRAuditSink,
     )
+    from workers.page_detection.text_extraction import PaddleOCRTextExtractor
     configure_logging("unstructured-extraction-worker")
     settings = get_settings()
     worker = UnstructuredExtractionWorker(

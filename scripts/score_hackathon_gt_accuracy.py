@@ -16,16 +16,10 @@ from __future__ import annotations
 import argparse
 import json
 import re
-import zipfile
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
-from io import BytesIO
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
-import cv2
-import numpy as np
-from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ZIP = ROOT / "data" / "Hackathon - 1000 Claims.zip"
@@ -44,7 +38,7 @@ AUTO = {"AUTO_ACCEPTED", "REFERENCE_CONFIRMED", "ACCEPTED", "AUTO"}
 
 
 def _utc() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _canon_date(value: object) -> str:
@@ -162,11 +156,7 @@ def _exact(
             _strip_ocr_ghost_mi(expected)
         ):
             return True
-        if _names_optional_middle_initial(
-            _strip_ocr_ghost_mi(predicted), _strip_ocr_ghost_mi(expected)
-        ):
-            return True
-        return False
+        return bool(_names_optional_middle_initial(_strip_ocr_ghost_mi(predicted), _strip_ocr_ghost_mi(expected)))
     if field in {"total_charge", "total_charges"}:
         return _canon_money(predicted) == _canon_money(expected)
     return str(predicted or "").strip().upper() == str(expected or "").strip().upper()

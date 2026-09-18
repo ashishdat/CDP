@@ -7,7 +7,7 @@ without requiring a fresh registration.
 
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Mapping
 
 # Fractions of (width, height) trimmed from each edge of the aligned ROI.
 # Values are chosen from live crops where patient_dob captured "3. PATIENT'S
@@ -36,10 +36,10 @@ def inset_bbox(
     height = y1 - y0
     if width <= min_width or height <= min_height:
         return bbox
-    nx0 = x0 + int(round(width * float(insets.get("left", 0.0))))
-    ny0 = y0 + int(round(height * float(insets.get("top", 0.0))))
-    nx1 = x1 - int(round(width * float(insets.get("right", 0.0))))
-    ny1 = y1 - int(round(height * float(insets.get("bottom", 0.0))))
+    nx0 = x0 + round(width * float(insets.get("left", 0.0)))
+    ny0 = y0 + round(height * float(insets.get("top", 0.0)))
+    nx1 = x1 - round(width * float(insets.get("right", 0.0)))
+    ny1 = y1 - round(height * float(insets.get("bottom", 0.0)))
     if nx1 - nx0 < min_width or ny1 - ny0 < min_height:
         return bbox
     return (nx0, ny0, nx1, ny1)

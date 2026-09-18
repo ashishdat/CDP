@@ -92,7 +92,8 @@ def test_currency_npi_bleed_yields_empty_for_hitl():
     assert "NPI_LABEL_BLEED" in selected.reason_codes
 
 
-def test_patient_name_policy_allows_weak_e4_when_configured():
+def test_patient_name_policy_rejects_weak_e4_without_identity_confirmation():
+    """Critical patient_name requires strong E4 or MULTI_ATTRIBUTE identity E6."""
     policy = EvidencePolicy.load(Path("config/evidence_policies.yaml"))
     bundle = EvidenceBundle(
         field_name="patient_name",
@@ -125,8 +126,9 @@ def test_patient_name_policy_allows_weak_e4_when_configured():
     ok, available, missing, reasons = policy.evaluate(
         "patient_name", CriticalityLevel.C2, bundle, document_family="CMS1500"
     )
-    assert ok, (available, missing, reasons)
-    assert "E4" in available
+    assert not ok
+    assert "E4" not in available
+    assert "E6" in missing or any("E6" in reason for reason in reasons)
 
 
 def test_roi_insets_shrink_dob_and_charge_windows():
@@ -249,12 +251,14 @@ def test_insured_name_prefers_ink_below_header_boilerplate():
 
 def test_insured_name_route_authority_present():
     from pathlib import Path
+
     from packages.route_registry.registry import RouteRegistry
-    route = RouteRegistry.load(Path("config/ocr_field_routes.yaml")).find(
-        "insured_name", "CMS1500", mode="runtime"
-    )
+    registry = RouteRegistry.load(Path("config/ocr_field_routes.yaml"))
+    # Governed production set excludes name routes; evaluation may still measure them.
+    assert registry.find("insured_name", "CMS1500", mode="runtime") is None
+    route = registry.find("insured_name", "CMS1500", mode="evaluation")
     assert route is not None
-    assert route.status.value == "PRODUCTION_APPROVED"
+    assert route.status.value == "EVALUATION_ONLY"
 
 def test_dob_assembles_trailing_letter_bleed_and_three_digit_year():
     from packages.extraction_recovery.span_selection import select_field_span

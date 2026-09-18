@@ -1,10 +1,10 @@
 """Name recovery cleanup for STP/HITL: drop single-glyph OCR debris."""
 
+from packages.local_evidence_cascade import decide_local_candidate
 from workers.standard_form_extraction.extractor import (
     _clean_secondary_name,
     _reconcile_secondary_name,
 )
-from packages.local_evidence_cascade import decide_local_candidate
 
 
 def test_clean_secondary_name_drops_isolated_letter_debris():

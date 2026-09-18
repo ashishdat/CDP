@@ -1,8 +1,8 @@
 """GT-driven field-accuracy residuals (charge digit-drop + OCR ghost MI)."""
 
 from packages.candidate_reconciliation.reconciler import (
-    prefer_name_without_ocr_ghost_middle_initial,
     prefer_name_with_optional_middle_initial,
+    prefer_name_without_ocr_ghost_middle_initial,
     values_conflict_equivalent,
 )
 from scripts.ocr_from_geometry import (

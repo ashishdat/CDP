@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from evaluation.phase8_5_claim_unlock import run
@@ -223,6 +224,9 @@ def test_phase8_5_replay_is_ocr_free_and_preserves_zero_false_accepts(tmp_path):
     source = (ROOT / "evaluation/phase8_5_claim_unlock.py").read_text("utf-8")
     assert "PageObservationService" not in source
     assert "RapidOCR" not in source
+    extraction = ROOT / "evaluation_results/phase8_2/final/metrics.json"
+    if not extraction.is_file():
+        pytest.skip("private phase8_2 extraction metrics not installed")
     result = run(tmp_path)
     assert result["baseline"]["ocr_reruns"] == 0
     assert result["decision"]["critical_false_accepts"] == 0

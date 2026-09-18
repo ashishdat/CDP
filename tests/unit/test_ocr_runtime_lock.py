@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import os
-from pathlib import Path
-
 from packages.ocr_runtime_lock import (
     locked_engines,
     ocr_inference_lock,

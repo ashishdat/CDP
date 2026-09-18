@@ -23,7 +23,7 @@ import argparse
 import json
 import re
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -34,19 +34,18 @@ import sys
 
 sys.path.insert(0, str(ROOT))
 
-from packages.extraction_recovery.field_cascade import semantic_accept  # noqa: E402
-from packages.extraction_recovery.span_selection import (  # noqa: E402
+from packages.extraction_recovery.field_cascade import semantic_accept
+from packages.extraction_recovery.span_selection import (
     select_field_span,
     span_datatype_for_field,
 )
-from scripts.score_hackathon_gt_accuracy import (  # noqa: E402
+from scripts.score_hackathon_gt_accuracy import (
     CRITICAL,
     SEED_VISUAL_GT,
     _canon_date,
     _canon_id,
     _canon_money,
     _canon_name,
-    _exact,
     score,
 )
 
@@ -56,7 +55,7 @@ ROUTE_ENGINES = {"paddleocr", "rapidocr", "tesseract", "tesseract_digits"}
 
 
 def _utc() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _normalize_key(field: str, value: str) -> str:

@@ -1,8 +1,6 @@
 import json
 from io import BytesIO
 
-from PIL import Image
-
 from packages.settings import Settings
 from workers.cascade.azure_di_backend import AzureDocumentIntelligenceReadBackend
 from workers.cascade.azure_di_factory import (

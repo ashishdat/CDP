@@ -7,8 +7,8 @@ from packages.recovery.planner import Strategy, plan_recovery
 from packages.recovery.registration_recovery import (
     decide_registration_recovery,
     enhance_for_registration,
-    enhance_for_registration_strong,
     enhance_for_registration_contrast_stretch,
+    enhance_for_registration_strong,
     should_attempt_second_preprocess,
 )
 

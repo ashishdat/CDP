@@ -1,15 +1,16 @@
 import hashlib
 import json
-from pathlib import Path
-from scripts.rank_from_ocr import rank_saved
+
+import pytest
+
 from packages.candidate_ranking import CandidateRankingService
 from packages.extraction_recovery.contracts import CandidateObservation
-import pytest
+from scripts.rank_from_ocr import rank_saved
 
 
 def source(tmp_path):
     g=tmp_path/'geometry.json'
-    g.write_text(json.dumps({'status':'SUCCESS','fields':[{'field':'test','result':{'aligned_roi':dict(x0=1,y0=2,x1=3,y1=4)}},{'field':'empty','result':{'aligned_roi':dict(x0=1,y0=2,x1=3,y1=4)}}]}))
+    g.write_text(json.dumps({'status':'SUCCESS','fields':[{'field':'test','result':{'aligned_roi':{'x0': 1,'y0': 2,'x1': 3,'y1': 4}}},{'field':'empty','result':{'aligned_roi':{'x0': 1,'y0': 2,'x1': 3,'y1': 4}}}]}))
     p=tmp_path/'ocr.json'
     p.write_text(json.dumps({'status':'COMPLETED','document_id':'synthetic','page_number':1,'geometry_reference':str(g),'geometry_sha256':hashlib.sha256(g.read_bytes()).hexdigest(),'fields':[{'field':'test','canonical_region':[1,2,3,4],'candidates':[{'raw_value':' original ','engine':'tesseract','preprocessing_variant':'recorded','raw_confidence':c} for c in [.5,.8]]},{'field':'empty','canonical_region':[1,2,3,4],'candidates':[]}]}))
     return p

@@ -62,13 +62,17 @@ def test_registry_loads_versioned_models(tmp_path: Path) -> None:
 
 
 def test_calibration_cli_excludes_holdout_and_marks_registry_shadow_only(tmp_path: Path) -> None:
+    truth = Path("evaluation_data/ground_truth.json")
+    predictions = Path(
+        "evaluation_results/vnext_accuracy_improvement/predictions_with_unstructured.json"
+    )
+    if not truth.is_file() or not predictions.is_file():
+        pytest.skip("private calibration ground_truth/predictions artifacts not installed")
     registry = tmp_path / "registry.json"
     report = run(
         argparse.Namespace(
-            truth=Path("evaluation_data/ground_truth.json"),
-            predictions=Path(
-                "evaluation_results/vnext_accuracy_improvement/predictions_with_unstructured.json"
-            ),
+            truth=truth,
+            predictions=predictions,
             output_dir=tmp_path / "output",
             registry=registry,
             version="test-v1",

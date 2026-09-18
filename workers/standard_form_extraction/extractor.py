@@ -275,34 +275,21 @@ _COMMON_FIRST_NAMES = frozenset(
         "AMANDA",
         "MELISSA",
         "DEBORAH",
-        "STEPHANIE",
         "CHRISTINE",
         "NICOLE",
-        "SAMANTHA",
         "JANET",
         "CATHERINE",
         "FRANCES",
-        "CHRISTINE",
-        "SAMANTHA",
         "DEBRA",
-        "RACHEL",
         "CAROLYN",
-        "JANET",
         "VIRGINIA",
-        "MARIA",
-        "HEATHER",
         "DIANE",
         "JULIE",
         "JOYCE",
-        "VICTORIA",
-        "KELLY",
         "CHRISTINA",
         "JOAN",
-        "EVELYN",
         "JUDITH",
         "ANDREA",
-        "HANNAH",
-        "MEGAN",
         "CHERYL",
         "JACQUELINE",
         "MARTHA",
@@ -311,31 +298,21 @@ _COMMON_FIRST_NAMES = frozenset(
         "ANN",
         "SARA",
         "MADISON",
-        "FRANCES",
         "KATHRYN",
         "JANICE",
         "JEAN",
-        "ABIGAIL",
         "ALICE",
         "JUDY",
-        "SOPHIA",
-        "GRACE",
         "DENISE",
-        "AMBER",
         "DORIS",
         "MARILYN",
         "DANIELLE",
         "BEVERLY",
-        "ISABELLA",
         "BETH",
-        "DENISE",
         "THERESA",
         "DIANA",
-        "NATALIE",
-        "BRITTANY",
         "CHARLOTTE",
         "MARIE",
-        "KAYLA",
         "ALEXIS",
         "LORI",
     }
@@ -356,9 +333,7 @@ def _looks_like_label_debris(token: str) -> bool:
     if token in {"FACILITY", "PROVIDER", "HOSPITAL", "CLINIC", "CENTER", "SYSTEM"}:
         return True
     # OCR mangling of FACILITY / PROVIDER (e.g. FACIEPTTYT).
-    if len(token) >= 6 and token.startswith(("FAC", "PROV", "HOSP")):
-        return True
-    return False
+    return bool(len(token) >= 6 and token.startswith(("FAC", "PROV", "HOSP")))
 
 
 def _clean_secondary_name(value: str, *, split_md: bool = True) -> str:
@@ -585,15 +560,14 @@ class StandardFormExtractionService:
                     for token in ordered
                     if decide_local_candidate(token.text, definition.datatype).accepted
                 ]
-                if len(valid_tokens) == 1:
-                    # Keep a normalized PREFIX-8 member id; in-crop OCR may still
-                    # be dotted/truncated (PLN-QZY.HAPKK) and would regress it.
-                    if not (
-                        name == "member_id"
-                        and re.fullmatch(r"(?:MBR|MEM|PLN)-[A-Z0-9]{8}", text.upper())
-                    ):
-                        text = valid_tokens[0].text
-                        confidence = valid_tokens[0].confidence
+                # Keep a normalized PREFIX-8 member id; in-crop OCR may still
+                # be dotted/truncated (PLN-QZY.HAPKK) and would regress it.
+                if len(valid_tokens) == 1 and not (
+                    name == "member_id"
+                    and re.fullmatch(r"(?:MBR|MEM|PLN)-[A-Z0-9]{8}", text.upper())
+                ):
+                    text = valid_tokens[0].text
+                    confidence = valid_tokens[0].confidence
             primary_span = (
                 select_field_span(text, definition.datatype, name)
                 if definition is not None

@@ -6,18 +6,15 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.run_hackathon_1000_cascade import (  # noqa: E402
+from scripts.run_hackathon_1000_cascade import (
     DEFAULT_DATASET,
-    DEFAULT_ZIP,
     _append_ledger,
-    _claim_slug,
     _process_one,
     _summarize,
     _write_json,

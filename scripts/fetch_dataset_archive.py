@@ -33,7 +33,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from datasets.registry import REGISTRY  # noqa: E402
+from datasets.registry import REGISTRY
 
 DEFAULT_FULL_OUT = ROOT / "data" / "Hackathon - 1000 Claims.zip"
 DEFAULT_OPS_OUT = ROOT / "data" / "Hackathon-100-ops-subset.zip"

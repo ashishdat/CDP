@@ -4,9 +4,8 @@ batch-directory intake path used by ops/tests."""
 
 from __future__ import annotations
 
-import logging
-
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from uuid import UUID
 

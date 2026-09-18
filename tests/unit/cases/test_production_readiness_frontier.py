@@ -9,9 +9,13 @@ from evaluation.production_readiness import (
     write_claim_dispositions,
 )
 
-
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "evaluation_results" / "claim_stp_recovery" / "baseline"
+
+pytestmark = pytest.mark.skipif(
+    not (SOURCE / "manifest.json").is_file(),
+    reason="private claim_stp_recovery baseline frontier artifacts not installed",
+)
 
 
 def test_frontier_v2_is_immutable_and_tamper_evident(tmp_path):

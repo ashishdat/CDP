@@ -1,17 +1,22 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from evaluation.claim_stp_analysis import analyze, claim_unlock_value
 
-
 ROOT = Path(__file__).resolve().parents[3]
+DISPOSITIONS = (
+    ROOT / "evaluation_results" / "evidence_optimization" / "optimized" / "dispositions.json"
+)
 
 
+@pytest.mark.skipif(
+    not DISPOSITIONS.is_file(),
+    reason="private evidence_optimization dispositions not installed",
+)
 def test_canonical_claim_frontier_meets_target_without_false_accepts():
-    payload = json.loads((
-        ROOT / "evaluation_results" / "evidence_optimization" /
-        "optimized" / "dispositions.json"
-    ).read_text(encoding="utf-8"))
+    payload = json.loads(DISPOSITIONS.read_text(encoding="utf-8"))
     claims, metrics, blockers, blocker_sets = analyze(payload["rows"])
     assert len(claims) == 120
     assert metrics["claim_stp_rate"] == .8

@@ -662,7 +662,7 @@ class ValidationWorker:
                 logger.exception("failed to validate extraction output")
 
 
-async def _run(worker: "ValidationWorker", relay) -> None:
+async def _run(worker: ValidationWorker, relay) -> None:
     relay_task = asyncio.create_task(relay.run_forever())
     try:
         await worker.run_forever()

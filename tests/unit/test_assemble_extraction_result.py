@@ -1,6 +1,8 @@
 import hashlib
 import json
+
 import pytest
+
 from scripts.assemble_extraction_result import assemble
 
 
@@ -8,7 +10,7 @@ def fixture(tmp_path):
     def save(name,data):
         p=tmp_path/name;p.parent.mkdir(exist_ok=True);p.write_text(json.dumps(data));return p
     def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
-    box=dict(x0=1,y0=2,x1=3,y1=4)
+    box={'x0': 1,'y0': 2,'x1': 3,'y1': 4}
     g=save('g.json',{'status':'SUCCESS','page_number':1,'fields':[{'field':n,'result':{'aligned_roi':box}} for n in ['a','b']]})
     original={'raw_value':' raw '}
     o=save('ocr/ocr.json',{'status':'COMPLETED','document_id':'doc','page_number':1,'coordinate_frame':'rectified_template_pixels','geometry_reference':str(g),'geometry_sha256':digest(g),'fields':[{'field':'a','canonical_region':[1,2,3,4],'candidates':[original]},{'field':'b','canonical_region':[1,2,3,4],'candidates':[]}]})

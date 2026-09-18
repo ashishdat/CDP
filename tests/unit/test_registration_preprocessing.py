@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import pytest
+
 from workers.page_detection.registration_preprocessing import preprocess_registration
 
 

@@ -3,22 +3,22 @@ from packages.stp_policy import ClaimSTPContext, FieldSTPEvidence, SafeSTPPolicy
 
 
 def _field(name="member_id", level=CriticalityLevel.C3, **changes):
-    values = dict(
-        field_name=name, criticality=level, required=True, resolved=True, confidence=.99,
-        evidence_policy_satisfied=True, independently_verified=True,
-        validation_passed=True, reference_verified=True,
-    )
+    values = {
+        "field_name": name, "criticality": level, "required": True, "resolved": True, "confidence": .99,
+        "evidence_policy_satisfied": True, "independently_verified": True,
+        "validation_passed": True, "reference_verified": True,
+    }
     values.update(changes)
     return FieldSTPEvidence(**values)
 
 
 def _context(**changes):
-    values = dict(
-        document_id="d1", form_type="CMS1500", fields=[_field()],
-        registration_confidence=.96, page_classification_confidence=.98,
-        wrong_page_check_passed=True, wrong_crop_check_passed=True,
-        mandatory_validation_results={"claim_total": True},
-    )
+    values = {
+        "document_id": "d1", "form_type": "CMS1500", "fields": [_field()],
+        "registration_confidence": .96, "page_classification_confidence": .98,
+        "wrong_page_check_passed": True, "wrong_crop_check_passed": True,
+        "mandatory_validation_results": {"claim_total": True},
+    }
     values.update(changes)
     return ClaimSTPContext(**values)
 

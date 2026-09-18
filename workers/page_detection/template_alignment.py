@@ -23,8 +23,8 @@ from workers.page_detection.registration_coverage import (
 from workers.page_detection.registration_coverage import (
     observe as observe_coverage,
 )
-from workers.page_detection.registration_safety import record as record_safety
 from workers.page_detection.registration_preprocessing import preprocess_registration
+from workers.page_detection.registration_safety import record as record_safety
 from workers.page_detection.template_compatibility import (
     TemplateCompatibilityEvidence,
     TemplateCompatibilityStatus,
@@ -619,7 +619,7 @@ def _affine_then_homography(
         )
     src = np.float32([kp_source[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     dst = np.float32([kp_template[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
-    affine, inlier_mask = cv2.estimateAffinePartial2D(
+    affine, _inlier_mask = cv2.estimateAffinePartial2D(
         src, dst, method=cv2.RANSAC, ransacReprojThreshold=policy.ransac_reprojection_threshold
     )
     if affine is None:
@@ -819,7 +819,7 @@ def align_learned_matcher(
         )
     inliers = mask.ravel().astype(bool)
     inlier_count = int(inliers.sum())
-    good_count = int(len(corr.source_xy))
+    good_count = len(corr.source_xy)
     inlier_ratio = inlier_count / max(1, good_count)
     projected = cv2.perspectiveTransform(src, matrix)
     errors = np.linalg.norm(projected[inliers] - dst[inliers], axis=2).ravel()

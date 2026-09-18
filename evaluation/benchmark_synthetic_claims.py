@@ -22,7 +22,6 @@ from workers.page_detection.template_alignment import align_to_reference
 from workers.page_detection.text_extraction import PaddleOCRTextExtractor, RapidOCRTextExtractor
 from workers.retry.alternate_preprocessing import aggressive_contrast, upscale
 
-
 REFERENCE_CONDITION_PRIORITY = {
     "clean_scan": 0, "fax": 1, "low_contrast": 2, "handwriting": 3,
     "poor_dpi": 4, "skew": 5, "rotation": 6, "cropped_edges": 7,

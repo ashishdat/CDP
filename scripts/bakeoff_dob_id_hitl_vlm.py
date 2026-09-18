@@ -38,7 +38,7 @@ def shape_dob(text: str | None) -> str | None:
         return None
     try:
         shaped, ok = _shape_dob_text("patient_dob", raw)
-    except Exception:
+    except (ValueError, TypeError, AttributeError):
         shaped, ok = None, False
     if ok and shaped:
         return shaped

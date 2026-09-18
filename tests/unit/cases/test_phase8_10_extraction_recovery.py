@@ -170,8 +170,12 @@ def test_independent_and_correlated_agreement_remain_distinct():
 def test_field_specific_preprocessing_routes_are_versioned():
     registry = PreprocessingRegistry.load("config/ocr_preprocessing_phase8_10.yaml")
     assert registry.resolve("provider_npi", "npi") == "DIGIT_PRESERVING_V2"
-    assert registry.resolve("patient_name", "text") == "NAME_STROKE_V2"
-    assert registry.resolve("patient_dob", "date") == "DATE_DELIMITER_V2"
+    # Names / DOB intentionally unmatched → default; NAME_STROKE_V2 /
+    # DATE_DELIMITER_V2 remain available for explicit override only.
+    assert registry.resolve("patient_name", "text") == "GENERAL_TEXT"
+    assert registry.resolve("patient_dob", "date") == "GENERAL_TEXT"
+    assert registry.resolve("patient_name", "text", requested="NAME_STROKE_V2") == "NAME_STROKE_V2"
+    assert registry.resolve("patient_dob", "date", requested="DATE_DELIMITER_V2") == "DATE_DELIMITER_V2"
     assert registry.resolve("total_charge", "currency") == "CURRENCY_DECIMAL_V2"
     assert registry.config["version"] == "2.0-phase8.10-evaluation"
 

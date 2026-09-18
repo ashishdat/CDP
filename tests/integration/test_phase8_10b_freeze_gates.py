@@ -1,15 +1,21 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from packages.runtime_profile import DecisionServiceFactory
 
 ROOT = Path(__file__).resolve().parents[2]
+_OCR_EXPERIMENT = ROOT / "evaluation_results/phase8_10b/ocr_experiment_result.json"
+
+pytestmark = pytest.mark.skipif(
+    not _OCR_EXPERIMENT.is_file(),
+    reason="governed phase8_10b ocr_experiment_result.json unavailable",
+)
 
 
 def test_reverted_ocr_experiment_did_not_change_localization_or_evidence_policy():
-    result = json.loads(
-        (ROOT / "evaluation_results/phase8_10b/ocr_experiment_result.json").read_text("utf-8")
-    )
+    result = json.loads(_OCR_EXPERIMENT.read_text("utf-8"))
     profile_before = DecisionServiceFactory.from_profile().profile
     profile_after = DecisionServiceFactory.from_profile().profile
     assert result["decision"] == "REVERT"
@@ -21,9 +27,7 @@ def test_reverted_ocr_experiment_did_not_change_localization_or_evidence_policy(
 
 
 def test_accuracy_regression_forces_revert_before_downstream_promotion():
-    result = json.loads(
-        (ROOT / "evaluation_results/phase8_10b/ocr_experiment_result.json").read_text("utf-8")
-    )
+    result = json.loads(_OCR_EXPERIMENT.read_text("utf-8"))
     assert result["before"]["canonical_accepted_precision"] == 0.96
     assert result["before"]["canonical_critical_false_accepts"] == 1
     assert result["treatment"]["canonical_decision_replay_status"] == (

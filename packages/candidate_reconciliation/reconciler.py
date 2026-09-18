@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from datetime import UTC
 from hashlib import sha256
 
 from packages.candidate_reconciliation.contracts import (
@@ -52,13 +53,14 @@ def _dob_ymd(value: str) -> tuple[str, str, str] | None:
 def _dob_is_future(value: str) -> bool:
     """True when a calendar-valid DOB is after today (OCR year/box-rule junk)."""
     from datetime import date as _date
+    from datetime import datetime
 
     parts = _dob_ymd(value)
     if parts is None:
         return False
     year, month, day = (int(p) for p in parts)
     try:
-        return _date(year, month, day) > _date.today()
+        return _date(year, month, day) > datetime.now(UTC).date()
     except ValueError:
         return False
 
@@ -150,7 +152,7 @@ def prefer_dob_without_january_dash_artifact(
     by_yd: dict[tuple[str, str], list[tuple[tuple[str, str, str], str]]] = {}
     for ymd, display in observed:
         by_yd.setdefault((ymd[0], ymd[2]), []).append((ymd, display))
-    for (_year, _day), rows in by_yd.items():
+    for rows in by_yd.values():
         months = {ymd[1] for ymd, _ in rows}
         if "01" not in months or len(months) != 2:
             continue
@@ -191,7 +193,7 @@ def prefer_dob_year_confusable_digit(
     by_md: dict[tuple[str, str], list[tuple[tuple[str, str, str], str]]] = {}
     for ymd, display in observed:
         by_md.setdefault((ymd[1], ymd[2]), []).append((ymd, display))
-    for (_month, _day), rows in by_md.items():
+    for rows in by_md.values():
         years = {ymd[0] for ymd, _ in rows}
         if len(years) != 2:
             continue
@@ -297,9 +299,7 @@ def _member_id_is_length_fragment(left: str, right: str) -> bool:
     short, long = (a, b) if len(a) < len(b) else (b, a)
     if len(short) >= 8 or len(long) < 10:
         return False
-    if len(long) - len(short) < 3:
-        return False
-    return True
+    return not len(long) - len(short) < 3
 
 
 def _is_azure_gpt4o_crop_engine(engine: str) -> bool:
@@ -325,9 +325,7 @@ def _member_id_is_weak_for_gpt4o_gate(value: str) -> bool:
     alnum = re.sub(r"[^A-Za-z0-9]", "", text)
     if len(alnum) < 7:
         return True
-    if alnum.isalpha():
-        return True
-    return False
+    return bool(alnum.isalpha())
 
 
 def _member_ids_share_digit_prefix(left: str, right: str, *, min_len: int = 3) -> bool:
@@ -421,12 +419,7 @@ def _name_label_contaminated(value: str) -> bool:
         upper,
     ):
         return True
-    if re.search(
-        r"(?:LAST|FIRST|FURST|FST|MIDDLE)\s*NAME|MIDDLE\s*INITIAL",
-        upper,
-    ):
-        return True
-    return False
+    return bool(re.search(r"(?:LAST|FIRST|FURST|FST|MIDDLE)\s*NAME|MIDDLE\s*INITIAL", upper))
 
 
 _NAME_HONORIFICS = frozenset({"MRS", "MR", "MS", "MISS", "DR"})
@@ -523,9 +516,7 @@ def _names_differ_by_short_fragment(left: str, right: str) -> bool:
         return False
     if len(a) == 1 and len(b) >= 2 and len(a[0]) <= 6 and sum(len(t) for t in b) >= 10:
         return True
-    if len(b) == 1 and len(a) >= 2 and len(b[0]) <= 6 and sum(len(t) for t in a) >= 10:
-        return True
-    return False
+    return bool(len(b) == 1 and len(a) >= 2 and len(b[0]) <= 6 and sum(len(t) for t in a) >= 10)
 
 
 def _names_differ_by_vowel_skeleton(left: str, right: str) -> bool:
@@ -581,9 +572,7 @@ def _names_differ_by_truncated_secondary(left: str, right: str) -> bool:
     # Compare second tokens for truncation.
     if len(a[1]) <= 2 and len(b[1]) >= 5:
         return True
-    if len(b[1]) <= 2 and len(a[1]) >= 5:
-        return True
-    return False
+    return bool(len(b[1]) <= 2 and len(a[1]) >= 5)
 
 
 def prefer_name_without_short_fragment(
@@ -770,9 +759,7 @@ def _token_pair_equivalent(left: str, right: str) -> bool:
         return True
     if _names_differ_by_confusable_substitution(left, right):
         return True
-    if _names_differ_by_confusable_edit(left, right):
-        return True
-    return False
+    return bool(_names_differ_by_confusable_edit(left, right))
 
 
 def _core_name_tokens(tokens: list[str]) -> list[str]:
@@ -923,7 +910,7 @@ def prefer_name_canonical_token_order(
             -len(display or ""),
         )
 
-    return sorted(equivalents, key=_score)[0]
+    return min(equivalents, key=_score)
 
 
 def prefer_name_without_label_contamination(
@@ -1120,14 +1107,7 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
             if len(diffs) == 1 and frozenset(diffs[0]) in _DOB_YEAR_DIGIT_CONFUSABLES:
                 return True
         # Day+year match with January dash artifact vs true month.
-        if (
-            ya[0] == yb[0]
-            and ya[2] == yb[2]
-            and ya[1] != yb[1]
-            and "01" in (ya[1], yb[1])
-        ):
-            return True
-        return False
+        return bool(ya[0] == yb[0] and ya[2] == yb[2] and ya[1] != yb[1] and "01" in (ya[1], yb[1]))
     if name in {"insured_id_number", "member_id", "subscriber_id"}:
         a, b = _canonical_member_id(left), _canonical_member_id(right)
         if bool(a) and a == b:
@@ -1138,9 +1118,7 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
             return True
         if _member_ids_differ_by_prefix_bleed(left, right):
             return True
-        if _member_id_is_length_fragment(left, right):
-            return True
-        return False
+        return bool(_member_id_is_length_fragment(left, right))
     if name in {"patient_name", "insured_name"} or "name" in name:
         a, b = _canonical_person_name(left), _canonical_person_name(right)
         if bool(a) and a == b:
@@ -1188,9 +1166,7 @@ def values_conflict_equivalent(field_name: str, left: str, right: str) -> bool:
         if _names_differ_by_token_order(left, right):
             return True
         # Label-contaminated crop vs clean ink of the same person.
-        if prefer_name_without_label_contamination(left, [right]) is not None:
-            return True
-        return False
+        return prefer_name_without_label_contamination(left, [right]) is not None
     return normalize_agreement_value(field_name, left) == normalize_agreement_value(
         field_name, right
     )

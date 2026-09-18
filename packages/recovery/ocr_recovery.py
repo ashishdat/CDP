@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from .diagnosis import Cause, diagnose
 from .planner import Strategy, plan_recovery
 
-
 # Mild fallbacks only — never re-apply NAME_STROKE_V2 (Phase 8.10B regression).
 # REGIONAL_DEFAULT is intentionally omitted: empty free-text/name crops must not
 # be re-read with digit-preserving prep (false-accept risk on CPT/IDs).

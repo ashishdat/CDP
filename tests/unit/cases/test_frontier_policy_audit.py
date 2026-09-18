@@ -1,8 +1,15 @@
 import json
 
+import pytest
+
 from evaluation.frontier_policy_audit import audit_frontier
+from evaluation.production_readiness import FRONTIER
 
 
+@pytest.mark.skipif(
+    not (FRONTIER / "manifest.json").is_file(),
+    reason="private evidence_frontier_v2 artifacts not installed",
+)
 def test_frozen_80_percent_stp_is_policy_correct_but_not_production_authority(tmp_path):
     report = audit_frontier(output=tmp_path / "audit.json")
 

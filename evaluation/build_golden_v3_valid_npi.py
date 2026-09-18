@@ -10,12 +10,11 @@ import argparse
 import csv
 import hashlib
 import json
-import random
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 from packages.validation_rules.npi import is_valid_npi
 

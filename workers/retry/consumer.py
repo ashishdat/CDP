@@ -490,7 +490,7 @@ class RetryWorker:
                 logger.exception("failed to retry field")
 
 
-async def _run(worker: "RetryWorker", relay) -> None:
+async def _run(worker: RetryWorker, relay) -> None:
     relay_task = asyncio.create_task(relay.run_forever())
     try:
         await worker.run_forever()

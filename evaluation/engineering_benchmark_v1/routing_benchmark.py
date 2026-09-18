@@ -21,7 +21,6 @@ from .build_manifest import RESULT_ROOT, ROOT, build_manifest
 from .contracts import EngineeringBenchmarkRecord
 from .metrics import error_pareto, summarize_routing, summarize_verification
 
-
 PHASE_ROOT = ROOT / "evaluation_results" / "phase7a13"
 
 
@@ -121,11 +120,13 @@ def run(*, workers: int = 4, force: bool = False, limit: int | None = None) -> d
     wall_started = time.perf_counter()
     process_started = time.process_time()
     times_started = os.times()
-    with checkpoint.open("a", encoding="utf-8") as stream:
-        # Dense OCR token sets make Router V4's anchor reconstruction CPU-bound.
-        # Processes preserve the frozen algorithm while avoiding Python thread
-        # contention and mirror separately scaled production workers.
-        with ProcessPoolExecutor(max_workers=max(1, workers)) as pool:
+    # Dense OCR token sets make Router V4's anchor reconstruction CPU-bound.
+    # Processes preserve the frozen algorithm while avoiding Python thread
+    # contention and mirror separately scaled production workers.
+    with (
+        checkpoint.open("a", encoding="utf-8") as stream,
+        ProcessPoolExecutor(max_workers=max(1, workers)) as pool,
+    ):
             futures = {pool.submit(_one, record): record for record in pending}
             for index, future in enumerate(as_completed(futures), 1):
                 row = future.result()

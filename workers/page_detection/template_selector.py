@@ -43,6 +43,17 @@ class TemplateSelector:
     @staticmethod
     def _choose(candidates, scores, reason):
         if len(scores) > 1:
+            # Dual-loaded release templates (e.g. CMS-1500 v02-12 + v03) share
+            # anchors/pages. Collapse same template_id+page to the latest version
+            # before declaring multipage / multi-family ambiguity.
+            collapsed: dict[tuple[str, int | None], tuple[dict, float]] = {}
+            for candidate, score in scores:
+                key = (candidate["template_id"], candidate.get("page_number"))
+                previous = collapsed.get(key)
+                if previous is None or candidate["template_version"] > previous[0]["template_version"]:
+                    collapsed[key] = (candidate, score)
+            scores = list(collapsed.values())
+        if len(scores) > 1:
             return TemplateSelection(None, max(score for _, score in scores),
                                      "AMBIGUOUS_TEMPLATE", candidates)
         if scores:

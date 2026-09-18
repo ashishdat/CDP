@@ -282,9 +282,9 @@ def pick_engine_candidates(
                 by_norm.setdefault(key, []).append((selected, raw, cand, reason))
 
     # Prefer agreement across ≥2 distinct engines (paddle + rapid confirmation).
-    for _key, group in by_norm.items():
+    for group in by_norm.values():
         engines = {
-            str((item[2].get("engine") or "")).casefold()
+            str(item[2].get("engine") or "").casefold()
             for item in group
             if (item[2].get("engine") or "").strip()
         }

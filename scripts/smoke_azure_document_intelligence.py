@@ -14,15 +14,15 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from packages.settings import Settings  # noqa: E402
-from workers.cascade.azure_di_factory import (  # noqa: E402
+from packages.domain.common import BoundingBox
+from packages.domain.enums import ClaimFormType
+from packages.ocr.contracts import OCRRequest
+from packages.settings import Settings
+from workers.cascade.azure_di_factory import (
     AzureDocumentIntelligenceConfigurationError,
     azure_document_intelligence_configured,
     build_azure_read_engine,
 )
-from packages.domain.common import BoundingBox  # noqa: E402
-from packages.domain.enums import ClaimFormType  # noqa: E402
-from packages.ocr.contracts import OCRRequest  # noqa: E402
 
 
 def main() -> int:

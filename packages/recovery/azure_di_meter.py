@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import os
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _LOCK = threading.Lock()
@@ -39,7 +39,7 @@ def record_azure_di_call(
     key = kind if kind in _COUNTS else "other"
     path = azure_di_meter_path()
     row = {
-        "ts": datetime.now(timezone.utc).isoformat(),
+        "ts": datetime.now(UTC).isoformat(),
         "kind": kind,
         "document_id": document_id,
         "field_name": field_name,

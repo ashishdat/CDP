@@ -2,6 +2,7 @@ import json
 
 import cv2
 import numpy as np
+import pytest
 
 from workers.page_detection.registration_coverage import (
     capture_inliers,
@@ -9,6 +10,11 @@ from workers.page_detection.registration_coverage import (
     capture_matches,
 )
 from workers.page_detection.registration_telemetry import ACTIVE, RegistrationTrace
+
+
+@pytest.fixture(autouse=True)
+def _verbose_registration_telemetry(monkeypatch):
+    monkeypatch.setenv("CDP_REGISTRATION_VERBOSE_TELEMETRY", "1")
 
 
 def test_capture_preserves_original_indices_and_duplicate_template_ids():

@@ -5,14 +5,13 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter, defaultdict
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 import yaml
 
 from evaluation.audit_production_holdout_v2 import DEFAULT_DATASET
-
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "evaluation_results/production_holdout_v2"
@@ -32,7 +31,7 @@ def _canonical(value, method: str):
         return tuple(sorted(re.findall(r"[A-Z]+", raw.upper())))
     if method == "DATE":
         for pattern in ("%m/%d/%Y", "%Y-%m-%d", "%m-%d-%Y", "%m%d%Y"):
-            try: return datetime.strptime(raw, pattern).date().isoformat()
+            try: return datetime.strptime(raw, pattern).replace(tzinfo=UTC).date().isoformat()
             except ValueError: pass
         return _basic(raw)
     if method == "CURRENCY":

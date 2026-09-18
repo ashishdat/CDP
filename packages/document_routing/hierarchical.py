@@ -1,6 +1,7 @@
 """Deterministic stage baseline. It nominates; it never authorizes extraction."""
 from packages.document_taxonomy.contracts import DocumentClassification
 from packages.document_taxonomy.taxonomy import DocumentClass
+
 from .evidence import HierarchicalRoutingEvidence
 from .router import MultiSignalRoute
 

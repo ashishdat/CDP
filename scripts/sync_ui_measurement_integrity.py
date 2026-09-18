@@ -15,7 +15,7 @@ import os
 import sqlite3
 import uuid
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,7 +71,7 @@ def _ops_baseline() -> dict:
         summary = json.loads(e2e_summary.read_text())
         denom = int(summary.get("submitted_claims") or 100)
         completion = float(summary.get("operational_completion_rate") or 0.0)
-        final_count = int(round(completion * denom))
+        final_count = round(completion * denom)
         return {
             "measurement_scope": "OPERATIONAL_E2E",
             "denominator_claims": denom,
@@ -79,7 +79,7 @@ def _ops_baseline() -> dict:
             "incomplete_count": int(summary.get("incomplete_count") or max(0, denom - final_count)),
             "operational_completion_rate": completion,
             "true_stp_rate": float(summary.get("true_stp_rate") or 0.0),
-            "true_stp_count": int(round(float(summary.get("true_stp_rate") or 0.0) * denom)),
+            "true_stp_count": round(float(summary.get("true_stp_rate") or 0.0) * denom),
             "end_to_end_correct_completion_rate": summary.get("end_to_end_correct_completion_rate"),
             "end_to_end_correct_completion_status": summary.get(
                 "end_to_end_correct_completion_status", "UNAVAILABLE_NO_GROUND_TRUTH"
@@ -177,7 +177,7 @@ def build_report(
     mean_latency_s = float(metrics["latency_ms"]["mean"]) / 1000.0
     independent_docs = int(metrics["sample_size"])
     hard_hitl_docs = sum(1 for claim in claims if claim.get("claim_hard_hitl"))
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     ops = _ops_baseline()
 
     stress_block = None
@@ -346,7 +346,7 @@ def seed_db(db_path: Path, claims: list[dict], fields: list[dict]) -> None:
         ):
             cur.execute(f"DELETE FROM {table}")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         fields_by_doc: dict[str, list[dict]] = defaultdict(list)
         for row in fields:
             fields_by_doc[row["document_id"]].append(row)
@@ -357,7 +357,7 @@ def seed_db(db_path: Path, claims: list[dict], fields: list[dict]) -> None:
 
         for idx, claim in enumerate(claims):
             doc_key = claim["document_id"]
-            if doc_key.endswith("_BRIGHT") or doc_key.endswith("_SOFT"):
+            if doc_key.endswith(("_BRIGHT", "_SOFT")):
                 continue
             doc_id = _doc_uuid(doc_key)
             claim_id = _doc_uuid(f"claim:{doc_key}")

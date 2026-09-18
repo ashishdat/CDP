@@ -4,8 +4,11 @@ from __future__ import annotations
 from packages.document_taxonomy.contracts import DocumentClassification
 from packages.document_taxonomy.taxonomy import DocumentClass
 from packages.processing_routes.resolver import ProcessingRouteResolver
-from packages.standard_form_verification.evidence import StandardFormEvidence, evidence_from_router_features
+from packages.standard_form_verification.evidence import (
+    StandardFormEvidence,
+)
 from packages.standard_form_verification.service import StandardFormVerificationService
+
 from .contracts import DocumentRoutingDecision
 from .evidence import from_routing_evidence
 from .hierarchical import DeterministicHierarchicalBaseline

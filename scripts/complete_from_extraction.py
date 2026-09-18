@@ -1,5 +1,6 @@
 """Complete one saved ExtractionResult using existing decision policies only."""
 import argparse
+import contextlib
 import json
 from hashlib import sha256
 from pathlib import Path
@@ -145,13 +146,14 @@ def _load_registration_context(extraction):
 
 def decide(extraction, family):
     from pydantic import TypeAdapter
+
+    from packages.claim_decision.contracts import ClaimDecisionContext, ClaimDisposition
+    from packages.claim_evidence.builder import ClaimEvidenceBuilder
+    from packages.criticality import CriticalityLevel
+    from packages.deterministic_evidence.service import DeterministicEvidenceService
+    from packages.evidence_decision.contracts import DecisionContext
     from packages.ocr.contracts import OCRCandidate
     from packages.runtime_profile.decision_factory import DecisionServiceFactory
-    from packages.deterministic_evidence.service import DeterministicEvidenceService
-    from packages.claim_evidence.builder import ClaimEvidenceBuilder
-    from packages.evidence_decision.contracts import DecisionContext
-    from packages.claim_decision.contracts import ClaimDecisionContext, ClaimDisposition
-    from packages.criticality import CriticalityLevel
 
     if extraction.get('type') != 'ExtractionResult' or extraction.get('status') != 'ASSEMBLED':
         raise ValueError('An assembled ExtractionResult is required')
@@ -342,26 +344,30 @@ def decide(extraction, family):
         rows = ([winner] if winner else []) + list(f.get('alternatives') or [])
         # Prefer shaped / validating OCR shells first so reconciler + route authority
         # see calendar-valid DOB / name ink ahead of header fragments.
-        try:
-            from packages.extraction_recovery.field_cascade import semantic_accept as _semantic_accept
+        with contextlib.suppress(ImportError, TypeError, ValueError, AttributeError, KeyError):
+            from packages.extraction_recovery.field_cascade import (
+                semantic_accept as _semantic_accept,
+            )
 
-            def _row_priority(row):
+            def _row_priority(row, field_name=name):
                 value = (row.get('ocr_candidate') or {}).get('value') or ''
-                ok, _ = _semantic_accept(name, value) if value else (False, '')
+                ok, _ = _semantic_accept(field_name, value) if value else (False, '')
                 return (0 if ok else 1, 0 if row.get('is_winner') else 1)
 
             rows = sorted(rows, key=_row_priority)
-        except Exception:
-            pass
         for row in rows:
             candidate = dict(row['ocr_candidate'])
             validation = validations[row['candidate_id']]
             if row['is_winner']:
                 candidate['value'] = validation['normalized_value'] or candidate.get('value')
             # If winner normalized to junk but check_value is a shaped alternative, keep OCR value.
-            if candidate.get('value') in (None, '', 'MM') and check.passed and check_value:
-                if (row.get('ocr_candidate') or {}).get('value') == check_value:
-                    candidate['value'] = check_value
+            if (
+                candidate.get('value') in (None, '', 'MM')
+                and check.passed
+                and check_value
+                and (row.get('ocr_candidate') or {}).get('value') == check_value
+            ):
+                candidate['value'] = check_value
             candidate['validation_results'] = tuple(validation['reason'])
             candidates.append(TypeAdapter(OCRCandidate).validate_python(candidate))
         # v12.2 gap: insured_name CONFLICT / short-fragment when patient_name is a
@@ -369,16 +375,16 @@ def decide(extraction, family):
         # competitor so fragment / confusable relief can prefer it (no invention).
         if name == 'insured_name':
             from packages.candidate_reconciliation.reconciler import (
-                _name_is_strong_person,
+                _canonical_person_name,
                 _name_is_short_fragment,
+                _name_is_strong_person,
                 _name_label_contaminated,
                 _names_differ_by_confusable_edit,
                 _names_differ_by_confusable_insertion,
                 _names_differ_by_confusable_substitution,
-                _names_differ_by_tokenwise_confusable,
-                _names_differ_by_token_order,
                 _names_differ_by_optional_middle_initial,
-                _canonical_person_name,
+                _names_differ_by_token_order,
+                _names_differ_by_tokenwise_confusable,
             )
             patient_val = str(values.get('patient_name') or '').strip()
             if patient_val and _name_is_strong_person(patient_val):
@@ -566,8 +572,8 @@ def decide(extraction, family):
 def evidence_from_decision(path):
     """Read the persisted decision; preserve its policy outcome and supporting facts."""
     from packages.claim_decision.contracts import ClaimDecision
-    from packages.evidence_decision.contracts import FieldDecision
     from packages.claim_evidence.builder import ClaimEvidenceResult
+    from packages.evidence_decision.contracts import FieldDecision
     path = Path(path)
     payload = path.read_bytes()
     decision = json.loads(payload)

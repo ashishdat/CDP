@@ -1,5 +1,5 @@
-from packages.domain.common import DomainModel
 from packages.document_routing.router import MultiSignalRoute, RoutingEvidence
+from packages.domain.common import DomainModel
 
 
 class HierarchicalRoutingEvidence(DomainModel):

@@ -1,7 +1,9 @@
 ﻿import json
 from hashlib import sha256
+
 import pytest
-from scripts.complete_from_extraction import decide, run, evidence_from_decision
+
+from scripts.complete_from_extraction import decide, evidence_from_decision, run
 
 
 def extraction():

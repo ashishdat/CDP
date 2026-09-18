@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from datasets.registry import REGISTRY  # noqa: E402
+from datasets.registry import REGISTRY
 
 DEFAULT_OPS = ROOT / "AnchorNormalizationDeltaReport.json"
 OPS_META = REGISTRY["OPERATIONAL_E2E_100_V1"]

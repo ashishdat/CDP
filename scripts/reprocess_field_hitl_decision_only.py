@@ -21,7 +21,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from scripts.run_hackathon_1000_cascade import (  # noqa: E402
+from scripts.run_hackathon_1000_cascade import (
     _append_ledger,
     _claim_slug,
     _run_stage,

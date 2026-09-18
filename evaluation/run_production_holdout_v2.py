@@ -16,21 +16,24 @@ from PIL import Image
 
 from evaluation.audit_production_holdout_v2 import DEFAULT_DATASET, DEFAULT_OUTPUT, audit
 from packages.claim_decision import ClaimDecisionContext, ClaimDecisionService
-from packages.criticality import CriticalityPolicy, DEFAULT_CRITICALITY_PATH
-from packages.evidence_decision import DecisionContext, EvidenceDecisionService, FieldDisposition
+from packages.criticality import DEFAULT_CRITICALITY_PATH, CriticalityPolicy
+from packages.evidence_decision import DecisionContext, EvidenceDecisionService
 from packages.field_verification import verify_field
 from packages.layout_intelligence import BundleDLayoutEngine
 from packages.ocr.contracts import OCRCandidate
 from packages.templates.registry import DEFAULT_TEMPLATE_DIR, TemplateRegistry
 from workers.cascade.tesseract_adapter import TesseractTextExtractor
 from workers.document_preparation.preprocessing import (
-    apply_orientation, denoise, deskew, detect_orientation, detect_skew_angle,
+    apply_orientation,
+    denoise,
+    deskew,
+    detect_orientation,
+    detect_skew_angle,
 )
 from workers.page_detection.router import PageRoutingService
 from workers.page_detection.text_extraction import PaddleOCRTextExtractor, RapidOCRTextExtractor
 from workers.standard_form_extraction.consumer import _align_or_rescale
 from workers.standard_form_extraction.extractor import StandardFormExtractionService
-
 
 ACTUAL_TO_TRUTH = {
     "patient_dob": "dob", "insured_id_number": "member_id",

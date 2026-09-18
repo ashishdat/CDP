@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
+from typing import Any, ClassVar
 
 from packages.evidence_decision.contracts import FieldDecision, FieldDisposition
 
@@ -45,11 +45,11 @@ class CanonicalHITLSummary:
 class CanonicalHITLAuthority:
     """Read-only HITL projection of canonical field decisions."""
 
-    _REVIEW = {
+    _REVIEW: ClassVar[frozenset[FieldDisposition]] = frozenset({
         FieldDisposition.ESCALATE,
         FieldDisposition.HUMAN_REVIEW_REQUIRED,
         FieldDisposition.INSUFFICIENT_EVIDENCE,
-    }
+    })
 
     @classmethod
     def summarize(cls, decision: FieldDecision) -> CanonicalHITLSummary:

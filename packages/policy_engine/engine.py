@@ -1,7 +1,10 @@
 """Config-driven selection of the cheapest useful next evidence source."""
 from __future__ import annotations
+
 from pathlib import Path
+
 import yaml
+
 from packages.policy_engine.contracts import DecisionContext, PolicyAction, PolicyDecision
 
 DEFAULT_POLICY_PATH=Path(__file__).resolve().parents[2]/"config"/"adaptive_routing.yaml"

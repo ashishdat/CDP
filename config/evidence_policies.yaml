@@ -48,27 +48,20 @@ fields:
     accept_any: [[E2, E3, E4], [E1, E3, E4], [E1, E3, E4, E6], [E1, E3, E5], [E1, E3, E4, E7]]
     require_strong_e4: false
   patient_name:
-    accept_any: [[E2, E3, E4], [E1, E3, E4], [E1, E3, E5], [E1, E3, E6]]
-    require_strong_e4: false
+    # Critical identity: correlated OCR + weak format checks must not auto-accept.
+    # Cross-field relationship plausibility is not field-identity confirmation.
+    accept_any: [[E2, E3, E4], [E1, E3, E5], [E1, E3, E6]]
+    require_strong_e4: true
     allowed_e6_types:
       - MULTI_ATTRIBUTE_IDENTITY_CONFIRMED
-      - MEMBER_IDENTITY_CONSISTENT
-      - MEMBER_RELATIONSHIP_CONFIRMED
-      - DOB_SERVICE_DATE_CONSISTENT
   patient_first:
-    accept_any: [[E2, E3, E4], [E1, E3, E4], [E1, E3, E5], [E1, E3, E6]]
+    accept_any: [[E2, E3, E4], [E1, E3, E5], [E1, E3, E6]]
     allowed_e6_types:
       - MULTI_ATTRIBUTE_IDENTITY_CONFIRMED
-      - MEMBER_IDENTITY_CONSISTENT
-      - MEMBER_RELATIONSHIP_CONFIRMED
-      - DOB_SERVICE_DATE_CONSISTENT
   patient_last:
-    accept_any: [[E2, E3, E4], [E1, E3, E4], [E1, E3, E5], [E1, E3, E6]]
+    accept_any: [[E2, E3, E4], [E1, E3, E5], [E1, E3, E6]]
     allowed_e6_types:
       - MULTI_ATTRIBUTE_IDENTITY_CONFIRMED
-      - MEMBER_IDENTITY_CONSISTENT
-      - MEMBER_RELATIONSHIP_CONFIRMED
-      - DOB_SERVICE_DATE_CONSISTENT
   cpt_hcpcs: {accept_any: [[E2, E3, E4], [E1, E3, E5], [E1, E3, E4, E7]]}
   procedure_code: {accept_any: [[E2, E3, E4], [E1, E3, E5], [E1, E3, E4, E7]]}
   total_charge:

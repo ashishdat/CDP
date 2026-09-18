@@ -90,7 +90,7 @@ def test_pick_prefers_confirmation_when_primary_is_header_bleed():
             "raw_confidence": 0.85,
         },
     ]
-    selected, raw, reason, ordered = pick_engine_candidates("patient_dob", candidates)
+    selected, _raw, reason, ordered = pick_engine_candidates("patient_dob", candidates)
     assert selected == "09/29/1996"
     assert "DATE_SHAPED" in reason
     assert ordered[0]["engine"] == "rapidocr"

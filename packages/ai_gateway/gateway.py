@@ -103,7 +103,7 @@ class AIGateway:
         circuit_key = (provider.provider_name, provider.model_name)
         started = monotonic()
         response = None
-        error: Exception | None = None
+        error: BaseException | None = None
         for attempt in range(policy.max_retries + 1):
             try:
                 response = await asyncio.wait_for(
@@ -111,7 +111,7 @@ class AIGateway:
                 )
                 error = None
                 break
-            except Exception as exc:  # provider/schema failures are audited and fail closed
+            except (TimeoutError, ConnectionError, OSError, ValueError, RuntimeError, TypeError, KeyError) as exc:  # provider/schema failures are audited and fail closed
                 error = exc
                 transient = isinstance(exc, (TimeoutError, ConnectionError))
                 if transient and attempt < policy.max_retries:

@@ -1,0 +1,5 @@
+# Cloud residual / Azure DI adapters.
+# httpx and tenacity are already in core; no extra pins unless a future
+# Azure SDK dependency is required.
+# Install: pip install -r requirements/runtime-cloud-residual.txt
+-e .[runtime-cloud-residual]

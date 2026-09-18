@@ -1,0 +1,5 @@
+# GOT-OCR2 runtime profile.
+# MUTUALLY EXCLUSIVE with requirements/runtime-florence.txt
+# (transformers>=4.57 vs transformers==4.46.3).
+# Install: pip install -r requirements/runtime-got-ocr2.txt
+-e .[runtime-got-ocr2]

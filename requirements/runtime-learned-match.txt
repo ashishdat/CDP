@@ -1,0 +1,3 @@
+# Learned visual match (LightGlue) runtime profile.
+# Install: pip install -r requirements/runtime-learned-match.txt
+-e .[runtime-learned-match]

@@ -23,7 +23,7 @@ import subprocess
 import sys
 from collections import Counter
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -283,7 +283,7 @@ def score_frozen_run(ops_report: dict) -> dict[str, Any]:
             ),
         },
         "claims": [asdict(item) for item in outcomes],
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "production_qualification": {
             "status": "NOT_QUALIFIED",
             "blocking_reasons": [
@@ -314,7 +314,8 @@ def _resolve_live_dataset() -> tuple[Path | None, Path | None]:
     for yaml_path in candidates:
         try:
             dataset = DatasetManager.load(yaml_path)
-        except Exception:
+        except (OSError, ValueError, KeyError, TypeError, RuntimeError) as exc:
+            print(f"skip dataset {yaml_path}: {type(exc).__name__}", flush=True)
             continue
         local_candidates = [
             dataset.root,
@@ -350,7 +351,7 @@ def _run_live_claim(
     ]
     if document_type:
         cmd.extend(["--document-type", document_type])
-    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, check=False)
     result: dict[str, Any] = {
         "document": document,
         "app_returncode": proc.returncode,
@@ -424,7 +425,7 @@ def _run_live_claim(
     ]
     for cmd in stage_cmds:
         stage_name = Path(cmd[2]).name if len(cmd) > 2 else "stage"
-        proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, check=False)
         result["stages"][stage_name] = {
             "returncode": proc.returncode,
             "stderr_tail": proc.stderr[-500:],

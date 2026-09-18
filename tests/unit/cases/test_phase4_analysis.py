@@ -1,6 +1,14 @@
+
+import pytest
+
 from evaluation.phase4_analysis import generate_reports
+from evaluation.production_readiness import FRONTIER
 
 
+@pytest.mark.skipif(
+    not (FRONTIER / "manifest.json").is_file(),
+    reason="private evidence_frontier_v2 artifacts not installed",
+)
 def test_phase4_analysis_is_truthful_and_preserves_frozen_decisions(tmp_path):
     result = generate_reports(docs=tmp_path)
     assert result["e5"]["non_stp_claims"] == 24

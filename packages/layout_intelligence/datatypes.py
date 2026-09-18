@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
-
+from datetime import UTC, datetime
 
 PATTERNS = {
     "MONEY": re.compile(r"^\$?\s*\d[\d,]*(?:\.\d{2})?$"),
     "NPI": re.compile(r"^\d{10}$"),
-    "MEMBER_ID": re.compile(r"^[A-Z0-9][A-Z0-9-]{4,24}$", re.I),
+    "MEMBER_ID": re.compile(r"^[A-Z0-9][A-Z0-9-]{4,24}$", re.IGNORECASE),
     "TAX_ID": re.compile(r"^\d{2}-?\d{7}$"),
-    "CPT_HCPCS": re.compile(r"^(?:\d{5}|[A-Z]\d{4})$", re.I),
-    "ICD": re.compile(r"^[A-TV-Z]\d{2}(?:\.?[A-Z0-9]{1,4})?$", re.I),
+    "CPT_HCPCS": re.compile(r"^(?:\d{5}|[A-Z]\d{4})$", re.IGNORECASE),
+    "ICD": re.compile(r"^[A-TV-Z]\d{2}(?:\.?[A-Z0-9]{1,4})?$", re.IGNORECASE),
     "REVENUE_CODE": re.compile(r"^\d{4}$"),
     "TYPE_OF_BILL": re.compile(r"^\d{3,4}$"),
     "INTEGER": re.compile(r"^\d+$"),
@@ -22,7 +21,7 @@ def valid(value: str, datatype: str) -> bool:
     if datatype == "DATE":
         for fmt in ("%m/%d/%Y", "%m-%d-%Y", "%Y-%m-%d", "%m/%d/%y"):
             try:
-                datetime.strptime(cleaned, fmt)
+                datetime.strptime(cleaned, fmt).replace(tzinfo=UTC)
                 return True
             except ValueError:
                 pass

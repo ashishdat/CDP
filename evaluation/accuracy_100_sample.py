@@ -53,9 +53,12 @@ def _exact(predicted: object, expected: object, datatype: str) -> bool:
         return True
     left = decide_local_candidate(str(predicted or ""), datatype)
     right = decide_local_candidate(str(expected or ""), datatype)
-    if left.normalized_value and right.normalized_value:
-        if _canonical(left.normalized_value) == _canonical(right.normalized_value):
-            return True
+    if (
+        left.normalized_value
+        and right.normalized_value
+        and _canonical(left.normalized_value) == _canonical(right.normalized_value)
+    ):
+        return True
     return bool(_compact(predicted) and _compact(predicted) == _compact(expected))
 
 

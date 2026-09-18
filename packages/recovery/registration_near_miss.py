@@ -111,9 +111,8 @@ def classify_registration_gap(
     if not orientation and token_set & {
         "unsafe_rotation",
         "invalid_transformed_corners",
-    }:
-        if rotation_degrees is None or abs(float(rotation_degrees)) >= 35.0:
-            orientation = True
+    } and (rotation_degrees is None or abs(float(rotation_degrees)) >= 35.0):
+        orientation = True
     catastrophic = (
         corner_validity is False
         or (scale_change is not None and float(scale_change) < 0.5)
@@ -377,9 +376,7 @@ def content_corroboration_eligible(evidence: Any) -> bool:
         persp = _metric(evidence, "perspective_distortion")
         # Content accept only when perspective is modest; larger keystone must
         # clear full geometric gates after deskew/affine recovery.
-        if persp is not None and float(persp) <= MILD_PERSPECTIVE_CONTENT_MAX:
-            return True
-        return False
+        return bool(persp is not None and float(persp) <= MILD_PERSPECTIVE_CONTENT_MAX)
     # Strong geometry that only tripped perspective: ratio already at policy.
     ratio = _metric(evidence, "inlier_ratio")
     count = _metric(evidence, "inlier_count")
@@ -387,16 +384,4 @@ def content_corroboration_eligible(evidence: Any) -> bool:
     persp = _metric(evidence, "perspective_distortion")
     reason = _metric(evidence, "rejection_reason") or ""
     tokens = set(_tokens(reason))
-    if (
-        corners is not False
-        and ratio is not None
-        and float(ratio) >= DEFAULT_MIN_INLIER_RATIO
-        and count is not None
-        and int(count) >= DEFAULT_MIN_INLIERS
-        and persp is not None
-        and float(persp) <= MILD_PERSPECTIVE_CONTENT_MAX
-        and tokens <= {"unsafe_perspective_distortion", "low_inlier_ratio"}
-        and "unsafe_perspective_distortion" in tokens
-    ):
-        return True
-    return False
+    return bool(corners is not False and ratio is not None and float(ratio) >= DEFAULT_MIN_INLIER_RATIO and count is not None and int(count) >= DEFAULT_MIN_INLIERS and persp is not None and float(persp) <= MILD_PERSPECTIVE_CONTENT_MAX and tokens <= {"unsafe_perspective_distortion", "low_inlier_ratio"} and "unsafe_perspective_distortion" in tokens)

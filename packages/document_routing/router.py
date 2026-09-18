@@ -17,7 +17,6 @@ from pydantic import Field
 
 from packages.domain.common import DomainModel
 
-
 DEFAULT_CONFIG = Path(__file__).resolve().parents[2] / "config/document_routing.yaml"
 
 
@@ -175,7 +174,7 @@ class MultiSignalRouter:
         self.config = config
 
     @classmethod
-    def load(cls, path: str | Path = DEFAULT_CONFIG) -> "MultiSignalRouter":
+    def load(cls, path: str | Path = DEFAULT_CONFIG) -> MultiSignalRouter:
         return cls(yaml.safe_load(Path(path).read_text("utf-8")))
 
     def route(self, image: Image.Image, lines: list[TextGeometry]) -> RoutingEvidence:
@@ -216,8 +215,8 @@ class MultiSignalRouter:
             geometry_scores[family]=statistics.fmean(family_geometry) if family_geometry else 0.0
         h, v, grid = _line_scores(image)
         structure=_structure_scores(image,h,v,grid)
-        cms_anchor = len(matched["CMS1500"]) / len(anchors["CMS1500"])
-        ub_anchor = len(matched["UB04"]) / len(anchors["UB04"])
+        len(matched["CMS1500"]) / len(anchors["CMS1500"])
+        len(matched["UB04"]) / len(anchors["UB04"])
         cms_identity = float(bool(matched["CMS1500_IDENTITY"]))
         ub_identity = float(bool(matched["UB04_IDENTITY"]))
         healthcare = len(matched["healthcare"]) / len(anchors["healthcare"])

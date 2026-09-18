@@ -1,0 +1,3 @@
+# Core runtime only (base [project].dependencies). No model-family extras.
+# Install: pip install -r requirements/runtime-core.txt
+-e .

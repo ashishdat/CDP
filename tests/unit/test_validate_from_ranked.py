@@ -1,9 +1,11 @@
 import json
 from uuid import uuid4
+
 import pytest
-from scripts.validate_from_ranked import validate_candidate,run
+
 from packages.validation_rules.engine import ValidationEngine
 from packages.validation_rules.thresholds import ThresholdRegistry
+from scripts.validate_from_ranked import run, validate_candidate
 
 
 def row(raw,confidence=1.,field='patient_last'):

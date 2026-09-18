@@ -1,7 +1,11 @@
 """The route-to-extractor firewall. This is the only fixed-route mapping."""
 from packages.document_taxonomy.contracts import DocumentClassification
 from packages.document_taxonomy.taxonomy import DocumentClass
-from packages.standard_form_verification.contracts import StandardFormStatus, StandardFormVerification
+from packages.standard_form_verification.contracts import (
+    StandardFormStatus,
+    StandardFormVerification,
+)
+
 from .contracts import ProcessingRoute, ProcessingRouteDecision
 
 

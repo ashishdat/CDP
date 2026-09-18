@@ -17,21 +17,21 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from packages.candidate_reconciliation.reconciler import (
-    prefer_dob_without_january_dash_artifact,
-    prefer_dob_without_separator_one,
-    prefer_dob_year_confusable_digit,
-    prefer_member_id_without_confusable_insertion,
-    prefer_name_without_short_fragment,
-    prefer_name_without_label_contamination,
-    prefer_longer_name_prefix,
-    prefer_name_with_optional_middle_initial,
-    prefer_name_canonical_token_order,
-    prefer_name_without_confusable_insertion,
-    values_conflict_equivalent,
     _canonical_member_id,
     _member_id_is_shaped,
     _name_is_short_fragment,
     _name_is_strong_person,
+    prefer_dob_without_january_dash_artifact,
+    prefer_dob_without_separator_one,
+    prefer_dob_year_confusable_digit,
+    prefer_longer_name_prefix,
+    prefer_member_id_without_confusable_insertion,
+    prefer_name_canonical_token_order,
+    prefer_name_with_optional_middle_initial,
+    prefer_name_without_confusable_insertion,
+    prefer_name_without_label_contamination,
+    prefer_name_without_short_fragment,
+    values_conflict_equivalent,
 )
 
 

@@ -1,0 +1,5 @@
+# Florence-2 runtime profile.
+# MUTUALLY EXCLUSIVE with requirements/runtime-got-ocr2.txt
+# (transformers==4.46.3 vs transformers>=4.57).
+# Install: pip install -r requirements/runtime-florence.txt
+-e .[runtime-florence]

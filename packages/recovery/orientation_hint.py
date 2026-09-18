@@ -8,8 +8,8 @@ is configured — never on the common path, never softens Acceptance gates.
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import cv2
 import numpy as np
@@ -91,7 +91,7 @@ def rotation_estimate_to_degrees(rotation_degrees: float | None) -> int | None:
         return None
     # Undo observed rotation by rotating the page the opposite way.
     # Observed −165° ≈ upside-down → try 180; −90 → try 90, etc.
-    nearest = int(round(abs_rot / 90.0)) * 90
+    nearest = round(abs_rot / 90.0) * 90
     nearest = nearest % 360
     if nearest == 0:
         nearest = 180 if abs_rot >= 135 else 90

@@ -341,9 +341,9 @@ class ClaimEvidenceBuilder:
             _names_differ_by_confusable_edit,
             _names_differ_by_confusable_insertion,
             _names_differ_by_confusable_substitution,
-            _names_differ_by_tokenwise_confusable,
-            _names_differ_by_token_order,
             _names_differ_by_optional_middle_initial,
+            _names_differ_by_token_order,
+            _names_differ_by_tokenwise_confusable,
         )
 
         def _soft_self_match(left: str, right: str) -> bool:
@@ -362,9 +362,7 @@ class ClaimEvidenceBuilder:
                 return True
             if _names_differ_by_token_order(left, right):
                 return True
-            if _names_differ_by_optional_middle_initial(left, right):
-                return True
-            return False
+            return bool(_names_differ_by_optional_middle_initial(left, right))
 
         names_match = bool(patient) and bool(insured) and (
             patient == insured

@@ -11,10 +11,10 @@ from packages.recovery.orientation_hint import (
     score_orientation_edge_alignment,
 )
 from packages.recovery.registration_near_miss import (
+    best_orientation_rotation_degrees,
     classify_registration_gap,
     should_attempt_orientation_recovery,
     should_attempt_orientation_recovery_any,
-    best_orientation_rotation_degrees,
 )
 
 

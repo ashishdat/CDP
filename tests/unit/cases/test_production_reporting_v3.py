@@ -14,12 +14,20 @@ from evaluation.reporting_v3_common import (
 )
 
 ROOT = next(parent for parent in Path(__file__).parents if (parent / "pyproject.toml").exists())
+REPORTING_V3 = ROOT / "evaluation_results" / "reporting_v3"
+CONTRACT_V3 = ROOT / "evaluation_data" / "contracts" / "evaluation_contract_v3.json"
+
+requires_reporting_v3 = pytest.mark.skipif(
+    not (REPORTING_V3 / "metrics.json").is_file() or not CONTRACT_V3.is_file(),
+    reason="private reporting_v3 / evaluation_contract_v3 artifacts not installed",
+)
 
 
 def _load(relative: str):
     return json.loads((ROOT / relative).read_text(encoding="utf-8"))
 
 
+@requires_reporting_v3
 def test_v2_recalculation_is_from_source_rows():
     metrics = _load("evaluation_results/reporting_v3/metrics.json")["extraction_v2"]
     assert metrics["eligible_fields"] == 214
@@ -27,18 +35,21 @@ def test_v2_recalculation_is_from_source_rows():
     assert metrics["extraction_accuracy"] == 191 / 214
 
 
+@requires_reporting_v3
 def test_expanded_contract_has_239_unique_eligible_fields():
     contract = _load("evaluation_data/contracts/evaluation_contract_v3.json")
     assert contract["eligible_field_count"] == 239
     assert_unique(contract["fields"])
 
 
+@requires_reporting_v3
 def test_table_review_only_is_excluded_from_automation():
     metrics = _load("evaluation_results/reporting_v3/metrics.json")
     assert metrics["table_only"]["automatically_accepted_candidates"] == 0
     assert metrics["expanded_v3"]["automatically_accepted_fields"] == 125
 
 
+@requires_reporting_v3
 def test_invalid_repeated_labels_and_unused_rows_are_excluded():
     quality = _load("evaluation_results/reporting_v3/data_quality.json")
     assert quality["invalid_repeated_labels_excluded"] == 5
@@ -46,6 +57,7 @@ def test_invalid_repeated_labels_and_unused_rows_are_excluded():
     assert quality["eligible_table_labels"] == 25
 
 
+@requires_reporting_v3
 def test_active_blank_cells_are_not_automatic_successes():
     details = _load("evaluation_results/reporting_v3/details.json")
     blanks = [
@@ -61,6 +73,7 @@ def test_null_denominator_returns_null():
     assert ratio(0, 0) is None
 
 
+@requires_reporting_v3
 def test_critical_false_accept_is_calculated_dynamically():
     metrics = _load("evaluation_results/reporting_v3/metrics.json")["expanded_v3"]
     assert metrics["critical_false_accepts"] == (
@@ -68,6 +81,7 @@ def test_critical_false_accept_is_calculated_dynamically():
     )
 
 
+@requires_reporting_v3
 def test_potential_and_final_accuracy_are_separate():
     metrics = _load("evaluation_results/reporting_v3/metrics.json")["expanded_v3"]
     assert metrics["potential_accuracy_after_successful_review"] is not None
@@ -75,6 +89,7 @@ def test_potential_and_final_accuracy_are_separate():
     assert metrics["final_validated_status"] == "UNAVAILABLE_PENDING_REVIEW"
 
 
+@requires_reporting_v3
 def test_contract_checksum_and_sidecar_match():
     contract = _load("evaluation_data/contracts/evaluation_contract_v3.json")
     assert contract_checksum(contract) == contract["contract_sha256"]
@@ -84,6 +99,7 @@ def test_contract_checksum_and_sidecar_match():
     assert sidecar == contract["contract_sha256"]
 
 
+@requires_reporting_v3
 def test_prediction_checksum_matches_manifest():
     manifest = _load("evaluation_results/predictions_v3/inference_manifest.json")
     assert sha256_file(
@@ -110,12 +126,14 @@ def test_duplicate_identity_rejected():
         assert_unique([field, field])
 
 
+@requires_reporting_v3
 def test_all_expanded_details_have_provenance():
     details = _load("evaluation_results/reporting_v3/details.json")
     assert len(details) == 239
     assert all(row["provenance"] for row in details)
 
 
+@requires_reporting_v3
 def test_report_metrics_equal_details():
     details = _load("evaluation_results/reporting_v3/details.json")
     metrics = _load("evaluation_results/reporting_v3/metrics.json")["expanded_v3"]
@@ -127,11 +145,13 @@ def test_report_metrics_equal_details():
     )
 
 
+@requires_reporting_v3
 def test_reporting_modules_have_no_hardcoded_accuracy_constants():
     quality = _load("evaluation_results/reporting_v3/data_quality.json")
     assert quality["hardcoded_metric_hits"] == []
 
 
+@requires_reporting_v3
 def test_acceptance_gate_and_changed_denominator_warning():
     gate = _load("evaluation_results/reporting_v3/acceptance_gate.json")
     report = (ROOT / "evaluation_results/reporting_v3/comparison.html").read_text()

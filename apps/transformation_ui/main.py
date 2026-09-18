@@ -43,9 +43,9 @@ async def _proxy(request: Request, base_url: str, path: str) -> StreamingRespons
         resp_headers.pop("content-length", None)
         resp_headers.pop("content-encoding", None)
         return StreamingResponse(resp.aiter_raw(), status_code=resp.status_code, headers=resp_headers)
-    except Exception as exc:
+    except (OSError, httpx.HTTPError, TimeoutError, ValueError) as exc:
         return StreamingResponse(
-            iter([f'{{"error": "proxy failure: {str(exc)}"}}'.encode()]),
+            iter([f'{{"error": "proxy failure: {exc!s}"}}'.encode()]),
             status_code=502,
             media_type="application/json",
         )

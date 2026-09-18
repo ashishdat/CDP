@@ -10,7 +10,7 @@ from typing import Any, Protocol
 from PIL import Image
 
 _ADAPTER_LOCK = threading.Lock()
-_ADAPTER_CACHE: dict[tuple[str, str, float], "TrOCRAdapter"] = {}
+_ADAPTER_CACHE: dict[tuple[str, str, float], TrOCRAdapter] = {}
 
 
 def get_shared_trocr_adapter(
@@ -18,7 +18,7 @@ def get_shared_trocr_adapter(
     model_name: str | None = "microsoft/trocr-base-handwritten",
     device: str = "auto",
     min_confidence: float = 0.55,
-) -> "TrOCRAdapter":
+) -> TrOCRAdapter:
     """Process-wide TrOCR singleton — avoids reloading weights on every residual."""
     key = (str(model_name or ""), str(device or "auto"), float(min_confidence))
     with _ADAPTER_LOCK:

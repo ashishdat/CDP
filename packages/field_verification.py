@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, datetime
 from decimal import Decimal, InvalidOperation
 
 from packages.validation_rules.icd10 import is_valid_icd10_syntax
@@ -56,11 +56,11 @@ def verify_field(field_name: str, value: str | None, independent_agreement: int 
         parsed = None
         for pattern in ("%Y-%m-%d", "%m/%d/%Y", "%m-%d-%Y", "%Y%m%d", "%m%d%Y"):
             try:
-                parsed = datetime.strptime(raw, pattern).date()
+                parsed = datetime.strptime(raw, pattern).replace(tzinfo=UTC).date()
                 break
             except ValueError:
                 continue
-        valid = parsed is not None and parsed <= date.today()
+        valid = parsed is not None and parsed <= datetime.now(UTC).date()
         return VerificationEvidence(valid, "SEMANTIC", "DATE_VALID" if valid else "DATE_INVALID")
     if "charge" in name or "amount" in name:
         try:

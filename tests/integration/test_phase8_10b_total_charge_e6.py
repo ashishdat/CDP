@@ -1,9 +1,15 @@
-from evaluation.phase8_10b_total_charge_e6 import run
+import pytest
+
+from evaluation.phase8_10b_total_charge_e6 import INPUT, SOURCES, run
 from packages.claim_evidence import ClaimEvidenceBuilder
 
 
 def _types(items):
     return {item.evidence_type for item in items}
+
+
+def _phase8_10_inputs_available() -> bool:
+    return all((INPUT / source / "policy_replay_input.jsonl").is_file() for source in SOURCES)
 
 
 def test_claim_total_builder_emits_the_policy_eligible_e6_name_only_on_reconciliation():
@@ -27,6 +33,10 @@ def test_claim_total_builder_emits_the_policy_eligible_e6_name_only_on_reconcili
     assert "CLAIM_TOTAL_CONTRADICTION" in _types(mismatched.contradictions)
 
 
+@pytest.mark.skipif(
+    not _phase8_10_inputs_available(),
+    reason="governed phase8_10 policy_replay_input.jsonl unavailable",
+)
 def test_frozen_replay_does_not_bypass_calibration_with_total_charge_e6():
     result = run(write_outputs=False)
     assert result["decision"] == "REVERT"

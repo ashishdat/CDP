@@ -35,6 +35,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# ---------------------------------------------------------------------------
+# Optional extras. Florence-2 and GOT-OCR2 are MUTUALLY EXCLUSIVE profiles:
+# florence pins transformers==4.46.3 while got_ocr2 requires transformers>=4.57.
+# Never install both into one Python environment. Prefer a single runtime-*
+# profile per deployable image (see docs/RUNTIME_PROFILES.md and
+# requirements/runtime-*.txt). One env cannot install all model families.
+# ---------------------------------------------------------------------------
 ocr = [
     "rapidocr-onnxruntime>=1.3,<2",
     "onnxruntime>=1.17,<2",
@@ -58,6 +65,7 @@ learned-match = [
     "torchvision>=0.17",
     "lightglue @ git+https://github.com/cvg/LightGlue.git",
 ]
+# EXCLUSIVE vs got_ocr2 — transformers==4.46.3 conflicts with got_ocr2's >=4.57.
 florence = [
     "einops>=0.8",
     "timm>=1.0",
@@ -65,6 +73,7 @@ florence = [
     "torchvision>=0.17",
     "transformers==4.46.3",
 ]
+# EXCLUSIVE vs florence — transformers>=4.57 conflicts with florence's ==4.46.3.
 got_ocr2 = [
     "torch>=2.2",
     "torchvision>=0.17",
@@ -74,6 +83,7 @@ docling = [
     "docling>=2.70,<3",
 ]
 ml = [
+    # Intentionally omits florence and got_ocr2 (mutually exclusive).
     "idp-claims-platform[ocr,handwriting]",
 ]
 router-ml-training = [
@@ -82,6 +92,7 @@ router-ml-training = [
     "scikit-learn>=1.7,<2",
     "joblib>=1.5,<2",
 ]
+# Dev tooling only — must NOT pull florence and got_ocr2 together (or either).
 dev = [
     "pytest>=8.1",
     "pytest-asyncio>=0.23",
@@ -90,6 +101,23 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.9",
 ]
+# Runtime install profiles (one profile per environment / image).
+runtime-core = []
+runtime-handwriting = [
+    "idp-claims-platform[handwriting]",
+]
+runtime-florence = [
+    "idp-claims-platform[florence]",
+]
+runtime-got-ocr2 = [
+    "idp-claims-platform[got_ocr2]",
+]
+runtime-learned-match = [
+    "idp-claims-platform[learned-match]",
+]
+# Cloud residual adapters use httpx/tenacity from core; no extra pins unless
+# a future Azure SDK is required.
+runtime-cloud-residual = []
 
 [project.scripts]
 idp-evaluate = "evaluation.runner:main"

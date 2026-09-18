@@ -31,7 +31,7 @@ class CorrespondenceExtractor(Protocol):
 class SuperPointLightGlueExtractor:
     """Lazy SuperPoint detector + LightGlue matcher (cvg/LightGlue)."""
 
-    _SHARED: "SuperPointLightGlueExtractor | None" = None
+    _SHARED: SuperPointLightGlueExtractor | None = None
 
     def __init__(
         self,
@@ -47,7 +47,7 @@ class SuperPointLightGlueExtractor:
         self._matcher = matcher
 
     @classmethod
-    def shared(cls) -> "SuperPointLightGlueExtractor":
+    def shared(cls) -> SuperPointLightGlueExtractor:
         """Process-lifetime singleton — amortize torch/SuperPoint cold load."""
         if cls._SHARED is None:
             cls._SHARED = cls()
@@ -76,7 +76,7 @@ class SuperPointLightGlueExtractor:
         assert self._extractor is not None and self._matcher is not None
         try:
             import torch
-            from lightglue.utils import numpy_image_to_torch, rbd
+            from lightglue.utils import rbd
         except ImportError as exc:
             raise RuntimeError(
                 "LightGlue requires optional deps: pip install '.[learned-match]'"
@@ -116,8 +116,8 @@ class SuperPointLightGlueExtractor:
 
 
 def _to_torch_gray(gray: np.ndarray, *, max_side: int) -> tuple[Any, float]:
-    from lightglue.utils import numpy_image_to_torch
     import cv2
+    from lightglue.utils import numpy_image_to_torch
 
     h, w = gray.shape[:2]
     scale = 1.0

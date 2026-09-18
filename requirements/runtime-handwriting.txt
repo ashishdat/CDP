@@ -1,0 +1,3 @@
+# Handwriting / TrOCR-style runtime profile.
+# Install: pip install -r requirements/runtime-handwriting.txt
+-e .[runtime-handwriting]
