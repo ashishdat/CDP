@@ -55,7 +55,7 @@ class TemplateSelector:
             manifest = load_release_manifest(active_release_from_env())
             versions = manifest.get("template_versions") or {}
             return {str(k): str(v) for k, v in versions.items()}
-        except Exception:
+        except (OSError, KeyError, TypeError, ValueError, AttributeError):
             return {"cms1500": "02-12", "ub04": "2014"}
 
     @classmethod
