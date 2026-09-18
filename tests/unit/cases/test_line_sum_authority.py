@@ -191,7 +191,7 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ok, reason = line_sum_auto_eligible(dual)
     assert ok and reason == "DUAL_ENGINE_LINE_AGREEMENT"
 
-    # paddle + gpt-4o residual agreeing is NOT independent dual-engine AUTO.
+    # paddle + gpt-4o on every line is now MULTI_LINE_GPT4O_LOCAL (tech stack).
     paddle_gpt4o = [
         {
             "charges": "485.00",
@@ -209,6 +209,20 @@ def test_line_sum_auto_requires_dual_engine_or_di():
         },
     ]
     ok, reason = line_sum_auto_eligible(paddle_gpt4o)
+    assert ok and reason == "MULTI_LINE_GPT4O_LOCAL"
+
+    # paddle-only multi-line (no gpt-4o) still needs dual-engine on each line.
+    paddle_only_multi = [
+        {
+            "charges": "485.00",
+            "candidates": [{"value": "485.00", "engine": "paddleocr"}],
+        },
+        {
+            "charges": "485.00",
+            "candidates": [{"value": "485.00", "engine": "paddleocr"}],
+        },
+    ]
+    ok, reason = line_sum_auto_eligible(paddle_only_multi)
     assert not ok and reason == "MULTI_LINE_UNCORROBORATED"
 
     ok, reason = line_sum_auto_eligible(bare, corroborating_values=["424.00"])
