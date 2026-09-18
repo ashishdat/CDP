@@ -9,6 +9,14 @@ weights:
   preprocessing: 0.05
   dependency: 0.05
 engine_reliability:
-  "*": {rapidocr: 0.70, paddleocr: 0.70, tesseract: 0.50}
+  "*":
+    {
+      rapidocr: 0.70,
+      paddleocr: 0.70,
+      tesseract: 0.50,
+      # Crop-scoped gpt-4o residual: prefer over weak/short local ID twins.
+      azure_gpt4o_crop: 0.88,
+      azure_document_intelligence_read: 0.80,
+    }
 preprocessing_reliability:
   "*": {PAGE_OBSERVATION: 0.70, REGIONAL_DEFAULT: 0.65}

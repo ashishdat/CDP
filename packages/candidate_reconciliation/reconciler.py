@@ -302,6 +302,43 @@ def _member_id_is_length_fragment(left: str, right: str) -> bool:
     return True
 
 
+def _is_azure_gpt4o_crop_engine(engine: str) -> bool:
+    normalized = (engine or "").lower()
+    return "gpt4o" in normalized or "gpt-4o" in normalized
+
+
+def _member_id_is_weak_for_gpt4o_gate(value: str) -> bool:
+    """Mirror gpt-4o residual gate: short / chrome / alpha-soup locals.
+
+    When local cascade is weak enough to invoke ``azure_gpt4o_crop``, that same
+    weak twin must not block STP via CONFLICT_MARGIN_TOO_SMALL.
+    """
+    text = (value or "").strip()
+    if not text:
+        return True
+    if re.search(
+        r"INSURED|NUMBER|PROGRAM|ITEM\s*1|1A\.|FOR\s*PROGRAM|PICA",
+        text,
+        re.IGNORECASE,
+    ):
+        return True
+    alnum = re.sub(r"[^A-Za-z0-9]", "", text)
+    if len(alnum) < 7:
+        return True
+    if alnum.isalpha():
+        return True
+    return False
+
+
+def _member_ids_share_digit_prefix(left: str, right: str, *, min_len: int = 3) -> bool:
+    """True when digit streams share a leading run (trust gate for residual relief)."""
+    a = re.sub(r"\D", "", _canonical_member_id(left) or "")
+    b = re.sub(r"\D", "", _canonical_member_id(right) or "")
+    if len(a) < min_len or len(b) < min_len:
+        return False
+    return a[:min_len] == b[:min_len]
+
+
 def prefer_member_id_longer_authority(primary: str, competitors: list[str]) -> str | None:
     """Prefer the longer member ID under prefix-bleed or fragment twins."""
     observed = [v for v in [primary, *competitors] if (v or "").strip()]
@@ -1296,6 +1333,7 @@ class EvidenceReconciler:
         early_separator_relief = False
         early_name_relief = False
         early_id_relief = False
+        early_gpt4o_id_relief = False
         # Within a multi-engine name agreement group, prefer the display that
         # already lacks JI / digit-1 confusables (JIOSEPHINE → JOSEPHINE).
         if is_name_field and len(supporting) >= 1:
@@ -1439,6 +1477,24 @@ class EvidenceReconciler:
             if id_clean:
                 value = id_clean
                 early_id_relief = True
+            # Prefer gpt-4o crop residual over the weak local that triggered it.
+            elif _member_id_is_weak_for_gpt4o_gate(str(value or "")):
+                for _norm, items in ranked[1:]:
+                    best = max(items, key=lambda row: row[1])
+                    cand, _score, _ver = best
+                    cand_val = str(cand.value or "")
+                    if not _is_azure_gpt4o_crop_engine(cand.engine):
+                        continue
+                    if not _member_id_is_shaped(cand_val):
+                        continue
+                    if _member_id_is_weak_for_gpt4o_gate(cand_val):
+                        continue
+                    if not _member_ids_share_digit_prefix(cand_val, str(value)):
+                        continue
+                    value = cand_val
+                    supporting = items
+                    early_gpt4o_id_relief = True
+                    break
         # Always emit compact member IDs so spaced/punctuated OCR ("4E80 VH6 HJ14")
         # matches FORMAT_VALID and downstream identity checks.
         if is_id_field and _member_id_is_shaped(str(value or "")):
@@ -1776,6 +1832,15 @@ class EvidenceReconciler:
                 primary_support = {
                     independence_group(cand.engine) for cand, _, _ in supporting
                 } - {"TESSERACT_FAMILY"}
+                primary_is_gpt4o = any(
+                    _is_azure_gpt4o_crop_engine(cand.engine)
+                    for cand, _, _ in supporting
+                )
+                primary_strong = (
+                    _member_id_is_shaped(str(value or ""))
+                    and not _member_id_is_weak_for_gpt4o_gate(str(value or ""))
+                )
+                gpt4o_weak_local_filtered = False
                 filtered = []
                 for other in genuine:
                     if not _member_id_is_shaped(str(other)):
@@ -1791,8 +1856,19 @@ class EvidenceReconciler:
                         and other_engines <= {"TESSERACT_FAMILY"}
                     ):
                         continue
+                    # gpt-4o residual vs weak local that triggered it (len<7/chrome).
+                    if (
+                        primary_is_gpt4o
+                        and primary_strong
+                        and _member_id_is_weak_for_gpt4o_gate(str(other))
+                        and _member_ids_share_digit_prefix(str(value), str(other))
+                    ):
+                        gpt4o_weak_local_filtered = True
+                        continue
                     filtered.append(other)
                 genuine = filtered
+            else:
+                gpt4o_weak_local_filtered = False
             # Box-number / digit-only OCR is form chrome, not a name competitor.
             if is_name_field and _name_is_strong_person(str(value or "")):
                 genuine = [
@@ -1811,6 +1887,11 @@ class EvidenceReconciler:
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
                 )
                 reasons.append("NAME_CONFLICT_RELIEVED")
+            elif early_gpt4o_id_relief:
+                decision = (
+                    Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
+                )
+                reasons.append("GPT4O_ID_WEAK_LOCAL_RELIEVED")
             elif early_id_relief:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
@@ -1820,7 +1901,11 @@ class EvidenceReconciler:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
                 )
-                reasons.append("EQUIVALENT_VALUE_CONFLICT_RELIEVED")
+                reasons.append(
+                    "GPT4O_ID_WEAK_LOCAL_RELIEVED"
+                    if gpt4o_weak_local_filtered
+                    else "EQUIVALENT_VALUE_CONFLICT_RELIEVED"
+                )
             else:
                 separator_clean = None
                 name_clean = None
@@ -1963,6 +2048,8 @@ class EvidenceReconciler:
                 reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
             if early_name_relief:
                 reasons.append("NAME_CONFLICT_RELIEVED")
+            if early_gpt4o_id_relief:
+                reasons.append("GPT4O_ID_WEAK_LOCAL_RELIEVED")
             if early_id_relief:
                 reasons.append("MEMBER_ID_CONFUSABLE_INSERTION_RELIEVED")
         versions = (

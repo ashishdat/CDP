@@ -65,14 +65,28 @@ def rank_saved(source, output):
                         semantic = 0.95
                 except Exception:
                     semantic = 0.0
+                engine_name = candidate['engine']
+                engine_rel = policy.reliability(
+                    policy.engine_reliability, name, engine_name
+                )
+                # Extra prior: gpt-4o ID residual over short/chrome local that
+                # triggered the residual (aligns ranking with reconcile relief).
+                if (
+                    name in {"insured_id_number", "member_id", "subscriber_id"}
+                    and ("gpt4o" in str(engine_name).lower() or "gpt-4o" in str(engine_name).lower())
+                    and semantic >= 0.95
+                ):
+                    alnum = "".join(ch for ch in selected if ch.isalnum())
+                    if len(alnum) >= 7:
+                        engine_rel = max(engine_rel, 0.92)
                 observation = CandidateObservation(
                     candidate_id=cid, raw_text=candidate['raw_value'],
                     selected_text=selected, normalized_value=selected or None,
-                    engine=candidate['engine'],
+                    engine=engine_name,
                     preprocessing_profile=candidate.get('preprocessing_variant') or 'unknown',
                     ocr_confidence=float(candidate.get('raw_confidence') or 0), localization_confidence=0,
                     semantic_confidence=semantic, deterministic_valid=bool(semantic),
-                    engine_reliability=policy.reliability(policy.engine_reliability,name,candidate['engine']),
+                    engine_reliability=engine_rel,
                     preprocessing_reliability=policy.reliability(
                         policy.preprocessing_reliability,
                         name,
