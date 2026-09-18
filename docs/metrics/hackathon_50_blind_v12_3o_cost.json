@@ -1,0 +1,52 @@
+{
+  "run": "hackathon_50_blind_cascade_v12_3o",
+  "slice": "docs[350:400]",
+  "n": 50,
+  "metrics": {
+    "true_stp": 47,
+    "true_stp_rate": 0.94,
+    "field_ink_hitl": 3,
+    "field_ink_hitl_rate": 0.06,
+    "registration_hitl": 0,
+    "registration_ok": 49,
+    "mean_latency_sec": 45.854,
+    "median_latency_sec": 45.364,
+    "max_latency_sec": 83.384
+  },
+  "cloud_calls": {
+    "gpt4o_crop": 4,
+    "azure_di_total": 64,
+    "azure_di_by_kind": {
+      "charge_crop": 59,
+      "dob_crop": 2,
+      "page_corners": 2,
+      "unstructured_reg_page_read": 1
+    }
+  },
+  "pricing_assumptions": {
+    "gpt4o_input_usd_per_1m": 2.5,
+    "gpt4o_output_usd_per_1m": 10.0,
+    "gpt4o_tokens_per_call_proxy": {"input": 659.423, "output": 44.615},
+    "azure_di_usd_per_call_low": 0.0015,
+    "azure_di_usd_per_call_high": 0.01,
+    "hitl_labor_usd_per_page": 0.3
+  },
+  "batch_cost_usd": {
+    "gpt4o": 0.0084,
+    "azure_di_low": 0.096,
+    "azure_di_high": 0.64,
+    "cloud_low": 0.1044,
+    "cloud_high": 0.6484,
+    "hitl_labor": 0.9,
+    "fully_loaded_low": 1.0044,
+    "fully_loaded_high": 1.5484
+  },
+  "per_page_cost_usd": {
+    "gpt4o": 0.000168,
+    "cloud_low": 0.002088,
+    "cloud_high": 0.012968,
+    "hitl_labor_amortized": 0.018,
+    "fully_loaded_low": 0.0201,
+    "fully_loaded_high": 0.031
+  }
+}
