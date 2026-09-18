@@ -35,16 +35,23 @@ from packages.templates.registry import TemplateRegistry
 
 
 def _maybe_attach_dob_handwriting_residuals(rows, image):
-    """Crop-scoped TrOCR → Azure DI → gpt-4o for DOB; gpt-4o for weak/chrome ID."""
+    """Crop-scoped TrOCR → Azure DI → gpt-4o for DOB; gpt-4o for weak/chrome ID;
+    Azure DI charge crop (+corroboration) for box-28 totals.
+    """
     trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "1").strip().casefold()
     azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "1").strip().casefold()
     gpt4o_on = (os.environ.get("CDP_GPT4O_CROP_RESIDUAL") or "1").strip().casefold()
+    charge_on = (os.environ.get("CDP_AZURE_DI_CHARGE_RESIDUAL") or "0").strip().casefold()
     if (
         trocr_on in {"0", "false", "no", "off"}
         and azure_on in {"0", "false", "no", "off"}
         and gpt4o_on in {"0", "false", "no", "off"}
+        and charge_on in {"0", "false", "no", "off"}
     ):
         return rows
+    from packages.extraction_recovery.charge_azure_di_residual import (
+        maybe_attach_charge_azure_di_to_field_row,
+    )
     from packages.extraction_recovery.dob_azure_di_residual import (
         maybe_attach_dob_azure_di_to_field_row,
     )
@@ -67,6 +74,19 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
     for row in rows:
         name = str(row.get("field") or "")
         key = name.casefold()
+        if key in {"total_charge", "total_charges", "charges", "charge_amount"}:
+            if charge_on not in {"0", "false", "no", "off"}:
+                updated.append(
+                    maybe_attach_charge_azure_di_to_field_row(
+                        row,
+                        image=image,
+                        gap_class="CHARGE_LOCAL_EXHAUSTED",
+                        corroborate=True,
+                    )
+                )
+            else:
+                updated.append(row)
+            continue
         if key in {"insured_id_number", "member_id", "subscriber_id"}:
             if gpt4o_on not in {"0", "false", "no", "off"}:
                 updated.append(

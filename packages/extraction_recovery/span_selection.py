@@ -210,8 +210,21 @@ def _strip_cms_headers(text: str) -> tuple[str, bool]:
     return cleaned, changed
 
 
+def _normalize_dob_punct_separators(text: str) -> str:
+    """Treat colon/comma/period between digit groups as MM/DD/YY separators.
+
+    Azure DI / noisy OCR often emits ``7:30.77`` or ``7:30,77`` for handwritten
+    ``7/30/77``. Mapping those punctuations to ``/`` before token assembly lets
+    existing MM/DD/YY parsers shape the date without inventing digits.
+    """
+    if not text:
+        return text
+    return re.sub(r"(?<=\d)[:.,;·•](?=\d)", "/", text)
+
+
 def _assemble_dob_from_tokens(text: str) -> str | None:
     """Assemble MM/DD/YYYY from separated OCR digit tokens after label removal."""
+    text = _normalize_dob_punct_separators(text)
     tokens = [tok for tok in re.split(r"[\s,|/\\-]+", text.upper()) if tok]
     digits: list[str] = []
     for tok in tokens:
@@ -432,7 +445,7 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
     # damaged slashes ("01i081996" → "01081996"), not extra digits. Mapping them
     # through confusables yields a 9-digit poison stream ("011081996") that
     # never calendar-uniquely parses.
-    header_safe = _dob_header_safe_text(text)
+    header_safe = _dob_header_safe_text(_normalize_dob_punct_separators(text))
 
     def _yy_to_yyyy(yy: str) -> str:
         # Align with reconciler / evidence normalization / GT scorer:
@@ -656,6 +669,7 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
 
     patterns: list[tuple[str, str, str]] = []
     if datatype == "DATE":
+        search_space = _normalize_dob_punct_separators(search_space)
         duplicated_edge = re.search(r"(?<!\d)\d(\d{2}[-/]\d{2}[-/]\d{4})(?!\d)", search_space)
         if duplicated_edge:
             selected = duplicated_edge.group(1)
@@ -817,6 +831,12 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
                 "MULTIPLE_SPANS" if len(candidates) > 1 else "SINGLE_SPAN",
             )
         selected = candidates[-1] if preference == "last" else candidates[0]
+        # Slash-joined MM/DD/YY from punct repair (e.g. 7:30.77 → 7/30/77) must
+        # still expand YY→YYYY and zero-pad via token assembly.
+        if rule == "date":
+            assembled = _assemble_dob_from_tokens(selected)
+            if assembled:
+                selected = assembled
         return _result(
             raw, selected, f"span-v1-{rule}", candidates,
             0.96 if len(candidates) == 1 else 0.82,

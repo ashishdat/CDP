@@ -365,10 +365,11 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_APP_WORKER_POOL", "1")
     # Latency bar: claim mean ≤30s. TrOCR DOB residual ON with process singleton
     # + skip-if-local-shaped (only handwriting/ambiguous gaps fire). Azure DI DOB
-    # crop residual ON as post-TrOCR fallback (rare; ~1–3s). Charge residual OFF.
+    # crop residual ON as post-TrOCR fallback. Charge DI ON for box-28 corroboration.
     env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
     env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "1")
-    env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
+    env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
+    env.setdefault("CDP_AZURE_DI_CHARGE_CORROBORATE", "1")
     env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
     env.setdefault("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED", "1")
     # SuperPoint+LightGlue for catastrophic REG — process-lifetime singleton
@@ -929,7 +930,8 @@ def main() -> int:
         "CDP_LEARNED_MATCHER": "1",
         # Crop-scoped Azure DI only after local+TrOCR DOB miss (rare; ~1–3s).
         "CDP_AZURE_DI_DOB_RESIDUAL": "1",
-        "CDP_AZURE_DI_CHARGE_RESIDUAL": "0",
+        "CDP_AZURE_DI_CHARGE_RESIDUAL": "1",
+        "CDP_AZURE_DI_CHARGE_CORROBORATE": "1",
         # Last-resort only (after near-miss/LightGlue). Blind REG was 8/100
         # terminal AZURE_DI_PAGE_CORNERS_DISABLED_LOW_COST with corners off.
         "CDP_AZURE_DI_PAGE_CORNERS": "1",

@@ -74,13 +74,15 @@ def is_charge_local_residual(
     field_name: str,
     gap_class: str | None,
     local_accepted: bool,
+    corroborate: bool = False,
 ) -> bool:
-    if local_accepted:
+    # Corroboration path: still run DI after a weak/single-engine local accept.
+    if local_accepted and not corroborate:
         return False
     if (field_name or "").casefold() not in _CHARGE_FIELDS:
         return False
     gap = (gap_class or "").upper()
-    return gap in _CHARGE_GAPS or gap == ""
+    return gap in _CHARGE_GAPS or gap == "" or corroborate
 
 
 def _crop_image(image: Image.Image, bbox: tuple[int, int, int, int]) -> Image.Image:
@@ -243,6 +245,7 @@ def run_charge_azure_di_residual(
     azure_di_attempted: bool = False,
     settings: Any | None = None,
     engine: Any | None = None,
+    corroborate: bool = False,
 ) -> ChargeAzureDiResidualResult:
     """Invoke crop-scoped Azure DI Read when local charge OCR is exhausted."""
     if not azure_di_charge_residual_enabled():
@@ -259,6 +262,7 @@ def run_charge_azure_di_residual(
         field_name=field_name,
         gap_class=gap_class,
         local_accepted=local_accepted,
+        corroborate=corroborate,
     ):
         return ChargeAzureDiResidualResult(
             attempted=False,
@@ -415,6 +419,7 @@ def maybe_attach_charge_azure_di_to_field_row(
     gap_class: str | None,
     settings: Any | None = None,
     engine: Any | None = None,
+    corroborate: bool = False,
 ) -> dict[str, Any]:
     """Return an updated field row with optional Azure DI charge candidate."""
     name = str(field_row.get("field") or "charges")
@@ -423,14 +428,23 @@ def maybe_attach_charge_azure_di_to_field_row(
     bbox = tuple(field_row.get("ocr_region") or field_row.get("canonical_region") or ())
     if len(bbox) != 4:
         return dict(field_row)
+    do_corroborate = corroborate or (
+        local_accepted
+        and azure_di_charge_residual_enabled()
+        and _env_on("CDP_AZURE_DI_CHARGE_CORROBORATE", "1")
+    )
+    effective_gap = gap_class
+    if do_corroborate and local_accepted:
+        effective_gap = gap_class or "AMBIGUOUS_CHARGE_DIGITS"
     result = run_charge_azure_di_residual(
         image=image,
         bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
         field_name=name,
-        gap_class=gap_class,
+        gap_class=effective_gap,
         local_accepted=local_accepted,
         settings=settings,
         engine=engine,
+        corroborate=do_corroborate,
     )
     promoted = promote_currency_shaped(result)
     effective_review_only = promoted.review_only

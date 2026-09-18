@@ -397,6 +397,26 @@ def test_dob_yy_pivot_aligns_with_reconciler_not_future():
     assert select_field_span("09 01 02", "DATE", "patient_dob").selected_text == "09/01/2002"
 
 
+def test_dob_colon_comma_period_confusables_shape_as_separators():
+    """HJE5.016-class DI ink: ``7:30.77`` / ``7:30,77`` → calendar DOB."""
+    from packages.extraction_recovery.span_selection import (
+        _assemble_dob_from_tokens,
+        _normalize_dob_punct_separators,
+        select_field_span,
+    )
+
+    assert _normalize_dob_punct_separators("7:30.77") == "7/30/77"
+    assert _normalize_dob_punct_separators("7:30,77") == "7/30/77"
+    assert _assemble_dob_from_tokens("7:30.77") == "07/30/1977"
+    assert _assemble_dob_from_tokens("7:30,77") == "07/30/1977"
+    assert select_field_span("7:30.77", "DATE", "patient_dob").selected_text == (
+        "07/30/1977"
+    )
+    assert select_field_span("7:30,77", "DATE", "patient_dob").selected_text == (
+        "07/30/1977"
+    )
+
+
 def test_person_name_period_is_not_last_first_separator():
     """OCR mid-name periods must not invent Last, First (DATST, EY)."""
     from packages.extraction_recovery.span_selection import select_field_span

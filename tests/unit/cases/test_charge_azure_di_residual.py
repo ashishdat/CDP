@@ -51,6 +51,12 @@ def test_is_charge_local_residual_gates():
         gap_class="CHARGE_LOCAL_EXHAUSTED",
         local_accepted=True,
     )
+    assert is_charge_local_residual(
+        field_name="charges",
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        local_accepted=True,
+        corroborate=True,
+    )
     assert not is_charge_local_residual(
         field_name="patient_dob",
         gap_class="CHARGE_LOCAL_EXHAUSTED",
@@ -106,7 +112,9 @@ def test_try_charge_digit_drop_vs_local():
     assert preferred == "1571.00"
 
 
-def test_attach_skips_accepted_local_charge():
+def test_attach_skips_accepted_local_charge_when_corroborate_off(monkeypatch):
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_CORROBORATE", "0")
     img = Image.new("RGB", (200, 80), color=(255, 255, 255))
     row = {
         "field": "total_charge",
@@ -122,6 +130,36 @@ def test_attach_skips_accepted_local_charge():
         engine=_FakeCropEngine("1364.00"),
     )
     assert updated["azure_di_residual"]["reason"] == "NOT_CHARGE_LOCAL_RESIDUAL"
+
+
+def test_attach_corroborates_accepted_local_charge(monkeypatch):
+    """HJHO.005-class: weak local accept still gets box-28 DI twin."""
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_CORROBORATE", "1")
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
+    img = Image.new("RGB", (200, 80), color=(255, 255, 255))
+    row = {
+        "field": "total_charge",
+        "canonical_region": [10, 10, 180, 70],
+        "ocr_region": [10, 10, 180, 70],
+        "candidates": [{"value": "315.00", "engine": "paddleocr"}],
+        "cascade": {"accepted": True, "accept_reason": "LINE_TOTALS"},
+    }
+    updated = maybe_attach_charge_azure_di_to_field_row(
+        row,
+        image=img,
+        gap_class=None,
+        engine=_FakeCropEngine("353.00"),
+        corroborate=True,
+    )
+    assert updated["azure_di_residual"]["attempted"] is True
+    assert updated["azure_di_residual"]["currency_shaped"] is True
+    assert updated["azure_di_residual"]["value"] == "353.00"
+    assert any(
+        c.get("engine") == "azure_document_intelligence_read"
+        and c.get("value") == "353.00"
+        for c in updated["candidates"]
+    )
 
 
 def test_attach_promotes_currency_shaped_on_miss(monkeypatch):

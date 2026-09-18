@@ -66,3 +66,13 @@ local Rapid/Paddle/Tesseract (+ DOB digit-band / ID value-band)
 | `HJHO.011` | HITL (DOB) | HITL | gpt-4o **abstain** on DOB |
 
 Authorization is working for member ID. Remaining DOB HITL is model abstain / unshaped DI — not engine stripping.
+
+## v12.3o follow-ups (implemented)
+
+| Target | Fix | Mechanism |
+| --- | --- | --- |
+| `HJE5.016` DOB | DI punct confusables | `_normalize_dob_punct_separators`: `7:30.77` / `7:30,77` → `07/30/1977` via span + YY expand |
+| `HJHO.011` DOB | gpt-4o abstain | Full-box miss → MM/DD/YY cell-split strip retry + DI prior hints in prompt |
+| `HJHO.005` charge | line-sum ≠ box-28 | `CDP_AZURE_DI_CHARGE_RESIDUAL=1` + `CDP_AZURE_DI_CHARGE_CORROBORATE=1` after local accept |
+
+Env stamps (product cascade): charge residual/corroborate **ON**.

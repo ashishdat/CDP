@@ -182,3 +182,61 @@ def test_attach_id_promotes_clean_member_id(monkeypatch):
     assert updated["cascade"]["accepted"] is True
     assert "GPT4O_CROP_RESIDUAL" in updated["cascade"]["accept_reason"]
     assert updated["candidates"][0]["value"] == "949774145"
+
+
+def test_dob_cell_split_retry_after_full_box_abstain(monkeypatch):
+    """HJHO.011-class: full-box abstain → MM/DD/YY strip retry shapes."""
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
+    img = Image.new("RGB", (240, 80), color=(255, 255, 255))
+
+    class _AbstainThenShape:
+        def __init__(self) -> None:
+            self.calls = 0
+            self.descriptions: list[str] = []
+
+        def recognize_fields(self, crops, **kwargs):
+            self.calls += 1
+            desc = (kwargs.get("descriptions") or {}).get("patient_dob") or ""
+            self.descriptions.append(desc)
+            if self.calls == 1:
+                return {
+                    "patient_dob": Gpt4oCropResidualResult(
+                        attempted=True,
+                        configured=True,
+                        review_only=True,
+                        value=None,
+                        raw_value=None,
+                        shaped=False,
+                        insufficient_evidence=True,
+                        reason="GPT4O_ABSTAIN",
+                    )
+                }
+            return {
+                "patient_dob": Gpt4oCropResidualResult(
+                    attempted=True,
+                    configured=True,
+                    review_only=True,
+                    value="04/11/1998",
+                    raw_value="04/11/1998",
+                    shaped=True,
+                    insufficient_evidence=False,
+                    reason="GPT4O_SHAPED",
+                    confidence=0.98,
+                )
+            }
+
+    engine = _AbstainThenShape()
+    result = run_gpt4o_crop_residual(
+        image=img,
+        bbox=(10, 10, 200, 70),
+        field_name="patient_dob",
+        prior_candidates=["7:30.77"],
+        engine=engine,
+    )
+    assert engine.calls == 2
+    assert "Prior OCR saw: 7:30.77" in engine.descriptions[0]
+    assert "Three cropped" in engine.descriptions[1]
+    assert result.shaped is True
+    assert result.reason == "GPT4O_CELL_SPLIT_SHAPED"
+    assert "GPT4O_CELL_SPLIT" in result.validation_results

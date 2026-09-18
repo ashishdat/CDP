@@ -238,6 +238,40 @@ class _AzureGpt4oCropRecognizer:
         return out
 
 
+def _dob_cell_bboxes(
+    bbox: tuple[int, int, int, int],
+) -> list[tuple[int, int, int, int]]:
+    """Split a DOB ROI into approximate MM / DD / YY cells (equal thirds)."""
+    x0, y0, x1, y1 = bbox
+    width = max(1, x1 - x0)
+    third = max(1, width // 3)
+    cells = []
+    for i in range(3):
+        cx0 = x0 + i * third
+        cx1 = x1 if i == 2 else x0 + (i + 1) * third
+        cells.append((cx0, y0, max(cx0 + 1, cx1), y1))
+    return cells
+
+
+def _dob_description(prior: list[str], *, cell_mode: bool = False) -> str:
+    base = (
+        "Handwritten CMS-1500 box 3 patient date of birth with MM DD YY cells. "
+        "Return MM/DD/YYYY when digits are visible. Colon/comma/period between "
+        "digit groups are damaged separators (e.g. 7:30.77 means 07/30/1977). "
+        "Abstain only if the crop is empty or truly illegible."
+    )
+    if cell_mode:
+        base = (
+            "Three cropped CMS-1500 DOB cells (month, day, year). "
+            "Read each cell's handwritten digits and return one MM/DD/YYYY. "
+            "Abstain only if cells are empty."
+        )
+    hints = [p for p in prior if p and p.strip()]
+    if hints:
+        base += " Prior OCR saw: " + " | ".join(hints[:4]) + "."
+    return base
+
+
 def run_gpt4o_crop_residual(
     *,
     image: Image.Image,
@@ -269,29 +303,49 @@ def run_gpt4o_crop_residual(
             insufficient_evidence=True,
             reason="GPT4O_FIELD_UNSUPPORTED",
         )
+    prior = list(prior_candidates or [])
     crop = _crop_image(image, bbox)
     if name in _DOB_FIELDS:
-        ftype, desc = (
-            "date",
-            "Handwritten CMS-1500 box 3 patient date of birth. "
-            "Return MM/DD/YYYY when clearly readable; abstain if empty or illegible.",
-        )
+        ftype, desc = "date", _dob_description(prior)
     else:
         ftype, desc = (
             "code",
             "Handwritten or typed CMS-1500 box 1a insured/member ID. "
-            "Alphanumeric ID only — not phone, NPI, EIN, or printed labels.",
+            "Alphanumeric ID only — not phone, NPI, EIN, or printed labels."
+            + (
+                f" Prior OCR saw: {' | '.join(prior[:4])}."
+                if prior
+                else ""
+            ),
         )
     recognizer = engine or _AzureGpt4oCropRecognizer()
-    try:
-        mapped = recognizer.recognize_fields(
-            {field_name: crop},
-            field_types={field_name: ftype},
-            descriptions={field_name: desc},
-            prior_candidates={field_name: list(prior_candidates or [])},
-        )
-    except Exception as exc:  # noqa: BLE001 — residual must fail closed
-        return Gpt4oCropResidualResult(
+
+    def _call(
+        crop_image: Image.Image,
+        *,
+        description: str,
+        field_type: str,
+    ) -> Gpt4oCropResidualResult:
+        try:
+            mapped = recognizer.recognize_fields(
+                {field_name: crop_image},
+                field_types={field_name: field_type},
+                descriptions={field_name: description},
+                prior_candidates={field_name: prior},
+            )
+        except Exception as exc:  # noqa: BLE001 — residual must fail closed
+            return Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value=None,
+                raw_value=None,
+                shaped=False,
+                insufficient_evidence=True,
+                reason=f"GPT4O_ERROR:{type(exc).__name__}",
+                validation_results=(f"ERROR:{exc}"[:160],),
+            )
+        return mapped.get(field_name) or Gpt4oCropResidualResult(
             attempted=True,
             configured=True,
             review_only=True,
@@ -299,19 +353,49 @@ def run_gpt4o_crop_residual(
             raw_value=None,
             shaped=False,
             insufficient_evidence=True,
-            reason=f"GPT4O_ERROR:{type(exc).__name__}",
-            validation_results=(f"ERROR:{exc}"[:160],),
+            reason="GPT4O_EMPTY_RESPONSE",
         )
-    return mapped.get(field_name) or Gpt4oCropResidualResult(
-        attempted=True,
-        configured=True,
-        review_only=True,
-        value=None,
-        raw_value=None,
-        shaped=False,
-        insufficient_evidence=True,
-        reason="GPT4O_EMPTY_RESPONSE",
-    )
+
+    # Single full-box crop first.
+    result = _call(crop, description=desc, field_type=ftype)
+
+    # DOB abstain → MM/DD/YY cell-split retry (DI hint already in description).
+    if name in _DOB_FIELDS and (result.insufficient_evidence or not result.shaped):
+        cells = _dob_cell_bboxes(bbox)
+        try:
+            cell_imgs = [_crop_image(image, cell) for cell in cells]
+            widths = [c.width for c in cell_imgs]
+            height = max(c.height for c in cell_imgs)
+            strip = Image.new(
+                "RGB", (sum(widths) + 4, height), color=(255, 255, 255)
+            )
+            x = 0
+            for cell_img in cell_imgs:
+                strip.paste(cell_img, (x, 0))
+                x += cell_img.width + 2
+            retry = _call(
+                strip,
+                description=_dob_description(prior, cell_mode=True),
+                field_type="date",
+            )
+            if retry.shaped and not retry.insufficient_evidence:
+                return Gpt4oCropResidualResult(
+                    attempted=True,
+                    configured=True,
+                    review_only=retry.review_only,
+                    value=retry.value,
+                    raw_value=retry.raw_value,
+                    shaped=True,
+                    insufficient_evidence=False,
+                    reason="GPT4O_CELL_SPLIT_SHAPED",
+                    engine=retry.engine,
+                    confidence=retry.confidence,
+                    validation_results=tuple(retry.validation_results)
+                    + ("GPT4O_CELL_SPLIT",),
+                )
+        except Exception:  # noqa: BLE001
+            pass
+    return result
 
 
 def residual_candidate_dict(
