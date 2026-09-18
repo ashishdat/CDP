@@ -197,37 +197,47 @@ def decide(extraction, family):
         # contradictory single-line OCR sum (hard-15: residual recovers ink).
         preserve_azure_box28 = False
         if current_val not in (None, ''):
-            for row in (
-                [field_payload.get('ranked_candidate')]
-                if field_payload.get('ranked_candidate')
-                else []
-            ) + list(field_payload.get('alternatives') or []):
-                if not row:
-                    continue
-                ocr = row.get('ocr_candidate') or {}
-                eng = str(ocr.get('engine') or '').casefold()
-                if 'gpt4o' not in eng and 'document_intelligence' not in eng:
-                    continue
-                text = str(ocr.get('value') or ocr.get('raw_value') or '').strip()
-                if not text or parse_currency(text) is None:
-                    continue
-                if parse_currency(text) == parse_currency(current_val):
+            from packages.claim_evidence.line_sum_authority import (
+                is_implausible_corroborator,
+                line_sum_total,
+            )
+
+            line_total = line_sum_total(service_lines)
+            # Never preserve form-ruling digit soup / 10×-off Azure totals.
+            if line_total and is_implausible_corroborator(current_val, line_total):
+                preserve_azure_box28 = False
+            else:
+                for row in (
+                    [field_payload.get('ranked_candidate')]
+                    if field_payload.get('ranked_candidate')
+                    else []
+                ) + list(field_payload.get('alternatives') or []):
+                    if not row:
+                        continue
+                    ocr = row.get('ocr_candidate') or {}
+                    eng = str(ocr.get('engine') or '').casefold()
+                    if 'gpt4o' not in eng and 'document_intelligence' not in eng:
+                        continue
+                    text = str(ocr.get('value') or ocr.get('raw_value') or '').strip()
+                    if not text or parse_currency(text) is None:
+                        continue
+                    if parse_currency(text) == parse_currency(current_val):
+                        preserve_azure_box28 = True
+                        break
+                gpt4o = field_payload.get('gpt4o_crop_residual') or {}
+                if (
+                    gpt4o.get('shaped')
+                    and not gpt4o.get('review_only')
+                    and parse_currency(gpt4o.get('value')) == parse_currency(current_val)
+                ):
                     preserve_azure_box28 = True
-                    break
-            gpt4o = field_payload.get('gpt4o_crop_residual') or {}
-            if (
-                gpt4o.get('shaped')
-                and not gpt4o.get('review_only')
-                and parse_currency(gpt4o.get('value')) == parse_currency(current_val)
-            ):
-                preserve_azure_box28 = True
-            di = field_payload.get('azure_di_residual') or {}
-            if (
-                di.get('currency_shaped')
-                and not di.get('review_only')
-                and parse_currency(di.get('value')) == parse_currency(current_val)
-            ):
-                preserve_azure_box28 = True
+                di = field_payload.get('azure_di_residual') or {}
+                if (
+                    di.get('currency_shaped')
+                    and not di.get('review_only')
+                    and parse_currency(di.get('value')) == parse_currency(current_val)
+                ):
+                    preserve_azure_box28 = True
         if preserve_azure_box28:
             continue
         if should_defer_box28_to_line_sum(current_val, service_lines):
@@ -254,6 +264,13 @@ def decide(extraction, family):
             if not text or text in seen:
                 return
             if parse_currency(text) is None:
+                return
+            # Drop form-ruling digit-soup box-28 so it cannot force CONFLICT.
+            from packages.claim_evidence.line_sum_authority import (
+                is_implausible_charge_total,
+            )
+
+            if is_implausible_charge_total(text):
                 return
             seen.add(text)
             found.append(text)

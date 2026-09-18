@@ -2,11 +2,14 @@ from decimal import Decimal
 
 from packages.claim_evidence.line_sum_authority import (
     amounts_corroborate,
+    is_implausible_charge_total,
+    is_implausible_corroborator,
     is_suspicious_tiny_total,
     line_sum_auto_eligible,
     line_sum_total,
     should_defer_box28_to_line_sum,
 )
+from packages.extraction_recovery.field_cascade import semantic_accept
 
 
 def test_suspicious_tiny_matches_cascade_rule():
@@ -15,10 +18,24 @@ def test_suspicious_tiny_matches_cascade_rule():
     assert not is_suspicious_tiny_total(Decimal("1600.00"))
 
 
+def test_implausible_box28_digit_soup():
+    assert is_implausible_charge_total("208408.00")
+    assert is_implausible_charge_total("420840.00")
+    assert not is_implausible_charge_total("2084.00")
+    assert is_implausible_corroborator("208408.00", "200.00")
+    assert is_implausible_corroborator("2084.00", "200.00")  # >5× line-sum
+    assert is_implausible_corroborator("22.00", "400.00")  # <1/5 line-sum
+    assert not is_implausible_corroborator("210.00", "200.00")
+    assert not is_implausible_corroborator("222.00", "200.00")  # near-miss stays
+    ok, reason = semantic_accept("total_charge", "208408.00")
+    assert not ok and reason == "CURRENCY_IMPLAUSIBLE_TOTAL"
+
+
 def test_defer_when_box28_empty_or_tiny():
     lines = [{"charges": "498.00"}, {"charges": "66.00"}]
     assert should_defer_box28_to_line_sum(None, lines)
     assert should_defer_box28_to_line_sum("2.22", lines)
+    assert should_defer_box28_to_line_sum("208408.00", lines)
     assert line_sum_total(lines) == "564.00"
 
 
@@ -56,7 +73,7 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     assert not ok
     assert reason == "SINGLE_LINE_REQUIRES_DI"
 
-    # Single-line paddle+rapid agree is still insufficient without DI.
+    # Single-line paddle+rapid agree is still insufficient without DI / gpt-4o.
     single_dual = [
         {
             "charges": "222.00",
@@ -68,6 +85,52 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ]
     ok, reason = line_sum_auto_eligible(single_dual)
     assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
+
+    # paddle+rapid+gpt-4o consensus unlocks single-line AUTO (DI quota hole).
+    single_triple = [
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "200.00", "engine": "paddleocr"},
+                {"value": "200.00", "engine": "rapidocr"},
+                {"value": "200.00", "engine": "azure_gpt4o_crop"},
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(single_triple)
+    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+
+    # gpt-4o + paddle alone (rapid empty) is enough — common on this slice.
+    single_gpt_paddle = [
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "200.00", "engine": "paddleocr"},
+                {"value": "200.00", "engine": "azure_gpt4o_crop"},
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(single_gpt_paddle)
+    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+
+    # gpt-4o vs disagreeing local → still HITL.
+    conflict_local = [
+        {
+            "charges": "200.00",
+            "candidates": [
+                {"value": "900.00", "engine": "paddleocr"},
+                {"value": "200.00", "engine": "azure_gpt4o_crop"},
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(conflict_local)
+    assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
+
+    # Junk box-28 must not force CONFLICT over a gpt-4o-local line.
+    ok, reason = line_sum_auto_eligible(
+        single_triple, corroborating_values=["208408.00"]
+    )
+    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
 
     dual = [
         {

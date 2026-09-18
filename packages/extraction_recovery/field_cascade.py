@@ -153,6 +153,17 @@ def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
         if _CURRENCY_SHAPE.fullmatch(text.lstrip("$")) or _CURRENCY_SHAPE.fullmatch(cleaned):
             if name in {"total_charge", "total_charges"} and re.fullmatch(r"[0-9]\.\d{2}", cleaned):
                 return False, "CURRENCY_SUSPICIOUS_TINY"
+            # Form-ruling digit soup (208408.00 / 420840.00) is not a claim total.
+            try:
+                amount = float(cleaned)
+            except ValueError:
+                amount = None
+            if (
+                name in {"total_charge", "total_charges"}
+                and amount is not None
+                and amount > 99999.99
+            ):
+                return False, "CURRENCY_IMPLAUSIBLE_TOTAL"
             return True, "CURRENCY_SHAPED"
         return False, "NOT_CURRENCY_SHAPED"
 
