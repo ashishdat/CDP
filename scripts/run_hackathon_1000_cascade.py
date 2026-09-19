@@ -387,6 +387,10 @@ def _stage_env() -> dict[str, str]:
     # Name Rapid confirm gate (was 0.88 — nearly always confirmed).
     env.setdefault("CDP_OCR_NAME_CONFIRM_MIN_CONF", "0.80")
     env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "1")  # last-resort after LightGlue
+    # F0 Document Intelligence: one analyze transaction per minute, shared
+    # across spawn workers via the slot file.
+    env.setdefault("CDP_AZURE_DI_MIN_INTERVAL_SECONDS", "60")
+    env.setdefault("CDP_AZURE_DI_SLOT_PATH", "/tmp/cdp-azure-di-slot")
     env.setdefault(
         "CDP_AZURE_DI_METER_PATH",
         str(ROOT / "evaluation_results" / "azure_di_meter.jsonl"),
@@ -946,6 +950,8 @@ def main() -> int:
         # Last-resort only (after near-miss/LightGlue). Blind REG was 8/100
         # terminal AZURE_DI_PAGE_CORNERS_DISABLED_LOW_COST with corners off.
         "CDP_AZURE_DI_PAGE_CORNERS": "1",
+        "CDP_AZURE_DI_MIN_INTERVAL_SECONDS": "60",
+        "CDP_AZURE_DI_SLOT_PATH": "/tmp/cdp-azure-di-slot",
         "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",
         "CDP_OCR_NAME_CONFIRM_MIN_CONF": "0.80",
         # Freeform REG pages: DI page text + optional gpt-4o text agent.

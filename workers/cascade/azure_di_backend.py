@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 import re
 import time
+from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -21,10 +22,64 @@ from workers.cascade.azure_read_adapter import AzureReadEvidence
 
 # Azure F0 message typically says "Please retry after 55 seconds."
 _DEFAULT_429_WAIT_SECONDS = 55.0
+_DEFAULT_MIN_INTERVAL_SECONDS = 60.0
 _RETRY_AFTER_RE = re.compile(
     r"retry\s+after\s+(\d+(?:\.\d+)?)\s*second",
     re.IGNORECASE,
 )
+
+
+def azure_di_min_interval_seconds() -> float:
+    """Minimum gap between analyze transactions. F0 allows one per minute."""
+    raw = (os.environ.get("CDP_AZURE_DI_MIN_INTERVAL_SECONDS") or "").strip()
+    if not raw:
+        return _DEFAULT_MIN_INTERVAL_SECONDS
+    try:
+        return max(0.0, float(raw))
+    except ValueError:
+        return _DEFAULT_MIN_INTERVAL_SECONDS
+
+
+def azure_di_slot_path() -> Path:
+    raw = (os.environ.get("CDP_AZURE_DI_SLOT_PATH") or "").strip()
+    return Path(raw) if raw else Path("/tmp/cdp-azure-di-slot")
+
+
+def wait_for_azure_di_slot(
+    *,
+    interval_seconds: float,
+    sleeper,
+    now=time.time,
+    slot_path: Path | None = None,
+) -> None:
+    """Block until this process may send one new analyze request.
+
+    Spawn workers do not share memory, so the timestamp lives in a file lock.
+    Polls of an in-flight operation are not new transactions.
+    """
+    if interval_seconds <= 0:
+        return
+    path = slot_path or azure_di_slot_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    import fcntl
+
+    with path.open("a+") as handle:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        handle.seek(0)
+        raw = handle.read().strip()
+        try:
+            last = float(raw) if raw else 0.0
+        except ValueError:
+            last = 0.0
+        current = float(now())
+        delay = interval_seconds - (current - last)
+        if delay > 0:
+            sleeper(delay)
+            current = float(now())
+        handle.seek(0)
+        handle.truncate()
+        handle.write(f"{current:.6f}")
+        handle.flush()
 
 
 def _env_float(name: str, default: float) -> float:
@@ -94,7 +149,9 @@ class AzureDocumentIntelligenceReadBackend:
         opener=None,
         rate_limit_retries: int | None = None,
         rate_limit_wait_seconds: float | None = None,
+        min_interval_seconds: float | None = None,
         sleeper=None,
+        clock=None,
     ) -> None:
         self._endpoint = endpoint.rstrip("/")
         self._api_key = api_key
@@ -116,6 +173,12 @@ class AzureDocumentIntelligenceReadBackend:
             else _env_float("CDP_AZURE_DI_429_WAIT_SECONDS", _DEFAULT_429_WAIT_SECONDS)
         )
         self._sleeper = sleeper or time.sleep
+        self._clock = clock or time.time
+        self._min_interval_seconds = (
+            float(min_interval_seconds)
+            if min_interval_seconds is not None
+            else azure_di_min_interval_seconds()
+        )
 
     def analyze(self, image_bytes: bytes) -> AzureReadEvidence:
         if not image_bytes:
@@ -127,6 +190,11 @@ class AzureDocumentIntelligenceReadBackend:
         """Return the full Azure DI analyze payload (pages/polygons included)."""
         if not image_bytes:
             return {}
+        wait_for_azure_di_slot(
+            interval_seconds=self._min_interval_seconds,
+            sleeper=self._sleeper,
+            now=self._clock,
+        )
         operation = self._start_analyze(image_bytes)
         return self._poll_result(operation)
 
