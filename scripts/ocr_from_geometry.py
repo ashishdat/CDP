@@ -759,6 +759,71 @@ def _maybe_gpt4o_charge_crop(image, bbox, *, prior_candidates=None):
         promoted.reason,
     )
 
+
+def _merge_gpt4o_line_charge(
+    image,
+    bbox,
+    *,
+    value,
+    raw,
+    candidates,
+    attempts,
+    reason,
+):
+    """Attach gpt-4o crop residual to a service-line charge cell.
+
+    Passes local OCR priors so the model confirms observed ink instead of
+    abstaining on sparse crops. Always records the attempt (including abstain)
+    so SINGLE_LINE_REQUIRES_DI failures stay diagnosable.
+    """
+    prior = []
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        seed = (cand.get('value') or cand.get('raw_value') or '').strip()
+        if seed:
+            prior.append(seed)
+    if value and str(value).strip() and str(value).strip() not in prior:
+        prior.insert(0, str(value).strip())
+    g_value, g_raw, g_cands, g_reason = _maybe_gpt4o_charge_crop(
+        image, bbox, prior_candidates=prior[:4]
+    )
+    attempts = list(attempts or []) + [{
+        'engine': 'azure_gpt4o_crop',
+        'reason': g_reason or 'CHARGE_GPT4O_ATTEMPTED',
+        'observation': {'text': (g_raw or g_value or '')},
+    }]
+    if not g_value:
+        return value, raw, candidates, attempts, reason
+
+    from packages.claim_evidence.line_sum_authority import amounts_corroborate
+
+    if not value:
+        value = g_value
+        raw = g_raw or raw
+        candidates = list(candidates or []) + list(g_cands or [])
+        reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CROP'
+    elif amounts_corroborate(value, g_value):
+        # Digit-drop twin: prefer the longer read when gpt-4o recovered
+        # trailing digits (622→6225, 643→6430).
+        preferred = prefer_currency_without_digit_drop(value, g_value)
+        if preferred and preferred == g_value and preferred != value:
+            value = g_value
+            raw = g_raw or raw
+            candidates = list(g_cands or []) + list(candidates or [])
+            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_DIGIT_DROP'
+        else:
+            if g_cands:
+                candidates = list(candidates or []) + list(g_cands)
+            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED'
+    else:
+        # Non-twin local vs shaped gpt-4o: prefer gpt-4o ink.
+        value = g_value
+        raw = g_raw or raw
+        candidates = list(g_cands or []) + list(candidates or [])
+        reason = f'{reason}|{g_reason}|CHARGE_GPT4O_OVERRIDE'
+    return value, raw, candidates, attempts, reason
+
 def recognize_service_lines(image, router, template):
     """OCR CMS-1500 service-line charge cells for claim-total E6 confirmation."""
     table = getattr(template, 'service_line_region', None) if template is not None else None
@@ -960,11 +1025,13 @@ def recognize_service_lines(image, router, template):
                     'reason': 'CHARGE_DI_SERVICE_LINE_BUDGET_EXHAUSTED',
                 }]
             # gpt-4o line-charge residual: empty after DI, single-engine local,
-            # or digit-drop twins (hard-15 charge hole).
+            # or digit-drop twins (hard-15 charge hole). Empty box-28 E6 depends
+            # on this corroboration — pass local priors so the crop confirms ink
+            # instead of abstaining on a sparse cell.
             need_gpt4o = False
             gpt4o_on = (os.environ.get('CDP_GPT4O_CROP_RESIDUAL') or '1').strip().casefold()
             if gpt4o_on not in {'0', 'false', 'no', 'off'}:
-                if not value and not probe_empty or value and len(unique_vals) < 2 or need_gpt4o_twin:
+                if (not value and not probe_empty) or (value and len(unique_vals) < 2) or need_gpt4o_twin:
                     need_gpt4o = True
                 elif need_di and not any(
                     'document_intelligence' in str(c.get('engine') or '').casefold()
@@ -973,43 +1040,15 @@ def recognize_service_lines(image, router, template):
                     # DI was needed but did not contribute a candidate.
                     need_gpt4o = True
             if need_gpt4o:
-                g_value, g_raw, g_cands, g_reason = _maybe_gpt4o_charge_crop(
-                    image, bbox, prior_candidates=None
+                value, raw, candidates, attempts, reason = _merge_gpt4o_line_charge(
+                    image,
+                    bbox,
+                    value=value,
+                    raw=raw,
+                    candidates=candidates,
+                    attempts=attempts,
+                    reason=reason,
                 )
-                if g_value:
-                    from packages.claim_evidence.line_sum_authority import (
-                        amounts_corroborate,
-                    )
-
-                    if not value:
-                        value = g_value
-                        raw = g_raw or raw
-                        candidates = list(candidates or []) + list(g_cands or [])
-                        reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CROP'
-                    elif amounts_corroborate(value, g_value):
-                        # Digit-drop twin: prefer the longer read when gpt-4o
-                        # recovered trailing digits (622→6225, 643→6430).
-                        preferred = prefer_currency_without_digit_drop(value, g_value)
-                        if preferred and preferred == g_value and preferred != value:
-                            value = g_value
-                            raw = g_raw or raw
-                            candidates = list(g_cands or []) + list(candidates or [])
-                            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_DIGIT_DROP'
-                        else:
-                            if g_cands:
-                                candidates = list(candidates or []) + list(g_cands)
-                            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED'
-                    else:
-                        # Non-twin local vs shaped gpt-4o: prefer gpt-4o ink.
-                        value = g_value
-                        raw = g_raw or raw
-                        candidates = list(g_cands or []) + list(candidates or [])
-                        reason = f'{reason}|{g_reason}|CHARGE_GPT4O_OVERRIDE'
-                    attempts = list(attempts or []) + [{
-                        'engine': 'azure_gpt4o_crop',
-                        'reason': g_reason,
-                        'observation': {'text': g_raw or g_value},
-                    }]
             score = 0
             if value:
                 score = 3 if '.' in value else 2
@@ -1087,6 +1126,25 @@ def recognize_service_lines(image, router, template):
                 if lines:
                     break
                 continue
+            # Single-engine fallback lines still need gpt-4o corroboration for
+            # empty-box-28 LINE_TOTALS AUTO (SINGLE_LINE_GPT4O_LOCAL).
+            gpt4o_on = (os.environ.get('CDP_GPT4O_CROP_RESIDUAL') or '1').strip().casefold()
+            if gpt4o_on not in {'0', 'false', 'no', 'off'} and bbox is not None:
+                shaped_engines = {
+                    str(c.get('engine') or '')
+                    for c in (candidates or [])
+                    if isinstance(c, dict) and (c.get('value') or '').strip()
+                }
+                if len(shaped_engines) < 2:
+                    value, raw, candidates, attempts, reason = _merge_gpt4o_line_charge(
+                        image,
+                        bbox,
+                        value=value,
+                        raw=raw,
+                        candidates=candidates,
+                        attempts=attempts,
+                        reason=reason,
+                    )
             lines.append({
                 'line_number': row_index + 1,
                 'charges': value,

@@ -162,6 +162,28 @@ def test_gap_taxonomy_empty_name_stays_unreadable():
     assert gap.gap_class == "HANDWRITING_UNREADABLE"
 
 
+def test_gap_taxonomy_line_sum_uncorroborated_vs_truly_empty_charge():
+    with_lines = classify_field_gap(
+        "total_charge",
+        observed_text="",
+        accepted=False,
+        reason_codes=["NO_NONEMPTY_CANDIDATE", "LINE_TOTALS_UNCORROBORATED"],
+        service_line_charges=1,
+    )
+    assert with_lines is not None
+    assert with_lines.gap_class == "LINE_SUM_UNCORROBORATED"
+
+    empty = classify_field_gap(
+        "total_charge",
+        observed_text="",
+        accepted=False,
+        reason_codes=["NO_NONEMPTY_CANDIDATE", "EMPTY_CROP"],
+        service_line_charges=0,
+    )
+    assert empty is not None
+    assert empty.gap_class == "EMPTY_FINANCIAL_INK"
+
+
 def test_gap_taxonomy_marks_header_only_dob_as_handwriting():
     gap = classify_field_gap(
         "patient_dob",

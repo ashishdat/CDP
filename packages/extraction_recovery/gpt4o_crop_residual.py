@@ -49,6 +49,7 @@ _NAME_GAPS = frozenset(
 _CHARGE_GAPS = frozenset(
     {
         "EMPTY_FINANCIAL_INK",
+        "LINE_SUM_UNCORROBORATED",
         "CHARGE_LOCAL_EXHAUSTED",
         "CHARGE_DIGIT_CONFLICT",
         "AMBIGUOUS_DIGIT_FRAGMENTS",

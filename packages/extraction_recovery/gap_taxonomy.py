@@ -119,8 +119,8 @@ def classify_field_gap(
     if name in {"total_charge", "total_charges", "charges"}:
         if service_line_charges > 0:
             return _pack(
-                "EMPTY_FINANCIAL_INK",
-                f"box-28 empty/invalid; {service_line_charges} observed line charge(s) available for sum",
+                "LINE_SUM_UNCORROBORATED",
+                f"box-28 empty/invalid; {service_line_charges} observed line charge(s) need dual-engine or gpt-4o corroboration",
             )
         if text and any(tok in text.upper() for tok in ("NPI", "NATIONAL")):
             return _pack("NPI_CONTAMINATED_CHARGE", f"charge crop contaminated ({text!r})")

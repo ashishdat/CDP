@@ -113,12 +113,14 @@ def plan_field_escalation(
         "CHARGE_LOCAL_EXHAUSTED",
         "CHARGE_DIGIT_CONFLICT",
         "AMBIGUOUS_CHARGE_DIGITS",
+        "LINE_SUM_UNCORROBORATED",
     } or (
         field in {"total_charge", "total_charges", "charges", "charge_amount"}
         and gap == "AMBIGUOUS_DIGIT_FRAGMENTS"
     ):
         # Service-line / box-28 crop residual after local fast+paddle/rapid.
-        # Prefer Azure DI crop (cheap) over Docling/full-page; never common path.
+        # Prefer Azure DI crop when enabled; otherwise gpt-4o crop (empty box-28
+        # line-sum path). Never Docling on the common path.
         charge_di_on = bool(policy.get("azure_document_intelligence_enabled", False))
         # Env can disable charge crops independently of DOB/corners.
         import os
@@ -135,15 +137,30 @@ def plan_field_escalation(
                 "Charge cell residual — Azure DI prebuilt-read crop after local verify",
                 review_only=di_review_only,
             )
+        if policy.get("azure_ai_cascade_enabled"):
+            return EscalationDecision(
+                EscalationTool.AZURE_GPT4O,
+                "Charge cell residual — Azure gpt-4o crop after local verify",
+                review_only=bool(policy.get("azure_review_only_until_promoted", True)),
+            )
         return EscalationDecision(
             EscalationTool.REACT_FIELD_HITL,
-            "Charge residual without Azure DI — field-scoped human entry",
+            "Charge residual without DI/gpt-4o — field-scoped human entry",
             review_only=True,
         )
 
     if gap == "EMPTY_FINANCIAL_INK" or (
         field in {"total_charge", "total_charges", "charges"} and empty_financial_ink
     ):
+        # Observed service-line ink: gpt-4o crop is the empty-box-28 arbitrator
+        # (line-sum AUTO via SINGLE_LINE_GPT4O_LOCAL). Do not escalate to Docling
+        # when lines already exist — that invents structure, not corroboration.
+        if not service_line_rows_missing and policy.get("azure_ai_cascade_enabled"):
+            return EscalationDecision(
+                EscalationTool.AZURE_GPT4O,
+                "Empty box-28 with observed line charges — Azure gpt-4o crop corroboration",
+                review_only=bool(policy.get("azure_review_only_until_promoted", True)),
+            )
         docling_ok = should_run_docling(
             DoclingRouteInput(
                 table_detected=table_detected or True,

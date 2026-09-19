@@ -139,8 +139,5 @@ def test_tool_escalation_maps_gaps_to_stack():
         table_detected=False,
         template_extraction_failed=False,
     )
-    # Without table-failure Docling gate, Azure DI is preferred cloud OCR.
-    assert charge_no_docling.tool in {
-        EscalationTool.DOCLING,
-        EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ,
-    }
+    # Observed line charges + empty box-28 → gpt-4o crop corroboration (not Docling).
+    assert charge_no_docling.tool == EscalationTool.AZURE_GPT4O

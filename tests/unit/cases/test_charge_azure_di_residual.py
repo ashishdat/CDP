@@ -64,7 +64,8 @@ def test_is_charge_local_residual_gates():
     )
 
 
-def test_planner_selects_azure_di_for_charge_crop():
+def test_planner_selects_azure_di_for_charge_crop(monkeypatch):
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
     decision = plan_field_escalation(
         gap_class="CHARGE_LOCAL_EXHAUSTED",
         field_name="charges",
@@ -74,7 +75,8 @@ def test_planner_selects_azure_di_for_charge_crop():
     assert decision.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
 
 
-def test_planner_charge_conflict_before_docling():
+def test_planner_charge_conflict_before_docling(monkeypatch):
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
     decision = plan_field_escalation(
         gap_class="CHARGE_DIGIT_CONFLICT",
         field_name="total_charge",
@@ -83,6 +85,18 @@ def test_planner_charge_conflict_before_docling():
         azure_di_attempted=False,
     )
     assert decision.tool == EscalationTool.AZURE_DOCUMENT_INTELLIGENCE_READ
+
+
+def test_planner_prefers_gpt4o_when_charge_di_disabled(monkeypatch):
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
+    decision = plan_field_escalation(
+        gap_class="LINE_SUM_UNCORROBORATED",
+        field_name="total_charge",
+        regional_ocr_attempted=True,
+        empty_financial_ink=True,
+        azure_di_attempted=False,
+    )
+    assert decision.tool == EscalationTool.AZURE_GPT4O
 
 
 def test_run_charge_azure_di_with_injected_engine(monkeypatch):

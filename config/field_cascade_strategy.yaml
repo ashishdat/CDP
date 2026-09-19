@@ -178,5 +178,9 @@ gap_classes:
     action: Calendar-valid / format-valid value held for calibrated confidence; corroboration relief or HITL.
   EMPTY_FINANCIAL_INK:
     action: Keep HITL unless LINE_TOTALS_RECONCILED from observed service-line charges.
+  LINE_SUM_UNCORROBORATED:
+    action: >
+      Box-28 empty but line charges observed — run gpt-4o crop on line cells for
+      SINGLE_LINE_GPT4O_LOCAL / dual-engine corroboration; HITL if still single-engine.
   NPI_CONTAMINATED_CHARGE:
     action: Keep empty / HITL; never accept $1.00 NPI bleed as claim total.
