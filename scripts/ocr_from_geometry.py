@@ -1847,9 +1847,13 @@ def recognize_service_lines(image, router, template):
                     value = None
             if geometry_confirmed and value:
                 score += 5
-            # Cross-window ink preference: keep prior best when new value is
-            # units/ruling bleed around the same dollar stem.
-            if best is not None and value and best.get('charges'):
+            # A validated cents-column read must not lose to a clipped window
+            # that shape_monetary turned into a different .00 amount.
+            if best is not None and best.get('_geometry') and not geometry_confirmed:
+                score = min(score, int(best.get('_score') or 0) - 1)
+            elif best is not None and value and best.get('charges') and not (
+                geometry_confirmed and not best.get('_geometry')
+            ):
                 try:
                     from packages.ocr_portfolio import prefer_charge_ink_amount
                     from packages.ocr_portfolio.monetary_recognizer import (
@@ -1878,6 +1882,7 @@ def recognize_service_lines(image, router, template):
                 'router_reason': reason,
                 'status': 'OBSERVED' if value else 'NO_VALUE',
                 '_score': score,
+                '_geometry': geometry_confirmed,
             }
             if best is None or candidate['_score'] > best['_score']:
                 best = candidate
@@ -1885,6 +1890,7 @@ def recognize_service_lines(image, router, template):
                 break
         assert best is not None
         best.pop('_score', None)
+        best.pop('_geometry', None)
         if best.get('status') != 'OBSERVED':
             if any(l.get('status') == 'OBSERVED' for l in lines):
                 # End of live block — do not emit the empty sentinel.

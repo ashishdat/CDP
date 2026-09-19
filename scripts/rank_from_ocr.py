@@ -17,6 +17,8 @@ def _prefer_fuller_self_patient(report: dict) -> None:
     Does not invent characters. Non-Self relationships are left unchanged.
     """
     from packages.geometry_authority.form_redundancy import (
+        names_agree,
+        normalize_person_name,
         prefer_fuller_self_name,
         relationship_is_self,
     )
@@ -43,6 +45,19 @@ def _prefer_fuller_self_patient(report: dict) -> None:
     for row in patients:
         cand = row.get("ocr_candidate") or {}
         observed.append(str(cand.get("value") or ""))
+    chosen = prefer_fuller_self_name(observed, insured)
+    if not chosen:
+        return
+    for row in patients:
+        cand = row.get("ocr_candidate") or {}
+        raw = str(cand.get("raw_value") or "")
+        val = str(cand.get("value") or "")
+        if not raw or not names_agree(raw, insured):
+            continue
+        if len(normalize_person_name(raw).split()) > len(normalize_person_name(val).split()):
+            cand["value"] = raw
+    # Recompute from updated values so the accepted string is the fuller one.
+    observed = [str((row.get("ocr_candidate") or {}).get("value") or "") for row in patients]
     chosen = prefer_fuller_self_name(observed, insured)
     if not chosen:
         return
