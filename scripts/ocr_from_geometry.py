@@ -110,6 +110,19 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
             else:
                 updated.append(row)
             continue
+        if key in {"patient_name", "insured_name"}:
+            # gpt-4o is the handwriting / engine-conflict arbitrator for names.
+            if gpt4o_on not in {"0", "false", "no", "off"}:
+                updated.append(
+                    maybe_attach_gpt4o_crop_to_field_row(
+                        row,
+                        image=image,
+                        gap_class="HANDWRITING_UNREADABLE",
+                    )
+                )
+            else:
+                updated.append(row)
+            continue
         if key not in {"patient_dob", "date_of_birth"}:
             updated.append(row)
             continue

@@ -210,6 +210,23 @@ def plan_field_escalation(
             review_only=True,
         )
 
+    if gap in {"HANDWRITING_UNREADABLE", "NAME_ENGINE_CONFLICT"} and field in {
+        "patient_name",
+        "insured_name",
+    }:
+        # gpt-4o crop is the handwriting / conflict arbitrator for person names.
+        if policy.get("azure_ai_cascade_enabled"):
+            return EscalationDecision(
+                EscalationTool.AZURE_GPT4O,
+                "Name ink residual — Azure gpt-4o crop cascade",
+                review_only=bool(policy.get("azure_review_only_until_promoted", True)),
+            )
+        return EscalationDecision(
+            EscalationTool.REACT_FIELD_HITL,
+            "Name ink residual without gpt-4o — React field HITL",
+            review_only=True,
+        )
+
     if gap == "CALIBRATION_HITL":
         return EscalationDecision(
             EscalationTool.REACT_FIELD_HITL,

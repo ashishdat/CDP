@@ -168,6 +168,8 @@ gap_classes:
     action: Registration recovery ladder or human registration; field cascade not applicable.
   HANDWRITING_UNREADABLE:
     action: Keep HITL; needs scan/ROI quality, handwriting model, or human entry.
+  NAME_ENGINE_CONFLICT:
+    action: gpt-4o crop residual to arbitrate local OCR name conflict; HITL if still unresolved.
   AMBIGUOUS_DIGIT_FRAGMENTS:
     action: Prefer crop/span repair; HITL if no unique calendar-valid date.
   DOB_SEPARATOR_ARTIFACT:

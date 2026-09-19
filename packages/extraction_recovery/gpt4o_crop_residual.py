@@ -1,11 +1,11 @@
-"""Crop-scoped Azure gpt-4o residual for DOB / member-ID / box-28 charge HITL.
+"""Crop-scoped Azure gpt-4o residual for DOB / member-ID / name / box-28 charge.
 
 Runs only after local Rapid→Paddle/Tesseract (and DOB TrOCR→Azure DI) leave
-the field unshaped, ID-chrome contaminated, or with same-length digit
-conflicts between local engines. For charges, runs when local + Azure DI leave
-box-28 empty/unshaped. Crop-only evidence — never a full-page vision call.
-Accepts when the value is date-/ID-/currency-shaped and the model does not
-abstain.
+the field unshaped, ID-chrome contaminated, with same-length digit conflicts,
+or with genuine person-name engine conflicts. For charges, runs when local +
+Azure DI leave box-28 empty/unshaped. Crop-only evidence — never a full-page
+vision call. Accepts when the value is date-/ID-/name-/currency-shaped and the
+model does not abstain.
 
 Bakeoff (hard-150 FIELD_INK HITL, 26 docs): DOB shaped 16/17, ID shaped 14/14,
 mean ~2.0s/call. See docs/metrics/dob_id_hitl_techstack_v12_3n.md.
@@ -28,6 +28,7 @@ from packages.extraction_recovery.span_selection import select_field_span
 
 _DOB_FIELDS = frozenset({"patient_dob", "date_of_birth"})
 _ID_FIELDS = frozenset({"insured_id_number", "member_id", "subscriber_id"})
+_NAME_FIELDS = frozenset({"patient_name", "insured_name"})
 _CHARGE_FIELDS = frozenset(
     {"total_charge", "total_charges", "charges", "charge_amount"}
 )
@@ -36,6 +37,15 @@ _ID_CHROME = re.compile(
     re.IGNORECASE,
 )
 _HANDWRITING_GAPS = frozenset({"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS", ""})
+_NAME_GAPS = frozenset(
+    {
+        "HANDWRITING_UNREADABLE",
+        "NAME_ENGINE_CONFLICT",
+        "EVIDENCE_POLICY_GAP",
+        "CALIBRATION_HITL",
+        "",
+    }
+)
 _CHARGE_GAPS = frozenset(
     {
         "EMPTY_FINANCIAL_INK",
@@ -153,6 +163,27 @@ def _shape_charge(raw: str | None) -> tuple[str | None, bool]:
     return amount, ok
 
 
+def _shape_name(field_name: str, raw: str | None) -> tuple[str | None, bool]:
+    """Person-name shape from gpt-4o crop text (handwriting / engine conflict)."""
+    text = _normalize(raw)
+    if not text:
+        return None, False
+    span = select_field_span(text, "PERSON_NAME", field_name)
+    selected = _normalize(span.selected_text) or text
+    # Strip common CMS-1500 label bleed.
+    selected = re.sub(
+        r"\b(PATIENT|NAME|INSURED|FIRST|LAST|MI|MIDDLE)\b",
+        " ",
+        selected or "",
+        flags=re.IGNORECASE,
+    )
+    selected = _normalize(selected)
+    if not selected:
+        return None, False
+    ok = bool(selected) and semantic_accept(field_name, selected)[0]
+    return selected, ok
+
+
 def charge_needs_gpt4o(
     *,
     local_accepted: bool,
@@ -245,6 +276,63 @@ def dob_needs_gpt4o(
     }
 
 
+def name_local_engine_conflict(candidates: list[Mapping[str, Any]] | None) -> bool:
+    """True when ≥2 local name engines disagree beyond soft-equivalence."""
+    if not candidates:
+        return False
+    from packages.candidate_reconciliation.reconciler import values_conflict_equivalent
+
+    shaped: list[str] = []
+    for cand in candidates:
+        engine = str(cand.get("engine") or "")
+        if "gpt4o" in engine.casefold() or "gpt-4o" in engine.casefold():
+            continue
+        raw = cand.get("value") or cand.get("text")
+        text = _normalize(str(raw or ""))
+        if not text:
+            continue
+        if not semantic_accept("patient_name", text)[0]:
+            continue
+        if text not in shaped:
+            shaped.append(text)
+    if len(shaped) < 2:
+        return False
+    for i, left in enumerate(shaped):
+        for right in shaped[i + 1 :]:
+            if not values_conflict_equivalent("patient_name", left, right):
+                return True
+    return False
+
+
+def name_needs_gpt4o(
+    *,
+    local_accepted: bool,
+    candidates: list[Mapping[str, Any]] | None = None,
+    gap_class: str | None = None,
+) -> bool:
+    """Run gpt-4o on name crops for unread ink or genuine local engine conflict.
+
+    Cascade may accept a shaped primary while paddle/rapid still disagree
+    (CONFLICT_MARGIN later). Those conflicts need a crop vision arbitrator —
+    not another local OCR pass.
+    """
+    if name_local_engine_conflict(candidates):
+        return True
+    gap = (gap_class or "").upper()
+    if gap in _NAME_GAPS and not local_accepted:
+        return True
+    if not local_accepted:
+        # Empty / unshaped local name ink.
+        has_shaped = False
+        for cand in candidates or []:
+            text = _normalize(str(cand.get("value") or cand.get("text") or ""))
+            if text and semantic_accept("patient_name", text)[0]:
+                has_shaped = True
+                break
+        return not has_shaped
+    return False
+
+
 def _crop_image(image: Image.Image, bbox: tuple[int, int, int, int]) -> Image.Image:
     x0, y0, x1, y1 = bbox
     pad = 10
@@ -329,6 +417,8 @@ class _AzureGpt4oCropRecognizer:
                 shaped_val, shaped = _shape_dob(raw)
             elif name.casefold() in _ID_FIELDS:
                 shaped_val, shaped = _shape_id(raw)
+            elif name.casefold() in _NAME_FIELDS:
+                shaped_val, shaped = _shape_name(name, raw)
             elif name.casefold() in _CHARGE_FIELDS:
                 shaped_val, shaped = _shape_charge(raw)
             else:
@@ -408,7 +498,12 @@ def run_gpt4o_crop_residual(
             reason="GPT4O_CROP_DISABLED",
         )
     name = (field_name or "").casefold()
-    if name not in _DOB_FIELDS and name not in _ID_FIELDS and name not in _CHARGE_FIELDS:
+    if (
+        name not in _DOB_FIELDS
+        and name not in _ID_FIELDS
+        and name not in _NAME_FIELDS
+        and name not in _CHARGE_FIELDS
+    ):
         return Gpt4oCropResidualResult(
             attempted=False,
             configured=True,
@@ -435,6 +530,18 @@ def run_gpt4o_crop_residual(
         )
         # Do not append prior OCR for charges — priors anchored wrong digit
         # reads (222 vs 233) and false dual-engine corroboration.
+    elif name in _NAME_FIELDS:
+        ftype = "text"
+        which = "patient" if "patient" in name else "insured"
+        desc = (
+            f"CMS-1500 handwritten or typed {which} person name cell. "
+            "Read the person's name only (LAST FIRST or FIRST LAST as written). "
+            "Ignore printed labels like PATIENT NAME, INSURED NAME, FIRST, LAST, "
+            "MI. Prefer the spacing and token order that matches the ink. "
+            "Abstain if the crop has no name ink."
+        )
+        if prior:
+            desc += " Prior OCR saw: " + " | ".join(prior[:4]) + "."
     else:
         desc = (
             "Handwritten or typed CMS-1500 box 1a insured/member ID. "
@@ -571,7 +678,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
     gap_class: str | None = None,
     engine: Gpt4oCropRecognizer | None = None,
 ) -> dict[str, Any]:
-    """Attach gpt-4o crop residual for DOB (post DI), weak/chrome ID, or charge."""
+    """Attach gpt-4o crop residual for DOB, ID, name conflict/ink, or charge."""
     updated = dict(field_row)
     name = str(field_row.get("field") or "")
     key = name.casefold()
@@ -613,6 +720,13 @@ def maybe_attach_gpt4o_crop_to_field_row(
             cascade_value,
             accepted=local_accepted,
             candidates=list(field_row.get("candidates") or []),
+        ):
+            return updated
+    elif key in _NAME_FIELDS:
+        if not name_needs_gpt4o(
+            local_accepted=local_accepted,
+            candidates=list(field_row.get("candidates") or []),
+            gap_class=gap_class,
         ):
             return updated
     elif key in _CHARGE_FIELDS:

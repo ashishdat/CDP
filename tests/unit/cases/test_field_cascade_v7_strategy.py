@@ -135,6 +135,22 @@ def test_gap_taxonomy_marks_observed_name_policy_hold_not_handwriting():
     assert "CAMARATO" not in gap.evidence
 
 
+def test_gap_taxonomy_marks_name_conflict_not_handwriting():
+    gap = classify_field_gap(
+        "patient_name",
+        observed_text="THOMAS DARLENE",
+        accepted=False,
+        reason_codes=[
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CONFLICT_MARGIN_TOO_SMALL",
+        ],
+    )
+    assert gap is not None
+    assert gap.gap_class == "NAME_ENGINE_CONFLICT"
+    assert "THOMAS" not in gap.evidence
+
+
 def test_gap_taxonomy_empty_name_stays_unreadable():
     gap = classify_field_gap(
         "patient_name",

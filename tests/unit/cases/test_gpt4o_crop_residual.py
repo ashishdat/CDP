@@ -349,3 +349,59 @@ def test_attach_charge_promotes_shaped_box28(monkeypatch):
     assert updated["cascade"]["value"] == "233.00"
     assert updated["gpt4o_crop_residual"]["shaped"] is True
     assert updated["candidates"][0]["engine"] == "azure_gpt4o_crop"
+
+def test_name_conflict_triggers_gpt4o_and_accepts_shaped(monkeypatch):
+    from packages.extraction_recovery.gpt4o_crop_residual import name_needs_gpt4o
+
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
+    conflict_cands = [
+        {"value": "THOMAS.DARLENE.M", "engine": "paddleocr"},
+        {"value": "THOMAS, DARLENE", "engine": "rapidocr"},
+    ]
+    assert name_needs_gpt4o(
+        local_accepted=True,
+        candidates=conflict_cands,
+        gap_class=None,
+    )
+    assert not name_needs_gpt4o(
+        local_accepted=True,
+        candidates=[
+            {"value": "THOMAS DARLENE", "engine": "paddleocr"},
+            {"value": "THOMAS DARLENE", "engine": "rapidocr"},
+        ],
+    )
+    img = Image.new("RGB", (240, 80), color=(255, 255, 255))
+    engine = _FakeEngine(
+        {
+            "patient_name": Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value="THOMAS DARLENE",
+                raw_value="THOMAS DARLENE",
+                shaped=True,
+                insufficient_evidence=False,
+                reason="GPT4O_SHAPED",
+                confidence=0.98,
+            )
+        }
+    )
+    row = {
+        "field": "patient_name",
+        "canonical_region": [10, 10, 200, 70],
+        "ocr_region": [10, 10, 200, 70],
+        "candidates": conflict_cands,
+        "cascade": {
+            "accepted": True,
+            "accept_reason": "NAME_SHAPED",
+            "value": "THOMAS.DARLENE.M",
+        },
+    }
+    updated = maybe_attach_gpt4o_crop_to_field_row(
+        row, image=img, gap_class="NAME_ENGINE_CONFLICT", engine=engine
+    )
+    assert updated["gpt4o_crop_residual"]["shaped"] is True
+    assert updated["cascade"]["accepted"] is True
+    assert updated["cascade"]["value"] == "THOMAS DARLENE"
+    assert updated["candidates"][0]["engine"] == "azure_gpt4o_crop"

@@ -89,6 +89,18 @@ def classify_field_gap(
             f"value observed; evidence policy still unsatisfied ({held})",
         )
 
+    # Observed name ink with engine conflict is not "unread handwriting" —
+    # local OCR already saw letters; gpt-4o crop is the conflict arbitrator.
+    if (
+        name in {"patient_name", "insured_name"}
+        and text
+        and "CONFLICT_MARGIN_TOO_SMALL" in reasons
+    ):
+        return _pack(
+            "NAME_ENGINE_CONFLICT",
+            "local OCR engines disagree on observed name ink",
+        )
+
     if name in {"patient_dob", "date_of_birth"}:
         if not text:
             return _pack("HANDWRITING_UNREADABLE", "no DOB OCR ink in crop ladder / cells")
