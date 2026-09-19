@@ -235,14 +235,14 @@ fields:
       Box 11a insured DOB. Used with Box 3 under Self for independent DOB
       corroboration — never fused with service-date or signature-date crops.
   total_charge:
-    crop_ladder: [primary, charge_npi_cleared, charge_taller]
+    crop_ladder: [primary, box28_tight, charge_taller, charge_npi_cleared]
     accept: CURRENCY_SHAPED
     reject: [CURRENCY_LEADING_MINUS, CURRENCY_SUSPICIOUS_TINY, EMPTY]
     completion: [LINE_TOTALS_RECONCILED]
     notes: >
-      Currency confusable repair on observed glyphs; line-sum when box-28 empty.
-      Corroboration stack: paddle+rapid dual-engine, else gpt-4o+local, else HITL.
-      Azure DI charge and PP-OCRv5 are off by default.
+      Box 28 value-only primary + tight right band. Accept only when Box 28
+      corroborates line sum (DIRECT_TOTAL / BOX28_OR_DI). Dual-engine line
+      consensus alone is not AUTO. gpt-4o never sole monetary authority.
   patient_name:
     crop_ladder: [name_value_band, primary]
     accept: NAME_SHAPED

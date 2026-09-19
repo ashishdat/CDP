@@ -416,6 +416,18 @@ def crop_variants(
         variants.append(CropVariant("dob_year_wide", _clamp(year_wide, width, height), "DOB_YEAR_WIDE"))
 
     elif name in {"total_charge", "total_charges"}:
+        # Value-only primary already excludes the "28. TOTAL CHARGE" caption when
+        # ocr_from_geometry forces box28_value_only_bbox. Add a right-biased
+        # tight crop (avoids left $ / caption bleed) and a slightly taller band.
+        tight = (
+            max(primary[0], primary[0] + max(20, int(0.18 * (primary[2] - primary[0])))),
+            max(primary[1], primary[1] + 2),
+            primary[2],
+            primary[3],
+        )
+        variants.append(
+            CropVariant("box28_tight", _clamp(tight, width, height), "BOX28_TIGHT_VALUE")
+        )
         cleared = (
             max(primary[0], cell_box[0] + int(0.28 * cell_w)),
             max(primary[1], cell_box[1] + 2),
@@ -424,10 +436,10 @@ def crop_variants(
         )
         variants.append(CropVariant("charge_npi_cleared", _clamp(cleared, width, height), "CHARGE_NPI_CLEARED"))
         taller = (
-            max(primary[0], cell_box[0] + int(0.20 * cell_w)),
-            max(primary[1], cell_box[1] + 1),
-            min(primary[2], cell_box[2] - 1),
-            min(primary[3], cell_box[3] - 1),
+            primary[0],
+            max(0, primary[1] - 5),
+            primary[2],
+            min(height, primary[3] + 5),
         )
         variants.append(CropVariant("charge_taller", _clamp(taller, width, height), "CHARGE_TALLER"))
 
