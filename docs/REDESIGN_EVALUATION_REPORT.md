@@ -160,7 +160,20 @@ Units-bleed follow-up: `shape_monetary("2701.00")→270.00` and GPT merge keeps 
 
 Unit: `test_total_charge_recovery_regressions.py` + redesign stages + line_sum → **48+ passed**.
 
-Full 50-claim ops re-baseline still required for release-gate True STP ≥94%.
+### 50-claim ink-tune run is not an after metric
+
+`evaluation_results/hackathon_50_ink_tune_after` finished 2026-09-19 10:52 UTC, **before** the split-read commit (`723f457`, 10:53). It is not the post-fix 50-claim baseline.
+
+| | Baseline `hackathon_50_blind_cascade_v12_3x` | This run |
+|---|---|---|
+| Completed | 50/50 | **13/50** |
+| True STP | **2/50 (4%)** | 9/50, but **not comparable** |
+| HITL | 48 | 4 (completed only) |
+| Stage failure | 0 | **37** OCR `BrokenProcessPool` (all 35 DJJM + DJJF.014/015) |
+| total_charge blockers | 48 | 4, all `LINE_SUM_UNCORROBORATED` |
+| Dominant gap | EMPTY_FINANCIAL_INK ×47 | pool crash, not ink |
+
+On the 13 claims that finished, known pre-fix errors are still in the file: DJJF.002 HITL **`621.00`** (later smoke **`1160.00`**), DJJF.009 TRUE_STP **`2701.00`** (later smoke **`270.00`**), DJJF.006 HITL **`2701.00`**. Do not read 9/50 (18%) as True STP. The identical 50-claim rerun on current code is still required. Release gates are not met.
 
 ## Vision corroboration of the four residual blockers
 
