@@ -667,6 +667,248 @@ def _recognize_charge_digits_only(image, bbox):
     return candidates, attempts, 'CHARGE_DIGITS_FAST'
 
 
+def _recover_empty_monetary_crop(image, bbox, *, field_name='charges', claim_id=None):
+    """Image-evidence gate + monetary crop variants when primary OCR is empty.
+
+    Returns (value, candidates, attempts, reason, evidence_dict).
+    """
+    from packages.runtime_wiring import get_telemetry, stage_enabled
+
+    tel = get_telemetry()
+    x0, y0, x1, y1 = (int(v) for v in bbox)
+    crop = image.crop(
+        (max(0, x0), max(0, y0), min(image.width, x1), min(image.height, y1))
+    )
+    evidence = {}
+    with tel.track(
+        "image_evidence",
+        enabled=stage_enabled("CDP_IMAGE_EVIDENCE", "1"),
+        claim_id=claim_id,
+        field_name=field_name,
+        inputs={"bbox": list(bbox)},
+    ) as inv:
+        if inv.bypassed:
+            evidence = {"disposition": "BYPASSED"}
+        else:
+            from packages.image_evidence import analyze_roi
+
+            ev = analyze_roi(crop, ocr_empty=True, geometry_valid=True)
+            evidence = ev.to_dict()
+            inv.outputs = {
+                "disposition": ev.disposition.value,
+                "blank_probability": ev.blank_probability,
+                "ink_density": ev.ink_density,
+            }
+            if ev.disposition.value == "BLANK_CONFIRMED":
+                inv.fallback_reason = "BLANK_CONFIRMED"
+                return None, [], [{
+                    "engine": "image_evidence",
+                    "reason": "BLANK_CONFIRMED",
+                    "observation": evidence,
+                }], "BLANK_CONFIRMED", evidence
+
+    # Geometry authority — reject POS column bleed for charge fields.
+    with tel.track(
+        "geometry_authority",
+        enabled=stage_enabled("CDP_GEOMETRY_AUTHORITY", "1"),
+        claim_id=claim_id,
+        field_name=field_name,
+        inputs={"bbox": list(bbox)},
+    ) as inv:
+        if not inv.bypassed:
+            from packages.geometry_authority import charge_region_verdict
+
+            verdict = charge_region_verdict(
+                (float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])),
+                image_size=(image.width, image.height),
+            )
+            inv.outputs = {
+                "authorised": verdict.authorised,
+                "region": verdict.region,
+                "reason": verdict.reason,
+            }
+            if field_name.casefold() in {"charges", "charge_amount"} and not verdict.authorised:
+                inv.fallback_reason = verdict.reason
+                return None, [], [{
+                    "engine": "geometry_authority",
+                    "reason": verdict.reason,
+                    "observation": inv.outputs,
+                }], verdict.reason, evidence
+
+    attempts = []
+    candidates = []
+    selected = None
+    reason = "MONETARY_VARIANTS_EMPTY"
+
+    def _tess_engine(img):
+        import pytesseract
+
+        cfg = "--oem 3 --psm 8 -c tessedit_char_whitelist=0123456789,.$()-CR "
+        raw = pytesseract.image_to_string(img, config=cfg).strip()
+        return raw, 0.65
+
+    def _paddle_engine(img):
+        # Reuse cascade paddle via numpy array path if available.
+        try:
+            from workers.cascade.paddle_adapter import recognize as paddle_recognize
+        except Exception:
+            try:
+                from paddleocr import PaddleOCR
+
+                engine = getattr(_recover_empty_monetary_crop, "_paddle", None)
+                if engine is None:
+                    engine = PaddleOCR(use_angle_cls=False, lang="en", show_log=False)
+                    _recover_empty_monetary_crop._paddle = engine  # type: ignore[attr-defined]
+                result = engine.ocr(np.asarray(img.convert("RGB")), cls=False)
+                texts = []
+                confs = []
+                for block in result or []:
+                    for line in block or []:
+                        if line and len(line) >= 2:
+                            texts.append(str(line[1][0]))
+                            confs.append(float(line[1][1]))
+                return " ".join(texts), (sum(confs) / len(confs) if confs else 0.0)
+            except Exception as exc:  # noqa: BLE001
+                return "", 0.0
+        return paddle_recognize(img)
+
+    def _rapid_engine(img):
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+
+            engine = getattr(_recover_empty_monetary_crop, "_rapid", None)
+            if engine is None:
+                engine = RapidOCR()
+                _recover_empty_monetary_crop._rapid = engine  # type: ignore[attr-defined]
+            result, _ = engine(np.asarray(img.convert("RGB")))
+            texts, confs = [], []
+            for row in result or []:
+                if row and len(row) >= 2:
+                    texts.append(str(row[1]))
+                    confs.append(float(row[2]) if len(row) > 2 else 0.0)
+            return " ".join(texts), (sum(confs) / len(confs) if confs else 0.0)
+        except Exception:
+            return "", 0.0
+
+    engines = {
+        "tesseract_digits": _tess_engine,
+        "paddleocr": _paddle_engine,
+        "rapidocr": _rapid_engine,
+    }
+    max_variants = int((os.environ.get("CDP_MONETARY_MAX_VARIANTS") or "6").strip() or "6")
+
+    with tel.track(
+        "monetary_crop_variants",
+        enabled=stage_enabled("CDP_MONETARY_VARIANTS", "1"),
+        claim_id=claim_id,
+        field_name=field_name,
+        inputs={"bbox": list(bbox), "max_variants": max_variants},
+    ) as inv:
+        if inv.bypassed:
+            return None, [], attempts, "MONETARY_VARIANTS_DISABLED", evidence
+        from packages.ocr_portfolio import recognize_monetary_crop
+
+        with tel.track(
+            "ocr_portfolio",
+            enabled=True,
+            claim_id=claim_id,
+            field_name=field_name,
+        ) as inv2:
+            result = recognize_monetary_crop(
+                crop, engines=engines, max_variants=max_variants
+            )
+            inv2.outputs = {
+                "attempt_count": len(result.attempts),
+                "best": None if result.best is None else result.best.value,
+            }
+        inv.outputs = inv2.outputs
+        for read in result.attempts:
+            attempts.append({
+                "engine": read.engine,
+                "reason": f"MONETARY_VARIANT:{read.variant_id}:{read.reason}",
+                "observation": {"text": read.raw_text, "shaped": read.value},
+                "preprocessing_profile": read.variant_id,
+                "raw_confidence": read.confidence,
+            })
+            if read.value:
+                box = BoundingBox(
+                    x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
+                    image_width=image.width, image_height=image.height,
+                )
+                candidates.append({
+                    "value": read.value,
+                    "raw_value": read.raw_text,
+                    "engine": read.engine,
+                    "model_name": "monetary_portfolio",
+                    "model_version": "v1",
+                    "preprocessing_variant": read.variant_id,
+                    "raw_confidence": read.confidence,
+                    "calibrated_confidence": None,
+                    "bounding_box": box.model_dump(mode="json"),
+                    "latency_ms": 0.0,
+                    "validation_results": ["MONETARY_VARIANT", read.reason],
+                })
+        if result.best and result.best.value:
+            # POS-like reject for totals.
+            from packages.geometry_authority import is_pos_like_currency
+
+            if field_name.casefold() in {"total_charge", "total_charges"} and is_pos_like_currency(
+                result.best.value
+            ):
+                reason = "POS_LIKE_MONETARY_REJECTED"
+                inv.fallback_reason = reason
+                return None, candidates, attempts, reason, evidence
+            selected = result.best.value
+            reason = f"MONETARY_VARIANT:{result.best.variant_id}:{result.best.engine}"
+            inv.outputs["selected"] = selected
+
+    with tel.track(
+        "candidate_evidence",
+        enabled=stage_enabled("CDP_CANDIDATE_EVIDENCE", "1"),
+        claim_id=claim_id,
+        field_name=field_name,
+    ) as inv:
+        if not inv.bypassed and candidates:
+            from packages.candidate_evidence import CandidateEvidenceRecord, CandidateEvidenceStore
+
+            store = CandidateEvidenceStore()
+            for cand in candidates[:8]:
+                store.add(
+                    CandidateEvidenceRecord(
+                        claim_id=str(claim_id or ""),
+                        package_id="",
+                        document_id="",
+                        page_number=1,
+                        field_name=field_name,
+                        crop_bbox=(float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])),
+                        authorised_semantic_region="BOX_28"
+                        if "total" in field_name.casefold()
+                        else "BOX_24F",
+                        preprocessing_variant=str(cand.get("preprocessing_variant") or ""),
+                        engine=str(cand.get("engine") or ""),
+                        model_version="v1",
+                        raw_text=str(cand.get("raw_value") or ""),
+                        normalized_value=str(cand.get("value") or ""),
+                        model_confidence=float(cand.get("raw_confidence") or 0.0),
+                        image_quality_features={
+                            k: float(evidence[k])
+                            for k in (
+                                "blank_probability",
+                                "ink_density",
+                                "blur_score",
+                                "contrast",
+                            )
+                            if k in evidence
+                        },
+                        geometry_valid=True,
+                        validation_results=list(cand.get("validation_results") or []),
+                    )
+                )
+            inv.outputs = {"stored": len(store)}
+
+    return selected, candidates, attempts, reason, evidence
+
+
 def _azure_di_service_line_budget() -> int:
     """Max Azure DI analyze calls for service-line cells in one document.
 
@@ -1323,10 +1565,52 @@ def recognize_service_lines(image, router, template):
                 value = _currency_value(raw, candidates)
                 if value:
                     break
+            if not value and bbox is not None:
+                m_val, m_cands, m_atts, m_reason, ev = _recover_empty_monetary_crop(
+                    image, bbox, field_name='charges'
+                )
+                attempts = list(attempts or []) + list(m_atts or [])
+                candidates = list(candidates or []) + list(m_cands or [])
+                reason = f'{reason}|{m_reason}'
+                if m_val and (ev or {}).get('disposition') != 'BLANK_CONFIRMED':
+                    try:
+                        from packages.geometry_authority import reject_pos_as_charge
+
+                        reject, _ = reject_pos_as_charge(
+                            m_val,
+                            (float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])),
+                            image_size=(image.width, image.height),
+                        )
+                        if not reject:
+                            value = m_val
+                            raw = m_val
+                    except Exception:  # noqa: BLE001
+                        value = m_val
+                        raw = m_val
             if not value:
                 if lines:
                     break
                 continue
+            # Reject POS bleed that slipped through.
+            try:
+                from packages.geometry_authority import reject_pos_as_charge
+
+                reject, rej_reason = reject_pos_as_charge(
+                    value,
+                    (float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])),
+                    image_size=(image.width, image.height),
+                )
+                if reject:
+                    attempts = list(attempts or []) + [{
+                        'engine': 'geometry_authority',
+                        'reason': rej_reason,
+                        'observation': {'text': value},
+                    }]
+                    if lines:
+                        break
+                    continue
+            except Exception:  # noqa: BLE001
+                pass
             # Single-engine fallback lines still need gpt-4o corroboration for
             # empty-box-28 LINE_TOTALS AUTO (SINGLE_LINE_GPT4O_LOCAL).
             gpt4o_on = (os.environ.get('CDP_GPT4O_CROP_RESIDUAL') or '1').strip().casefold()
@@ -1356,6 +1640,9 @@ def recognize_service_lines(image, router, template):
                 'attempts': attempts,
                 'router_reason': f'{reason}|SERVICE_LINE_FALLBACK',
                 'status': 'OBSERVED',
+                'semantic_region': 'BOX_24F',
+                'bbox': list(bbox),
+                'row_id': str(row_index + 1),
             })
             if len(lines) >= 3:
                 break
@@ -1735,6 +2022,16 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                             if '.' not in selected and _re_amt2.fullmatch(r'\d{2,6}', selected):
                                 selected = f'{selected}.00'
                             break
+            # Redesign: monetary variants + image evidence when still empty.
+            if not selected:
+                m_val, m_cands, m_atts, m_reason, _ev = _recover_empty_monetary_crop(
+                    image, primary, field_name=field['field']
+                )
+                dig_attempts = list(dig_attempts or []) + list(m_atts or [])
+                dig_cands = list(dig_cands or []) + list(m_cands or [])
+                dig_reason = f'{dig_reason}|{m_reason}|MONETARY_VARIANT_RECOVERY'
+                if m_val:
+                    selected = m_val
             ok, accept_reason = semantic_accept(field['field'], selected)
             if ok:
                 cascaded = CascadeResult(
@@ -1987,14 +2284,133 @@ def run(directory, output):
         report['fields'] = rows
         (output / 'OCRCandidates.json').write_text(json.dumps(report, indent=2, default=str, allow_nan=False), encoding='utf-8')
     template = _load_cms1500_template()
+    from packages.runtime_wiring import get_telemetry, reset_telemetry, stage_enabled
+
+    tel = reset_telemetry()
+    claim_id = str(telemetry.get('document_id') or '')[:16]
     try:
         with Image.fromarray(pixels) as canonical:
+            with tel.track(
+                "package_intelligence",
+                enabled=stage_enabled("CDP_PACKAGE_INTELLIGENCE", "1"),
+                claim_id=claim_id,
+                inputs={"entry": telemetry.get("source", {}).get("entry")},
+            ) as inv:
+                if not inv.bypassed:
+                    from packages.package_intelligence import (
+                        build_claim_package,
+                        classify_page_signals,
+                    )
+
+                    page = classify_page_signals(
+                        page_index=int(geometry.get("page_number") or 1) - 1,
+                        form_family="CMS1500",
+                        router_label="CMS1500",
+                        confidence=0.9,
+                    )
+                    package = build_claim_package(
+                        package_id=claim_id,
+                        claim_id=claim_id,
+                        pages=[page],
+                    )
+                    inv.outputs = package.to_dict()
+                    report["package_intelligence"] = package.to_dict()
             router = OCRRouter(lambda attempt: True)
             recognize_regions(canonical, geometry, router, save, template=template)
             report['service_lines'] = recognize_service_lines(canonical, router, template)
             report['fields'] = _maybe_attach_dob_handwriting_residuals(
                 report['fields'], canonical
             )
+            # Field authority + financial reconciliation telemetry on totals.
+            with tel.track(
+                "field_authority",
+                enabled=stage_enabled("CDP_FIELD_AUTHORITY", "1"),
+                claim_id=claim_id,
+                field_name="total_charge",
+            ) as inv:
+                if not inv.bypassed:
+                    from packages.field_authority import accept_field, independent_evidence_count
+
+                    total_row = next(
+                        (
+                            f
+                            for f in report["fields"]
+                            if str(f.get("field") or "").casefold()
+                            in {"total_charge", "total_charges"}
+                        ),
+                        None,
+                    )
+                    cands = list((total_row or {}).get("candidates") or [])
+                    for line in report.get("service_lines") or []:
+                        cands.extend(line.get("candidates") or [])
+                    indep = independent_evidence_count(cands)
+                    decision = accept_field(
+                        field_name="total_charge",
+                        valid_geometry=True,
+                        valid_semantics=bool((total_row or {}).get("value")),
+                        valid_format=bool((total_row or {}).get("value")),
+                        calibrated_confidence=0.9 if (total_row or {}).get("value") else 0.0,
+                        field_threshold=0.95,
+                        independent_evidence=indep,
+                        required_evidence=2,
+                        unresolved_conflict=False,
+                        llm_only=False,
+                        critical=True,
+                    )
+                    inv.outputs = decision.to_dict()
+                    report["field_authority"] = decision.to_dict()
+            with tel.track(
+                "financial_reconciliation",
+                enabled=stage_enabled("CDP_FINANCIAL_RECONCILIATION", "1"),
+                claim_id=claim_id,
+                field_name="total_charge",
+            ) as inv:
+                if not inv.bypassed:
+                    from packages.financial_reconciliation import reconcile_claim_total
+
+                    box28 = next(
+                        (
+                            f.get("value")
+                            for f in report["fields"]
+                            if str(f.get("field") or "").casefold()
+                            in {"total_charge", "total_charges"}
+                        ),
+                        None,
+                    )
+                    lines = report.get("service_lines") or []
+                    fin = reconcile_claim_total(
+                        box28_value=box28,
+                        service_lines=lines,
+                        charge_column_verified=bool(lines),
+                        all_service_rows_detected=bool(lines),
+                        independent_evidence_paths=2 if len(lines) >= 2 else (1 if lines else 0),
+                    )
+                    inv.outputs = fin.to_dict()
+                    report["financial_reconciliation"] = fin.to_dict()
+            with tel.track(
+                "claim_decision",
+                enabled=stage_enabled("CDP_CLAIM_DECISION_ROUTES", "1"),
+                claim_id=claim_id,
+            ) as inv:
+                if not inv.bypassed:
+                    from packages.claim_decision import route_claim_hitl
+
+                    fin_disp = (report.get("financial_reconciliation") or {}).get(
+                        "disposition"
+                    )
+                    unresolved = []
+                    if not (report.get("field_authority") or {}).get("accepted"):
+                        unresolved.append("total_charge")
+                    route = route_claim_hitl(
+                        registration_ok=True,
+                        package_complete=bool(
+                            (report.get("package_intelligence") or {}).get("complete", True)
+                        ),
+                        unresolved_critical_fields=unresolved,
+                        financial_disposition=fin_disp,
+                    )
+                    inv.outputs = route
+                    report["hitl_route"] = route
         report['status'] = 'COMPLETED'
     except Exception as exc:
         report['status'] = 'FAILED'
@@ -2002,11 +2418,15 @@ def run(directory, output):
         raise
     finally:
         save(report['fields'])
+        wiring = tel.summary()
+        report['runtime_wiring'] = wiring
+        tel.write(output / 'stage_wiring.json')
         (output / 'ocr_telemetry.json').write_text(json.dumps({
             'status': report['status'], 'fields_completed': len(report['fields']),
             'provider_attempts': [{'field': r['field'], 'attempts': [
-                {k: a[k] for k in ('engine', 'reason', 'latency_ms')} for a in r['attempts']]}
+                {k: a[k] for k in ('engine', 'reason', 'latency_ms') if k in a} for a in r['attempts']]}
                 for r in report['fields']], 'stop_after': 'ocr',
+            'runtime_wiring': wiring,
         }, indent=2), encoding='utf-8')
     return report
 
