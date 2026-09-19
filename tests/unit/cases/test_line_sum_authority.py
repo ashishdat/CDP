@@ -202,6 +202,20 @@ def test_local_and_gpt4o_disagree_not_eligible():
     assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
 
 
+def test_pos_like_local_does_not_veto_gpt_consensus():
+    """Rapid POS 11 is not a vote; a later paddle 270 confirms the vision read."""
+    line = {
+        "charges": "270.00",
+        "candidates": [
+            {"value": "", "engine": "paddleocr", "raw_value": "1\n4\n1"},
+            {"value": "11.00", "engine": "rapidocr"},
+            {"value": "270.00", "engine": "paddleocr", "producing_engine": "tesseract_digits"},
+            {"value": "270.00", "engine": "azure_gpt4o_crop"},
+        ],
+    }
+    assert line_has_gpt4o_local_consensus(line)
+
+
 def test_digit_drop_twins_not_dual_engine_or_gpt4o_consensus():
     """13 vs 131 must not AUTO without authoritative box-28 / DI signal."""
     twin_dual = {

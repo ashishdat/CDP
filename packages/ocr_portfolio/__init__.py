@@ -6,6 +6,7 @@ from .monetary_recognizer import (
     monetary_variants_extended,
     prefer_charge_ink_amount,
     recognize_monetary_crop,
+    recover_dollars_from_split_raw,
     shape_monetary,
     split_charge_at_vertical_ruling,
 )
@@ -20,6 +21,7 @@ __all__ = [
     "monetary_variants_extended",
     "prefer_charge_ink_amount",
     "recognize_monetary_crop",
+    "recover_dollars_from_split_raw",
     "shape_monetary",
     "split_charge_at_vertical_ruling",
 ]

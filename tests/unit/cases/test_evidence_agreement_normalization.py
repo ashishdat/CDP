@@ -7,6 +7,12 @@ def test_name_punctuation_is_representation_only_for_agreement():
     )
 
 
+def test_name_digit_confusable_groups_for_e2():
+    assert normalize_agreement_value("patient_name", "WOOD AVA") == normalize_agreement_value(
+        "patient_name", "WO0D AVA"
+    )
+
+
 def test_money_decimal_is_not_stripped_into_false_agreement():
     assert normalize_agreement_value("total_charge", "10.00") != normalize_agreement_value(
         "total_charge", "1000",

@@ -25,6 +25,105 @@ def engine_family(engine: str) -> str:
     } else family
 
 
+def _ai_agrees_with_local(field_name: str, ai_value: str, local_value: str) -> bool:
+    """Vision read matches a local engine under field-aware equivalence."""
+    name = (field_name or "").casefold()
+    if normalize_agreement_value(field_name, ai_value) == normalize_agreement_value(
+        field_name, local_value
+    ):
+        return True
+    if "name" in name:
+        from packages.candidate_reconciliation.reconciler import (
+            _name_tokens,
+            values_conflict_equivalent,
+        )
+
+        if values_conflict_equivalent(field_name, ai_value, local_value):
+            return True
+        ai_toks = _name_tokens(ai_value)
+        local_toks = _name_tokens(local_value)
+        if len(ai_toks) >= 2 and len(local_toks) >= 2:
+            if ai_toks == local_toks[-len(ai_toks) :] or local_toks == ai_toks[-len(local_toks) :]:
+                return True
+        return False
+    if "dob" in name or name.endswith("_date") or "date" in name:
+        return False
+    return False
+
+
+def _append_ai_local_corroboration(
+    bundle: FieldEvidenceBundle,
+    field_name: str,
+    candidates: list[OCRCandidate],
+) -> None:
+    """Mint E2 when a vision read agrees with a local engine and nothing strong dissents.
+
+    GPT-4o is not a sole authority. A second local family, or one local plus a
+    non-dissenting sibling, is required. Garbage single-token names stay HITL.
+    """
+    name = (field_name or "").casefold()
+    if not any(token in name for token in ("name", "dob", "date")):
+        return
+    ai = [
+        cand
+        for cand in candidates
+        if engine_family(cand.engine) == "CLOUD_AI_FAMILY" and (cand.value or "").strip()
+    ]
+    local = [
+        cand
+        for cand in candidates
+        if engine_family(cand.engine) != "CLOUD_AI_FAMILY" and (cand.value or "").strip()
+    ]
+    if not ai or not local:
+        return
+    from packages.candidate_reconciliation.reconciler import _name_is_strong_person
+
+    for vision in ai:
+        agreeing = [
+            cand
+            for cand in local
+            if _ai_agrees_with_local(field_name, str(vision.value), str(cand.value))
+        ]
+        if not agreeing:
+            continue
+        dissenting = []
+        for cand in local:
+            if cand in agreeing:
+                continue
+            if "name" in name:
+                if _name_is_strong_person(str(cand.value or "")) and not _ai_agrees_with_local(
+                    field_name, str(vision.value), str(cand.value)
+                ):
+                    dissenting.append(cand)
+            else:
+                other = normalize_agreement_value(field_name, cand.value)
+                target = normalize_agreement_value(field_name, vision.value)
+                if other and other != target:
+                    dissenting.append(cand)
+        if dissenting:
+            continue
+        families = {engine_family(cand.engine) for cand in agreeing}
+        if not families:
+            continue
+        bundle.items.append(
+            EvidenceItem(
+                evidence_class=EvidenceClass.E2,
+                evidence_type="OCR_AGREEMENT_INDEPENDENT",
+                evidence_family="INDEPENDENT_OCR_AGREEMENT",
+                source="evidence_builder",
+                value=str(vision.value),
+                independent=True,
+                metadata={
+                    "engines": sorted(families | {"CLOUD_AI_FAMILY"}),
+                    "agreement_type": "AI_LOCAL_CORROBORATED",
+                    "dependency_relation": "INDEPENDENT",
+                    "local_engine_family_confirmation": True,
+                },
+            )
+        )
+        return
+
+
 _STRONG_DETERMINISTIC_FACTS = {
     "CHECKSUM_VALID",
     "NPI_CHECKSUM_VALID",
@@ -128,6 +227,7 @@ def build_evidence_bundle(
         DependencyRelation.PARTIALLY_INDEPENDENT: 2,
         DependencyRelation.INDEPENDENT: 3,
     }
+    emitted_independent_e2 = False
     for value, agreeing in by_value.items():
         local = [item for item in agreeing if engine_family(item.engine) != "CLOUD_AI_FAMILY"]
         pair_results = [
@@ -208,6 +308,10 @@ def build_evidence_bundle(
                     },
                 )
             )
+            if independent and evidence_type == "OCR_AGREEMENT_INDEPENDENT":
+                emitted_independent_e2 = True
+    if not emitted_independent_e2:
+        _append_ai_local_corroboration(bundle, field_name, populated)
     if structural_localization is not None:
         if structural_localization.confirmed and not wrong_crop_suspected:
             bundle.items.append(

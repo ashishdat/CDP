@@ -10,7 +10,7 @@ from packages.claim_evidence.line_sum_authority import line_sum_auto_eligible
 from packages.field_authority import accept_field, independent_evidence_count
 from packages.financial_reconciliation import FinancialDisposition, reconcile_claim_total
 from packages.geometry_authority import reject_pos_as_charge
-from packages.ocr_portfolio import shape_monetary
+from packages.ocr_portfolio import prefer_charge_ink_amount, shape_monetary
 from packages.ocr_portfolio.monetary_recognizer import monetary_variants_extended
 
 
@@ -104,6 +104,9 @@ def test_shape_monetary_and_variants():
     assert shape_monetary("CR 12.00") == "12.00"
     # Ruling-tail noise common on right-shifted charge crops.
     assert shape_monetary("6404") == "640.00"
+    assert shape_monetary("640 .101") == "640.00"
+    assert shape_monetary("640.101") == "640.00"
+    assert prefer_charge_ink_amount("640.01", "101.00") == "640.01"
     assert shape_monetary("2604") in {"260.00", "26.04"}
     assert shape_monetary("2605") == "260.00"
     assert shape_monetary("26010") == "260.00"

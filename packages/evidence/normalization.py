@@ -46,6 +46,7 @@ def normalize_agreement_value(field_name: str, value: str | None) -> str:
             # Align with reconciler person-name confusable peels.
             compact = re.sub(r"\.[I1]", "L", raw)
             compact = re.sub(r"[^A-Z0-9]", "", compact)
+            compact = re.sub(r"(?<=[A-Z])0(?=[A-Z]|$)", "O", compact)
             compact = re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", compact)
             compact = re.sub(r"JI(?=[AEIOUY])", "J", compact)
         else:

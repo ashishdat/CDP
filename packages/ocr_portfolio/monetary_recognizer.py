@@ -113,6 +113,29 @@ def split_charge_at_vertical_ruling(
     return dollars, cents
 
 
+def recover_dollars_from_split_raw(text: str) -> str | None:
+    """Recover whole dollars when a space or long tail splits cents from the stem.
+
+    ``640 .101`` and ``640.101`` are dollars ``640`` plus units/ruling noise, not
+    ``101.00``. Tight two-digit cents (``640.00``, ``12.50``) are left alone.
+    """
+    compact = re.sub(r"\s+", " ", text or "").strip()
+    match = re.search(r"(\d{2,4})\s*[. ]\s*(\d{2,4})", compact)
+    if not match:
+        return None
+    dollars, tail = match.group(1), match.group(2)
+    spanned = compact[match.start() : match.end()]
+    if " " not in spanned and len(tail) == 2:
+        return None
+    try:
+        amount = int(dollars)
+    except ValueError:
+        return None
+    if not 1 <= amount <= 99999:
+        return None
+    return f"{amount}.00"
+
+
 def prefer_charge_ink_amount(a: str | None, b: str | None) -> str | None:
     """Prefer clean whole-dollar reads over units/ruling-bleed digit soup.
 
@@ -185,6 +208,10 @@ def prefer_charge_ink_amount(a: str | None, b: str | None) -> str | None:
     ):
         return b
 
+    # Unrelated stems must not lose to a shorter ".00" fragment (640.01 vs 101.00).
+    if da and db and da != db and not da.startswith(db) and not db.startswith(da):
+        return a
+
     score_a = (2 if a.endswith(".00") else 0) + (1 if 2 <= len(da) <= 4 else 0)
     score_b = (2 if b.endswith(".00") else 0) + (1 if 2 <= len(db) <= 4 else 0)
     if score_a != score_b:
@@ -193,6 +220,9 @@ def prefer_charge_ink_amount(a: str | None, b: str | None) -> str | None:
 
 
 def shape_monetary(text: str) -> str | None:
+    recovered = recover_dollars_from_split_raw(text)
+    if recovered:
+        return recovered
     cleaned = "".join(ch for ch in (text or "") if ch in _WHITELIST).strip()
     if not cleaned:
         return None

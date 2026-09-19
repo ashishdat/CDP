@@ -1148,17 +1148,79 @@ def _merge_gpt4o_line_charge(
                     candidates = list(candidates or []) + list(g_cands)
                 reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED'
     else:
-        # Non-twin local vs shaped gpt-4o: prefer charge-ink heuristic, else gpt.
-        ink_pref = prefer_charge_ink_amount(value, g_shaped)
-        if ink_pref == value:
-            if g_cands:
-                candidates = list(candidates or []) + list(g_cands)
-            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_REJECTED_INK_PREF'
-        else:
-            value = ink_pref or g_shaped
+        # Non-twin local vs gpt-4o. If another local engine already supports the
+        # vision read within $1 (paddle 640.01 vs selected fragment 101), keep
+        # that consensus. Unrelated ink is not a reason to drop the vision read.
+        from packages.claim_evidence.line_sum_authority import amounts_within_tolerance
+        from packages.geometry_authority import is_pos_like_currency
+        from packages.ocr_portfolio import recover_dollars_from_split_raw
+
+        def _supports(target, pool) -> bool:
+            if not target:
+                return False
+            for cand in pool or []:
+                if not isinstance(cand, dict):
+                    continue
+                eng = str(cand.get('engine') or '').casefold()
+                if 'gpt4o' in eng or 'gpt-4o' in eng:
+                    continue
+                seeds = [
+                    cand.get('value'),
+                    recover_dollars_from_split_raw(str(cand.get('raw_value') or '')),
+                ]
+                for seed in seeds:
+                    if not seed:
+                        continue
+                    shaped = shape_monetary(str(seed)) or str(seed)
+                    if is_pos_like_currency(shaped) and not is_pos_like_currency(target):
+                        continue
+                    if amounts_within_tolerance(
+                        target, shaped, absolute=__import__('decimal').Decimal('1'), relative=__import__('decimal').Decimal('0')
+                    ):
+                        return True
+            return False
+
+        if _supports(g_shaped, candidates):
+            value = g_shaped
             raw = g_raw or raw
             candidates = list(g_cands or []) + list(candidates or [])
-            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_OVERRIDE'
+            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_LOCAL_CONSENSUS'
+        else:
+            ink_pref = prefer_charge_ink_amount(value, g_shaped)
+            if ink_pref == value:
+                if g_cands:
+                    candidates = list(candidates or []) + list(g_cands)
+                reason = f'{reason}|{g_reason}|CHARGE_GPT4O_REJECTED_INK_PREF'
+            else:
+                value = ink_pref or g_shaped
+                raw = g_raw or raw
+                candidates = list(g_cands or []) + list(candidates or [])
+                reason = f'{reason}|{g_reason}|CHARGE_GPT4O_OVERRIDE'
+    if value and image is not None and bbox is not None:
+        # Vision read with no usable local: one ruling-split digit pass.
+        # Agreement mints the local side of gpt+local consensus; mismatch stays HITL.
+        try:
+            from packages.claim_evidence.line_sum_authority import amounts_within_tolerance
+            from decimal import Decimal
+
+            supported = False
+            for cand in candidates or []:
+                eng = str((cand or {}).get('engine') or '').casefold()
+                if 'gpt4o' in eng or 'gpt-4o' in eng:
+                    continue
+                seed = (cand or {}).get('value')
+                if seed and amounts_within_tolerance(value, seed, absolute=Decimal('1'), relative=Decimal('0')):
+                    supported = True
+                    break
+            if not supported:
+                d_cands, d_attempts, d_reason = _recognize_charge_digits_only(image, bbox)
+                attempts = list(attempts or []) + list(d_attempts or [])
+                d_val = d_cands[0].get('value') if d_cands else None
+                if d_val and amounts_within_tolerance(value, d_val, absolute=Decimal('1'), relative=Decimal('0')):
+                    candidates = list(candidates or []) + list(d_cands)
+                    reason = f'{reason}|{d_reason}|CHARGE_AI_LOCAL_CONFIRM'
+        except Exception:  # noqa: BLE001
+            pass
     return value, raw, candidates, attempts, reason
 
 
@@ -1328,6 +1390,14 @@ def recognize_service_lines(image, router, template):
         # Prefer longer digit-drop twin across engines (rapid 1571 > paddle 157).
         shaped_vals = []
         for c in candidates or []:
+            try:
+                from packages.ocr_portfolio import recover_dollars_from_split_raw
+
+                recovered = recover_dollars_from_split_raw(str(c.get('raw_value') or ''))
+                if recovered:
+                    shaped_vals.append(recovered)
+            except Exception:  # noqa: BLE001
+                pass
             seed = (c.get('value') or '').strip() or (c.get('raw_value') or '').strip()
             if not seed:
                 continue

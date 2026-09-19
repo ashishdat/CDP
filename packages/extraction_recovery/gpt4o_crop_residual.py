@@ -306,13 +306,18 @@ def dob_needs_gpt4o(
     azure_di_shaped: bool,
     gap_class: str | None,
 ) -> bool:
+    """Unresolved DOB gets a vision read. Accepted / already-shaped locals do not."""
     if local_accepted or trocr_shaped or azure_di_shaped:
         return False
     gap = (gap_class or "").upper()
-    return gap in _HANDWRITING_GAPS or gap in {
+    if gap in _HANDWRITING_GAPS or gap in {
         "CALIBRATION_HITL",
         "NORMALIZATION_FAILED",
-    }
+        "EVIDENCE_POLICY_GAP",
+    }:
+        return True
+    # Missing second engine on a calendar-shaped date still needs vision corroboration.
+    return True
 
 
 def name_local_engine_conflict(candidates: list[Mapping[str, Any]] | None) -> bool:
@@ -361,7 +366,16 @@ def name_needs_gpt4o(
     if gap in _NAME_GAPS and not local_accepted:
         return True
     if not local_accepted:
-        # Empty / unshaped local name ink.
+        local_engines: set[str] = set()
+        for cand in candidates or []:
+            eng = str(cand.get("engine") or "").casefold()
+            if "gpt4o" in eng or "gpt-4o" in eng:
+                continue
+            if str(cand.get("value") or cand.get("text") or "").strip():
+                local_engines.add(eng)
+        # One local engine cannot mint E2. Vision residual is the arbitrator.
+        if len(local_engines) < 2:
+            return True
         has_shaped = False
         for cand in candidates or []:
             text = _normalize(str(cand.get("value") or cand.get("text") or ""))
@@ -775,7 +789,10 @@ def recover_empty_financial_service_lines(
                 )
             )
             evidence = analyze_roi(crop, ocr_empty=True, geometry_valid=True)
-            if evidence.disposition == InkDisposition.BLANK_CONFIRMED:
+            if (
+                evidence.disposition == InkDisposition.BLANK_CONFIRMED
+                and "FORM_RULING_ONLY" in evidence.reasons
+            ):
                 continue
         result = run_gpt4o_crop_residual(
             image=image,

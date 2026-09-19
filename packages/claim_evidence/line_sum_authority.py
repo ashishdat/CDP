@@ -410,39 +410,45 @@ def line_has_gpt4o_local_consensus(line: dict) -> bool:
     # gpt-4o-attributed selection is fine when a usable independent local
     # confirms the same amount (local confirmation path).
 
-    usable_locals: list[tuple[str, dict, Decimal]] = []
-    for fam in _LOCAL_ENGINES:
-        local_cand = _first_candidate_for_family(candidates, fam)
-        if local_cand is None:
+    usable_by_family: dict[str, list[str]] = {}
+
+    def _pos_like(value: object) -> bool:
+        try:
+            from packages.geometry_authority import is_pos_like_currency
+
+            return bool(is_pos_like_currency(value))
+        except Exception:  # noqa: BLE001
+            return False
+
+    for cand in candidates:
+        fam = _engine_family(cand.get("engine") or cand.get("producing_engine"))
+        if fam not in _LOCAL_ENGINES:
             continue
-        local_amt = _candidate_amount(local_cand)
+        local_amt = _candidate_amount(cand)
         if local_amt is None:
             continue
         local_txt = format_currency(local_amt)
-        # Ignore form-noise locals that are implausible vs the gpt-4o read.
+        # POS codes (11) and implausible tails are not votes against a vision read.
+        if _pos_like(local_txt) and not _pos_like(gpt_txt):
+            continue
         if is_implausible_corroborator(local_txt, gpt_txt):
             continue
         if is_suspicious_tiny_total(local_amt) and not is_suspicious_tiny_total(gpt_amt):
             continue
-        if not candidates_are_independent(local_cand, gpt_cand):
+        if not candidates_are_independent(cand, gpt_cand):
             continue
-        usable_locals.append((fam, local_cand, local_amt))
+        usable_by_family.setdefault(fam, []).append(local_txt)
 
-    if not usable_locals:
-        # No usable independent local — GPT-4o must never promote alone.
+    if not usable_by_family:
         return False
 
-    agreeing = [
-        fam
-        for fam, _cand, amt in usable_locals
-        if _exact_or_dollar_agree(target_txt, format_currency(amt))
-        and _exact_or_dollar_agree(gpt_txt, format_currency(amt))
-    ]
-    if not agreeing:
-        return False
-    # Any usable local that still disagrees with the selected amount → HITL.
-    # gpt-4o-attributed selection is fine when every usable local confirms it.
-    return len(agreeing) == len(usable_locals)
+    for _fam, texts in usable_by_family.items():
+        if not any(
+            _exact_or_dollar_agree(target_txt, text) and _exact_or_dollar_agree(gpt_txt, text)
+            for text in texts
+        ):
+            return False
+    return True
 
 
 # Back-compat alias used in earlier docs/tests.
