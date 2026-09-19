@@ -654,6 +654,21 @@ def _recognize_charge_digits_only(image, bbox):
     return candidates, attempts, 'CHARGE_DIGITS_FAST'
 
 
+def _azure_di_service_line_budget() -> int:
+    """Max Azure DI analyze calls for service-line cells in one document.
+
+    F0 is one analyze per minute. Blank CMS-1500 forms used to burn DI on every
+    empty row in the STP fast fallback (~6–7 min/claim). Cap defaults to 1 so a
+    digit-conflict or single live-row miss can still escalate once; box-28 DI
+    residual is separate.
+    """
+    raw = (os.environ.get("CDP_AZURE_DI_SERVICE_LINE_BUDGET") or "1").strip()
+    try:
+        return max(0, int(raw))
+    except ValueError:
+        return 1
+
+
 def _maybe_azure_di_charge_crop(image, bbox, *, gap_class='CHARGE_LOCAL_EXHAUSTED'):
     """Last-resort Azure DI prebuilt-read on one charge cell crop.
 
@@ -753,6 +768,8 @@ def recognize_service_lines(image, router, template):
         # One charge x-window under STP fast — second window doubled OCR wall
         # with little lift once paddle→conditional-rapid is in place.
         charge_windows = charge_windows[:1]
+    # F0: at most N DI analyzes for service-line cells this document.
+    di_budget = _azure_di_service_line_budget()
 
     def _currency_value(raw_text, candidates):
         import re as _re
@@ -893,10 +910,11 @@ def recognize_service_lines(image, router, template):
                 else:
                     # Digit-drop twins (13 vs 131): still ask gpt-4o to pick ink.
                     need_gpt4o_twin = True
-            if need_di:
+            if need_di and di_budget > 0:
                 di_value, di_raw, di_cands, di_reason = _maybe_azure_di_charge_crop(
                     image, bbox, gap_class=di_gap
                 )
+                di_budget -= 1
                 if di_value:
                     if value:
                         preferred = prefer_currency_without_digit_drop(value, di_value)
@@ -923,6 +941,11 @@ def recognize_service_lines(image, router, template):
                             'reason': di_reason,
                             'observation': {'text': di_raw or di_value},
                         }]
+            elif need_di and di_budget <= 0:
+                attempts = list(attempts or []) + [{
+                    'engine': 'azure_document_intelligence_read',
+                    'reason': 'CHARGE_DI_SERVICE_LINE_BUDGET_EXHAUSTED',
+                }]
             # gpt-4o line-charge residual: empty after DI, single-engine local,
             # or digit-drop twins (hard-15 charge hole).
             need_gpt4o = False
@@ -1021,6 +1044,9 @@ def recognize_service_lines(image, router, template):
             break
     # Fast digit path sometimes misses typed amounts (wrong x-window). One
     # paddle/rapid pass across charge-column windows recovers E6 without full thrash.
+    # Do NOT call Azure DI here: under F0 (1 analyze/min) blank forms previously
+    # spent ~6 minutes proving empty rows empty. Box-28 DI residual + main-loop
+    # budgeted DI remain available for true charge gaps.
     if fast and not lines and router is not None:
         fallback_windows = charge_windows or [(charge_col.x0, charge_col.x1)]
         for row_index in range(table.max_rows):
@@ -1044,20 +1070,6 @@ def recognize_service_lines(image, router, template):
                 value = _currency_value(raw, candidates)
                 if value:
                     break
-            if not value and bbox is not None:
-                di_value, di_raw, di_cands, di_reason = _maybe_azure_di_charge_crop(
-                    image, bbox, gap_class='CHARGE_LOCAL_EXHAUSTED'
-                )
-                if di_value:
-                    value = di_value
-                    raw = di_raw or ''
-                    candidates = list(candidates or []) + list(di_cands or [])
-                    reason = f'{reason}|{di_reason}' if reason else di_reason
-                    attempts = list(attempts or []) + [{
-                        'engine': 'azure_document_intelligence_read',
-                        'reason': di_reason,
-                        'observation': {'text': di_raw or di_value},
-                    }]
             if not value:
                 if lines:
                     break

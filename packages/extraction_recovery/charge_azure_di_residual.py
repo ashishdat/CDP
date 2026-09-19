@@ -94,6 +94,27 @@ def _crop_image(image: Image.Image, bbox: tuple[int, int, int, int]) -> Image.Im
     return image.crop((x0, y0, x1, y1))
 
 
+def charge_crop_looks_blank(crop: Image.Image, *, max_ink_ratio: float = 0.004) -> bool:
+    """True when a charge crop has essentially no dark ink (empty box-28 / empty line).
+
+    Under F0 (1 analyze/min), skipping blank crops avoids a full-minute wait that
+    cannot recover currency. Threshold is conservative: faint pencil still fires DI.
+    """
+    if crop.width < 2 or crop.height < 2:
+        return True
+    gray = crop.convert("L")
+    # Downsample for speed on large ROIs.
+    sample = gray.resize(
+        (min(64, gray.width), min(32, gray.height)),
+        Image.Resampling.BILINEAR,
+    )
+    hist = sample.histogram()
+    total = max(1, sum(hist))
+    # Ink = darker than mid-gray; printed rules alone stay below threshold on empty cells.
+    ink = sum(hist[:110])
+    return (ink / total) <= max_ink_ratio
+
+
 def _normalize_charge_text(text: str | None) -> str | None:
     if not text:
         return None
@@ -289,6 +310,18 @@ def run_charge_azure_di_residual(
 
     crop = _crop_image(image, bbox)
     try:
+        # Skip billable DI on empty white cells (injected engines still run so
+        # unit tests can force a shaped residual on blank fixtures).
+        if engine is None and charge_crop_looks_blank(crop):
+            return ChargeAzureDiResidualResult(
+                attempted=False,
+                configured=True,
+                review_only=decision.review_only,
+                value=None,
+                raw_value=None,
+                currency_shaped=False,
+                reason="AZURE_DI_SKIPPED_BLANK_CROP",
+            )
         if engine is not None:
             if hasattr(engine, "recognize_crop"):
                 return engine.recognize_crop(crop, field_name)

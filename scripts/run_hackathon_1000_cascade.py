@@ -391,6 +391,8 @@ def _stage_env() -> dict[str, str]:
     # across spawn workers via the slot file.
     env.setdefault("CDP_AZURE_DI_MIN_INTERVAL_SECONDS", "60")
     env.setdefault("CDP_AZURE_DI_SLOT_PATH", "/tmp/cdp-azure-di-slot")
+    # At most one service-line DI analyze per claim under F0 (box-28 separate).
+    env.setdefault("CDP_AZURE_DI_SERVICE_LINE_BUDGET", "1")
     env.setdefault(
         "CDP_AZURE_DI_METER_PATH",
         str(ROOT / "evaluation_results" / "azure_di_meter.jsonl"),
@@ -952,6 +954,7 @@ def main() -> int:
         "CDP_AZURE_DI_PAGE_CORNERS": "1",
         "CDP_AZURE_DI_MIN_INTERVAL_SECONDS": "60",
         "CDP_AZURE_DI_SLOT_PATH": "/tmp/cdp-azure-di-slot",
+        "CDP_AZURE_DI_SERVICE_LINE_BUDGET": "1",
         "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",
         "CDP_OCR_NAME_CONFIRM_MIN_CONF": "0.80",
         # Freeform REG pages: DI page text + optional gpt-4o text agent.

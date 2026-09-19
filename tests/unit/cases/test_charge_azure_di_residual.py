@@ -222,3 +222,43 @@ def test_try_charge_disabled(monkeypatch):
     )
     assert result.attempted is False
     assert result.reason == "AZURE_DI_CHARGE_RESIDUAL_DISABLED"
+
+
+def test_charge_crop_looks_blank_on_white():
+    from packages.extraction_recovery.charge_azure_di_residual import (
+        charge_crop_looks_blank,
+    )
+
+    blank = Image.new("RGB", (200, 80), color=(255, 255, 255))
+    assert charge_crop_looks_blank(blank) is True
+    inked = Image.new("RGB", (200, 80), color=(255, 255, 255))
+    for x in range(20, 160):
+        for y in range(20, 55):
+            inked.putpixel((x, y), (20, 20, 20))
+    assert charge_crop_looks_blank(inked) is False
+
+
+def test_blank_crop_skips_real_azure_path(monkeypatch):
+    """Empty white box-28 must not spend an F0 analyze slot."""
+    monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
+    img = Image.new("RGB", (200, 80), color=(255, 255, 255))
+    result = run_charge_azure_di_residual(
+        image=img,
+        bbox=(10, 10, 180, 70),
+        field_name="total_charge",
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        engine=None,
+    )
+    assert result.attempted is False
+    assert result.reason == "AZURE_DI_SKIPPED_BLANK_CROP"
+
+
+def test_service_line_di_budget_defaults_to_one(monkeypatch):
+    from scripts.ocr_from_geometry import _azure_di_service_line_budget
+
+    monkeypatch.delenv("CDP_AZURE_DI_SERVICE_LINE_BUDGET", raising=False)
+    assert _azure_di_service_line_budget() == 1
+    monkeypatch.setenv("CDP_AZURE_DI_SERVICE_LINE_BUDGET", "0")
+    assert _azure_di_service_line_budget() == 0
+    monkeypatch.setenv("CDP_AZURE_DI_SERVICE_LINE_BUDGET", "3")
+    assert _azure_di_service_line_budget() == 3
