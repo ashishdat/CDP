@@ -1,0 +1,34 @@
+{
+  "count": 2,
+  "by_kind": {
+    "LABEL_SOURCE_CONFLICT": 2,
+    "PACKAGE_MAPPING_CONFLICT": 0,
+    "AMBIGUOUS_TOTAL_CHARGE_SEMANTICS": 0,
+    "MISSING_SOURCE_FIELD": 0,
+    "WRONG_DOCUMENT_FAMILY": 0,
+    "WRONG_ROI": 0,
+    "SOURCE_FIELD_ABSENT": 0
+  },
+  "records": [
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJF.003",
+      "field_name": "patient_dob",
+      "label_value": "10/18/1916",
+      "source_value": "07/16/1946",
+      "page_index": null,
+      "detail": "Direct image review conflicts with supplied label; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJF.037",
+      "field_name": "patient_dob",
+      "label_value": "03/19/1965",
+      "source_value": "05/03/1991",
+      "page_index": null,
+      "detail": "Direct image review conflicts with supplied label; quarantined.",
+      "quarantine_from_accuracy": true
+    }
+  ]
+}

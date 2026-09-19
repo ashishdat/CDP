@@ -6,12 +6,19 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from packages.document_finance.families import (
+    DocumentFamily,
+    classify_document_family,
+)
+
 
 class PageClass(StrEnum):
     CMS1500 = "CMS1500"
     UB04 = "UB04"
-    STATEMENT = "STATEMENT"
-    SUPERBILL = "SUPERBILL"
+    REIMBURSEMENT_SUPERBILL = "REIMBURSEMENT_SUPERBILL"
+    RUNNING_ACCOUNT_STATEMENT = "RUNNING_ACCOUNT_STATEMENT"
+    STATEMENT = "STATEMENT"  # legacy alias → prefer RUNNING / SUPERBILL
+    SUPERBILL = "SUPERBILL"  # legacy alias
     EOB = "EOB"
     ATTACHMENT = "ATTACHMENT"
     SEPARATOR = "SEPARATOR"
@@ -25,6 +32,7 @@ class PackageIssue(StrEnum):
     CONTINUATION_PAGE = "CONTINUATION_PAGE"
     SEPARATOR_DETECTED = "SEPARATOR_DETECTED"
     INCOMPLETE_PACKAGE = "INCOMPLETE_PACKAGE"
+    WRONG_FAMILY_CMS_GEOMETRY = "WRONG_FAMILY_CMS_GEOMETRY"
 
 
 @dataclass(frozen=True)
@@ -36,6 +44,7 @@ class PageIdentity:
     is_continuation: bool = False
     barcode_text: str | None = None
     reasons: tuple[str, ...] = ()
+    allows_cms_geometry: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -46,6 +55,7 @@ class PageIdentity:
             "is_continuation": self.is_continuation,
             "barcode_text": self.barcode_text,
             "reasons": list(self.reasons),
+            "allows_cms_geometry": self.allows_cms_geometry,
         }
 
 
@@ -68,14 +78,27 @@ class ClaimPackage:
             "confidence": self.confidence,
         }
 
+    @property
+    def claim_pages(self) -> list[PageIdentity]:
+        return [
+            p
+            for p in self.pages
+            if not p.is_separator
+            and p.page_class
+            not in {PageClass.SEPARATOR, PageClass.NON_CLAIM}
+        ]
 
-_SEPARATOR_HINTS = (
-    "SOURCEHOV",
-    "SOURCE HOV",
-    "DOCUMENT SEPARATOR",
-    "BATCH SEPARATOR",
-    "THIS PAGE INTENTIONALLY",
-)
+
+_FAMILY_TO_PAGE = {
+    DocumentFamily.CMS1500: PageClass.CMS1500,
+    DocumentFamily.UB04: PageClass.UB04,
+    DocumentFamily.REIMBURSEMENT_SUPERBILL: PageClass.REIMBURSEMENT_SUPERBILL,
+    DocumentFamily.RUNNING_ACCOUNT_STATEMENT: PageClass.RUNNING_ACCOUNT_STATEMENT,
+    DocumentFamily.EOB: PageClass.EOB,
+    DocumentFamily.SEPARATOR: PageClass.SEPARATOR,
+    DocumentFamily.ATTACHMENT: PageClass.ATTACHMENT,
+    DocumentFamily.UNKNOWN: PageClass.UNKNOWN,
+}
 
 
 def classify_page_signals(
@@ -87,57 +110,59 @@ def classify_page_signals(
     router_label: str | None = None,
     confidence: float = 0.5,
 ) -> PageIdentity:
+    """Classify a page. Prefer OCR/layout text over a forced CMS form_family."""
+    classification = classify_document_family(
+        ocr_text,
+        barcode_text=barcode_text,
+    )
+    # Explicit router / form_family only when text did not already decide.
+    if classification.family is DocumentFamily.UNKNOWN:
+        forced = (form_family or router_label or "").strip()
+        if forced:
+            classification = classify_document_family(
+                forced,
+                barcode_text=barcode_text,
+            )
+            if classification.family is DocumentFamily.UNKNOWN:
+                # legacy map
+                upper = forced.upper().replace("-", "").replace(" ", "")
+                legacy = {
+                    "CMS1500": DocumentFamily.CMS1500,
+                    "UB04": DocumentFamily.UB04,
+                    "STATEMENT": DocumentFamily.RUNNING_ACCOUNT_STATEMENT,
+                    "SUPERBILL": DocumentFamily.REIMBURSEMENT_SUPERBILL,
+                    "REIMBURSEMENTSUPERBILL": DocumentFamily.REIMBURSEMENT_SUPERBILL,
+                    "RUNNINGACCOUNTSTATEMENT": DocumentFamily.RUNNING_ACCOUNT_STATEMENT,
+                    "EOB": DocumentFamily.EOB,
+                    "ATTACHMENT": DocumentFamily.ATTACHMENT,
+                    "SEPARATOR": DocumentFamily.SEPARATOR,
+                }
+                fam = legacy.get(upper)
+                if fam is not None:
+                    from packages.document_finance.families import FamilyClassification
+
+                    classification = FamilyClassification(
+                        fam, max(confidence, 0.7), (f"ROUTER:{forced}",), ()
+                    )
+
+    page_class = _FAMILY_TO_PAGE.get(classification.family, PageClass.UNKNOWN)
     text = f"{ocr_text or ''} {barcode_text or ''}".upper()
-    reasons: list[str] = []
-    if any(h in text for h in _SEPARATOR_HINTS) or (
-        barcode_text and "SEP" in barcode_text.upper()
-    ):
-        reasons.append("SEPARATOR_TEXT_OR_BARCODE")
-        return PageIdentity(
-            page_index=page_index,
-            page_class=PageClass.SEPARATOR,
-            confidence=max(confidence, 0.8),
-            is_separator=True,
-            barcode_text=barcode_text,
-            reasons=tuple(reasons),
-        )
-
-    family = (form_family or router_label or "").upper()
-    mapping = {
-        "CMS1500": PageClass.CMS1500,
-        "CMS-1500": PageClass.CMS1500,
-        "UB04": PageClass.UB04,
-        "UB-04": PageClass.UB04,
-        "ATTACHMENT": PageClass.ATTACHMENT,
-        "STATEMENT": PageClass.STATEMENT,
-        "SUPERBILL": PageClass.SUPERBILL,
-        "EOB": PageClass.EOB,
-        "NON_CLAIM": PageClass.NON_CLAIM,
-    }
-    page_class = PageClass.UNKNOWN
-    for key, cls in mapping.items():
-        if key in family:
-            page_class = cls
-            reasons.append(f"ROUTER:{key}")
-            break
-    if page_class == PageClass.UNKNOWN and "CMS" in text and "1500" in text:
-        page_class = PageClass.CMS1500
-        reasons.append("OCR_CMS1500")
-    if page_class == PageClass.UNKNOWN and ("UB-04" in text or "UB04" in text):
-        page_class = PageClass.UB04
-        reasons.append("OCR_UB04")
-
     continuation = "CONTINUED" in text or "PAGE 2" in text or "CONT." in text
+    reasons = list(classification.evidence) or list(classification.anchors) or ["UNKNOWN_PAGE"]
     if continuation:
         reasons.append("CONTINUATION_HINT")
 
     return PageIdentity(
         page_index=page_index,
         page_class=page_class,
-        confidence=confidence if page_class != PageClass.UNKNOWN else min(confidence, 0.4),
+        confidence=max(confidence, classification.confidence)
+        if page_class != PageClass.UNKNOWN
+        else min(confidence, classification.confidence, 0.4),
+        is_separator=page_class is PageClass.SEPARATOR,
         is_continuation=continuation,
         barcode_text=barcode_text,
-        reasons=tuple(reasons or ("UNKNOWN_PAGE",)),
+        reasons=tuple(dict.fromkeys(reasons)),
+        allows_cms_geometry=page_class is PageClass.CMS1500,
     )
 
 
@@ -149,20 +174,35 @@ def build_claim_package(
     expected_page_count: int | None = None,
 ) -> ClaimPackage:
     issues: list[PackageIssue] = []
-    seen_classes: dict[str, int] = {}
     for page in pages:
-        key = f"{page.page_class.value}:{page.page_index}"
-        seen_classes[key] = seen_classes.get(key, 0) + 1
         if page.is_separator:
             issues.append(PackageIssue.SEPARATOR_DETECTED)
         if page.is_continuation:
             issues.append(PackageIssue.CONTINUATION_PAGE)
+        if (not page.allows_cms_geometry) and page.page_class not in {
+            PageClass.SEPARATOR,
+            PageClass.UNKNOWN,
+            PageClass.ATTACHMENT,
+            PageClass.NON_CLAIM,
+        }:
+            # Non-CMS claim pages must not be fed CMS ROIs.
+            pass
 
-    # Duplicate detection by identical class+index collisions already handled;
-    # also flag duplicate primary claim pages.
-    primary = [p for p in pages if p.page_class in {PageClass.CMS1500, PageClass.UB04}]
+    primary = [
+        p
+        for p in pages
+        if p.page_class
+        in {
+            PageClass.CMS1500,
+            PageClass.UB04,
+            PageClass.REIMBURSEMENT_SUPERBILL,
+            PageClass.RUNNING_ACCOUNT_STATEMENT,
+            PageClass.STATEMENT,
+            PageClass.SUPERBILL,
+            PageClass.EOB,
+        }
+    ]
     if len(primary) > 1 and not any(p.is_continuation for p in primary[1:]):
-        # Multiple primary forms without continuation mark → possible duplicate.
         if len({p.page_index for p in primary}) < len(primary):
             issues.append(PackageIssue.DUPLICATE_PAGE)
 
@@ -177,6 +217,8 @@ def build_claim_package(
         in {
             PageClass.CMS1500,
             PageClass.UB04,
+            PageClass.REIMBURSEMENT_SUPERBILL,
+            PageClass.RUNNING_ACCOUNT_STATEMENT,
             PageClass.STATEMENT,
             PageClass.SUPERBILL,
             PageClass.EOB,
@@ -189,9 +231,7 @@ def build_claim_package(
         issues.append(PackageIssue.INCOMPLETE_PACKAGE)
         complete = False
 
-    conf = (
-        sum(p.confidence for p in pages) / len(pages) if pages else 0.0
-    )
+    conf = sum(p.confidence for p in pages) / len(pages) if pages else 0.0
     return ClaimPackage(
         package_id=package_id,
         claim_id=claim_id,

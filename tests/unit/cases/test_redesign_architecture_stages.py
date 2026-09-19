@@ -78,6 +78,7 @@ def test_package_intelligence_detects_separator_and_cms():
     assert sep.is_separator is True
     cms = classify_page_signals(page_index=1, form_family="CMS1500", confidence=0.9)
     assert cms.page_class == PageClass.CMS1500
+    assert cms.allows_cms_geometry is True
     package = build_claim_package(
         package_id="pkg-1",
         claim_id="M048DJJF.013",

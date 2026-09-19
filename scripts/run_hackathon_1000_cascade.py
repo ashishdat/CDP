@@ -448,6 +448,9 @@ def _summarize_final(claim_out: Path) -> dict[str, Any]:
             }
     ocr_path = claim_out / "ocr" / "OCRCandidates.json"
     service_line_charges = 0
+    document_family = None
+    allows_cms_geometry = None
+    document_finance = None
     if ocr_path.exists():
         ocr = json.loads(ocr_path.read_text(encoding="utf-8"))
         service_line_charges = sum(
@@ -455,6 +458,16 @@ def _summarize_final(claim_out: Path) -> dict[str, Any]:
             for line in (ocr.get("service_lines") or [])
             if line.get("status") == "OBSERVED" and line.get("charges")
         )
+        document_family = ocr.get("document_family")
+        allows_cms_geometry = ocr.get("allows_cms_geometry")
+        document_finance = ocr.get("document_finance")
+        if document_family is None:
+            pkg = ocr.get("package_intelligence") or {}
+            pages = pkg.get("pages") or []
+            if pages:
+                document_family = pages[0].get("page_class")
+                allows_cms_geometry = pages[0].get("allows_cms_geometry")
+
     blockers = list(decision.get("critical_blockers") or [])
     gaps = []
     for blocker in blockers:
@@ -489,6 +502,9 @@ def _summarize_final(claim_out: Path) -> dict[str, Any]:
         "service_line_charges": service_line_charges,
         "claim_status": decision.get("claim_status") or final.get("claim_status"),
         "ocr_engine_stats": engine_stats,
+        "document_family": document_family,
+        "allows_cms_geometry": allows_cms_geometry,
+        "document_finance": document_finance,
     }
 
 

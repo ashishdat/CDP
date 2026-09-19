@@ -667,7 +667,7 @@ def _merge_ruling_split_local_charge(
         tagged.append(payload)
     candidates = list(candidates or []) + tagged
     r_raw = tagged[0].get("raw_value") if tagged else ""
-    r_value = _currency_value(r_raw, tagged)
+    r_value = _currency_value_from_candidates(r_raw, tagged)
     if r_value and _reject_pos_code_charge(r_value, r_raw):
         r_value = None
     if not r_value:
@@ -1456,6 +1456,71 @@ def _currency_value_from_text(raw_text: str | None) -> str | None:
         amount = f'{amount}.00'
     return amount
 
+
+def _currency_value_from_candidates(raw_text, candidates) -> str | None:
+    """Shape a charge from OCR candidates (module-level; used by ruling-split merge)."""
+    import re as _re
+
+    shaped_vals: list[str] = []
+    for c in candidates or []:
+        try:
+            from packages.ocr_portfolio import recover_dollars_from_split_raw
+
+            recovered = recover_dollars_from_split_raw(str(c.get('raw_value') or ''))
+            if recovered:
+                shaped_vals.append(recovered)
+        except Exception:  # noqa: BLE001
+            pass
+        seed = (c.get('value') or '').strip() or (c.get('raw_value') or '').strip()
+        if not seed:
+            continue
+        cleaned = seed.strip()
+        if _re.search(r'[A-Za-z]', cleaned) and not _re.search(r'\d', cleaned):
+            continue
+        if not _re.search(r'\d', cleaned):
+            continue
+        if _re.search(r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()):
+            continue
+        m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
+        if m:
+            amount = m.group(0).lstrip('$')
+            if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
+                try:
+                    from packages.ocr_portfolio import shape_monetary
+
+                    shaped = shape_monetary(amount)
+                    amount = shaped or f'{amount}.00'
+                except Exception:  # noqa: BLE001
+                    amount = f'{amount}.00'
+            if _re.fullmatch(r'\d+\.\d{2}', amount):
+                shaped_vals.append(amount)
+                continue
+        try:
+            from packages.ocr_portfolio import shape_monetary
+
+            shaped = shape_monetary(cleaned)
+            if shaped:
+                shaped_vals.append(shaped)
+        except Exception:  # noqa: BLE001
+            pass
+    if not shaped_vals:
+        return _currency_value_from_text(raw_text)
+    best = shaped_vals[0]
+    for other in shaped_vals[1:]:
+        try:
+            from packages.ocr_portfolio import prefer_charge_ink_amount
+
+            preferred_ink = prefer_charge_ink_amount(best, other)
+            if preferred_ink:
+                best = preferred_ink
+                continue
+        except Exception:  # noqa: BLE001
+            pass
+        preferred = prefer_currency_without_digit_drop(best, other)
+        if preferred:
+            best = preferred
+    return best
+
 def recognize_service_lines(image, router, template):
     """OCR CMS-1500 service-line charge cells for claim-total E6 confirmation."""
     table = getattr(template, 'service_line_region', None) if template is not None else None
@@ -1476,87 +1541,7 @@ def recognize_service_lines(image, router, template):
     di_budget = _azure_di_service_line_budget()
 
     def _currency_value(raw_text, candidates):
-        import re as _re
-        # Prefer longer digit-drop twin across engines (rapid 1571 > paddle 157).
-        shaped_vals = []
-        for c in candidates or []:
-            try:
-                from packages.ocr_portfolio import recover_dollars_from_split_raw
-
-                recovered = recover_dollars_from_split_raw(str(c.get('raw_value') or ''))
-                if recovered:
-                    shaped_vals.append(recovered)
-            except Exception:  # noqa: BLE001
-                pass
-            seed = (c.get('value') or '').strip() or (c.get('raw_value') or '').strip()
-            if not seed:
-                continue
-            cleaned = seed.strip()
-            if _re.search(r'[A-Za-z]', cleaned) and not _re.search(r'\d', cleaned):
-                continue
-            if not _re.search(r'\d', cleaned):
-                continue
-            if _re.search(r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()):
-                continue
-            m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
-            if m:
-                amount = m.group(0).lstrip('$')
-                if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
-                    # Ruling-noise tails (6404→640.00) via monetary shaper.
-                    try:
-                        from packages.ocr_portfolio import shape_monetary
-
-                        shaped = shape_monetary(amount)
-                        amount = shaped or f'{amount}.00'
-                    except Exception:  # noqa: BLE001
-                        amount = f'{amount}.00'
-                if _re.fullmatch(r'\d+\.\d{2}', amount):
-                    shaped_vals.append(amount)
-                    continue
-            try:
-                from packages.ocr_portfolio import shape_monetary
-
-                shaped = shape_monetary(cleaned)
-                if shaped:
-                    shaped_vals.append(shaped)
-            except Exception:  # noqa: BLE001
-                pass
-        if not shaped_vals and raw_text:
-            cleaned = str(raw_text).strip()
-            if _re.search(r'\d', cleaned) and not _re.search(
-                r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()
-            ):
-                try:
-                    from packages.ocr_portfolio import shape_monetary
-
-                    shaped = shape_monetary(cleaned)
-                    if shaped:
-                        shaped_vals.append(shaped)
-                except Exception:  # noqa: BLE001
-                    m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
-                    if m:
-                        amount = m.group(0).lstrip('$')
-                        if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
-                            amount = f'{amount}.00'
-                        shaped_vals.append(amount)
-        if not shaped_vals:
-            return None
-        best = shaped_vals[0]
-        for other in shaped_vals[1:]:
-            try:
-                from packages.ocr_portfolio import prefer_charge_ink_amount
-
-                preferred_ink = prefer_charge_ink_amount(best, other)
-                if preferred_ink:
-                    best = preferred_ink
-                    continue
-            except Exception:  # noqa: BLE001
-                pass
-            preferred = prefer_currency_without_digit_drop(best, other)
-            if preferred:
-                best = preferred
-            # else keep best (non-twin disagreement — first engine wins)
-        return best
+        return _currency_value_from_candidates(raw_text, candidates)
 
     for row_index in range(table.max_rows):
         y0 = table.table_y0 + header_offset + row_index * table.row_height_px
@@ -2649,30 +2634,91 @@ def run(directory, output):
                 inputs={"entry": telemetry.get("source", {}).get("entry")},
             ) as inv:
                 if not inv.bypassed:
+                    from packages.document_finance import (
+                        interpret_page_finance,
+                        seed_known_discrepancies,
+                    )
                     from packages.package_intelligence import (
                         build_claim_package,
                         classify_page_signals,
                     )
 
+                    # Cheap page-text classification — never assume CMS1500.
+                    page_text = ""
+                    try:
+                        import pytesseract
+
+                        w, h = canonical.size
+                        # Mask right-edge scan metadata (~8%) before classification OCR.
+                        probe = canonical.crop((0, 0, int(w * 0.92), min(h, int(h * 0.45))))
+                        page_text = pytesseract.image_to_string(
+                            probe, config="--psm 6"
+                        )
+                    except Exception:  # noqa: BLE001
+                        page_text = ""
                     page = classify_page_signals(
                         page_index=int(geometry.get("page_number") or 1) - 1,
-                        form_family="CMS1500",
-                        router_label="CMS1500",
-                        confidence=0.9,
+                        ocr_text=page_text,
+                        form_family=None,
+                        router_label=None,
+                        confidence=0.85,
                     )
                     package = build_claim_package(
                         package_id=claim_id,
                         claim_id=claim_id,
                         pages=[page],
                     )
-                    inv.outputs = package.to_dict()
+                    finance = interpret_page_finance(
+                        text=page_text,
+                        family=page.page_class.value
+                        if page.page_class.value
+                        in {
+                            "CMS1500",
+                            "UB04",
+                            "REIMBURSEMENT_SUPERBILL",
+                            "RUNNING_ACCOUNT_STATEMENT",
+                            "EOB",
+                            "SEPARATOR",
+                            "ATTACHMENT",
+                            "UNKNOWN",
+                        }
+                        else None,
+                        claim_id=str(telemetry.get("source", {}).get("entry") or claim_id),
+                        discrepancy_ledger=seed_known_discrepancies(),
+                    )
+                    inv.outputs = {
+                        **package.to_dict(),
+                        "document_finance": finance.to_dict(),
+                    }
                     report["package_intelligence"] = package.to_dict()
+                    report["document_finance"] = finance.to_dict()
+                    report["document_family"] = page.page_class.value
+                    report["allows_cms_geometry"] = bool(page.allows_cms_geometry)
             router = OCRRouter(lambda attempt: True)
-            recognize_regions(canonical, geometry, router, save, template=template)
-            report['service_lines'] = recognize_service_lines(canonical, router, template)
-            report['fields'] = _maybe_attach_dob_handwriting_residuals(
-                report['fields'], canonical
-            )
+            allows_cms = bool(report.get("allows_cms_geometry", True))
+            if report.get("document_family") == "SEPARATOR":
+                report["fields"] = []
+                report["service_lines"] = []
+                report["status"] = "SEPARATOR_EXCLUDED"
+                report["gap_classes"] = []
+                save([])
+            elif not allows_cms and report.get("document_family") not in {
+                None,
+                "CMS1500",
+                "UNKNOWN",
+            }:
+                # Non-CMS claim pages: never invoke Box 28 / 24F geometry.
+                report["fields"] = []
+                report["service_lines"] = []
+                report["status"] = "NON_CMS_FAMILY"
+                report["cms_geometry_skipped"] = True
+                save([])
+            else:
+                recognize_regions(canonical, geometry, router, save, template=template)
+                report['service_lines'] = recognize_service_lines(canonical, router, template)
+                report['fields'] = _maybe_attach_dob_handwriting_residuals(
+                    report['fields'], canonical
+                )
             # Field authority + financial reconciliation telemetry on totals.
             with tel.track(
                 "field_authority",
