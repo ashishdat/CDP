@@ -1297,6 +1297,51 @@ def recognize_service_lines(image, router, template):
             })
             if len(lines) >= 3:
                 break
+    # EMPTY_FINANCIAL_INK residual: local found no line charges — gpt-4o sweep
+    # of the first N charge cells (faint ink / wrong x-window misses), then
+    # optional local corroboration for SINGLE_LINE_GPT4O_LOCAL.
+    if not lines and charge_col is not None:
+        try:
+            from packages.extraction_recovery.gpt4o_crop_residual import (
+                empty_financial_ink_gpt4o_enabled,
+                empty_financial_ink_max_lines,
+                recover_empty_financial_service_lines,
+            )
+        except ImportError:
+            return lines
+        if empty_financial_ink_gpt4o_enabled():
+            sweep_windows = charge_windows or [(charge_col.x0, charge_col.x1)]
+            x0, x1 = sweep_windows[0]
+            max_n = empty_financial_ink_max_lines()
+            bboxes = []
+            for row_index in range(min(table.max_rows, max_n)):
+                y0 = table.table_y0 + header_offset + row_index * table.row_height_px
+                y1 = min(y0 + table.row_height_px, table.table_y1)
+                if y0 >= table.table_y1:
+                    break
+                bboxes.append(
+                    _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
+                )
+
+            def _local_on_bbox(bb):
+                return _recognize_one(
+                    image,
+                    'charges',
+                    bb,
+                    router,
+                    charge_col.field_type,
+                    engine_order=('paddleocr', 'rapidocr'),
+                )
+
+            recovered = recover_empty_financial_service_lines(
+                image=image,
+                line_bboxes=bboxes,
+                local_recognize=_local_on_bbox if router is not None else None,
+            )
+            for row in recovered:
+                # Prefer currency shaped from gpt; if local also shaped a twin,
+                # _currency_value style merge already lives in candidates.
+                lines.append(row)
     return lines
 
 
@@ -1597,6 +1642,37 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                         lead = dict(dig_cands[0])
                         lead['value'] = selected
                         dig_cands[0] = lead
+            # Empty after tess digits: one paddle+rapid pass before gpt residual
+            # (EMPTY_FINANCIAL_INK model path still runs later on the field row).
+            if not selected:
+                p_cands, p_attempts, p_reason = _recognize_one(
+                    image,
+                    field['field'],
+                    primary,
+                    router,
+                    field.get('field_type') or 'CURRENCY',
+                    engine_order=('paddleocr', 'rapidocr'),
+                )
+                dig_attempts = list(dig_attempts or []) + list(p_attempts or [])
+                dig_cands = list(dig_cands or []) + list(p_cands or [])
+                dig_reason = f'{dig_reason}|{p_reason}|CHARGE_PADDLE_AFTER_EMPTY'
+                selected = next(
+                    (c.get('value') or '' for c in dig_cands if (c.get('value') or '').strip()),
+                    '',
+                )
+                if not selected:
+                    import re as _re_amt2
+                    for c in dig_cands:
+                        raw = (c.get('raw_value') or c.get('value') or '').strip()
+                        m = _re_amt2.search(
+                            r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?',
+                            raw or '',
+                        )
+                        if m:
+                            selected = m.group(0).lstrip('$')
+                            if '.' not in selected and _re_amt2.fullmatch(r'\d{2,6}', selected):
+                                selected = f'{selected}.00'
+                            break
             ok, accept_reason = semantic_accept(field['field'], selected)
             if ok:
                 cascaded = CascadeResult(

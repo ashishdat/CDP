@@ -104,6 +104,44 @@ def gpt4o_crop_accept_enabled() -> bool:
     return raw not in {"0", "false", "no", "off"}
 
 
+def empty_financial_ink_gpt4o_enabled() -> bool:
+    """gpt-4o sweep when local OCR finds no box-28 and no line charges.
+
+    Default on with CDP_GPT4O_CROP_RESIDUAL. Disable with
+    CDP_GPT4O_EMPTY_FINANCE=0.
+    """
+    if not gpt4o_crop_residual_enabled():
+        return False
+    raw = (os.environ.get("CDP_GPT4O_EMPTY_FINANCE") or "1").strip().casefold()
+    return raw not in {"0", "false", "no", "off"}
+
+
+def empty_financial_ink_max_lines() -> int:
+    raw = (os.environ.get("CDP_GPT4O_EMPTY_FINANCE_MAX_LINES") or "4").strip()
+    try:
+        return max(0, min(8, int(raw)))
+    except ValueError:
+        return 4
+
+
+def _expand_charge_bbox(
+    bbox: tuple[int, int, int, int],
+    image_size: tuple[int, int],
+    *,
+    pad_x: float = 0.35,
+    pad_y: float = 0.55,
+) -> tuple[int, int, int, int]:
+    """Widen/tall-en a tight charge crop so faint ink is not clipped."""
+    x0, y0, x1, y1 = (int(v) for v in bbox)
+    w, h = max(1, x1 - x0), max(1, y1 - y0)
+    width, height = image_size
+    nx0 = max(0, x0 - int(pad_x * w))
+    ny0 = max(0, y0 - int(pad_y * h))
+    nx1 = min(width, x1 + int(pad_x * w))
+    ny1 = min(height, y1 + int(pad_y * h))
+    return (nx0, ny0, max(nx0 + 1, nx1), max(ny0 + 1, ny1))
+
+
 def _normalize(text: str | None) -> str | None:
     if not text:
         return None
@@ -594,6 +632,32 @@ def run_gpt4o_crop_residual(
     # Single full-box crop first.
     result = _call(crop, description=desc, field_type=ftype)
 
+    # Charge abstain on a tight ROI → taller/wider crop retry (faint ink / clip).
+    if name in _CHARGE_FIELDS and (result.insufficient_evidence or not result.shaped):
+        expanded = _expand_charge_bbox(bbox, (image.width, image.height))
+        if expanded != bbox:
+            with contextlib.suppress(Exception):
+                retry = _call(
+                    _crop_image(image, expanded),
+                    description=desc + " Crop is expanded around the charge cell.",
+                    field_type=ftype,
+                )
+                if retry.shaped and not retry.insufficient_evidence:
+                    return Gpt4oCropResidualResult(
+                        attempted=True,
+                        configured=True,
+                        review_only=retry.review_only,
+                        value=retry.value,
+                        raw_value=retry.raw_value,
+                        shaped=True,
+                        insufficient_evidence=False,
+                        reason="GPT4O_EXPANDED_CHARGE_SHAPED",
+                        engine=retry.engine,
+                        confidence=retry.confidence,
+                        validation_results=tuple(retry.validation_results)
+                        + ("GPT4O_EXPANDED_CHARGE",),
+                    )
+
     # DOB abstain → MM/DD/YY cell-split retry (DI hint already in description).
     if name in _DOB_FIELDS and (result.insufficient_evidence or not result.shaped):
         cells = _dob_cell_bboxes(bbox)
@@ -672,6 +736,89 @@ def residual_candidate_dict(
     }
 
 
+def recover_empty_financial_service_lines(
+    *,
+    image: Image.Image,
+    line_bboxes: list[tuple[int, int, int, int]],
+    engine: Gpt4oCropRecognizer | None = None,
+    local_recognize: Callable[
+        [tuple[int, int, int, int]],
+        tuple[list[dict[str, Any]], list[dict[str, Any]], str],
+    ]
+    | None = None,
+) -> list[dict[str, Any]]:
+    """gpt-4o sweep of empty service-line charge cells (EMPTY_FINANCIAL_INK path).
+
+    Local OCR often skips blank-looking rows; faint charge ink still needs a
+    vision residual. For each bbox: gpt-4o first; when shaped, optionally re-run
+    local OCR for corroboration (SINGLE_LINE_GPT4O_LOCAL). Never invents amounts
+    when the model abstains.
+    """
+    if not empty_financial_ink_gpt4o_enabled():
+        return []
+    out: list[dict[str, Any]] = []
+    limit = empty_financial_ink_max_lines()
+    for index, bbox in enumerate(line_bboxes[:limit]):
+        x0, y0, x1, y1 = (int(v) for v in bbox)
+        if x1 <= x0 or y1 <= y0:
+            continue
+        result = run_gpt4o_crop_residual(
+            image=image,
+            bbox=(x0, y0, x1, y1),
+            field_name="charges",
+            prior_candidates=[],
+            engine=engine,
+        )
+        attempts: list[dict[str, Any]] = [
+            {
+                "engine": "azure_gpt4o_crop",
+                "reason": result.reason,
+                "observation": {"text": result.raw_value or result.value or ""},
+            }
+        ]
+        candidates: list[dict[str, Any]] = []
+        value = None
+        raw = None
+        reason = f"EMPTY_FINANCE_GPT4O:{result.reason}"
+        if result.shaped and result.value and not result.insufficient_evidence:
+            cand = residual_candidate_dict(
+                result,
+                bbox=(x0, y0, x1, y1),
+                image_size=(image.width, image.height),
+            )
+            if cand is not None:
+                candidates.append(cand)
+            value = result.value
+            raw = result.raw_value or result.value
+            # Local corroboration pass — fail-closed without inventing.
+            if local_recognize is not None:
+                with contextlib.suppress(Exception):
+                    local_cands, local_attempts, local_reason = local_recognize(
+                        (x0, y0, x1, y1)
+                    )
+                    attempts.extend(list(local_attempts or []))
+                    reason = f"{reason}|{local_reason}"
+                    for lc in local_cands or []:
+                        if isinstance(lc, dict) and (lc.get("value") or "").strip():
+                            candidates.append(lc)
+        if not value:
+            continue
+        out.append(
+            {
+                "line_number": index + 1,
+                "charges": value,
+                "charge_amount": value,
+                "raw_charges": raw,
+                "canonical_region": [x0, y0, x1, y1],
+                "candidates": candidates,
+                "attempts": attempts,
+                "router_reason": f"{reason}|EMPTY_FINANCE_GPT4O_SWEEP",
+                "status": "OBSERVED",
+            }
+        )
+    return out
+
+
 def maybe_attach_gpt4o_crop_to_field_row(
     field_row: Mapping[str, Any],
     *,
@@ -738,7 +885,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
         if not charge_needs_gpt4o(
             local_accepted=local_accepted,
             azure_di_shaped=di_shaped,
-            gap_class=gap_class or "CHARGE_LOCAL_EXHAUSTED",
+            gap_class=gap_class or "EMPTY_FINANCIAL_INK",
         ):
             return updated
     else:

@@ -43,8 +43,12 @@ tool_stack:
     env: CDP_PPOCRV5_SERVER
     role: Experimental paddle-family residual; not independent of paddleocr.
   empty_financial_ink:
-    disposition: HITL
-    role: Truly blank box-28 with no observed line charges stays HITL.
+    disposition: HITL_AFTER_MODEL
+    residual: azure_gpt4o_crop
+    env: CDP_GPT4O_EMPTY_FINANCE
+    role: >
+      Truly blank finance stays HITL only after gpt-4o expanded box-28 +
+      service-line charge-cell sweep abstains. Never invent amounts.
 
 # Pipeline stages (ops path). Later stages must not invent ink.
 stages:
@@ -98,6 +102,10 @@ stages:
     role: >
       gpt-4o crop on sparse / single-engine / digit-drop twin line cells with local
       priors — empty box-28 AUTO only via LINE_TOTALS_CORROBORATED.
+  - id: empty_finance_gpt4o
+    role: >
+      When box-28 and service lines are empty after local OCR, gpt-4o sweeps
+      charge-line cells (+ expanded box-28) and re-runs local OCR for consensus.
   - id: assemble
     role: ExtractionResult must reference registration + geometry + ocr artifacts.
   - id: complete_e3
@@ -221,7 +229,10 @@ gap_classes:
   CALIBRATION_HITL:
     action: Calendar-valid / format-valid value held for calibrated confidence; corroboration relief or HITL.
   EMPTY_FINANCIAL_INK:
-    action: Keep HITL — truly blank box-28 and no observed line charges (do not invent STP).
+    action: >
+      Run gpt-4o empty-finance residual (expanded box-28 crop + service-line
+      charge-cell sweep with local corroboration). HITL only if the model
+      abstains or finds no amount ink — never invent STP.
   LINE_SUM_UNCORROBORATED:
     action: >
       Box-28 empty but line charges observed — run gpt-4o crop on line cells for

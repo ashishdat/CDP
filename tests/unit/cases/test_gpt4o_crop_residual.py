@@ -405,3 +405,143 @@ def test_name_conflict_triggers_gpt4o_and_accepts_shaped(monkeypatch):
     assert updated["cascade"]["accepted"] is True
     assert updated["cascade"]["value"] == "THOMAS DARLENE"
     assert updated["candidates"][0]["engine"] == "azure_gpt4o_crop"
+
+
+def test_empty_finance_line_sweep_recovers_gpt_shaped_amount(monkeypatch):
+    from packages.extraction_recovery.gpt4o_crop_residual import (
+        recover_empty_financial_service_lines,
+    )
+
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_EMPTY_FINANCE", "1")
+    monkeypatch.setenv("CDP_GPT4O_EMPTY_FINANCE_MAX_LINES", "2")
+    img = Image.new("RGB", (400, 400), color=(255, 255, 255))
+    engine = _FakeEngine(
+        {
+            "charges": Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value="18.00",
+                raw_value="18.00",
+                shaped=True,
+                insufficient_evidence=False,
+                reason="GPT4O_SHAPED",
+                confidence=0.91,
+            )
+        }
+    )
+
+    def local_recognize(bbox):
+        return (
+            [
+                {
+                    "value": "18.00",
+                    "raw_value": "18",
+                    "engine": "paddleocr",
+                }
+            ],
+            [{"engine": "paddleocr", "reason": "OBSERVED"}],
+            "OBSERVED",
+        )
+
+    lines = recover_empty_financial_service_lines(
+        image=img,
+        line_bboxes=[(10, 10, 100, 50), (10, 60, 100, 100)],
+        engine=engine,
+        local_recognize=local_recognize,
+    )
+    assert len(lines) == 2
+    assert lines[0]["charges"] == "18.00"
+    assert lines[0]["status"] == "OBSERVED"
+    engines = {c["engine"] for c in lines[0]["candidates"]}
+    assert "azure_gpt4o_crop" in engines
+    assert "paddleocr" in engines
+    assert "EMPTY_FINANCE_GPT4O_SWEEP" in lines[0]["router_reason"]
+
+
+def test_empty_finance_line_sweep_abstains_without_inventing(monkeypatch):
+    from packages.extraction_recovery.gpt4o_crop_residual import (
+        recover_empty_financial_service_lines,
+    )
+
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_EMPTY_FINANCE", "1")
+    img = Image.new("RGB", (200, 200), color=(255, 255, 255))
+    engine = _FakeEngine(
+        {
+            "charges": Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value=None,
+                raw_value=None,
+                shaped=False,
+                insufficient_evidence=True,
+                reason="GPT4O_ABSTAIN",
+                confidence=0.9,
+            )
+        }
+    )
+    lines = recover_empty_financial_service_lines(
+        image=img,
+        line_bboxes=[(10, 10, 80, 40)],
+        engine=engine,
+    )
+    assert lines == []
+
+
+def test_charge_expanded_crop_retry_on_abstain(monkeypatch):
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
+    img = Image.new("RGB", (300, 300), color=(255, 255, 255))
+    calls = {"n": 0}
+
+    class _ExpandEngine:
+        def recognize_fields(
+            self,
+            crops,
+            *,
+            field_types,
+            descriptions,
+            prior_candidates,
+        ):
+            calls["n"] += 1
+            # First (tight) abstain; expanded succeeds.
+            if calls["n"] == 1:
+                return {
+                    "total_charge": Gpt4oCropResidualResult(
+                        attempted=True,
+                        configured=True,
+                        review_only=True,
+                        value=None,
+                        raw_value=None,
+                        shaped=False,
+                        insufficient_evidence=True,
+                        reason="GPT4O_ABSTAIN",
+                    )
+                }
+            return {
+                "total_charge": Gpt4oCropResidualResult(
+                    attempted=True,
+                    configured=True,
+                    review_only=True,
+                    value="1165.00",
+                    raw_value="1165.00",
+                    shaped=True,
+                    insufficient_evidence=False,
+                    reason="GPT4O_SHAPED",
+                    confidence=0.93,
+                )
+            }
+
+    result = run_gpt4o_crop_residual(
+        image=img,
+        bbox=(100, 100, 140, 130),
+        field_name="total_charge",
+        engine=_ExpandEngine(),
+    )
+    assert result.shaped is True
+    assert result.value == "1165.00"
+    assert result.reason == "GPT4O_EXPANDED_CHARGE_SHAPED"
+    assert calls["n"] >= 2
