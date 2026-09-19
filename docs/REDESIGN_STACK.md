@@ -22,27 +22,30 @@ binding: `config/field_cascade_strategy.yaml` (field-cascade-v12) and
 
 ## Charge residual ladder (fail-closed)
 
-1. local paddle + rapid  
-2. tesseract digits fill  
-3. OpenOCR/SVTRv2 (optional)  
-4. GPT-4o empty-finance sweep (local corroboration required for AUTO)  
-5. Azure DI charge (optional, default off)  
-6. Field-scoped HITL  
+1. local paddle + rapid on primary/mid/right windows, plus dollars left of the
+   CMS vertical dashed ruling (`CHARGE_DOLLARS_RULING*`)
+2. tesseract digits fill (full + dollars-ruling)
+3. GPT-4o empty-finance / line corroboration (local agreement required for AUTO)
+4. Azure DI charge (optional, default off)
+5. Field-scoped HITL
 
-Empty / unreadable financial ink never becomes STP by invention.
+OpenOCR/SVTRv2 and MonkeyOCR/PaddleOCR-VL are **off** — same-family / wrong
+window; they do not close EMPTY_FINANCIAL_INK. Empty / unreadable financial ink
+never becomes STP by invention.
 
 ## Env flags
 
 ```bash
-# CANDIDATE printed-crop OCR (same family as paddle — not independent E2)
+# CANDIDATE printed-crop OCR — FAILED for charge gap; keep off
 CDP_OPENOCR_SVTR=0
 
-# Complex tables REVIEW_ONLY
+# Complex tables REVIEW_ONLY — keep off for charge STP path
 CDP_PADDLEOCR_VL_TABLE=0
 CDP_MONKEYOCR=0
 
 # GPT-4o crop residual (default on in cascade eval)
 CDP_GPT4O_CROP_RESIDUAL=1
+CDP_GPT4O_CROP_ACCEPT=1
 CDP_GPT4O_EMPTY_FINANCE=1
 
 # Azure DI charge residual (default off)

@@ -182,3 +182,12 @@ def test_pos_like_line_sum_still_blocked():
         {"value": "11.00", "engine": "rapidocr"},
     ]}])
     assert not ok and reason == "POS_LIKE_LINE_SUM_REJECTED"
+
+
+def test_charge_ladder_drops_failed_openocr():
+    from packages.architecture.charge_ladder import charge_residual_ladder
+
+    ladder = charge_residual_ladder()
+    assert "openocr_svtr_optional" not in ladder
+    assert ladder[0] == "local_paddle_rapid"
+    assert "gpt4o_empty_finance_sweep" in ladder

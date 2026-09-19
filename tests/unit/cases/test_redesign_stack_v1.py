@@ -60,7 +60,8 @@ def test_charge_ladder_order_and_next_step():
     assert assert_ladder_order(["gpt4o_empty_finance_sweep", "local_paddle_rapid"]) is False
     nxt = next_step_after(["local_paddle_rapid", "tesseract_digits_fill"])
     assert nxt is not None
-    assert nxt.id == "openocr_svtr_optional"
+    assert nxt.id == "gpt4o_empty_finance_sweep"
+    assert "openocr_svtr_optional" not in ladder
 
 
 def test_openocr_svtr_disabled_by_default(monkeypatch):

@@ -112,8 +112,9 @@ stages:
       For single-engine service-line charges, digit-whitelist tess runs before gpt-4o.
   - id: openocr_svtr_optional
     role: >
-      Optional OpenOCR/SVTRv2 printed-crop residual (CDP_OPENOCR_SVTR). Same
-      PADDLE_FAMILY as paddleocr — not an independent confirmation engine.
+      FAILED STRATEGY — kept off (CDP_OPENOCR_SVTR=0). Same PADDLE_FAMILY and
+      same bad charge windows; does not mint independent E2. Ruling-aware local
+      dollars|cents crops + GPT corroboration replaced this step.
   - id: complex_tables_review
     role: >
       Optional PaddleOCR-VL / MonkeyOCR table structure (REVIEW_ONLY). Never

@@ -962,6 +962,11 @@ def main() -> int:
         # FIELD_INK DOB/ID/charge: crop-only gpt-4o after local(+TrOCR) miss.
         "CDP_GPT4O_CROP_RESIDUAL": "1",
         "CDP_GPT4O_CROP_ACCEPT": "1",
+        "CDP_GPT4O_EMPTY_FINANCE": "1",
+        # OpenOCR / Monkey / PaddleOCR-VL failed for charge recovery — keep off.
+        "CDP_OPENOCR_SVTR": "0",
+        "CDP_MONKEYOCR": "0",
+        "CDP_PADDLEOCR_VL_TABLE": "0",
     }
     for key, value in _product.items():
         if _respect:

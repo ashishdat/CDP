@@ -121,10 +121,11 @@ capabilities:
     status: PARTIAL
 
 # Ordered residual ladder for critical charge fields (fail-closed).
+# OpenOCR/SVTRv2 was tried and failed for this gap (same family as paddle,
+# same bad window). Ruling-aware local windows + GPT corroboration replace it.
 charge_residual_ladder:
   - local_paddle_rapid
   - tesseract_digits_fill
-  - openocr_svtr_optional
   - gpt4o_empty_finance_sweep
   - azure_di_charge_optional
   - field_scoped_hitl

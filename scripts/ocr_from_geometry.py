@@ -610,6 +610,96 @@ def prefer_currency_without_digit_drop(primary: object, competitor: object) -> s
     return left if len(ld) >= len(rd) else right
 
 
+def _merge_ruling_split_local_charge(
+    image,
+    bbox,
+    *,
+    router,
+    field_type,
+    engine_order,
+    value,
+    raw,
+    candidates,
+    attempts,
+    reason,
+):
+    """OCR dollars left of the CMS vertical ruling with the same local engines.
+
+    Full-window paddle/rapid often bleed the units column (2701, 640 .101).
+    A second pass on the dollars-only subcrop recovers the typed stem; prefer
+    via ``prefer_charge_ink_amount``. OpenOCR is not used.
+    """
+    try:
+        from packages.ocr_portfolio import (
+            prefer_charge_ink_amount,
+            split_charge_at_vertical_ruling,
+        )
+    except Exception:  # noqa: BLE001
+        return value, raw, candidates, attempts, reason
+    x0, y0, x1, y1 = (int(v) for v in bbox)
+    if x1 - x0 < 12 or y1 - y0 < 6:
+        return value, raw, candidates, attempts, reason
+    crop = image.crop((x0, y0, x1, y1))
+    split = split_charge_at_vertical_ruling(crop)
+    if split is None:
+        return value, raw, candidates, attempts, reason
+    dollars, _cents = split
+    dx1 = x0 + int(dollars.width)
+    if dx1 - x0 < 6:
+        return value, raw, candidates, attempts, reason
+    dollars_bbox = (x0, y0, dx1, y1)
+    r_cands, r_attempts, r_reason = _recognize_one(
+        image,
+        "charges",
+        dollars_bbox,
+        router,
+        field_type,
+        engine_order=engine_order,
+    )
+    attempts = list(attempts or []) + list(r_attempts or [])
+    if not r_cands:
+        return value, raw, candidates, attempts, f"{reason}|{r_reason}|CHARGE_DOLLARS_RULING_EMPTY"
+    tagged = []
+    for cand in r_cands:
+        payload = dict(cand)
+        variant = str(payload.get("preprocessing_variant") or "recorded_canonical_region")
+        payload["preprocessing_variant"] = f"{variant}|dollars_ruling"
+        tagged.append(payload)
+    candidates = list(candidates or []) + tagged
+    r_raw = tagged[0].get("raw_value") if tagged else ""
+    r_value = _currency_value(r_raw, tagged)
+    if r_value and _reject_pos_code_charge(r_value, r_raw):
+        r_value = None
+    if not r_value:
+        return value, raw, candidates, attempts, f"{reason}|{r_reason}|CHARGE_DOLLARS_RULING_UNSHAPED"
+    if not value:
+        return (
+            r_value,
+            r_raw or raw,
+            candidates,
+            attempts,
+            f"{reason}|{r_reason}|CHARGE_DOLLARS_RULING",
+        )
+    preferred = prefer_charge_ink_amount(value, r_value)
+    if preferred and preferred != value:
+        return (
+            preferred,
+            r_raw or raw,
+            candidates,
+            attempts,
+            f"{reason}|{r_reason}|CHARGE_DOLLARS_RULING_PREF",
+        )
+    if preferred == value and preferred != r_value:
+        return (
+            value,
+            raw,
+            candidates,
+            attempts,
+            f"{reason}|{r_reason}|CHARGE_DOLLARS_RULING_KEPT",
+        )
+    return value, raw, candidates, attempts, f"{reason}|{r_reason}|CHARGE_DOLLARS_RULING"
+
+
 def _recognize_charge_digits_only(image, bbox):
     """Cheap charge OCR: digit-whitelist tesseract only (no paddle/rapid).
 
@@ -1520,6 +1610,18 @@ def recognize_service_lines(image, router, template):
                         'observation': {'text': raw, 'shaped': value},
                     }]
                     value = None
+                value, raw, candidates, attempts, reason = _merge_ruling_split_local_charge(
+                    image,
+                    bbox,
+                    router=router,
+                    field_type=charge_col.field_type,
+                    engine_order=('paddleocr', 'rapidocr'),
+                    value=value,
+                    raw=raw,
+                    candidates=candidates,
+                    attempts=attempts,
+                    reason=reason,
+                )
                 if not value:
                     d_cands, d_attempts, d_reason = _recognize_charge_digits_only(
                         image, bbox
@@ -1544,6 +1646,18 @@ def recognize_service_lines(image, router, template):
                         'observation': {'text': raw, 'shaped': value},
                     }]
                     value = None
+                value, raw, candidates, attempts, reason = _merge_ruling_split_local_charge(
+                    image,
+                    bbox,
+                    router=router,
+                    field_type=charge_col.field_type,
+                    engine_order=None,
+                    value=value,
+                    raw=raw,
+                    candidates=candidates,
+                    attempts=attempts,
+                    reason=reason,
+                )
             # Azure DI only when local OCR left the cell empty on a live row,
             # or when dual engines disagree as non-twins. Do NOT call DI merely
             # because an amount is short — that billed every $25–$999 cell on

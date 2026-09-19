@@ -1,7 +1,9 @@
 """Governed charge residual ladder from redesign-stack-v1.
 
-Order is fail-closed: local OCR → optional OpenOCR → GPT empty-finance sweep →
-optional Azure DI → field-scoped HITL. GPT is never sole monetary authority.
+Order is fail-closed: local OCR (ruling-aware windows) → tess digits → GPT
+empty-finance sweep (local corroboration required) → optional Azure DI →
+field-scoped HITL. OpenOCR is not on the ladder. GPT is never sole monetary
+authority.
 """
 
 from __future__ import annotations
@@ -15,7 +17,6 @@ from .redesign_stack import load_redesign_stack
 DEFAULT_LADDER: tuple[str, ...] = (
     "local_paddle_rapid",
     "tesseract_digits_fill",
-    "openocr_svtr_optional",
     "gpt4o_empty_finance_sweep",
     "azure_di_charge_optional",
     "field_scoped_hitl",
