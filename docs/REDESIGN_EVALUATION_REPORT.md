@@ -162,6 +162,20 @@ Unit: `test_total_charge_recovery_regressions.py` + redesign stages + line_sum �
 
 Full 50-claim ops re-baseline still required for release-gate True STP ≥94%.
 
+## Vision corroboration of the four residual blockers
+
+GPT-4o crop residual is a corroborator, never sole monetary or date authority.
+Golden labels were not mutated.
+
+| Issue | Mechanism | Measured |
+|---|---|---|
+| Split-read cents (`640 .101` → `101`) | Prefer a local/vision stem within $1 over the fragment | M048DJJF.002 **TRUE_STP `1160.00`** (640+260+260), not `621` |
+| Line-sum veto by POS `11` | POS-like locals are non-votes; GPT cannot promote alone | M048DJJF.009 **TRUE_STP `270.00`**, one line (not `540`) |
+| Name E2 (`WOOD`/`WO0D`, `KIVERA`/`RIVERA`) | `0→O` normalization, plus vision tie-break when locals are confusable but not normalize-exact | M048DJJF.008 **TRUE_STP `WOOD AVA`**. M048DJJM.019 name **AUTO `RIVERA LARAA`** (`GPT4O_NAME_INK_CONFLICT_RELIEVED`) when paddle read `KIVERALARAA` |
+| DOB without local digits | Shaped vision date promotes only if a local read shares ≥4 digits | M048DJJM.019 DOB **ESCALATE** `MISSING_E2` (`GPT_DOB_NEEDS_LOCAL_DIGITS`). Vision `11/02/1980` is not STP. A lone local `1` cannot confirm `07/02/1980` |
+
+Smoke: `evaluation_results/hackathon_ai_confirm_smoke` (002/008/009 charges and WOOD) and `evaluation_results/hackathon_ai_confirm_dob_name_gate` (019). Claim 019 stays HITL on DOB only; total charge `270.00` and the name are AUTO. Unreadable single-token names still stay HITL. Release gates are not met; the identical 50-claim after-eval is still outstanding.
+
 
 ## Exact evidence on 94% STP target
 
