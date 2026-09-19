@@ -102,6 +102,43 @@ def test_run_and_attach_dob_accepts_shaped(monkeypatch):
     assert cand["value"] == "07/30/1977"
 
 
+def test_attach_dob_rejects_vision_only_digit(monkeypatch):
+    """A lone local digit is not corroboration. GPT must not STP 07/02/1980."""
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
+    img = Image.new("RGB", (240, 80), color=(255, 255, 255))
+    engine = _FakeEngine(
+        {
+            "patient_dob": Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value="07/02/1980",
+                raw_value="07/02/1980",
+                shaped=True,
+                insufficient_evidence=False,
+                reason="GPT4O_SHAPED",
+                confidence=0.99,
+            )
+        }
+    )
+    row = {
+        "field": "patient_dob",
+        "canonical_region": [10, 10, 200, 70],
+        "ocr_region": [10, 10, 200, 70],
+        "candidates": [{"value": "1", "raw_value": "1", "engine": "rapidocr"}],
+        "cascade": {"accepted": False},
+        "trocr_residual": {"date_shaped": False, "review_only": False},
+        "azure_di_residual": {"date_shaped": False, "review_only": True},
+    }
+    updated = maybe_attach_gpt4o_crop_to_field_row(
+        row, image=img, gap_class="HANDWRITING_UNREADABLE", engine=engine
+    )
+    assert updated.get("cascade", {}).get("accepted") is not True
+    meta = updated.get("gpt4o_crop_residual") or {}
+    assert "GPT_DOB_NEEDS_LOCAL_DIGITS" in str(meta.get("reason"))
+
+
 def test_attach_id_rejects_chrome_hallucination(monkeypatch):
     monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
     monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")

@@ -1038,6 +1038,39 @@ def maybe_attach_gpt4o_crop_to_field_row(
                     }
                     if risk.review_recommended and not has_local:
                         promote_accept = False
+            if key in _DOB_FIELDS and promote_accept:
+                # Vision date is not sole authority. A local read must carry
+                # at least four of the same digits (handwriting 7:30.77 vs
+                # 07/30/1977). A lone "1" cannot confirm 07/02/1980.
+                gpt_digits = re.sub(r"\D", "", str(promoted.value or ""))
+
+                def _is_subseq(needle: str, hay: str) -> bool:
+                    idx = 0
+                    for ch in hay:
+                        if idx < len(needle) and ch == needle[idx]:
+                            idx += 1
+                    return bool(needle) and idx == len(needle)
+
+                local_ok = False
+                for prior_c in candidates[1:]:
+                    eng = str(prior_c.get("engine") or "").casefold()
+                    if "gpt4o" in eng or "gpt-4o" in eng:
+                        continue
+                    digits = re.sub(
+                        r"\D",
+                        "",
+                        str(prior_c.get("raw_value") or prior_c.get("value") or ""),
+                    )
+                    if len(digits) < 4:
+                        continue
+                    if _is_subseq(digits, gpt_digits) or _is_subseq(gpt_digits, digits):
+                        local_ok = True
+                        break
+                if not local_ok:
+                    promote_accept = False
+                    updated["gpt4o_crop_residual"]["reason"] = (
+                        f"{promoted.reason}|GPT_DOB_NEEDS_LOCAL_DIGITS"
+                    )
             if promote_accept:
                 cascade_out["accepted"] = True
                 cascade_out["accept_reason"] = f"GPT4O_CROP_RESIDUAL:{promoted.reason}"
