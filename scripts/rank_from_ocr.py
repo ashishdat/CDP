@@ -11,6 +11,60 @@ from packages.extraction_recovery.contracts import CandidateObservation
 from packages.extraction_recovery.ranking import CandidateScoringPolicy
 
 
+def _prefer_fuller_self_patient(report: dict) -> None:
+    """Under Self, keep an already-observed Box 2 string that matches Box 4.
+
+    Does not invent characters. Non-Self relationships are left unchanged.
+    """
+    from packages.geometry_authority.form_redundancy import (
+        prefer_fuller_self_name,
+        relationship_is_self,
+    )
+
+    by_field: dict[str, list] = {}
+    for row in report.get("ranked_candidates") or []:
+        by_field.setdefault(row["field_id"], []).append(row)
+
+    def _winner_text(field_id: str) -> str:
+        for row in by_field.get(field_id) or []:
+            if row.get("is_winner"):
+                cand = row.get("ocr_candidate") or {}
+                return str(cand.get("value") or cand.get("raw_value") or "")
+        return ""
+
+    relationship = _winner_text("rel_code") or _winner_text("insured_relationship")
+    if not relationship_is_self(relationship):
+        return
+    insured = _winner_text("insured_name")
+    patients = by_field.get("patient_name") or []
+    if not insured or not patients:
+        return
+    observed: list[str] = []
+    for row in patients:
+        cand = row.get("ocr_candidate") or {}
+        observed.append(str(cand.get("value") or ""))
+        observed.append(str(cand.get("raw_value") or ""))
+    chosen = prefer_fuller_self_name(observed, insured)
+    if not chosen:
+        return
+    match = None
+    for row in patients:
+        cand = row.get("ocr_candidate") or {}
+        if chosen in {str(cand.get("value") or ""), str(cand.get("raw_value") or "")}:
+            match = row
+            break
+    if match is None or match.get("is_winner"):
+        return
+    winner_id = match["candidate_id"]
+    for row in patients:
+        row["is_winner"] = row["candidate_id"] == winner_id
+        row["winner"] = winner_id
+        reasons = list(row.get("ranking_reason") or [])
+        if "BOX2_BOX4_FULLER_OBSERVED" not in reasons:
+            reasons.append("BOX2_BOX4_FULLER_OBSERVED")
+        row["ranking_reason"] = reasons
+
+
 def rank_saved(source, output):
     source, output = Path(source), Path(output)
     payload = source.read_bytes()
@@ -115,6 +169,7 @@ def rank_saved(source, output):
                 'candidate_ids':[o.candidate_id for o in observations],
                 'inputs':[o.model_dump(mode='json') for o in observations],
                 'result':ranked.model_dump(mode='json')})
+        _prefer_fuller_self_patient(report)
         if set(regions) != seen:
             raise ValueError('Missing canonical fields in OCR artifact')
         report['status'] = 'SUCCESS'

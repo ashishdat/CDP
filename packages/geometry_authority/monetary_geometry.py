@@ -1,0 +1,646 @@
+"""Geometry-based CMS dollars|cents reconstruction.
+
+Digit identity still comes from an existing reader (character boxes). This
+module only decides which glyphs are dollars, which are cents, and whether an
+implied decimal is authorised by a validated vertical ruling. It does not
+invent glyphs and it does not know claim identifiers.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import numpy as np
+
+
+@dataclass(frozen=True)
+class GlyphBox:
+    text: str
+    x0: int
+    y0: int
+    x1: int
+    y1: int
+
+    @property
+    def cx(self) -> float:
+        return (self.x0 + self.x1) / 2.0
+
+    @property
+    def cy(self) -> float:
+        return (self.y0 + self.y1) / 2.0
+
+
+@dataclass(frozen=True)
+class MonetaryGeometryRead:
+    raw_glyph_sequence: str
+    dollars: str
+    cents: str
+    decimal_visible: bool
+    geometry_candidate: str | None
+    ambiguous: bool
+    ruling_x: int | None
+    reasons: tuple[str, ...]
+
+    def to_dict(self) -> dict:
+        return {
+            "raw_glyph_sequence": self.raw_glyph_sequence,
+            "dollars": self.dollars,
+            "cents": self.cents,
+            "decimal_visible": self.decimal_visible,
+            "geometry_candidate": self.geometry_candidate,
+            "ambiguous": self.ambiguous,
+            "ruling_x": self.ruling_x,
+            "reasons": list(self.reasons),
+        }
+
+
+def mask_form_lines(gray: np.ndarray) -> np.ndarray:
+    """Whiten long horizontal and vertical rulings. Keep short glyph strokes."""
+    import cv2
+
+    if gray.ndim != 2 or gray.size == 0:
+        return gray
+    ink = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    height, width = ink.shape
+    horiz = cv2.morphologyEx(
+        ink,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (max(12, width // 4), 1)),
+    )
+    vert = cv2.morphologyEx(
+        ink,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(8, height // 2))),
+    )
+    rules = cv2.bitwise_or(horiz, vert)
+    out = gray.copy()
+    out[rules > 0] = 255
+    return out
+
+
+def _row_ink(gray: np.ndarray) -> np.ndarray:
+    import cv2
+
+    ink = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    return (ink > 0).sum(axis=1).astype(float)
+
+
+def locate_value_band(gray: np.ndarray) -> tuple[int, int]:
+    """Return (y0, y1) of the monetary glyph band, excluding caption and rules.
+
+    The caption is the first dense text row. A full-width bottom rule is the
+    lower form boundary. The value is the glyph run between those, not a
+    hairline grid. One Box 28 fraction does not fit every renderer; the band
+    is measured from this cell.
+    """
+    if gray.size == 0:
+        return (0, 0)
+    profile = _row_ink(gray)
+    height = int(profile.shape[0])
+    width = int(gray.shape[1]) if gray.ndim == 2 else 1
+    if height < 4:
+        return (0, height)
+    bottom = None
+    for y in range(height - 1, int(height * 0.62), -1):
+        if profile[y] > 0.50 * width:
+            bottom = y
+            break
+    cap_end = 0
+    seen = False
+    for y in range(int(height * 0.50)):
+        if profile[y] > max(8.0, 0.15 * width):
+            seen = True
+            cap_end = y
+        elif seen and profile[y] < 6:
+            break
+    y_start = min(height - 2, cap_end + 2)
+    y_end = (bottom - 1) if bottom is not None else height
+    glyph = [y for y in range(y_start, max(y_start, y_end)) if 4 <= profile[y] < 0.50 * width]
+    if not glyph:
+        # Single printed row (synthetic value under a caption, no bottom rule).
+        dense = [y for y in range(height) if profile[y] >= max(3.0, float(profile.max()) * 0.25)]
+        if len(dense) >= 3:
+            return (dense[0], dense[-1] + 1)
+        return (max(0, height // 3), height)
+    spans: list[tuple[int, int]] = []
+    start = prev = glyph[0]
+    for y in glyph[1:] + [10**9]:
+        if y <= prev + 2:
+            prev = y
+        else:
+            spans.append((start, prev + 1))
+            start = prev = y
+    spans.sort(key=lambda span: span[1] - span[0], reverse=True)
+    y0, y1 = spans[0]
+    return (max(0, y0 - 1), min(height, y1 + 1))
+
+
+def find_cents_ruling(gray: np.ndarray) -> int | None:
+    """X of the dollars|cents dashed rule in the right half, if validated."""
+    import cv2
+
+    if gray.ndim != 2 or gray.shape[1] < 16 or gray.shape[0] < 6:
+        return None
+    ink = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    height, width = ink.shape
+    vert = cv2.morphologyEx(
+        ink,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(3, height // 3))),
+    )
+    col = vert.sum(axis=0).astype(float)
+    x_lo, x_hi = int(width * 0.55), int(width * 0.92)
+    region = col[x_lo:x_hi]
+    if region.size == 0 or float(region.max()) < height * 40:
+        return None
+    # Rightmost strong column — the cents rule, not a digit stem.
+    thresh = float(region.max()) * 0.55
+    strong = np.where(region >= thresh)[0]
+    if strong.size == 0:
+        return None
+    return int(strong[-1]) + x_lo
+
+
+def reconstruct_from_glyphs(
+    glyphs: list[GlyphBox],
+    *,
+    ruling_x: int | None,
+    decimal_visible: bool = False,
+) -> MonetaryGeometryRead:
+    """Split glyphs into dollars and cents using a validated ruling."""
+    ordered = sorted(glyphs, key=lambda g: g.cx)
+    digits = [g for g in ordered if g.text.isdigit()]
+    sequence = "".join(g.text for g in ordered if g.text.strip())
+    reasons: list[str] = []
+    if ruling_x is None and not decimal_visible:
+        return MonetaryGeometryRead(
+            sequence,
+            "",
+            "",
+            False,
+            None,
+            True,
+            None,
+            ("RULING_NOT_VALIDATED", "AMBIGUOUS"),
+        )
+    if ruling_x is None and decimal_visible:
+        # Visible decimal already encoded in glyph text; do not imply another.
+        raw = "".join(g.text for g in ordered if g.text in set("0123456789."))
+        parts = raw.split(".")
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit() and len(parts[1]) == 2:
+            candidate = f"{int(parts[0])}.{parts[1]}"
+            return MonetaryGeometryRead(
+                sequence,
+                parts[0],
+                parts[1],
+                True,
+                candidate,
+                False,
+                None,
+                ("DECIMAL_VISIBLE",),
+            )
+        return MonetaryGeometryRead(
+            sequence, "", "", True, None, True, None, ("DECIMAL_VISIBLE_AMBIGUOUS",)
+        )
+
+    left = [g.text for g in digits if g.cx < float(ruling_x)]
+    right = [g.text for g in digits if g.cx >= float(ruling_x)]
+    dollars = "".join(left)
+    cents = "".join(right)
+    reasons.append("RULING_VALIDATED")
+    if not dollars:
+        return MonetaryGeometryRead(
+            sequence, dollars, cents, decimal_visible, None, True, ruling_x, ("NO_DOLLAR_GLYPHS", "AMBIGUOUS")
+        )
+    if len(cents) == 2:
+        candidate = f"{int(dollars)}.{cents}"
+        reasons.append("CENTS_COLUMN")
+        return MonetaryGeometryRead(
+            sequence, dollars, cents, decimal_visible, candidate, False, ruling_x, tuple(reasons)
+        )
+    if cents == "" or set(cents) <= {"0"} and len(cents) <= 2:
+        candidate = f"{int(dollars)}.00"
+        reasons.append("IMPLIED_DECIMAL_WHOLE_DOLLARS")
+        return MonetaryGeometryRead(
+            sequence, dollars, "", decimal_visible, candidate, False, ruling_x, tuple(reasons)
+        )
+    # 1 extra glyph is usually Box 24G units, not a third cent — ambiguous, do not strip.
+    reasons.append("CENTS_WIDTH_UNEXPECTED")
+    return MonetaryGeometryRead(
+        sequence, dollars, cents, decimal_visible, None, True, ruling_x, tuple(reasons) + ("AMBIGUOUS",)
+    )
+
+
+def glyphs_from_tesseract_boxes(
+    boxes_text: str,
+    *,
+    width: int,
+    height: int,
+) -> list[GlyphBox]:
+    """Parse ``image_to_boxes`` output. Origin is bottom-left."""
+    glyphs: list[GlyphBox] = []
+    for line in (boxes_text or "").splitlines():
+        parts = line.split()
+        if len(parts) < 5:
+            continue
+        char, x0, y0, x1, y1 = parts[0], parts[1], parts[2], parts[3], parts[4]
+        if char in {"~"}:
+            continue
+        try:
+            left, bottom, right, top = int(x0), int(y0), int(x1), int(y1)
+        except ValueError:
+            continue
+        glyphs.append(
+            GlyphBox(
+                char,
+                left,
+                max(0, height - top),
+                right,
+                max(0, height - bottom),
+            )
+        )
+    return glyphs
+
+
+def read_ruled_crop(image) -> MonetaryGeometryRead:
+    """Label-free value band + ruling split using existing Tesseract character boxes."""
+    import pytesseract
+    from PIL import Image
+
+    if not hasattr(image, "convert"):
+        image = Image.fromarray(image)
+    gray = np.asarray(image.convert("L"))
+    y0, y1 = locate_value_band(gray)
+    band = gray[y0:y1, :] if y1 > y0 else gray
+    ruling = find_cents_ruling(band)
+    cleaned = mask_form_lines(band)
+    width = cleaned.shape[1]
+    left_trim = int(width * 0.06)
+    glyph_img = cleaned[:, left_trim:] if width > 20 else cleaned
+    ruling_adj = None if ruling is None else ruling - left_trim
+    if ruling_adj is not None and ruling_adj <= 0:
+        ruling_adj = None
+    pil = Image.fromarray(glyph_img)
+    raw_boxes = pytesseract.image_to_boxes(
+        pil,
+        config="--oem 3 --psm 7 -c tessedit_char_whitelist=0123456789.",
+    )
+    glyphs = glyphs_from_tesseract_boxes(
+        raw_boxes, width=glyph_img.shape[1], height=glyph_img.shape[0]
+    )
+    decimal_visible = any(g.text == "." for g in glyphs)
+    return reconstruct_from_glyphs(
+        [g for g in glyphs if g.text != "."],
+        ruling_x=ruling_adj,
+        decimal_visible=decimal_visible,
+    )
+
+
+@dataclass(frozen=True)
+class TextToken:
+    text: str
+    x0: float
+    y0: float
+    x1: float
+    y1: float
+
+    @property
+    def cx(self) -> float:
+        return (self.x0 + self.x1) / 2.0
+
+
+def template_signature(gray: np.ndarray) -> str:
+    """Stable visual signature of a charge cell. Not a claim identifier.
+
+    Quantized value-baseline and cents-column position. Renderers that share
+    a signature share a value band; a new signature is not auto-trusted for
+    an implied decimal until its ruling geometry validates.
+    """
+    if gray.size == 0:
+        return "empty"
+    height = max(1, gray.shape[0])
+    width = max(1, gray.shape[1])
+    y0, y1 = locate_value_band(gray)
+    ruling = find_cents_ruling(gray[y0:y1, :] if y1 > y0 else gray)
+    y_bin = int(round((y0 / height) * 20))
+    r_bin = -1 if ruling is None else int(round((ruling / width) * 20))
+    return f"cms-band-y{y_bin}-r{r_bin}"
+
+
+def _clean_amount_text(text: str) -> str:
+    raw = str(text or "").strip()
+    if not raw:
+        return ""
+    # Ruling ticks and confusables that sit on a digit, not a new glyph.
+    raw = raw.replace(",", "")
+    if raw.startswith(":") or raw.startswith("."):
+        raw = raw[1:]
+    raw = raw.replace(":", ".").replace("$", "")
+    raw = raw.replace("q", "0").replace("Q", "0").replace("g", "0").replace("G", "0")
+    raw = raw.replace("O", "0").replace("o", "0")
+    kept = []
+    for ch in raw:
+        if ch.isdigit() or ch == ".":
+            kept.append(ch)
+    return "".join(kept)
+
+
+def _shaped_decimal(text: str) -> tuple[str, str] | None:
+    parts = text.split(".")
+    if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit() and len(parts[1]) == 2:
+        if parts[0]:
+            return parts[0], parts[1]
+    return None
+
+
+def assemble_printed_tokens(
+    tokens: list[TextToken],
+    *,
+    ruling_x: int | None,
+    geometry_authorised: bool,
+    units_x: float | None = None,
+) -> MonetaryGeometryRead:
+    """Canonical dollars/cents from independently boxed printed tokens.
+
+    An implied decimal is returned only when the cents column is spatially
+    separated (ruling or a >=4px gap before exactly two cent glyphs). A third
+    glyph in the cents/units column stays ambiguous — never stripped.
+    """
+    import re
+
+    kept: list[tuple[str, TextToken]] = []
+    for token in sorted(tokens, key=lambda item: item.cx):
+        if units_x is not None and token.x0 >= float(units_x) - 1:
+            continue
+        text = _clean_amount_text(token.text)
+        if not text or not re.search(r"\d", text):
+            continue
+        kept.append((text, token))
+    sequence = " ".join(text for text, _ in kept)
+    if not kept:
+        return MonetaryGeometryRead(
+            sequence, "", "", False, None, True, ruling_x, ("NO_GLYPHS", "AMBIGUOUS")
+        )
+
+    decimal_hits = [(text, token) for text, token in kept if _shaped_decimal(text)]
+    if len(decimal_hits) == 1:
+        text, token = decimal_hits[0]
+        dollars, cents = _shaped_decimal(text)  # type: ignore[misc]
+        reasons = ["DECIMAL_VISIBLE"]
+        for other, other_token in kept:
+            if other_token.cx >= token.cx:
+                continue
+            if not re.fullmatch(r"\d{1,3}", other):
+                continue
+            gap = token.x0 - other_token.x1
+            if gap > 18:
+                continue
+            if dollars.startswith(other):
+                continue
+            dollars = other + dollars
+            reasons.append("LEFT_DIGIT_PREPENDED")
+        # Tokens to the right of a finished decimal are Box 24G / Box 29.
+        right_digits = [
+            other
+            for other, other_token in kept
+            if other_token.x0 > token.x1 - 1 and re.search(r"\d", other)
+        ]
+        if right_digits:
+            return MonetaryGeometryRead(
+                sequence,
+                dollars,
+                cents,
+                True,
+                None,
+                True,
+                ruling_x,
+                tuple(reasons) + ("UNITS_OR_BOX29_BLEED", "AMBIGUOUS"),
+            )
+        candidate = f"{int(dollars)}.{cents}"
+        return MonetaryGeometryRead(
+            sequence, dollars, cents, True, candidate, False, ruling_x, tuple(reasons)
+        )
+    if len(decimal_hits) > 1:
+        return MonetaryGeometryRead(
+            sequence, "", "", True, None, True, ruling_x, ("MULTIPLE_DECIMALS", "AMBIGUOUS")
+        )
+
+    # Two printed columns: dollars token(s) and a 2-digit cents token.
+    cents_at = None
+    for index, (text, _token) in enumerate(kept):
+        digits = re.sub(r"\D", "", text)
+        if re.fullmatch(r"\d{2}", digits) and "." not in text:
+            cents_at = index
+    if (
+        cents_at is not None
+        and cents_at == len(kept) - 1
+        and cents_at > 0
+        and geometry_authorised
+    ):
+        cents = re.sub(r"\D", "", kept[cents_at][0])
+        left_text = "".join(re.sub(r"\D", "", text) for text, _ in kept[:cents_at])
+        gap = kept[cents_at][1].x0 - kept[cents_at - 1][1].x1
+        dollar_token = kept[cents_at - 1][1]
+        ruling_cuts_dollars = ruling_x is not None and (
+            dollar_token.x0 + 4 < float(ruling_x) < dollar_token.x1 - 8
+        )
+        adjacent = gap <= 16
+        if left_text and len(left_text) <= 5 and adjacent and not ruling_cuts_dollars:
+            candidate = f"{int(left_text)}.{cents}"
+            return MonetaryGeometryRead(
+                sequence,
+                left_text,
+                cents,
+                False,
+                candidate,
+                False,
+                ruling_x,
+                ("RULING_VALIDATED", "CENTS_COLUMN"),
+            )
+
+    # Single digit run. Implied decimal only when the gap before the last
+    # two glyphs is a real column gap (>= 4px), not kerning.
+    if len(kept) == 1 and geometry_authorised:
+        digits = re.sub(r"\D", "", kept[0][0])
+        token = kept[0][1]
+        if len(digits) >= 4 and token.x1 > token.x0:
+            # Character slots are not known; refuse to invent a split.
+            return MonetaryGeometryRead(
+                sequence,
+                "",
+                "",
+                False,
+                None,
+                True,
+                ruling_x,
+                ("DIGIT_RUN_NEEDS_GLYPH_SPLIT", "AMBIGUOUS"),
+            )
+
+    return MonetaryGeometryRead(
+        sequence,
+        "",
+        "",
+        False,
+        None,
+        True,
+        ruling_x,
+        ("RULING_NOT_VALIDATED", "AMBIGUOUS") if not geometry_authorised else ("AMBIGUOUS",),
+    )
+
+
+def split_digit_glyphs(glyphs: list[GlyphBox]) -> MonetaryGeometryRead:
+    """Implied decimal from the gap before the last two digit glyphs.
+
+    The gap must be a column gap (>= 4px). A wider gap elsewhere does not
+    move the cents column. Three glyphs on the cents side stay ambiguous.
+    """
+    ordered = sorted((g for g in glyphs if g.text.isdigit()), key=lambda g: g.cx)
+    sequence = "".join(g.text for g in ordered)
+    if len(ordered) < 4:
+        return MonetaryGeometryRead(
+            sequence, "", "", False, None, True, None, ("GLYPHS_TOO_FEW", "AMBIGUOUS")
+        )
+    gaps = [ordered[i + 1].x0 - ordered[i].x1 for i in range(len(ordered) - 1)]
+    cents_gap = gaps[-2]
+    if cents_gap < 4:
+        return MonetaryGeometryRead(
+            sequence,
+            "",
+            "",
+            False,
+            None,
+            True,
+            None,
+            ("CENTS_GAP_NOT_VALIDATED", "AMBIGUOUS"),
+        )
+    # A third glyph tight against the cents pair is units bleed — do not strip.
+    if len(gaps) >= 3 and gaps[-1] >= 4 and cents_gap < 4:
+        return MonetaryGeometryRead(
+            sequence, "", "", False, None, True, None, ("UNITS_BLEED", "AMBIGUOUS")
+        )
+    dollars = "".join(g.text for g in ordered[:-2])
+    cents = "".join(g.text for g in ordered[-2:])
+    if not dollars or len(cents) != 2:
+        return MonetaryGeometryRead(
+            sequence, dollars, cents, False, None, True, None, ("AMBIGUOUS",)
+        )
+    ruling = int(ordered[-2].x0)
+    return MonetaryGeometryRead(
+        sequence,
+        dollars,
+        cents,
+        False,
+        f"{int(dollars)}.{cents}",
+        False,
+        ruling,
+        ("RULING_VALIDATED", "CENTS_GAP", "IMPLIED_DECIMAL"),
+    )
+
+
+_RAPID = None
+
+
+def _rapid_tokens(image) -> list[TextToken]:
+    global _RAPID
+    from rapidocr_onnxruntime import RapidOCR
+
+    if _RAPID is None:
+        _RAPID = RapidOCR()
+    scale = 2 if image.width < 420 else 1
+    if scale != 1:
+        image = image.resize((image.width * scale, image.height * scale))
+    import numpy as np
+
+    result, _ = _RAPID(np.asarray(image.convert("RGB")))
+    tokens: list[TextToken] = []
+    for row in result or []:
+        if not row or len(row) < 2:
+            continue
+        box, text = row[0], str(row[1])
+        xs = [float(p[0]) / scale for p in box]
+        ys = [float(p[1]) / scale for p in box]
+        tokens.append(TextToken(text, min(xs), min(ys), max(xs), max(ys)))
+    return tokens
+
+
+def _tess_digit_glyphs(image) -> list[GlyphBox]:
+    import pytesseract
+
+    scale = 3
+    up = image.resize((max(1, image.width * scale), max(1, image.height * scale)))
+    raw = pytesseract.image_to_boxes(
+        up,
+        config="--oem 3 --psm 7 -c tessedit_char_whitelist=0123456789.",
+    )
+    glyphs = glyphs_from_tesseract_boxes(raw, width=up.width, height=up.height)
+    out: list[GlyphBox] = []
+    width = image.width
+    for glyph in glyphs:
+        x0 = glyph.x0 / scale
+        x1 = glyph.x1 / scale
+        if x0 < 2:
+            continue
+        if x1 >= width - 1 and (x1 - x0) < 3:
+            continue
+        if (x1 - x0) > 24:
+            continue
+        if glyph.text == "." and (x1 - x0) > 6:
+            continue
+        out.append(GlyphBox(glyph.text, int(x0), int(glyph.y0 / scale), int(x1), int(glyph.y1 / scale)))
+    return out
+
+
+def read_monetary_crop(image, *, units_x: float | None = None) -> MonetaryGeometryRead:
+    """Label-free monetary read. Existing Rapid tokens, Tesseract boxes as fallback.
+
+    Disagreement between the two reads is ambiguous. No third OCR engine.
+    """
+    from PIL import Image
+
+    if not hasattr(image, "convert"):
+        image = Image.fromarray(image)
+    gray = np.asarray(image.convert("L"))
+    y0, y1 = locate_value_band(gray)
+    band = gray[y0:y1, :] if y1 > y0 else gray
+    ruling = find_cents_ruling(band)
+    authorised = (y1 - y0) >= 8 and template_signature(gray) != "empty"
+    rapid_read = None
+    try:
+        tokens = _rapid_tokens(image)
+        rapid_read = assemble_printed_tokens(
+            tokens,
+            ruling_x=ruling,
+            geometry_authorised=authorised,
+            units_x=units_x,
+        )
+    except Exception:
+        rapid_read = None
+    if rapid_read and rapid_read.geometry_candidate and not rapid_read.ambiguous:
+        return rapid_read
+    glyph_read = split_digit_glyphs(_tess_digit_glyphs(image))
+    if glyph_read.geometry_candidate and not glyph_read.ambiguous:
+        rapid_digits = ""
+        if rapid_read is not None:
+            import re
+
+            rapid_digits = re.sub(r"\D", "", rapid_read.raw_glyph_sequence)
+        # Implied cents are authorised only when the glyph identities match
+        # the token reader's digit string. A crop that drops the leading
+        # digit must not invent a different amount.
+        if rapid_digits and rapid_digits != glyph_read.raw_glyph_sequence:
+            glyph_read = MonetaryGeometryRead(
+                glyph_read.raw_glyph_sequence,
+                "",
+                "",
+                False,
+                None,
+                True,
+                glyph_read.ruling_x,
+                ("GLYPH_TOKEN_MISMATCH", "AMBIGUOUS"),
+            )
+        else:
+            return glyph_read
+    if rapid_read is not None:
+        return rapid_read
+    return glyph_read
+

@@ -25,6 +25,25 @@ def normalize_person_name(value: object) -> str:
     return text
 
 
+def prefer_fuller_self_name(
+    observed_values: list[object],
+    other_box_value: object,
+) -> str | None:
+    """Pick an already-observed name that agrees with the other box.
+
+    Does not invent characters. A shorter OCR twin is ignored when a longer
+    observed candidate already matches the independent box.
+    """
+    target = normalize_person_name(other_box_value)
+    if not target:
+        return None
+    for raw in observed_values:
+        text = str(raw or "").strip()
+        if text and names_agree(text, target):
+            return text
+    return None
+
+
 def names_agree(left: object, right: object) -> bool:
     a, b = normalize_person_name(left), normalize_person_name(right)
     if not a or not b:

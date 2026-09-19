@@ -1800,6 +1800,31 @@ def recognize_service_lines(image, router, template):
                 attempts=attempts,
                 reason=reason,
             )
+            geometry_confirmed = False
+            try:
+                from packages.geometry_authority.cms1500_regions import CMS1500_LINE_COLUMNS
+                from packages.geometry_authority.monetary_geometry import read_monetary_crop
+
+                ch0, ch1 = CMS1500_LINE_COLUMNS["charges"]
+                center_x = (float(bbox[0]) + float(bbox[2])) / 2.0
+                if not (ch0 - 8 <= center_x <= ch1 + 8):
+                    # Diagnosis-pointer window. Not an independent Box 24F read.
+                    value = None
+                    reason = f'{reason}|BOX24F_WINDOW_REJECTED'
+                else:
+                    geo = read_monetary_crop(image.crop(bbox))
+                    if geo.geometry_candidate and not geo.ambiguous:
+                        value = geo.geometry_candidate
+                        raw = geo.raw_glyph_sequence or raw
+                        geometry_confirmed = True
+                        reason = f'{reason}|GEOMETRY_CENTS'
+                        attempts = list(attempts or []) + [{
+                            'engine': 'rapidocr',
+                            'reason': 'GEOMETRY_CENTS',
+                            'observation': {'text': geo.raw_glyph_sequence, 'shaped': value},
+                        }]
+            except Exception:  # noqa: BLE001
+                geometry_confirmed = False
             score = 0
             if value:
                 score = 3 if '.' in value else 2
@@ -1820,6 +1845,8 @@ def recognize_service_lines(image, router, template):
                 if _re_noise.search(r'[^0-9A-Z./|:?\s,-]', raw_u) or _re_noise.fullmatch(r'[\s\-.,/|:?]*', raw or ''):
                     score = 0
                     value = None
+            if geometry_confirmed and value:
+                score += 5
             # Cross-window ink preference: keep prior best when new value is
             # units/ruling bleed around the same dollar stem.
             if best is not None and value and best.get('charges'):
@@ -1854,7 +1881,7 @@ def recognize_service_lines(image, router, template):
             }
             if best is None or candidate['_score'] > best['_score']:
                 best = candidate
-            if score >= 5:
+            if score >= 5 and geometry_confirmed:
                 break
         assert best is not None
         best.pop('_score', None)
@@ -2417,7 +2444,34 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 dig_reason = f'{dig_reason}|{m_reason}|MONETARY_VARIANT_RECOVERY'
                 if m_val:
                     selected = m_val
-            ok, accept_reason = semantic_accept(field['field'], selected)
+            try:
+                from packages.geometry_authority.monetary_geometry import read_monetary_crop
+
+                geo = read_monetary_crop(image.crop(primary))
+            except Exception:  # noqa: BLE001
+                geo = None
+            if geo is not None and geo.geometry_candidate and not geo.ambiguous:
+                selected = geo.geometry_candidate
+                dig_cands = list(dig_cands or [])
+                dig_cands.insert(0, {
+                    'value': selected,
+                    'raw_value': geo.raw_glyph_sequence,
+                    'engine': 'rapidocr',
+                    'model_name': 'geometry-cents',
+                    'model_version': 'monetary-geometry',
+                    'preprocessing_variant': 'GEOMETRY_CENTS',
+                    'raw_confidence': 0.91,
+                    'calibrated_confidence': None,
+                    'latency_ms': 0.0,
+                    'preprocessing_version': 'geometry-cents',
+                })
+                dig_reason = f'{dig_reason}|GEOMETRY_CENTS'
+            ok, accept_reason = semantic_accept(
+                field['field'],
+                selected,
+                bbox=primary,
+                image_size=(image.width, image.height),
+            )
             if ok:
                 cascaded = CascadeResult(
                     field_name=field['field'],

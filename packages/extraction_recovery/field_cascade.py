@@ -478,6 +478,8 @@ def charge_column_windows(primary_x0: int, primary_x1: int) -> list[tuple[str, i
         # Right-shifted bands: live CMS-1500 amounts often sit past diagnosis pointer.
         ("charges_mid", max(primary_x0 + 40, 1000), min(max(primary_x1 + 40, 1145), 1210)),
         ("charges_right", 1050, 1165),
+        # Cents column sits further right on some CMS renderers. Still left of units.
+        ("charges_cents", 1050, 1180),
         ("charges_far_right", 1100, 1220),
     ]
     seen: set[tuple[int, int]] = set()
@@ -500,7 +502,12 @@ def charge_windows_for_mode(
         return [(x0, x1) for _, x0, x1 in named]
     keep: list[tuple[int, int]] = []
     for variant_id, x0, x1 in named:
-        if variant_id in {"charges_primary", "charges_mid", "charges_right"}:
+        if variant_id in {
+            "charges_primary",
+            "charges_mid",
+            "charges_right",
+            "charges_cents",
+        }:
             keep.append((x0, x1))
         if len(keep) >= 3:
             break
