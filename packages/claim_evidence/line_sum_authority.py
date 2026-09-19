@@ -504,6 +504,25 @@ def line_sum_auto_eligible(
     if total is None:
         return False, "NO_LINE_CHARGES"
 
+    # POS bleed: a lone POS-like amount (11.00) must never AUTO as claim total.
+    try:
+        from packages.geometry_authority import is_pos_like_currency
+
+        if is_pos_like_currency(total):
+            box = parse_currency(box28_value)
+            extra = [
+                parse_currency(v)
+                for v in (corroborating_values or [])
+                if parse_currency(v) is not None
+            ]
+            if box is None and not extra:
+                return False, "POS_LIKE_LINE_SUM_REJECTED"
+            # Even with corroborators, POS-like totals need non-POS corroboration.
+            if box is not None and is_pos_like_currency(format_currency(box)):
+                return False, "POS_LIKE_LINE_SUM_REJECTED"
+    except Exception:  # noqa: BLE001
+        pass
+
     lines = [ln for ln in (service_lines or []) if isinstance(ln, dict)]
     charge_lines = [
         ln

@@ -537,3 +537,20 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ]
     ok, reason = line_sum_auto_eligible(twin_line)
     assert not ok and reason == "MULTI_LINE_UNCORROBORATED"
+
+
+def test_pos_like_line_sum_rejected_without_box28():
+    """M048DJJF.013 guard: POS 11.00 must not AUTO via line-sum."""
+    lines = [
+        {
+            "charges": "11.00",
+            "producing_engine": "rapidocr",
+            "candidates": [
+                {"value": "11.00", "engine": "rapidocr"},
+                {"value": "11.00", "engine": "paddleocr"},
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(lines)
+    assert not ok
+    assert reason == "POS_LIKE_LINE_SUM_REJECTED"
