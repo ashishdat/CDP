@@ -262,13 +262,17 @@ def reconcile_claim_total(
         service_lines,
         box28_value=box28_value,
     )
-    if eligible and line_sum is not None and independent_evidence_paths >= 2:
+    # line_sum_auto_eligible already encodes fail-closed dual-engine / gpt+local /
+    # box-28 corroboration — including SINGLE_LINE_* paths. Do not re-impose a
+    # raw line-count path gate that would mark eligible single-line claims as
+    # uncorroborated while the cascade AUTOs them.
+    if eligible and line_sum is not None:
         return FinancialReconcileResult(
             disposition=FinancialDisposition.LINE_TOTALS_RECONCILED,
             accepted_total=line_sum,
             line_sum=line_sum,
             reasons=(gate_reason or "LINE_SUM_AUTO_ELIGIBLE", "INDEPENDENT_PATHS_OK"),
-            details=details,
+            details={**details, "independent_evidence_paths": independent_evidence_paths},
         )
 
     if line_sum is not None:

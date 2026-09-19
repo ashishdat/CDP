@@ -110,14 +110,47 @@ claim_stp 0%, claim_hitl 100%, critical FA 0, overall accuracy 89.05%.
 2. **LINE_SUM_UNCORROBORATED** — observed lines without dual-engine / box-28 corroboration. Next: parallel independent variants on authorised 24F crops; calibrate acceptance risk; keep GPT residual-only.
 3. **Name / policy gaps (smaller)** — continue gpt-4o name arbitrator with local consensus.
 
-## Remaining gaps
+## Total-charge ink tune (follow-on)
 
-- Package intelligence not yet wired into `run_hackathon_1000_cascade` page loop.
-- Image evidence analyzer not yet attached to every OCR empty path in production cascade.
-- Candidate evidence store not yet persisted to MinIO artifacts by default.
-- Calibration thresholds not yet fitted on a sealed development feature dump.
-- Cloud OCR / OpenOCR / MonkeyOCR remain flag-off CANDIDATE.
-- Full 50/500 ops re-baseline with GPT empty-finance on still needed for after-STP delta.
+**Commit:** tip of `feature/cdp-v3` after ruling-split / prefer-ink / line-identity fixes.
+
+### Root cause (pixels)
+
+On CMS-1500 24F, typed amounts sit right-aligned against the dollars|cents dashed
+vertical ruling. The primary template x-window often clips to a leading digit
+(`6` / `2`), while a right-shifted window that also covers units reads digit soup
+(`64010`, `26010`). Box-28 is frequently ruling-only blank (`BLANK_CONFIRMED`).
+
+Agent visual GT for M048DJJF.002 previously listed `910.00` (`640+260+10`); warped
+24F crops show **`640+260+260=1160.00`**. M048DJJF.006 is a single `270.00` line
+(POS `11` is 24B, not a second charge).
+
+### Fixes
+
+- Dollars-only OCR left of the vertical dashed ruling + `prefer_charge_ink_amount`
+- Fast mode keeps primary+mid+right charge windows
+- Duplicate line amounts (`260+260`) no longer collapse in financial reconcile
+- GPT empty-finance sweep skips `BLANK_CONFIRMED` cells
+- Monetary shaping: ruling-tail `5`, units bleed `…10`
+
+### Smoke (same docs, after ink tune)
+
+```text
+scripts/run_hackathon_1000_cascade.py \
+  --documents "Group A/M048DJJF.002,Group A/M048DJJF.003,Group A/M048DJJF.006" \
+  --out-dir evaluation_results/hackathon_ink_tune_djjf_smoke
+```
+
+| Document | Before (EMPTY / wrong) | After |
+|---|---|---|
+| M048DJJF.002 | EMPTY_FINANCIAL_INK / GPT soup | **TRUE_STP `1160.00`** (640+260+260) |
+| M048DJJF.003 | EMPTY_FINANCIAL_INK | **TRUE_STP `260.00`** |
+| M048DJJF.006 | EMPTY / POS confusion | **TRUE_STP `270.00`** |
+
+Unit: `test_total_charge_recovery_regressions.py` + redesign stages + line_sum → **48 passed**.
+
+Full 50-claim ops re-baseline still required for release-gate True STP ≥94%.
+
 
 ## Exact evidence on 94% STP target
 

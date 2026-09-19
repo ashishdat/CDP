@@ -219,8 +219,8 @@ SEED_VISUAL_GT: dict[str, dict[str, Any]] = {
                 "confidence": "SILVER",
             },
             "total_charge": {
-                "expected_value": "260.01",
-                "source": "box28_empty; line_sum observed",
+                "expected_value": "260.00",
+                "source": "box28_blank_ruling; single line 24F 260.00",
                 "confidence": "GOLD",
             },
         },
@@ -249,8 +249,8 @@ SEED_VISUAL_GT: dict[str, dict[str, Any]] = {
                 "confidence": "GOLD",
             },
             "total_charge": {
-                "expected_value": "281.00",
-                "source": "box28_empty; line_sum 270+11",
+                "expected_value": "270.00",
+                "source": "box28 270.00; single line 24F 270.00 (POS 11 is 24B not a charge)",
                 "confidence": "GOLD",
             },
         },
