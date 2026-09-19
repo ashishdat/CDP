@@ -43,12 +43,21 @@ def route_claim_hitl(
         "CHARGE_COLUMN_UNVERIFIED",
         "POS_BLEED_REJECTED",
         "EMPTY_FINANCIAL_INK",
+        "WRONG_FAMILY_NO_CMS_GEOMETRY",
     } or llm_only_critical:
         fields = [f for f in unresolved_critical_fields if "charge" in f.casefold()]
         return {
             "route": HitlRoute.FINANCIAL_RECONCILIATION_HITL.value,
             "fields": fields or unresolved_critical_fields[:1],
             "reason": fin or "LLM_ONLY_CRITICAL",
+        }
+    if fin in {"SEPARATOR_EXCLUDED", "FAMILY_CONTEXT_ONLY"}:
+        return {
+            "route": HitlRoute.PACKAGE_HITL.value
+            if fin == "SEPARATOR_EXCLUDED"
+            else HitlRoute.FIELD_INK_HITL.value,
+            "fields": [],
+            "reason": fin,
         }
     if unresolved_critical_fields:
         return {

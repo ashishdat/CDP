@@ -221,3 +221,41 @@ def test_pos_and_units_still_geometry_gated_on_cms():
     # 270 charge + unit 1 must not become 2701 via ink preference when clean .00 exists.
     assert prefer_charge_ink_amount("270.00", "2701.00") == "270.00"
     assert shape_monetary("2701.00") == "270.00"
+
+
+def test_reconcile_dispatches_by_document_family():
+    from packages.financial_reconciliation import (
+        FinancialDisposition,
+        reconcile_by_document_family,
+    )
+
+    sep = reconcile_by_document_family(document_family="SEPARATOR")
+    assert sep.disposition is FinancialDisposition.SEPARATOR_EXCLUDED
+
+    reb = interpret_page_finance(
+        text="Statement for Insurance Reimbursement\n3 x 165.00 = 495.00\nTotal: 495.00",
+        family="REIMBURSEMENT_SUPERBILL",
+    )
+    fin = reconcile_by_document_family(
+        document_family="REIMBURSEMENT_SUPERBILL",
+        document_finance=reb.to_dict(),
+    )
+    assert fin.disposition is FinancialDisposition.LINE_TOTALS_RECONCILED
+    assert fin.accepted_total == "495.00"
+
+    cms = reconcile_by_document_family(
+        document_family="CMS1500",
+        service_lines=[
+            {"charges": "270.00", "line_number": 1, "candidates": [
+                {"value": "270.00", "engine": "paddleocr"},
+                {"value": "270.00", "engine": "rapidocr"},
+            ]},
+        ],
+        charge_column_verified=True,
+        all_service_rows_detected=True,
+        independent_evidence_paths=2,
+    )
+    assert cms.disposition in {
+        FinancialDisposition.LINE_TOTALS_RECONCILED,
+        FinancialDisposition.LINE_SUM_UNCORROBORATED,
+    }

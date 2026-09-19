@@ -2764,7 +2764,9 @@ def run(directory, output):
                 field_name="total_charge",
             ) as inv:
                 if not inv.bypassed:
-                    from packages.financial_reconciliation import reconcile_claim_total
+                    from packages.financial_reconciliation import (
+                        reconcile_by_document_family,
+                    )
 
                     box28 = next(
                         (
@@ -2776,15 +2778,47 @@ def run(directory, output):
                         None,
                     )
                     lines = report.get("service_lines") or []
-                    fin = reconcile_claim_total(
+                    fin = reconcile_by_document_family(
+                        document_family=report.get("document_family"),
+                        document_finance=report.get("document_finance"),
                         box28_value=box28,
                         service_lines=lines,
                         charge_column_verified=bool(lines),
                         all_service_rows_detected=bool(lines),
-                        independent_evidence_paths=2 if len(lines) >= 2 else (1 if lines else 0),
+                        independent_evidence_paths=2
+                        if len(lines) >= 2
+                        else (1 if lines else 0),
                     )
                     inv.outputs = fin.to_dict()
                     report["financial_reconciliation"] = fin.to_dict()
+                    # Promote family-accepted total onto the total_charge field row
+                    # when CMS geometry was intentionally skipped.
+                    if (
+                        fin.accepted_total
+                        and fin.disposition.value == "LINE_TOTALS_RECONCILED"
+                        and not report.get("allows_cms_geometry", True)
+                    ):
+                        report["fields"] = list(report.get("fields") or []) + [
+                            {
+                                "field": "total_charge",
+                                "value": fin.accepted_total,
+                                "status": "FIELD_ACCEPTED",
+                                "cascade": {
+                                    "accepted": True,
+                                    "accept_reason": "FAMILY_FINANCE:"
+                                    + ",".join(fin.reasons[:3]),
+                                    "value": fin.accepted_total,
+                                },
+                                "candidates": [
+                                    {
+                                        "value": fin.accepted_total,
+                                        "engine": "document_family_finance",
+                                        "raw_value": fin.accepted_total,
+                                    }
+                                ],
+                            }
+                        ]
+                        save(report["fields"])
             with tel.track(
                 "claim_decision",
                 enabled=stage_enabled("CDP_CLAIM_DECISION_ROUTES", "1"),

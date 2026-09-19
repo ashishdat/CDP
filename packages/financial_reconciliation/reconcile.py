@@ -28,6 +28,9 @@ class FinancialDisposition(StrEnum):
     CHARGE_COLUMN_UNVERIFIED = "CHARGE_COLUMN_UNVERIFIED"
     POS_BLEED_REJECTED = "POS_BLEED_REJECTED"
     EMPTY_FINANCIAL_INK = "EMPTY_FINANCIAL_INK"
+    SEPARATOR_EXCLUDED = "SEPARATOR_EXCLUDED"
+    FAMILY_CONTEXT_ONLY = "FAMILY_CONTEXT_ONLY"
+    WRONG_FAMILY_NO_CMS_GEOMETRY = "WRONG_FAMILY_NO_CMS_GEOMETRY"
 
 
 @dataclass(frozen=True)
@@ -290,4 +293,134 @@ def reconcile_claim_total(
         line_sum=None,
         reasons=("NO_RECOVERABLE_TOTAL",),
         details=details,
+    )
+
+
+def reconcile_by_document_family(
+    *,
+    document_family: str | None,
+    document_finance: dict[str, Any] | None = None,
+    box28_value: object = None,
+    service_lines: list[dict] | None = None,
+    charge_column_verified: bool = False,
+    all_service_rows_detected: bool = False,
+    independent_evidence_paths: int = 0,
+) -> FinancialReconcileResult:
+    """Dispatch financial authority by document family.
+
+    CMS1500 keeps Box 28 / 24F reconcile. Other families never invent a CMS total.
+    """
+    family = (document_family or "").upper().replace("-", "").replace(" ", "_")
+    finance = document_finance or {}
+    details: dict[str, Any] = {"document_family": document_family or "UNKNOWN"}
+
+    if family in {"SEPARATOR"}:
+        return FinancialReconcileResult(
+            disposition=FinancialDisposition.SEPARATOR_EXCLUDED,
+            accepted_total=None,
+            line_sum=None,
+            reasons=("SEPARATOR_NOT_A_CLAIM_PAGE",),
+            details=details,
+        )
+
+    if family in {"ATTACHMENT"}:
+        return FinancialReconcileResult(
+            disposition=FinancialDisposition.FAMILY_CONTEXT_ONLY,
+            accepted_total=None,
+            line_sum=None,
+            reasons=("ATTACHMENT_CONTEXT_ONLY",),
+            details=details,
+        )
+
+    if family in {"REIMBURSEMENT_SUPERBILL", "SUPERBILL"}:
+        pkg = finance.get("package_financials") or {}
+        reb = finance.get("reimbursement") or {}
+        total = pkg.get("total_charges") or reb.get("page_total_charges")
+        derived = reb.get("derived_total")
+        if reb.get("totals_agree") and total:
+            return FinancialReconcileResult(
+                disposition=FinancialDisposition.LINE_TOTALS_RECONCILED,
+                accepted_total=str(total),
+                line_sum=str(derived or total),
+                reasons=("SUPERBILL_PRINTED_TOTAL_EQUALS_LINE_SUM", "FAMILY_PARSER"),
+                details={**details, "amount_paid": reb.get("amount_paid")},
+            )
+        if derived:
+            return FinancialReconcileResult(
+                disposition=FinancialDisposition.LINE_SUM_UNCORROBORATED,
+                accepted_total=None,
+                line_sum=str(derived),
+                reasons=("SUPERBILL_PRINTED_TOTAL_NOT_CORROBORATED",),
+                details=details,
+            )
+        return FinancialReconcileResult(
+            disposition=FinancialDisposition.EMPTY_FINANCIAL_INK,
+            accepted_total=None,
+            line_sum=None,
+            reasons=("SUPERBILL_NO_SERVICE_LINES",),
+            details=details,
+        )
+
+    if family in {"RUNNING_ACCOUNT_STATEMENT", "STATEMENT"}:
+        pkg = finance.get("package_financials") or {}
+        ledger = finance.get("ledger") or {}
+        total = pkg.get("total_charges") or ledger.get("total_charges_from_ledger")
+        if ledger.get("balanced") and total:
+            return FinancialReconcileResult(
+                disposition=FinancialDisposition.LINE_TOTALS_RECONCILED,
+                accepted_total=str(total),
+                line_sum=str(total),
+                reasons=(
+                    "LEDGER_EQUATION_BALANCED",
+                    "ENDING_BALANCE_NOT_TOTAL_CHARGE",
+                    "FAMILY_PARSER",
+                ),
+                details={
+                    **details,
+                    "ending_balance": ledger.get("printed_ending_balance")
+                    or ledger.get("ending_balance"),
+                    "opening_balance": ledger.get("opening_balance"),
+                },
+            )
+        if total:
+            return FinancialReconcileResult(
+                disposition=FinancialDisposition.LINE_SUM_UNCORROBORATED,
+                accepted_total=None,
+                line_sum=str(total),
+                reasons=("LEDGER_UNBALANCED",),
+                details=details,
+            )
+        return FinancialReconcileResult(
+            disposition=FinancialDisposition.EMPTY_FINANCIAL_INK,
+            accepted_total=None,
+            line_sum=None,
+            reasons=("LEDGER_NO_SERVICE_CHARGES",),
+            details=details,
+        )
+
+    if family in {"UB04", "EOB"}:
+        return FinancialReconcileResult(
+            disposition=FinancialDisposition.INCOMPLETE_SERVICE_LINES,
+            accepted_total=None,
+            line_sum=None,
+            reasons=(f"{family}_PARSER_REQUIRED", "NO_CMS_GEOMETRY"),
+            details=details,
+        )
+
+    if family and family not in {"CMS1500", "CMS_1500", "UNKNOWN", ""}:
+        return FinancialReconcileResult(
+            disposition=FinancialDisposition.WRONG_FAMILY_NO_CMS_GEOMETRY,
+            accepted_total=None,
+            line_sum=None,
+            reasons=("CMS_GEOMETRY_FORBIDDEN_FOR_FAMILY",),
+            details=details,
+        )
+
+    # CMS1500 / UNKNOWN → existing Box 28 + 24F path.
+    return reconcile_claim_total(
+        box28_value=box28_value,
+        service_lines=service_lines,
+        charge_column_verified=charge_column_verified,
+        all_service_rows_detected=all_service_rows_detected,
+        independent_evidence_paths=independent_evidence_paths,
     )
