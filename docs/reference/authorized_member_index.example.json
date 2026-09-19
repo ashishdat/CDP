@@ -1,0 +1,11 @@
+{
+  "_comment": "Example only. Point CDP_AUTHORIZED_MEMBER_INDEX at an operator-authorized file. Never populate from Golden / agent labels. Exact member_id join only.",
+  "members": {
+    "97739518": {
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "REPLACE_WITH_AUTHORIZED_INTAKE"
+    }
+  }
+}

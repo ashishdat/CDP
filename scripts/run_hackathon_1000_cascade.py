@@ -342,6 +342,26 @@ def _prune_trace(app_out: Path) -> None:
             pass
 
 
+def _cms1500_template_version() -> str:
+    """Pin finish/validate to the same CMS-1500 template the release registered."""
+    try:
+        from packages.release_selection import active_release_from_env, select_release
+        import yaml
+
+        manifest_path = select_release(active_release_from_env())
+        manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+        versions = manifest.get("template_versions") or {}
+        version = str(versions.get("cms1500") or "").strip()
+        if version:
+            return version
+    except Exception:  # noqa: BLE001
+        pass
+    release = (os.environ.get("CDP_PIPELINE_RELEASE") or "").strip().casefold()
+    if release in {"extraction-v3", "v3"}:
+        return "03"
+    return "02-12"
+
+
 def _stage_env() -> dict[str, str]:
     """Limit nested BLAS/OpenMP threads so parallel claim workers do not thrash."""
     env = dict(os.environ)
@@ -692,7 +712,7 @@ def _process_one(
                 "--template-id",
                 "cms1500",
                 "--template-version",
-                "02-12",
+                _cms1500_template_version(),
                 "--document-family",
                 "CMS1500",
             ],

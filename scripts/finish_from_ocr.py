@@ -20,7 +20,7 @@ def run(
     claim_out: str | Path,
     *,
     template_id: str = "cms1500",
-    template_version: str = "02-12",
+    template_version: str | None = None,
     document_family: str = "CMS1500",
 ) -> dict:
     claim_out = Path(claim_out)
@@ -29,6 +29,17 @@ def run(
     validate_dir = claim_out / "validate"
     extract_dir = claim_out / "extract"
     final_dir = claim_out / "final"
+
+    if not template_version:
+        try:
+            from scripts.run_hackathon_1000_cascade import _cms1500_template_version
+
+            template_version = _cms1500_template_version()
+        except Exception:  # noqa: BLE001
+            import os
+
+            release = (os.environ.get("CDP_PIPELINE_RELEASE") or "").strip().casefold()
+            template_version = "03" if release in {"extraction-v3", "v3"} else "02-12"
 
     rank_saved(ocr_candidates, rank_dir)
     validate_run(
@@ -62,7 +73,7 @@ if __name__ == "__main__":
     parser.add_argument("ocr_candidates")
     parser.add_argument("claim_out")
     parser.add_argument("--template-id", default="cms1500")
-    parser.add_argument("--template-version", default="02-12")
+    parser.add_argument("--template-version", default=None)
     parser.add_argument("--document-family", default="CMS1500")
     args = parser.parse_args()
     result = run(

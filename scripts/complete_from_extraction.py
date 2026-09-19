@@ -244,6 +244,35 @@ def decide(extraction, family):
             continue
         if should_defer_box28_to_line_sum(current_val, service_lines):
             values[charge_field] = None
+
+    # Authoritative member join for Lane C / overprinted residuals — exact ID
+    # only, and only when CDP_AUTHORIZED_MEMBER_INDEX is configured. Never uses
+    # Golden / agent labels as a lookup source.
+    member_join_meta = None
+    try:
+        from packages.reference_enrichment.authorized_member_join import (
+            join_member_by_id,
+        )
+
+        mid = values.get('insured_id_number') or values.get('member_id')
+        hit = join_member_by_id(mid)
+        if hit is not None:
+            member_join_meta = hit.to_dict()
+            if hit.patient_name and (
+                not str(values.get('patient_name') or '').strip()
+                or len(str(values.get('patient_name') or '')) < 4
+            ):
+                values['patient_name'] = hit.patient_name
+            if hit.insured_name and (
+                not str(values.get('insured_name') or '').strip()
+                or len(str(values.get('insured_name') or '')) < 4
+            ):
+                values['insured_name'] = hit.insured_name
+            if hit.patient_dob and not str(values.get('patient_dob') or '').strip():
+                values['patient_dob'] = hit.patient_dob
+    except Exception:  # noqa: BLE001
+        member_join_meta = None
+
     facts = ClaimEvidenceBuilder.load().build(claim_id=claim_id, document_family=family,
                                             claim_values=values, service_lines=service_lines)
     # Phase 2: when box-28 is empty but LINE_TOTALS_RECONCILED fired from observed
@@ -565,6 +594,7 @@ def decide(extraction, family):
         'deterministic_checks':checks, 'claim_facts':facts.model_dump(mode='json'),
         'extracted_fields':fields,
         'registration_confidence':registration_confidence,
+        'authorized_member_join': member_join_meta,
         'missing_fields_basis':'Required policy fields absent or blank; invalid nonempty values are not missing.',
         'telemetry':{'extraction':extraction['telemetry']}}
 

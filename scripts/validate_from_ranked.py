@@ -63,7 +63,7 @@ def run(source, output, template_id, template_version):
     if ranked.get('status') != 'SUCCESS':
         raise ValueError('Successful RankedCandidates required')
     template = TemplateRegistry.load_from_directory().get(template_id, template_version)
-    types = {field.field_name:field.field_type for field in template.field_regions}
+    types = {field.field_name: field.field_type for field in template.field_regions}
     engine = ValidationEngine(ThresholdRegistry.load_from_directory())
     claim_id = uuid5(NAMESPACE_URL, ranked['document_id'])
     output.mkdir(parents=True, exist_ok=False)
@@ -81,13 +81,19 @@ def run(source, output, template_id, template_version):
                 raise ValueError('Duplicate candidate ID')
             seen.add(row['candidate_id'])
             started = perf_counter()
-            result, checks = validate_candidate(row,types[row['field_id']],engine,claim_id)
+            field_id = row['field_id']
+            # Fall back when OCR emits a corroboration-only field (e.g. insured_dob)
+            # that an older pinned template version does not list.
+            field_type = types.get(field_id) or (
+                'date' if 'dob' in str(field_id).casefold() else 'text'
+            )
+            result, checks = validate_candidate(row, field_type, engine, claim_id)
             index = len(telemetry['events'])
             result['telemetry_reference'] = f'validator_telemetry.json#/events/{index}'
             report['results'].append(result)
-            telemetry['events'].append({'field_id':row['field_id'],'candidate_id':row['candidate_id'],
+            telemetry['events'].append({'field_id':field_id,'candidate_id':row['candidate_id'],
                 'status':result['status'],'latency_ms':(perf_counter()-started)*1000,
-                'field_type':types[row['field_id']], 'raw_value':row['ocr_candidate']['raw_value'],
+                'field_type':field_type, 'raw_value':row['ocr_candidate']['raw_value'],
                 'raw_confidence':row['ocr_candidate']['raw_confidence'],
                 'normalized_value':result['normalized_value'],'checks':checks})
         report['status'] = 'COMPLETED'

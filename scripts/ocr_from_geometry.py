@@ -2704,9 +2704,25 @@ def run(directory, output):
                         )
                     except Exception:  # noqa: BLE001
                         page_text = ""
+                    barcode_text = None
+                    qr_meta = {}
+                    try:
+                        from packages.package_intelligence.qr_decode import (
+                            decode_page_qr,
+                            qr_supports_cms1500_family,
+                        )
+
+                        qr = decode_page_qr(canonical)
+                        qr_meta = qr.to_dict()
+                        barcode_text = qr.texts[0] if qr.texts else None
+                        if qr_supports_cms1500_family(qr.texts) and not page_text:
+                            page_text = "HEALTH INSURANCE CLAIM FORM"
+                    except Exception:  # noqa: BLE001
+                        qr_meta = {"detected": False, "reasons": ["QR_DECODE_SKIPPED"]}
                     page = classify_page_signals(
                         page_index=int(geometry.get("page_number") or 1) - 1,
                         ocr_text=page_text,
+                        barcode_text=barcode_text,
                         form_family=None,
                         router_label=None,
                         confidence=0.85,
@@ -2737,9 +2753,11 @@ def run(directory, output):
                     inv.outputs = {
                         **package.to_dict(),
                         "document_finance": finance.to_dict(),
+                        "qr_decode": qr_meta,
                     }
                     report["package_intelligence"] = package.to_dict()
                     report["document_finance"] = finance.to_dict()
+                    report["qr_decode"] = qr_meta
                     report["document_family"] = page.page_class.value
                     report["allows_cms_geometry"] = bool(page.allows_cms_geometry)
             router = OCRRouter(lambda attempt: True)
