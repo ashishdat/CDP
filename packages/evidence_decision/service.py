@@ -145,6 +145,12 @@ class EvidenceDecisionService:
                 # Weak/chrome ID after local paddle/rapid — crop-only gpt-4o.
                 allowed_families.add(engine_family("azure_gpt4o_crop"))
             if context.field_name in {
+                "patient_name",
+                "insured_name",
+            }:
+                # Handwriting / engine-conflict arbitrator for person-name ink.
+                allowed_families.add(engine_family("azure_gpt4o_crop"))
+            if context.field_name in {
                 "total_charge",
                 "total_charges",
                 "charges",

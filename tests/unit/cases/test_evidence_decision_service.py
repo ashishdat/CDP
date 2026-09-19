@@ -163,3 +163,32 @@ def test_gpt4o_crop_authorized_for_member_id_and_dob():
         for item in (dob_decision.evidence_bundle.items if dob_decision.evidence_bundle else [])
     }
     assert "azure_gpt4o_crop" in dob_sources
+
+
+def test_gpt4o_crop_authorized_for_patient_and_insured_name():
+    """Name ink residual: azure_gpt4o_crop must not be stripped as unauthorized."""
+    service = EvidenceDecisionService(route_mode="evaluation")
+    for field_name, value in (
+        ("patient_name", "THOMAS DARLENE"),
+        ("insured_name", "THOMAS DARLENE"),
+    ):
+        decision = service.decide(context(
+            field_name=field_name,
+            criticality=CriticalityLevel.C1,
+            candidates=[
+                candidate("paddleocr", "THOMAS.DARLENE.M", 0.9),
+                candidate("rapidocr", "THOMAS, DARLENE", 0.88),
+                candidate("azure_gpt4o_crop", value, 0.98),
+            ],
+            registration_confidence=0.95,
+            structural_localization=structure(field_name),
+        ))
+        assert not any(
+            code.startswith("CANDIDATE_ENGINE_NOT_AUTHORIZED")
+            for code in decision.reason_codes
+        ), field_name
+        sources = {
+            item.source
+            for item in (decision.evidence_bundle.items if decision.evidence_bundle else [])
+        }
+        assert "azure_gpt4o_crop" in sources, field_name

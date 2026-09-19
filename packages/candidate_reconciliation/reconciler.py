@@ -1311,6 +1311,7 @@ class EvidenceReconciler:
         early_id_relief = False
         early_gpt4o_id_relief = False
         early_gpt4o_digit_tiebreak = False
+        early_gpt4o_name_relief = False
         # Within a multi-engine name agreement group, prefer the display that
         # already lacks JI / digit-1 confusables (JIOSEPHINE → JOSEPHINE).
         if is_name_field and len(supporting) >= 1:
@@ -1433,6 +1434,70 @@ class EvidenceReconciler:
                     value = cand_val
                     supporting = items
                     early_name_relief = True
+                    break
+
+        # Prefer gpt-4o crop residual as person-name ink arbitrator when local
+        # engines disagree (or the ranked primary is weak/chrome). Cascade only
+        # attaches azure_gpt4o_crop for NAME_ENGINE_CONFLICT / unread ink — that
+        # same residual must not lose to CONFLICT_MARGIN_TOO_SMALL against the
+        # locals that triggered it.
+        if is_name_field and len(ranked) > 1:
+            top_is_gpt4o = any(
+                _is_azure_gpt4o_crop_engine(cand.engine) for cand, _, _ in supporting
+            )
+            top_weak = (
+                _name_label_contaminated(str(value or ""))
+                or _name_is_short_fragment(str(value or ""))
+                or _name_is_form_chrome(str(value or ""))
+                or not _name_is_strong_person(str(value or ""))
+            )
+            local_displays: list[str] = []
+            for _norm, items in ranked:
+                local_items = [
+                    (cand, score, ver)
+                    for cand, score, ver in items
+                    if not _is_azure_gpt4o_crop_engine(cand.engine)
+                ]
+                if not local_items:
+                    continue
+                cand_val = str(max(local_items, key=lambda row: row[1])[0].value or "")
+                if (
+                    _name_is_strong_person(cand_val)
+                    and not _name_label_contaminated(cand_val)
+                    and not _name_is_form_chrome(cand_val)
+                ):
+                    local_displays.append(cand_val)
+            locals_conflict = False
+            if len(local_displays) >= 2:
+                for i, left in enumerate(local_displays):
+                    for right in local_displays[i + 1 :]:
+                        if not values_conflict_equivalent(field_name, left, right):
+                            locals_conflict = True
+                            break
+                    if locals_conflict:
+                        break
+            if top_is_gpt4o and (locals_conflict or early_name_relief):
+                early_gpt4o_name_relief = True
+            elif (locals_conflict or top_weak) and not top_is_gpt4o:
+                for _norm, items in ranked:
+                    if not any(
+                        _is_azure_gpt4o_crop_engine(cand.engine)
+                        for cand, _, _ in items
+                    ):
+                        continue
+                    best = max(items, key=lambda row: row[1])
+                    cand_val = str(best[0].value or "")
+                    if not _name_is_strong_person(cand_val):
+                        continue
+                    if (
+                        _name_label_contaminated(cand_val)
+                        or _name_is_short_fragment(cand_val)
+                        or _name_is_form_chrome(cand_val)
+                    ):
+                        continue
+                    value = cand_val
+                    supporting = items
+                    early_gpt4o_name_relief = True
                     break
 
         # Prefer shaped member-id over header-only crops in the top slot.
@@ -1924,6 +1989,11 @@ class EvidenceReconciler:
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
                 )
                 reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
+            elif early_gpt4o_name_relief:
+                decision = (
+                    Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
+                )
+                reasons.append("GPT4O_NAME_INK_CONFLICT_RELIEVED")
             elif early_name_relief:
                 decision = (
                     Decision.REFERENCE_CONFIRMED if reference_match else Decision.ACCEPT
@@ -2094,6 +2164,8 @@ class EvidenceReconciler:
             )
             if early_separator_relief:
                 reasons.append("DOB_SEPARATOR_ARTIFACT_RELIEVED")
+            if early_gpt4o_name_relief:
+                reasons.append("GPT4O_NAME_INK_CONFLICT_RELIEVED")
             if early_name_relief:
                 reasons.append("NAME_CONFLICT_RELIEVED")
             if early_gpt4o_id_relief:
