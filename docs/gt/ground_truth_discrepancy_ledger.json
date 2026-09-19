@@ -1,7 +1,7 @@
 {
-  "count": 2,
+  "count": 7,
   "by_kind": {
-    "LABEL_SOURCE_CONFLICT": 2,
+    "LABEL_SOURCE_CONFLICT": 7,
     "PACKAGE_MAPPING_CONFLICT": 0,
     "AMBIGUOUS_TOTAL_CHARGE_SEMANTICS": 0,
     "MISSING_SOURCE_FIELD": 0,
@@ -28,6 +28,56 @@
       "source_value": "05/03/1991",
       "page_index": null,
       "detail": "Direct image review conflicts with supplied label; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJM.005",
+      "field_name": "total_charge",
+      "label_value": "2701.00",
+      "source_value": "270.00",
+      "page_index": 0,
+      "detail": "Silver auto-accept treated units-column 1 as part of the charge. Image shows 270 left of the dashed ruling.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJM.006",
+      "field_name": "total_charge",
+      "label_value": "2724.00",
+      "source_value": "480.00",
+      "page_index": 0,
+      "detail": "Silver total does not match printed lines 270.00 and 210.00.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJM.013",
+      "field_name": "total_charge",
+      "label_value": "34.00",
+      "source_value": "34.25",
+      "page_index": 0,
+      "detail": "Dashed ruling splits 34 dollars from 25 cents. Silver dropped the cents.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJF.015",
+      "field_name": "total_charge",
+      "label_value": "238.00",
+      "source_value": "200.00",
+      "page_index": 0,
+      "detail": "One printed charge 200.00. The next row is an empty ruling, not a second line.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJM.009",
+      "field_name": "total_charge",
+      "label_value": "49.00",
+      "source_value": "49.72",
+      "page_index": 0,
+      "detail": "Printed digits 4972 sit across the cents ruling as 49.72. Not used as an extraction hint; unresolved cents stay HITL.",
       "quarantine_from_accuracy": true
     }
   ]

@@ -1823,7 +1823,14 @@ def recognize_service_lines(image, router, template):
             if best is not None and value and best.get('charges'):
                 try:
                     from packages.ocr_portfolio import prefer_charge_ink_amount
+                    from packages.ocr_portfolio.monetary_recognizer import (
+                        is_ruling_tick_charge,
+                    )
 
+                    if is_ruling_tick_charge(
+                        best.get('candidates'), best.get('charges')
+                    ) and not is_ruling_tick_charge(candidates, value):
+                        score = max(score, int(best.get('_score') or 0) + 1)
                     preferred = prefer_charge_ink_amount(best.get('charges'), value)
                     if preferred == best.get('charges') and preferred != value:
                         score = min(score, int(best.get('_score') or 0))
@@ -2028,7 +2035,9 @@ def recognize_service_lines(image, router, template):
                 # Prefer currency shaped from gpt; if local also shaped a twin,
                 # _currency_value style merge already lives in candidates.
                 lines.append(row)
-    return lines
+    from packages.ocr_portfolio.monetary_recognizer import apply_charge_line_resolution
+
+    return apply_charge_line_resolution(lines)
 
 
 
@@ -2050,6 +2059,20 @@ def _dob_cell_bboxes(band):
         'DD': (dd_x0 + inset, y0, max(dd_x0 + inset + 1, dd_x1 - inset), y1),
         'YY': (yy_x0 + inset, y0, max(yy_x0 + inset + 1, x1 - inset), y1),
     }
+
+
+def dob_boxed_cells_complete(mm: str, dd: str, yy: str) -> bool:
+    """CMS DOB cells are two digits. A lone day digit is a clipped glyph, not 0D.
+
+    ``DD=1`` must not assemble ``07/01`` when the source day is ``16``.
+    Single-digit cells stay unresolved so a later full-band read or HITL
+    can run. Real single-digit days fail closed rather than false-accept.
+    """
+    return bool(
+        re.fullmatch(r"\d{2}", mm or "")
+        and re.fullmatch(r"\d{2}", dd or "")
+        and re.fullmatch(r"\d{2,4}", yy or "")
+    )
 
 
 def _preprocess_dob_cell(crop):
@@ -2135,6 +2158,8 @@ def _recognize_dob_cells(image, band, router, engines):
                 best_digits = _consider(label, _digits_from(raw), raw, best_digits)
         parts[label] = best_digits
     mm, dd, yy = parts.get('MM', ''), parts.get('DD', ''), parts.get('YY', '')
+    if not dob_boxed_cells_complete(mm, dd, yy):
+        return [], attempts, 'DOB_CELL_PARTIAL_DIGIT'
     # Reject weak cell reads — garbage like "1'4QR2" can span-shape into a false date.
     if not (re.fullmatch(r'\d{1,2}', mm) and 1 <= int(mm) <= 12):
         return [], attempts, 'DOB_CELLS_EMPTY'

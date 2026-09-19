@@ -371,10 +371,17 @@ def line_has_dual_engine_agreement(line: dict) -> bool:
         return False
     values = list(amounts.values())
     primary = values[0]
-    return all(
+    if not all(
         _exact_or_dollar_agree(format_currency(primary), format_currency(other))
         for other in values[1:]
-    )
+    ):
+        return False
+    # Engines must agree with the selected charge, not only with each other
+    # (20.00/20.00 must not AUTO a selected 200.00).
+    target = parse_currency(line.get("charges") or line.get("charge_amount"))
+    if target is None:
+        return True
+    return _exact_or_dollar_agree(format_currency(target), format_currency(primary))
 
 
 def line_has_gpt4o_local_consensus(line: dict) -> bool:
@@ -391,6 +398,8 @@ def line_has_gpt4o_local_consensus(line: dict) -> bool:
     """
     if not isinstance(line, dict):
         return False
+    if line.get("cents_unresolved"):
+        return False
     target = parse_currency(line.get("charges") or line.get("charge_amount"))
     if target is None or is_implausible_charge_total(target):
         return False
@@ -406,6 +415,20 @@ def line_has_gpt4o_local_consensus(line: dict) -> bool:
     gpt_txt = format_currency(gpt_amt)
     if not _exact_or_dollar_agree(target_txt, gpt_txt):
         return False
+
+    # Dollars-ruling geometry: a clipped zero or units-bleed sibling confirms
+    # the vision stem. Same-crop engines are not a second evidence family;
+    # the ruling split is the separate geometric check. Digit-drop twins
+    # without a dollars_ruling candidate stay fail-closed (13 vs 131).
+    try:
+        from packages.ocr_portfolio.monetary_recognizer import (
+            ruling_geometry_supports_charge,
+        )
+
+        if ruling_geometry_supports_charge(candidates, target_txt):
+            return True
+    except Exception:  # noqa: BLE001
+        pass
 
     # gpt-4o-attributed selection is fine when a usable independent local
     # confirms the same amount (local confirmation path).
@@ -430,7 +453,12 @@ def line_has_gpt4o_local_consensus(line: dict) -> bool:
         local_txt = format_currency(local_amt)
         # POS codes (11) and implausible tails are not votes against a vision read.
         if _pos_like(local_txt) and not _pos_like(gpt_txt):
-            continue
+            # A POS-shaped dollar stem that is the same amount within $1
+            # (34.00 beside ruled 34.25) is not a place-of-service code.
+            if not _exact_or_dollar_agree(local_txt, gpt_txt) and not _exact_or_dollar_agree(
+                local_txt, target_txt
+            ):
+                continue
         if is_implausible_corroborator(local_txt, gpt_txt):
             continue
         if is_suspicious_tiny_total(local_amt) and not is_suspicious_tiny_total(gpt_amt):

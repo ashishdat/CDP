@@ -136,6 +136,218 @@ def recover_dollars_from_split_raw(text: str) -> str | None:
     return f"{amount}.00"
 
 
+def _charge_dollars_digits(value: object) -> str:
+    text = str(value or "").strip().lstrip("$").replace(",", "")
+    if not text:
+        return ""
+    if "." in text:
+        text = text.split(".", 1)[0]
+    return re.sub(r"\D", "", text)
+
+
+def _charge_digit_tokens(text: object) -> list[str]:
+    return re.findall(r"\d+", str(text or ""))
+
+
+def _is_gpt_charge_candidate(cand: dict) -> bool:
+    engine = str(cand.get("engine") or cand.get("producing_engine") or "").casefold()
+    return "gpt4o" in engine or "gpt-4o" in engine
+
+
+def _is_dollars_ruling_candidate(cand: dict) -> bool:
+    return "dollars_ruling" in str(cand.get("preprocessing_variant") or "")
+
+
+def is_ruling_tick_charge(
+    candidates: list[dict] | None,
+    current: str | None = None,
+) -> bool:
+    """True when every local digit is an isolated ``1`` (vertical form ruling).
+
+    ``1\\n1\\n1`` and ``111`` from dashed rulings are not a typed charge.
+    A real ``$111`` fails closed to HITL rather than becoming a false accept.
+    A sibling digit other than 1 (rapid ``111`` beside tess ``4``) keeps the row.
+    """
+    tokens: list[str] = []
+    saw_local = False
+    for cand in candidates or []:
+        if not isinstance(cand, dict) or _is_gpt_charge_candidate(cand):
+            continue
+        saw_local = True
+        raw_tokens = _charge_digit_tokens(cand.get("raw_value"))
+        tokens.extend(raw_tokens or _charge_digit_tokens(cand.get("value")))
+    if not saw_local:
+        tokens = _charge_digit_tokens(current)
+    if not tokens:
+        return False
+    return all(set(tok) <= {"1"} for tok in tokens)
+
+
+def ruling_geometry_supports_charge(
+    candidates: list[dict] | None,
+    target: object,
+) -> bool:
+    """Vision stem confirmed by the dollars|cents ruling, not by a threshold drop.
+
+    Two geometries count:
+    - full-window bleed is the stem plus one units/ruling digit, and the
+      dollars-only crop is a prefix of that stem (``2001`` / ``20`` / ``200``);
+    - the dollars-only crop dropped the trailing zero next to the dashed
+      ruling and no full-window read proposes a different stem (``21`` / ``210``).
+    """
+    td = _charge_dollars_digits(target)
+    if len(td) < 3 or not str(target or "").endswith(".00"):
+        return False
+    full: list[str] = []
+    ruling: list[str] = []
+    for cand in candidates or []:
+        if not isinstance(cand, dict) or _is_gpt_charge_candidate(cand):
+            continue
+        digits = _charge_dollars_digits(cand.get("value"))
+        if not digits:
+            continue
+        if _is_dollars_ruling_candidate(cand):
+            ruling.append(digits)
+        else:
+            full.append(digits)
+    if not ruling:
+        return False
+    clipped = td.endswith("0") and td[:-1] in ruling
+    if not clipped:
+        return False
+    bleed = any(len(d) == len(td) + 1 and d.startswith(td) for d in full)
+    if bleed:
+        return True
+    return bool(
+        full
+        and all(td.startswith(d) and 0 < (len(td) - len(d)) <= 1 for d in full)
+    )
+
+
+def resolve_service_charge(
+    current: str | None,
+    candidates: list[dict] | None,
+) -> tuple[str | None, str]:
+    """Pick the printed charge stem from local + vision candidates.
+
+    Returns ``(value, tag)``. ``value is None`` with tag ``RULING_TICK_REJECTED``
+    means the row is form ruling, not a service line. No claim-id branches.
+    """
+    cands = [c for c in (candidates or []) if isinstance(c, dict)]
+    if is_ruling_tick_charge(cands, current):
+        return None, "RULING_TICK_REJECTED"
+
+    vision = None
+    for cand in cands:
+        if _is_gpt_charge_candidate(cand) and str(cand.get("value") or "").strip():
+            vision = str(cand.get("value")).strip()
+            break
+
+    if vision and re.fullmatch(r"\d+\.\d{2}", vision):
+        vd, vc = vision.split(".")
+        vd_norm = str(int(vd))
+        if len(vc) == 2 and vc != "00":
+            for cand in cands:
+                if _is_gpt_charge_candidate(cand):
+                    continue
+                groups = _charge_digit_tokens(cand.get("raw_value"))
+                norms = []
+                for group in groups:
+                    try:
+                        norms.append(str(int(group)))
+                    except ValueError:
+                        norms.append(group)
+                if vd_norm in norms and vc in groups:
+                    return vision, "RULED_CENTS_RECONSTRUCTED"
+
+    if not vision:
+        return current, ""
+
+    vd = _charge_dollars_digits(vision)
+    full: list[str] = []
+    for cand in cands:
+        if _is_gpt_charge_candidate(cand) or _is_dollars_ruling_candidate(cand):
+            continue
+        digits = _charge_dollars_digits(cand.get("value") or cand.get("raw_value"))
+        if digits:
+            full.append(digits)
+
+    if vd and vd in full and any(
+        d.startswith(vd) and len(d) == len(vd) + 1 for d in full
+    ):
+        shaped = vision if re.fullmatch(r"\d+\.\d{2}", vision) else f"{int(vd)}.00"
+        return shaped, "LOCAL_STEM_OVER_BLEED"
+
+    if ruling_geometry_supports_charge(cands, vision) or (
+        vd
+        and ruling_geometry_supports_charge(cands, f"{int(vd)}.00" if vd.isdigit() else vision)
+    ):
+        shaped = vision if re.fullmatch(r"\d+\.\d{2}", vision) else f"{int(vd)}.00"
+        if _charge_dollars_digits(shaped) == vd:
+            return shaped, "RULING_CLIPPED_ZERO_STEM"
+
+    return current, ""
+
+
+def apply_charge_line_resolution(lines: list[dict] | None) -> list[dict]:
+    """Apply stem selection and drop ruling-tick rows. Marks unresolved cents glue.
+
+    A dropped row whose vision read is the kept dollars plus two non-``10``
+    cents digits (``49`` beside ``4972``) must not AUTO as whole dollars.
+    """
+    kept: list[dict] = []
+    dropped_digits: list[str] = []
+    for line in lines or []:
+        if not isinstance(line, dict):
+            continue
+        value, tag = resolve_service_charge(
+            line.get("charges") or line.get("charge_amount"),
+            line.get("candidates"),
+        )
+        if tag == "RULING_TICK_REJECTED":
+            for cand in line.get("candidates") or []:
+                if not isinstance(cand, dict) or not _is_gpt_charge_candidate(cand):
+                    continue
+                digits = re.sub(
+                    r"\D",
+                    "",
+                    str(cand.get("raw_value") or cand.get("value") or ""),
+                )
+                if digits:
+                    dropped_digits.append(digits)
+            continue
+        updated = line
+        if tag:
+            updated = dict(line)
+            if value and value != str(line.get("charges") or ""):
+                updated["charges"] = value
+                updated["charge_amount"] = value
+            updated["router_reason"] = f"{line.get('router_reason') or ''}|{tag}".strip("|")
+        kept.append(updated)
+
+    for line in kept:
+        amount = str(line.get("charges") or "")
+        if not amount.endswith(".00"):
+            continue
+        td = _charge_dollars_digits(amount)
+        if len(td) < 2:
+            continue
+        for digits in dropped_digits:
+            if not digits.startswith(td) or len(digits) != len(td) + 2:
+                continue
+            tail = digits[len(td) :]
+            if tail in {"00", "10"}:
+                continue
+            flagged = dict(line)
+            flagged["cents_unresolved"] = True
+            flagged["router_reason"] = (
+                f"{line.get('router_reason') or ''}|CENTS_GLUE_UNRESOLVED"
+            ).strip("|")
+            kept[kept.index(line)] = flagged
+            break
+    return kept
+
+
 def prefer_charge_ink_amount(a: str | None, b: str | None) -> str | None:
     """Prefer clean whole-dollar reads over units/ruling-bleed digit soup.
 

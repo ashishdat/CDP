@@ -35,6 +35,37 @@ CRITICAL = (
     "insured_name",
 )
 AUTO = {"AUTO_ACCEPTED", "REFERENCE_CONFIRMED", "ACCEPTED", "AUTO"}
+LEDGER_PATH = ROOT / "docs" / "gt" / "ground_truth_discrepancy_ledger.json"
+
+
+def _claim_keys(claim_id: str) -> set[str]:
+    text = str(claim_id or "")
+    tail = text.replace("\\", "/").split("/")[-1]
+    return {text, text.replace("/", "__"), text.replace("__", "/"), tail}
+
+
+def load_quarantine(path: Path | None = None) -> set[tuple[str, str]]:
+    """Fields whose saved label conflicts with source and leave the accuracy denominator."""
+    ledger = path or LEDGER_PATH
+    if not ledger.exists():
+        return set()
+    payload = json.loads(ledger.read_text(encoding="utf-8"))
+    out: set[tuple[str, str]] = set()
+    for record in payload.get("records") or []:
+        if not record.get("quarantine_from_accuracy", True):
+            continue
+        field = record.get("field_name")
+        if not field:
+            continue
+        for key in _claim_keys(str(record.get("claim_id") or "")):
+            out.add((key, str(field)))
+    return out
+
+
+def _quarantined(claim_id: str, field: str, table: set[tuple[str, str]] | None = None) -> bool:
+    keys = _claim_keys(claim_id)
+    blocked = table if table is not None else load_quarantine()
+    return any((key, field) in blocked for key in keys)
 
 
 def _utc() -> str:
@@ -315,6 +346,7 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
     claim_perfect = 0
     claim_scored = 0
     by_bundle: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    quarantine = load_quarantine()
 
     for claim_id, truth in (gt.get("claims") or {}).items():
         result_path = run_dir / "claims" / claim_id / "result.json"
@@ -339,6 +371,20 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
             exact = _exact(
                 name, pred, expected, patient_name=patient_for_same
             )
+            if _quarantined(claim_id, name, quarantine):
+                field_rows.append(
+                    {
+                        "field": name,
+                        "expected": expected,
+                        "predicted": pred,
+                        "disposition": disp,
+                        "exact": exact,
+                        "false_accept": False,
+                        "quarantined": True,
+                        "gt_confidence": meta.get("confidence"),
+                    }
+                )
+                continue
             field_total[name] += 1
             if exact:
                 field_exact[name] += 1
