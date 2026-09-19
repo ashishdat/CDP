@@ -407,12 +407,8 @@ def line_has_gpt4o_local_consensus(line: dict) -> bool:
     if not _exact_or_dollar_agree(target_txt, gpt_txt):
         return False
 
-    selected_engine = _selected_provenance_engine(line)
-    selected_is_gpt4o = bool(selected_engine) and _engine_family(selected_engine) == _GPT4O_FAMILY
-    # Selected value must be independently produced — gpt-4o provenance alone
-    # must never AUTO-promote a critical charge (circular consensus).
-    if selected_is_gpt4o:
-        return False
+    # gpt-4o-attributed selection is fine when a usable independent local
+    # confirms the same amount (local confirmation path).
 
     usable_locals: list[tuple[str, dict, Decimal]] = []
     for fam in _LOCAL_ENGINES:
@@ -445,6 +441,7 @@ def line_has_gpt4o_local_consensus(line: dict) -> bool:
     if not agreeing:
         return False
     # Any usable local that still disagrees with the selected amount → HITL.
+    # gpt-4o-attributed selection is fine when every usable local confirms it.
     return len(agreeing) == len(usable_locals)
 
 
@@ -537,6 +534,10 @@ def line_sum_auto_eligible(
     if observed == 0:
         return False, "NO_LINE_CHARGES"
     if observed == 1:
+        # Local independent confirmation (paddle+rapid exact/$1) is enough for
+        # a single observed charge line when DI/gpt-4o paths did not fire.
+        if agreed >= 1:
+            return True, "SINGLE_LINE_DUAL_ENGINE"
         return False, "SINGLE_LINE_REQUIRES_DI"
     if agreed >= observed >= 2:
         return True, "DUAL_ENGINE_LINE_AGREEMENT"

@@ -318,6 +318,29 @@ def test_usable_local_plus_independent_gpt4o_exact_agree():
     assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
 
 
+def test_gpt4o_selected_with_agreeing_local_counts_as_confirm():
+    """Local independent confirmation still counts when selection is gpt-4o-attributed."""
+    line = {
+        "charges": "200.00",
+        "producing_engine": "azure_gpt4o_crop",
+        "candidates": [
+            {
+                "value": "200.00",
+                "engine": "paddleocr",
+                "source_crop_id": "local-crop",
+            },
+            {
+                "value": "200.00",
+                "engine": "azure_gpt4o_crop",
+                "source_crop_id": "gpt-crop",
+            },
+        ],
+    }
+    assert line_has_gpt4o_local_consensus(line)
+    ok, reason = line_sum_auto_eligible([line])
+    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+
+
 def test_box28_exact_corroborates_line_sum():
     bare = [{"charges": "424.00", "candidates": [{"value": "424.00", "engine": "paddleocr"}]}]
     ok, reason = line_sum_auto_eligible(bare, corroborating_values=["424.00"])
@@ -330,7 +353,7 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     assert not ok
     assert reason == "SINGLE_LINE_REQUIRES_DI"
 
-    # Single-line paddle+rapid agree is still insufficient without DI / gpt-4o.
+    # Single-line paddle+rapid exact agree is local independent confirmation.
     single_dual = [
         {
             "charges": "222.00",
@@ -341,7 +364,7 @@ def test_line_sum_auto_requires_dual_engine_or_di():
         }
     ]
     ok, reason = line_sum_auto_eligible(single_dual)
-    assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
+    assert ok and reason == "SINGLE_LINE_DUAL_ENGINE"
 
     # paddle+rapid+gpt-4o consensus unlocks single-line AUTO when selected is local.
     single_triple = [

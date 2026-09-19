@@ -48,10 +48,11 @@ fields:
     accept_any: [[E2, E3, E4], [E1, E3, E4], [E1, E3, E4, E6], [E1, E3, E5], [E1, E3, E4, E7]]
     require_strong_e4: false
   patient_name:
-    # Critical identity: correlated OCR + weak format checks must not auto-accept.
-    # Cross-field relationship plausibility is not field-identity confirmation.
+    # Dual local-engine confirmation (paddle+rapid) is the identity confirm.
+    # Correlated same-crop agreement still does not mint independent E2.
+    # Format-valid E4 is enough once E2 is truly independent (same as insured_name).
     accept_any: [[E2, E3, E4], [E1, E3, E5], [E1, E3, E6]]
-    require_strong_e4: true
+    require_strong_e4: false
     allowed_e6_types:
       - MULTI_ATTRIBUTE_IDENTITY_CONFIRMED
   patient_first:

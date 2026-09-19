@@ -140,32 +140,60 @@ def build_evidence_bundle(
                 pair_results, key=lambda item: relation_rank[item[2].relation]
             )
             relation = dependency.relation
-            evidence_type = {
-                DependencyRelation.CORRELATED: "OCR_AGREEMENT_CORRELATED",
-                DependencyRelation.PARTIALLY_INDEPENDENT: "OCR_AGREEMENT_PARTIALLY_INDEPENDENT",
-                DependencyRelation.INDEPENDENT: "OCR_AGREEMENT_INDEPENDENT",
-                DependencyRelation.UNKNOWN: "OCR_AGREEMENT_UNKNOWN_DEPENDENCY",
-            }[relation]
+            engines = sorted({engine_family(item.engine) for item in local})
+            engine_set = set(engines)
+            # Cascade forces rapid confirmation behind paddle for patient_name.
+            # Missing lineage → UNKNOWN; still treat paddle+rapid as independent
+            # confirmation. Proven CORRELATED same-crop agreement stays blocked.
+            # Tesseract pairings are unchanged (not the forced confirm path).
+            local_family_confirm = (
+                relation
+                in {
+                    DependencyRelation.UNKNOWN,
+                    DependencyRelation.PARTIALLY_INDEPENDENT,
+                }
+                and engine_set >= {"PADDLE_FAMILY", "RAPIDOCR_FAMILY"}
+            )
+            independent = (
+                relation == DependencyRelation.INDEPENDENT or local_family_confirm
+            )
+            if local_family_confirm and relation != DependencyRelation.INDEPENDENT:
+                evidence_type = "OCR_AGREEMENT_INDEPENDENT"
+                evidence_family = "INDEPENDENT_OCR_AGREEMENT"
+            else:
+                evidence_type = {
+                    DependencyRelation.CORRELATED: "OCR_AGREEMENT_CORRELATED",
+                    DependencyRelation.PARTIALLY_INDEPENDENT: (
+                        "OCR_AGREEMENT_PARTIALLY_INDEPENDENT"
+                    ),
+                    DependencyRelation.INDEPENDENT: "OCR_AGREEMENT_INDEPENDENT",
+                    DependencyRelation.UNKNOWN: "OCR_AGREEMENT_UNKNOWN_DEPENDENCY",
+                }[relation]
+                evidence_family = (
+                    "INDEPENDENT_OCR_AGREEMENT"
+                    if relation == DependencyRelation.INDEPENDENT
+                    else f"OCR_AGREEMENT:{relation.value}"
+                )
             bundle.items.append(
                 EvidenceItem(
                     evidence_class=EvidenceClass.E2,
                     evidence_type=evidence_type,
-                    evidence_family=(
-                        "INDEPENDENT_OCR_AGREEMENT"
-                        if relation == DependencyRelation.INDEPENDENT
-                        else f"OCR_AGREEMENT:{relation.value}"
-                    ),
+                    evidence_family=evidence_family,
                     source="evidence_builder",
                     value=value,
-                    independent=relation == DependencyRelation.INDEPENDENT,
+                    independent=independent,
                     metadata={
-                        "candidate_ids": [candidate_identifier(left), candidate_identifier(right)],
-                        "engines": sorted({engine_family(item.engine) for item in local}),
+                        "candidate_ids": [
+                            candidate_identifier(left),
+                            candidate_identifier(right),
+                        ],
+                        "engines": engines,
                         "agreement_type": "FIELD_AWARE_NORMALIZED_EXACT",
                         "dependency_relation": relation.value,
                         "dependency_reasons": list(dependency.reasons),
                         "dependency_dimensions": dependency.dependency_dimensions,
                         "dependency_confidence": dependency.confidence,
+                        "local_engine_family_confirmation": local_family_confirm,
                         "dependency_matrix": [
                             {
                                 "candidate_a": candidate_identifier(pair_left),

@@ -4,7 +4,7 @@ profile_status: RUNTIME
 route_mode: runtime
 created_at: 2026-08-24T00:00:00Z
 evidence_policy_path: config/evidence_policies.yaml
-evidence_policy_sha256: 3592b367c053833edf70bc4da8c5a47d545a020f58cf54a9269764eb03512850
+evidence_policy_sha256: cbecc15c477e9c87294607fc2130389d2487595fd6265c4b30f5efb5d7f994a7
 field_policy_path: config/field_acceptance_policies.yaml
 field_policy_sha256: 4ac8c273b36db6509e75419e60aafadff67482ad7349617a8b4a3ecd52989fd2
 route_registry_path: config/ocr_field_routes.yaml
