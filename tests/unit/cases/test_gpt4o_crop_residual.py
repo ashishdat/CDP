@@ -446,6 +446,13 @@ def test_name_conflict_triggers_gpt4o_and_accepts_shaped(monkeypatch):
             {"value": "THOMAS DARLENE", "engine": "rapidocr"},
         ],
     )
+    assert name_needs_gpt4o(
+        local_accepted=True,
+        candidates=[
+            {"value": "KIVERALARAA", "engine": "paddleocr"},
+            {"value": "RIVERA LARAA", "engine": "rapidocr"},
+        ],
+    )
     img = Image.new("RGB", (240, 80), color=(255, 255, 255))
     engine = _FakeEngine(
         {
@@ -480,6 +487,83 @@ def test_name_conflict_triggers_gpt4o_and_accepts_shaped(monkeypatch):
     assert updated["cascade"]["accepted"] is True
     assert updated["cascade"]["value"] == "THOMAS DARLENE"
     assert updated["candidates"][0]["engine"] == "azure_gpt4o_crop"
+
+
+def test_confusable_name_split_accepts_only_with_local(monkeypatch):
+    """KIVERA vs RIVERA calls vision; an unrelated GPT name does not replace locals."""
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
+    img = Image.new("RGB", (240, 80), color=(255, 255, 255))
+    locals_ = [
+        {"value": "KIVERALARAA", "engine": "paddleocr"},
+        {"value": "RIVERA LARAA", "engine": "rapidocr"},
+    ]
+    reject = _FakeEngine(
+        {
+            "patient_name": Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value="JANE DOE",
+                raw_value="JANE DOE",
+                shaped=True,
+                insufficient_evidence=False,
+                reason="GPT4O_SHAPED",
+                confidence=0.99,
+            )
+        }
+    )
+    rejected = maybe_attach_gpt4o_crop_to_field_row(
+        {
+            "field": "patient_name",
+            "canonical_region": [10, 10, 200, 70],
+            "ocr_region": [10, 10, 200, 70],
+            "candidates": list(locals_),
+            "cascade": {
+                "accepted": True,
+                "accept_reason": "NAME_SHAPED",
+                "value": "KIVERALARAA",
+            },
+        },
+        image=img,
+        engine=reject,
+    )
+    assert rejected["cascade"]["value"] == "KIVERALARAA"
+    assert "GPT_NAME_NEEDS_LOCAL" in str(
+        (rejected.get("gpt4o_crop_residual") or {}).get("reason")
+    )
+    accept = _FakeEngine(
+        {
+            "patient_name": Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value="RIVERA LARAA",
+                raw_value="RIVERA LARAA",
+                shaped=True,
+                insufficient_evidence=False,
+                reason="GPT4O_SHAPED",
+                confidence=0.99,
+            )
+        }
+    )
+    updated = maybe_attach_gpt4o_crop_to_field_row(
+        {
+            "field": "patient_name",
+            "canonical_region": [10, 10, 200, 70],
+            "ocr_region": [10, 10, 200, 70],
+            "candidates": list(locals_),
+            "cascade": {
+                "accepted": True,
+                "accept_reason": "NAME_SHAPED",
+                "value": "KIVERALARAA",
+            },
+        },
+        image=img,
+        engine=accept,
+    )
+    assert updated["cascade"]["accepted"] is True
+    assert updated["cascade"]["value"] == "RIVERA LARAA"
 
 
 def test_empty_finance_line_sweep_recovers_gpt_shaped_amount(monkeypatch):

@@ -348,6 +348,31 @@ def name_local_engine_conflict(candidates: list[Mapping[str, Any]] | None) -> bo
     return False
 
 
+def _local_names_need_vision_tiebreak(
+    candidates: list[Mapping[str, Any]] | None,
+) -> bool:
+    """True when local engines are not normalize-exact, even if confusable.
+
+    ``KIVERALARAA`` vs ``RIVERA LARAA`` is one K/R substitution. That is not a
+    hard identity conflict, but it also is not independent E2. Vision is the
+    tie-break; it is not allowed to invent a third name.
+    """
+    from packages.evidence.normalization import normalize_agreement_value
+
+    norms: list[str] = []
+    for cand in candidates or []:
+        engine = str(cand.get("engine") or "").casefold()
+        if "gpt4o" in engine or "gpt-4o" in engine:
+            continue
+        text = _normalize(str(cand.get("value") or cand.get("text") or ""))
+        if not text or not semantic_accept("patient_name", text)[0]:
+            continue
+        norm = normalize_agreement_value("patient_name", text)
+        if norm and norm not in norms:
+            norms.append(norm)
+    return len(norms) >= 2
+
+
 def name_needs_gpt4o(
     *,
     local_accepted: bool,
@@ -358,9 +383,12 @@ def name_needs_gpt4o(
 
     Cascade may accept a shaped primary while paddle/rapid still disagree
     (CONFLICT_MARGIN later). Those conflicts need a crop vision arbitrator —
-    not another local OCR pass.
+    not another local OCR pass. Confusable-but-not-exact locals (KIVERA vs
+    RIVERA) also need that arbitrator so E2 is not skipped.
     """
-    if name_local_engine_conflict(candidates):
+    if name_local_engine_conflict(candidates) or _local_names_need_vision_tiebreak(
+        candidates
+    ):
         return True
     gap = (gap_class or "").upper()
     if gap in _NAME_GAPS and not local_accepted:
@@ -1070,6 +1098,36 @@ def maybe_attach_gpt4o_crop_to_field_row(
                     promote_accept = False
                     updated["gpt4o_crop_residual"]["reason"] = (
                         f"{promoted.reason}|GPT_DOB_NEEDS_LOCAL_DIGITS"
+                    )
+            if key in _NAME_FIELDS and promote_accept:
+                # Vision name is not sole authority. At least one local read
+                # must be the same person (exact or confusable). Unrelated
+                # GPT text cannot replace the cascade value.
+                from packages.candidate_reconciliation.reconciler import (
+                    values_conflict_equivalent,
+                )
+                from packages.evidence.normalization import normalize_agreement_value
+
+                gpt_name = str(promoted.value or "")
+                local_ok = False
+                for prior_c in candidates[1:]:
+                    eng = str(prior_c.get("engine") or "").casefold()
+                    if "gpt4o" in eng or "gpt-4o" in eng:
+                        continue
+                    local = str(
+                        prior_c.get("raw_value") or prior_c.get("value") or ""
+                    ).strip()
+                    if not local:
+                        continue
+                    if normalize_agreement_value(key, gpt_name) == (
+                        normalize_agreement_value(key, local)
+                    ) or values_conflict_equivalent(key, gpt_name, local):
+                        local_ok = True
+                        break
+                if not local_ok:
+                    promote_accept = False
+                    updated["gpt4o_crop_residual"]["reason"] = (
+                        f"{promoted.reason}|GPT_NAME_NEEDS_LOCAL"
                     )
             if promote_accept:
                 cascade_out["accepted"] = True
