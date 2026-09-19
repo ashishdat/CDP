@@ -434,10 +434,10 @@ def charge_column_windows(primary_x0: int, primary_x1: int) -> list[tuple[str, i
     """Alternate service-line charge x-windows (pointer-bleed avoidance)."""
     windows = [
         ("charges_primary", primary_x0, primary_x1),
-        ("charges_mid", max(primary_x0, 1000), min(max(primary_x1, 1145), 1210)),
+        # Right-shifted bands: live CMS-1500 amounts often sit past diagnosis pointer.
+        ("charges_mid", max(primary_x0 + 40, 1000), min(max(primary_x1 + 40, 1145), 1210)),
         ("charges_right", 1050, 1165),
-        # Far-right band for forms where $ amounts sit past the diagnosis pointer.
-        ("charges_far_right", 1100, 1210),
+        ("charges_far_right", 1100, 1220),
     ]
     seen: set[tuple[int, int]] = set()
     out: list[tuple[str, int, int]] = []
@@ -448,6 +448,22 @@ def charge_column_windows(primary_x0: int, primary_x1: int) -> list[tuple[str, i
         seen.add(key)
         out.append((variant_id, x0, x1))
     return out
+
+
+def charge_windows_for_mode(
+    primary_x0: int, primary_x1: int, *, fast: bool
+) -> list[tuple[int, int]]:
+    """In STP fast mode still keep a right-shifted band — primary alone misses ink."""
+    named = charge_column_windows(primary_x0, primary_x1)
+    if not fast:
+        return [(x0, x1) for _, x0, x1 in named]
+    keep: list[tuple[int, int]] = []
+    for variant_id, x0, x1 in named:
+        if variant_id in {"charges_primary", "charges_mid", "charges_right"}:
+            keep.append((x0, x1))
+        if len(keep) >= 2:
+            break
+    return keep or ([(named[0][1], named[0][2])] if named else [])
 
 
 class FieldCascade:

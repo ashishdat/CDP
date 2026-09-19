@@ -27,6 +27,7 @@ from packages.extraction_recovery import (
 from packages.extraction_recovery.field_cascade import (
     FieldCascade,
     charge_column_windows,
+    charge_windows_for_mode,
     field_requires_independent_confirmation,
     semantic_accept,
 )
@@ -667,6 +668,27 @@ def _recognize_charge_digits_only(image, bbox):
     return candidates, attempts, 'CHARGE_DIGITS_FAST'
 
 
+def _reject_pos_code_charge(value, raw) -> bool:
+    """True when a POS code (11/21/…) was OCR'd without monetary decimals."""
+    if not value:
+        return False
+    try:
+        from packages.geometry_authority import is_pos_like_currency
+        import re as _re_pos
+
+        if not is_pos_like_currency(value):
+            return False
+        raw_digits = _re_pos.sub(r"\D", "", str(raw or ""))
+        # Real $11.00 usually preserves ".00" in raw; bare "11" is POS.
+        if len(raw_digits) <= 2:
+            return True
+        if "." not in str(raw or "") and len(raw_digits) <= 2:
+            return True
+    except Exception:  # noqa: BLE001
+        return False
+    return False
+
+
 def _recover_empty_monetary_crop(image, bbox, *, field_name='charges', claim_id=None):
     """Image-evidence gate + monetary crop variants when primary OCR is empty.
 
@@ -1235,14 +1257,8 @@ def recognize_service_lines(image, router, template):
     header_offset = max(8, table.row_height_px // 3)
     # Alternate x-windows: primary template column plus a right-shifted band that
     # avoids diagnosis-pointer bleed on many live CMS-1500 scans.
-    charge_windows = [
-        (x0, x1) for _, x0, x1 in charge_column_windows(charge_col.x0, charge_col.x1)
-    ]
     fast = _ocr_fast_mode()
-    if fast:
-        # One charge x-window under STP fast — second window doubled OCR wall
-        # with little lift once paddle→conditional-rapid is in place.
-        charge_windows = charge_windows[:1]
+    charge_windows = charge_windows_for_mode(charge_col.x0, charge_col.x1, fast=fast)
     # F0: at most N DI analyzes for service-line cells this document.
     di_budget = _azure_di_service_line_budget()
 
@@ -1262,23 +1278,46 @@ def recognize_service_lines(image, router, template):
             if _re.search(r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()):
                 continue
             m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
-            if not m:
-                continue
-            amount = m.group(0).lstrip('$')
-            if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
-                amount = f'{amount}.00'
-            shaped_vals.append(amount)
+            if m:
+                amount = m.group(0).lstrip('$')
+                if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
+                    # Ruling-noise tails (6404→640.00) via monetary shaper.
+                    try:
+                        from packages.ocr_portfolio import shape_monetary
+
+                        shaped = shape_monetary(amount)
+                        amount = shaped or f'{amount}.00'
+                    except Exception:  # noqa: BLE001
+                        amount = f'{amount}.00'
+                if _re.fullmatch(r'\d+\.\d{2}', amount):
+                    shaped_vals.append(amount)
+                    continue
+            try:
+                from packages.ocr_portfolio import shape_monetary
+
+                shaped = shape_monetary(cleaned)
+                if shaped:
+                    shaped_vals.append(shaped)
+            except Exception:  # noqa: BLE001
+                pass
         if not shaped_vals and raw_text:
             cleaned = str(raw_text).strip()
             if _re.search(r'\d', cleaned) and not _re.search(
                 r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()
             ):
-                m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
-                if m:
-                    amount = m.group(0).lstrip('$')
-                    if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
-                        amount = f'{amount}.00'
-                    shaped_vals.append(amount)
+                try:
+                    from packages.ocr_portfolio import shape_monetary
+
+                    shaped = shape_monetary(cleaned)
+                    if shaped:
+                        shaped_vals.append(shaped)
+                except Exception:  # noqa: BLE001
+                    m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
+                    if m:
+                        amount = m.group(0).lstrip('$')
+                        if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
+                            amount = f'{amount}.00'
+                        shaped_vals.append(amount)
         if not shaped_vals:
             return None
         best = shaped_vals[0]
@@ -1334,6 +1373,13 @@ def recognize_service_lines(image, router, template):
                 )
                 raw = candidates[0].get('raw_value') if candidates else ''
                 value = _currency_value(raw, candidates)
+                if value and _reject_pos_code_charge(value, raw):
+                    attempts = list(attempts or []) + [{
+                        'engine': 'geometry_authority',
+                        'reason': 'POS_CODE_SHORT_DIGITS',
+                        'observation': {'text': raw, 'shaped': value},
+                    }]
+                    value = None
                 if not value:
                     d_cands, d_attempts, d_reason = _recognize_charge_digits_only(
                         image, bbox
@@ -1341,6 +1387,8 @@ def recognize_service_lines(image, router, template):
                     attempts = list(attempts or []) + list(d_attempts or [])
                     d_raw = d_cands[0].get('raw_value') if d_cands else ''
                     d_value = _currency_value(d_raw, d_cands)
+                    if d_value and _reject_pos_code_charge(d_value, d_raw):
+                        d_value = None
                     if d_value:
                         candidates, raw, value = d_cands, d_raw, d_value
                         reason = f'{d_reason}|AFTER_PADDLE_EMPTY'
@@ -1349,6 +1397,13 @@ def recognize_service_lines(image, router, template):
                     image, 'charges', bbox, router, charge_col.field_type)
                 raw = candidates[0].get('raw_value') if candidates else ''
                 value = _currency_value(raw, candidates)
+                if value and _reject_pos_code_charge(value, raw):
+                    attempts = list(attempts or []) + [{
+                        'engine': 'geometry_authority',
+                        'reason': 'POS_CODE_SHORT_DIGITS',
+                        'observation': {'text': raw, 'shaped': value},
+                    }]
+                    value = None
             # Azure DI only when local OCR left the cell empty on a live row,
             # or when dual engines disagree as non-twins. Do NOT call DI merely
             # because an amount is short — that billed every $25–$999 cell on
@@ -1575,6 +1630,13 @@ def recognize_service_lines(image, router, template):
                 )
                 raw = candidates[0].get('raw_value') if candidates else ''
                 value = _currency_value(raw, candidates)
+                if value and _reject_pos_code_charge(value, raw):
+                    attempts = list(attempts or []) + [{
+                        'engine': 'geometry_authority',
+                        'reason': 'POS_CODE_SHORT_DIGITS',
+                        'observation': {'text': raw, 'shaped': value},
+                    }]
+                    value = None
                 if value:
                     break
             if not value and bbox is not None:

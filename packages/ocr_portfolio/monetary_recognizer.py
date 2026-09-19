@@ -74,23 +74,51 @@ def shape_monetary(text: str) -> str | None:
     cleaned = "".join(ch for ch in (text or "") if ch in _WHITELIST).strip()
     if not cleaned:
         return None
+    candidates: list[str] = []
     m = _CURRENCY_RE.search(cleaned.replace(" ", ""))
-    if not m:
-        # Digits only → assume dollars.
-        digits = re.sub(r"\D", "", cleaned)
-        if re.fullmatch(r"\d{2,6}", digits or ""):
-            return f"{digits}.00"
+    if m:
+        amount = m.group(0).lstrip("$").replace(",", "")
+        if amount.upper().startswith("CR"):
+            amount = amount[2:].strip()
+        if amount.startswith("(") and amount.endswith(")"):
+            amount = amount[1:-1]
+        if "." in amount and re.fullmatch(r"\d+\.\d{2}", amount):
+            return amount
+        if "." not in amount and re.fullmatch(r"\d{2,6}", amount):
+            # Defer to ranked digit-soup handling below (6404 → 640.00).
+            cleaned = amount
+    digits = re.sub(r"\D", "", cleaned)
+    if not digits:
         return None
-    amount = m.group(0).lstrip("$").replace(",", "")
-    if amount.upper().startswith("CR"):
-        amount = amount[2:].strip()
-    if amount.startswith("(") and amount.endswith(")"):
-        amount = amount[1:-1]
-    if "." not in amount and re.fullmatch(r"\d{2,6}", amount):
-        amount = f"{amount}.00"
-    if not re.fullmatch(r"\d+\.\d{2}", amount):
-        return None
-    return amount
+    if re.fullmatch(r"\d{2,6}", digits):
+        candidates = [f"{digits}.00"]
+        if len(digits) >= 4:
+            candidates.append(f"{digits[:-2]}.{digits[-2:]}")
+            if digits[-1] in {"4", "1"}:
+                candidates.append(f"{digits[:-1]}.00")
+        ranked: list[tuple[float, str]] = []
+        for cand in candidates:
+            try:
+                val = float(cand)
+            except ValueError:
+                continue
+            if not re.fullmatch(r"\d+\.\d{2}", cand):
+                continue
+            if not (1.0 <= val <= 99999.99):
+                continue
+            dollars = cand.split(".", 1)[0]
+            score = 2.0 if 2 <= len(dollars) <= 4 else 1.0
+            if cand.endswith(".00"):
+                score += 0.5
+            if len(digits) >= 4 and digits[-1] in {"4", "1"} and dollars == digits[:-1]:
+                score += 2.0
+            if dollars == digits and len(digits) >= 4 and digits[-1] in {"4", "1"}:
+                score -= 2.0
+            ranked.append((score, cand))
+        if ranked:
+            ranked.sort(key=lambda x: (-x[0], len(x[1])))
+            return ranked[0][1]
+    return None
 
 
 def monetary_variants_extended(crop: Image.Image) -> list[CropVariant]:

@@ -102,12 +102,26 @@ def test_same_crop_engines_not_independent():
 def test_shape_monetary_and_variants():
     assert shape_monetary("1,234.50") == "1234.50"
     assert shape_monetary("CR 12.00") == "12.00"
+    # Ruling-tail noise common on right-shifted charge crops.
+    assert shape_monetary("6404") == "640.00"
+    assert shape_monetary("2604") in {"260.00", "26.04"}
     img = Image.new("RGB", (60, 20), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
     draw.text((5, 2), "12.00", fill=(0, 0, 0))
     variants = monetary_variants_extended(img)
     ids = {v.variant_id for v in variants}
     assert "nn_2x" in ids and "bicubic_4x" in ids and "adaptive_threshold" in ids
+
+
+def test_fast_mode_keeps_right_shifted_charge_window():
+    from packages.extraction_recovery.field_cascade import charge_windows_for_mode
+
+    fast = charge_windows_for_mode(940, 1100, fast=True)
+    full = charge_windows_for_mode(940, 1100, fast=False)
+    assert len(fast) >= 2
+    assert len(full) >= len(fast)
+    # Right-shifted window must extend past primary right edge.
+    assert any(x0 >= 1000 for x0, _x1 in fast)
 
 
 def test_true_blank_with_complete_lines_not_empty_pixels():

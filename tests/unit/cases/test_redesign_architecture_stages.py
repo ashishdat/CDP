@@ -37,6 +37,21 @@ def test_blank_confirmed_optional_skips_hitl():
     assert requires_field_hitl(evidence, field_optional=True) is False
 
 
+def test_form_ruling_dashes_are_blank_not_unreadable():
+    """Box-28 dashed guidelines must not look like recoverable amount ink."""
+    img = Image.new("L", (120, 28), color=255)
+    pixels = img.load()
+    # Horizontal dash train (form underline).
+    for x0 in range(8, 110, 12):
+        for x in range(x0, min(x0 + 7, 115)):
+            for y in range(12, 15):
+                pixels[x, y] = 0
+    evidence = analyze_roi(img.convert("RGB"), ocr_empty=True)
+    assert evidence.disposition == InkDisposition.BLANK_CONFIRMED
+    assert evidence.features.get("ruling_only") == 1.0
+    assert requires_field_hitl(evidence, field_optional=False) is False
+
+
 def test_ink_present_unreadable_requires_hitl():
     # High-contrast ink strokes without OCR.
     img = Image.new("L", (80, 24), color=255)

@@ -101,8 +101,38 @@ def analyze_roi(
     contrast = float(np.clip(gray.std() / 64.0, 0.0, 1.0))
     _, ink = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     ink_density = float(np.count_nonzero(ink) / ink.size)
-    num_labels, _ = cv2.connectedComponents(ink)
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(ink)
     connected = max(0, int(num_labels) - 1)
+    # Form guideline dashes: many short horizontal components, almost no vertical mass.
+    ruling_only = False
+    glyph_density = ink_density
+    if connected >= 3 and height > 0 and width > 0:
+        horiz = cv2.morphologyEx(
+            ink,
+            cv2.MORPH_OPEN,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (max(8, width // 6), 1)),
+        )
+        vert = cv2.morphologyEx(
+            ink,
+            cv2.MORPH_OPEN,
+            cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(6, height // 3))),
+        )
+        glyph = cv2.subtract(cv2.subtract(ink, horiz), vert)
+        glyph_density = float(np.count_nonzero(glyph) / glyph.size)
+        horiz_ratio = float(np.count_nonzero(horiz) / max(1, np.count_nonzero(ink)))
+        # Box-28 dashed underline: high horizontal ink share, tiny residual glyphs.
+        if horiz_ratio >= 0.55 and glyph_density < 0.008 and connected >= 4:
+            ruling_only = True
+        # Also: components are all wide+short (dash aspect) — form underline.
+        if not ruling_only and connected >= 5:
+            dash_like = 0
+            for i in range(1, num_labels):
+                w_i = int(stats[i, cv2.CC_STAT_WIDTH])
+                h_i = int(stats[i, cv2.CC_STAT_HEIGHT])
+                if w_i >= 2 * max(1, h_i) and h_i <= max(3, height // 3):
+                    dash_like += 1
+            if dash_like / connected >= 0.7:
+                ruling_only = True
     border = max(1, round(min(height, width) * 0.05))
     border_ink = np.concatenate(
         (
@@ -116,39 +146,46 @@ def analyze_roi(
     estimated_dpi = float(round(max(width / 0.8, height / 0.25), 1))  # field crop heuristic
     # One-bit loss: near-binary with very low density but residual speckles.
     hist = np.bincount(gray.ravel(), minlength=256).astype(float)
-    hist /= hist.sum()
+    hist /= max(1.0, hist.sum())
     extremes = float(hist[:8].sum() + hist[-8:].sum())
     one_bit_risk = float(np.clip(extremes * (1.0 - min(1.0, ink_density * 20.0)), 0.0, 1.0))
     blank_probability = float(
-        np.clip(1.0 - (ink_density * 25.0) - (0.02 * connected), 0.0, 1.0)
+        np.clip(1.0 - (glyph_density * 40.0) - (0.02 * connected), 0.0, 1.0)
     )
+    if ruling_only:
+        blank_probability = max(blank_probability, 0.93)
     features = {
         "width": float(width),
         "height": float(height),
         "ink_density": ink_density,
+        "glyph_density": float(glyph_density),
         "connected_components": float(connected),
         "blur_score": blur_score,
         "contrast": contrast,
         "clipping": clipping,
         "blank_probability": blank_probability,
         "one_bit_ink_loss_risk": one_bit_risk,
+        "ruling_only": 1.0 if ruling_only else 0.0,
     }
     reasons: list[str] = []
 
     if not geometry_valid:
         reasons.append("GEOMETRY_INVALID")
         disposition = InkDisposition.ROI_MISALIGNED
-    elif blank_probability >= 0.92 and connected <= 2 and ink_density < 0.01:
+    elif ruling_only:
+        reasons.append("FORM_RULING_ONLY")
+        disposition = InkDisposition.BLANK_CONFIRMED
+    elif blank_probability >= 0.92 and connected <= 2 and glyph_density < 0.01:
         reasons.append("LOW_INK_DENSITY")
         disposition = InkDisposition.BLANK_CONFIRMED
-    elif ocr_empty and ink_density >= 0.02 and connected >= 3:
+    elif ocr_empty and glyph_density >= 0.012 and connected >= 3:
         reasons.append("INK_WITHOUT_OCR")
         if blur_score < 40 or contrast < 0.2 or one_bit_risk >= 0.55:
             reasons.append("DEGRADED_INK")
             disposition = InkDisposition.INK_PRESENT_UNREADABLE
         else:
             disposition = InkDisposition.INK_PRESENT_UNREADABLE
-    elif ocr_empty and clipping > 0.35:
+    elif ocr_empty and clipping > 0.35 and glyph_density < 0.01:
         reasons.append("EDGE_CLIPPING")
         disposition = InkDisposition.PIXELS_MISSING
     elif ocr_empty:
