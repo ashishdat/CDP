@@ -825,6 +825,58 @@ def _merge_gpt4o_line_charge(
     return value, raw, candidates, attempts, reason
 
 
+def _maybe_attach_openocr_svtr_line(
+    image,
+    bbox,
+    *,
+    value,
+    raw,
+    candidates,
+    attempts,
+    reason,
+):
+    """Optional OpenOCR/SVTRv2 printed-crop residual (redesign fixed-form role)."""
+    try:
+        from workers.openocr_svtr import (
+            openocr_svtr_enabled,
+            recognize_openocr_svtr,
+            residual_candidate_dict,
+        )
+    except ImportError:
+        return value, raw, candidates, attempts, reason
+    if not openocr_svtr_enabled():
+        return value, raw, candidates, attempts, reason
+    x0, y0, x1, y1 = (int(v) for v in bbox)
+    crop = image.crop((max(0, x0), max(0, y0), min(image.width, x1), min(image.height, y1)))
+    result = recognize_openocr_svtr(crop)
+    attempts = list(attempts or []) + [{
+        'engine': 'openocr_svtr',
+        'reason': result.reason,
+        'observation': {'text': result.text or ''},
+    }]
+    if not result.text:
+        return value, raw, candidates, attempts, reason
+    shaped = _currency_value_from_text(result.text)
+    if not shaped:
+        return value, raw, candidates, attempts, f'{reason}|{result.reason}|OPENOCR_UNSHAPED'
+    cand = residual_candidate_dict(
+        result,
+        bbox=(x0, y0, x1, y1),
+        image_size=(image.width, image.height),
+        field_name='charges',
+    )
+    if cand is not None:
+        cand['value'] = shaped
+        candidates = list(candidates or []) + [cand]
+    if not value:
+        value = shaped
+        raw = result.text
+        reason = f'{reason}|{result.reason}|CHARGE_OPENOCR_SVTR'
+    else:
+        reason = f'{reason}|{result.reason}|CHARGE_OPENOCR_CANDIDATE'
+    return value, raw, candidates, attempts, reason
+
+
 def _maybe_attach_ppocr_v5_server_line(
     image,
     bbox,
@@ -1176,6 +1228,16 @@ def recognize_service_lines(image, router, template):
                     attempts=attempts,
                     reason=reason,
                 )
+            # Redesign: optional OpenOCR/SVTRv2 printed-crop (default off).
+            value, raw, candidates, attempts, reason = _maybe_attach_openocr_svtr_line(
+                image,
+                bbox,
+                value=value,
+                raw=raw,
+                candidates=candidates,
+                attempts=attempts,
+                reason=reason,
+            )
             # Optional PP-OCRv5 Server residual (isolated paddleocr 3.x venv).
             # Adds a paddle-family candidate when local paddle/rapid left a
             # single-engine or empty charge cell — can unlock dual-engine with rapid.

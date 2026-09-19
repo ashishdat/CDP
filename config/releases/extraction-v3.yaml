@@ -24,9 +24,20 @@ ocr_models:
     engine: Azure-gpt-4o-crop
     model: gpt-4o
     authority: SHAPED_ACCEPT_WITH_LOCAL_CONSENSUS
+    monetary_authority: false
     role: >
       Name conflict arbitrator; empty box-28 line-sum corroboration
-      (SINGLE_LINE_GPT4O_LOCAL). Never gpt-only critical AUTO.
+      (SINGLE_LINE_GPT4O_LOCAL). Never gpt-only critical AUTO (redesign-stack-v1).
+  fixed_form_printed:
+    engine: OpenOCR-SVTRv2
+    default: off
+    env: CDP_OPENOCR_SVTR
+    role: Primary printed dates/IDs/monetary crops when enabled; else paddle+rapid.
+  complex_tables:
+    engines: [PaddleOCR-VL, MonkeyOCR]
+    default: off
+    authority: REVIEW_ONLY
+  architecture_stack: config/architecture/redesign_stack_v1.yaml
   handwriting_local:
     engine: TrOCR
     model: microsoft/trocr-base-handwritten

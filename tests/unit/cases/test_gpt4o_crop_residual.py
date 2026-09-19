@@ -345,10 +345,48 @@ def test_attach_charge_promotes_shaped_box28(monkeypatch):
     updated = maybe_attach_gpt4o_crop_to_field_row(
         row, image=img, gap_class="CHARGE_LOCAL_EXHAUSTED", engine=engine
     )
-    assert updated["cascade"]["accepted"] is True
-    assert updated["cascade"]["value"] == "233.00"
+    # Redesign: GPT is not sole monetary authority — candidate attached, not AUTO.
     assert updated["gpt4o_crop_residual"]["shaped"] is True
     assert updated["candidates"][0]["engine"] == "azure_gpt4o_crop"
+    assert updated["candidates"][0]["value"] == "233.00"
+    assert updated["cascade"]["accepted"] is False
+    assert "GPT_NOT_MONETARY_AUTHORITY" in updated["gpt4o_crop_residual"]["reason"]
+    assert updated["acceptance_risk"]["review_recommended"] is True
+    assert updated["acceptance_risk"]["method"] == "gpt_not_monetary_authority"
+
+
+def test_attach_charge_promotes_when_local_corroborates(monkeypatch):
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
+    img = Image.new("RGB", (240, 80), color=(255, 255, 255))
+    engine = _FakeEngine(
+        {
+            "total_charge": Gpt4oCropResidualResult(
+                attempted=True,
+                configured=True,
+                review_only=True,
+                value="233.00",
+                raw_value="233.00",
+                shaped=True,
+                insufficient_evidence=False,
+                reason="GPT4O_SHAPED",
+                confidence=0.97,
+            )
+        }
+    )
+    row = {
+        "field": "total_charge",
+        "canonical_region": [10, 10, 200, 70],
+        "ocr_region": [10, 10, 200, 70],
+        "candidates": [{"value": "233.00", "engine": "paddleocr"}],
+        "cascade": {"accepted": False, "accept_reason": "EMPTY", "value": ""},
+        "azure_di_residual": {"currency_shaped": False, "value": None},
+    }
+    updated = maybe_attach_gpt4o_crop_to_field_row(
+        row, image=img, gap_class="CHARGE_LOCAL_EXHAUSTED", engine=engine
+    )
+    assert updated["cascade"]["accepted"] is True
+    assert updated["cascade"]["value"] == "233.00"
 
 def test_name_conflict_triggers_gpt4o_and_accepts_shaped(monkeypatch):
     from packages.extraction_recovery.gpt4o_crop_residual import name_needs_gpt4o

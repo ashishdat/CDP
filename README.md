@@ -9,7 +9,9 @@ output with full field-level evidence.
 This repository is being built phase by phase (see
 `docs/IMPLEMENTATION_PLAN.md`). **This README reflects what is actually
 implemented today, not the end-state design** — the end-state architecture
-lives in `docs/ARCHITECTURE.md`.
+lives in `docs/ARCHITECTURE.md`. The operator redesign capability table
+(OpenCV → HITL React stack) is documented in `docs/REDESIGN_STACK.md` and
+governed by `config/architecture/redesign_stack_v1.yaml`.
 
 ## What's implemented (Phase 1)
 

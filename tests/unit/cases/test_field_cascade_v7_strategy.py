@@ -24,6 +24,8 @@ def test_strategy_is_v12():
     strategy = load_cascade_strategy()
     assert strategy.strategy_id == "field-cascade-v12"
     assert strategy.tool_stack.get("residual_charge", {}).get("engine") == "azure_gpt4o_crop"
+    assert strategy.tool_stack.get("residual_charge", {}).get("monetary_authority") is False
+    assert strategy.tool_stack.get("source") == "config/architecture/redesign_stack_v1.yaml"
     assert strategy.defaults.get("azure_di_charge_residual") is False
     assert strategy.defaults.get("ppocr_v5_server") is False
     assert strategy.status == "ACTIVE"
@@ -38,6 +40,8 @@ def test_strategy_is_v12():
     assert any(s.get("id") == "dob_separator_relief" for s in strategy.stages)
     assert any(s.get("id") == "name_label_relief" for s in strategy.stages)
     assert any(s.get("id") == "charge_gpt4o_residual" for s in strategy.stages)
+    assert any(s.get("id") == "openocr_svtr_optional" for s in strategy.stages)
+    assert any(s.get("id") == "acceptance_risk" for s in strategy.stages)
     assert strategy.defaults.get("confirmation_required_usable") == 1
 
 

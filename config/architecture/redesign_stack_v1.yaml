@@ -1,0 +1,139 @@
+# CDP redesigned extraction stack v1
+# Source of truth for capability → technology → role mapping.
+# Implements the operator redesign table; runtime may enable subsets via env.
+#
+version: redesign-stack-v1
+status: ACTIVE
+aligns_with:
+  field_cascade: field-cascade-v12
+  pipeline_release: extraction-v3
+honesty:
+  - GPT-4o / VLM is residual semantic assistance — never sole monetary authority.
+  - Empty / unreadable financial ink → model residual then HITL; never invent STP.
+  - Cloud OCR (Azure DI / Textract) is residual crop recovery, not common path.
+  - Fine-tuned SVTRv2/OpenOCR and TrOCR require domain holdout before PRODUCTION.
+
+capabilities:
+  image_preparation:
+    technology: [OpenCV, Pillow, libtiff]
+    role: Preserve original TIFF; deskew, denoise; multiple render variants.
+    runtime: workers/document_preparation
+    status: PRODUCTION
+
+  registration:
+    technology: [SIFT, FLANN, RANSAC, LightGlue]
+    role: Align fixed forms; establish trustworthy field geometry (E3).
+    runtime: workers/page_detection/template_alignment.py
+    recovery: packages/recovery/learned_matcher.py
+    status: PRODUCTION
+
+  fixed_form_printed:
+    technology: [OpenOCR, SVTRv2]
+    role: Primary recognition for dates, IDs, and monetary crops on fixed forms.
+    runtime: workers/openocr_svtr
+    env: CDP_OPENOCR_SVTR
+    default: off
+    fallback: [paddleocr, rapidocr, tesseract]
+    status: CANDIDATE
+
+  general_local_ocr:
+    technology: [PP-OCRv5, RapidOCR, Tesseract]
+    role: Low-cost extraction and independent confirmation (E2).
+    primary_default: PP-OCRv4  # v5 optional via CDP_PPOCRV5_SERVER
+    confirmation: rapidocr
+    fill: tesseract
+    status: PRODUCTION
+
+  handwriting:
+    technology: [TrOCR]
+    role: Specialist recognition of handwritten fields (DOB residual).
+    model: microsoft/trocr-base-handwritten
+    runtime: workers/unstructured_extraction/trocr_adapter.py
+    authority: REVIEW_ONLY_UNTIL_DOMAIN_HOLDOUT
+    names_arbitrator: azure_gpt4o_crop
+    status: PRODUCTION_RESIDUAL
+
+  complex_tables:
+    technology: [PaddleOCR-VL, MonkeyOCR]
+    role: Discover tables, columns, labels, and row relationships.
+    primary: paddleocr_vl
+    env: CDP_PADDLEOCR_VL_TABLE
+    default: off
+    authority: REVIEW_ONLY
+    monkeyocr:
+      env: CDP_MONKEYOCR
+      default: off
+      status: STUB
+    geometric_fallback: workers/table_extraction
+    status: CANDIDATE
+
+  cloud_document_ocr:
+    technology: [Azure Document Intelligence Read, AWS Textract]
+    role: Residual crop recovery, handwriting and table fallback.
+    azure_di:
+      env: CDP_AZURE_DI_CHARGE_RESIDUAL
+      default: off
+    textract:
+      invoke_when: LOCAL_AND_DI_EXHAUSTED
+    status: PRODUCTION_RESIDUAL
+
+  llm_vlm:
+    technology: [GPT-4o]
+    role: Residual semantic interpretation and review assistance — not monetary authority.
+    runtime: packages/extraction_recovery/gpt4o_crop_residual.py
+    env: CDP_GPT4O_CROP_RESIDUAL
+    default: on
+    monetary_authority: false
+    empty_finance_sweep: CDP_GPT4O_EMPTY_FINANCE
+    status: PRODUCTION_RESIDUAL
+
+  validation:
+    technology: [Pydantic, deterministic_rule_engine]
+    role: Format, arithmetic, field-location, and cross-page validation.
+    runtime:
+      - packages/validation_rules
+      - packages/deterministic_evidence
+      - packages/claim_evidence/line_sum_authority.py
+    status: PRODUCTION
+
+  calibration:
+    technology: [Platt, Isotonic, LightGBM]
+    role: Estimate acceptance risk from evidence features.
+    field_confidence: packages/confidence
+    acceptance_risk: packages/architecture/acceptance_risk.py
+    lightgbm_routing: packages/document_routing/ml
+    status: PARTIAL
+
+  workflow:
+    technology: [Python, FastAPI, Kafka, Redis, PostgreSQL]
+    role: Extraction orchestration, retry, audit, and HITL.
+    runtime:
+      - apps/ingestion_api
+      - workers/*/consumer.py
+      - docker-compose.yml
+    status: PRODUCTION
+
+  hitl_ui:
+    technology: [React]
+    role: Evidence-centric review of only unresolved fields.
+    runtime: apps/evaluation_ui/src/hitl.tsx
+    api: apps/human_review_api
+    status: PARTIAL
+
+# Ordered residual ladder for critical charge fields (fail-closed).
+charge_residual_ladder:
+  - local_paddle_rapid
+  - tesseract_digits_fill
+  - openocr_svtr_optional
+  - gpt4o_empty_finance_sweep
+  - azure_di_charge_optional
+  - field_scoped_hitl
+
+# Independence groups for E2 corroboration.
+independence_groups:
+  PADDLE_FAMILY: [paddleocr, ppocr_v5_server, openocr_svtr]
+  RAPID_FAMILY: [rapidocr]
+  TESSERACT_FAMILY: [tesseract, tesseract_digits]
+  GPT4O_FAMILY: [azure_gpt4o_crop]
+  AZURE_DI_FAMILY: [azure_document_intelligence_read]
+  VL_TABLE_FAMILY: [paddleocr_vl, monkeyocr]

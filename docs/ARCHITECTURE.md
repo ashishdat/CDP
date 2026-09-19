@@ -121,7 +121,16 @@ of any field not in that schema, and `insufficient_evidence` instead of a
 guess — validated with the same deterministic validators as OCR output
 before it can touch a `Claim`.
 
-## 12. Optional model runtimes and controlled disposition
+## 12. Redesigned extraction stack (v1)
+
+Operator capability table is governed by
+`config/architecture/redesign_stack_v1.yaml` (see `docs/REDESIGN_STACK.md`).
+Open-source OCR remains primary; GPT-4o is residual semantic assistance and
+**never sole monetary authority**. OpenOCR/SVTRv2 and MonkeyOCR ship as
+opt-in CANDIDATE adapters; empty financial ink fails closed to HITL after
+the governed charge residual ladder.
+
+## 13. Optional model runtimes and controlled disposition
 
 To keep each phase honestly testable on a normal dev machine:
 - PaddleOCR, Tesseract, and TrOCR have lazy, versioned adapters behind the

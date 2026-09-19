@@ -18,13 +18,34 @@ phase: 12
 supersedes: field-cascade-v11
 
 # Declared tool stack (ops). Env flags may narrow, not broaden authority.
+# Aligned to config/architecture/redesign_stack_v1.yaml capability table.
 tool_stack:
+  source: config/architecture/redesign_stack_v1.yaml
+  image_preparation:
+    technology: [OpenCV, Pillow, libtiff]
+    status: PRODUCTION
+  registration:
+    technology: [SIFT, FLANN, RANSAC, LightGlue]
+    status: PRODUCTION
+  fixed_form_printed:
+    technology: [OpenOCR, SVTRv2]
+    env: CDP_OPENOCR_SVTR
+    default: off
+    fallback: [paddleocr, rapidocr]
   primary_ocr:
     engines: [paddleocr, rapidocr]
-    role: Governed E2 confirmation (independent families).
+    role: Governed E2 confirmation (independent families). Also PP-OCRv5 optional.
   fill_ocr:
     engines: [tesseract, tesseract_digits]
     role: Fill on miss / single-engine charge cells before cloud residual.
+  handwriting:
+    technology: [TrOCR]
+    role: DOB residual; names use gpt-4o arbitrator.
+  complex_tables:
+    technology: [PaddleOCR-VL, MonkeyOCR]
+    env: [CDP_PADDLEOCR_VL_TABLE, CDP_MONKEYOCR]
+    default: off
+    authority: REVIEW_ONLY
   residual_handwriting:
     engine: azure_gpt4o_crop
     fields: [patient_name, insured_name, patient_dob]
@@ -33,7 +54,20 @@ tool_stack:
     engine: azure_gpt4o_crop
     role: >
       Empty box-28 line-sum corroboration (SINGLE_LINE_GPT4O_LOCAL /
-      MULTI_LINE_GPT4O_LOCAL). Never gpt-4o-only AUTO.
+      MULTI_LINE_GPT4O_LOCAL). Never gpt-4o-only monetary AUTO.
+    monetary_authority: false
+  cloud_document_ocr:
+    technology: [Azure Document Intelligence, Textract]
+    azure_di_charge_default: off
+  validation:
+    technology: [Pydantic, deterministic_rule_engine]
+  calibration:
+    technology: [Platt, Isotonic, LightGBM]
+  workflow:
+    technology: [FastAPI, Kafka, Redis, PostgreSQL]
+  hitl_ui:
+    technology: [React]
+    runtime: apps/evaluation_ui/src/hitl.tsx
   azure_di_charge:
     default: off
     env: CDP_AZURE_DI_CHARGE_RESIDUAL
@@ -76,6 +110,14 @@ stages:
       When paddle+rapid return usable but unshaped text, explicitly run tesseract
       on the same crop and re-pick — ensures fill engine is exercised and OBSERVED.
       For single-engine service-line charges, digit-whitelist tess runs before gpt-4o.
+  - id: openocr_svtr_optional
+    role: >
+      Optional OpenOCR/SVTRv2 printed-crop residual (CDP_OPENOCR_SVTR). Same
+      PADDLE_FAMILY as paddleocr — not an independent confirmation engine.
+  - id: complex_tables_review
+    role: >
+      Optional PaddleOCR-VL / MonkeyOCR table structure (REVIEW_ONLY). Never
+      monetary authority; geometric table path remains the production default.
   - id: engine_agreement
     role: >
       Among dual-engine candidates, prefer span-normalized multi-engine agreement;
@@ -114,6 +156,10 @@ stages:
     role: LINE_TOTALS_RECONCILED when box-28 empty + observed line charges (not invented).
   - id: decide
     role: True STP only when critical evidence classes are complete; else Track-B HITL.
+  - id: acceptance_risk
+    role: >
+      Estimate HITL risk from evidence features (Platt/isotonic + optional LightGBM).
+      GPT-only monetary candidates are forced high-risk (not monetary authority).
   - id: gap_taxonomy
     role: Classify residual ink gaps only after evidence-complete decision.
   - id: metrics
@@ -135,7 +181,9 @@ honesty:
   - Report registration HITL and field-ink HITL as separate tracks.
   - Hackathon 1000 has no field GT — accuracy status UNAVAILABLE_NO_GROUND_TRUTH.
   - gpt-4o never independently promotes critical charges (needs usable local consensus).
+  - GPT-4o / VLM is residual semantic assistance — never sole monetary authority.
   - PP-OCRv5 Server is not an independence group vs paddleocr (PADDLE_FAMILY).
+  - OpenOCR/SVTRv2 and MonkeyOCR stay CANDIDATE until domain holdout.
 
 defaults:
   engine_source: config/ocr_field_routes.yaml

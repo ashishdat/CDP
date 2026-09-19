@@ -944,19 +944,37 @@ def maybe_attach_gpt4o_crop_to_field_row(
             # Charge: only promote over empty local; keep line-sum conflicts for HITL.
             promote_accept = True
             if key in _CHARGE_FIELDS:
+                # Redesign: GPT-4o is never sole monetary authority.
+                try:
+                    from packages.architecture.redesign_stack import (
+                        gpt_may_be_sole_monetary_authority,
+                    )
+
+                    sole_ok = gpt_may_be_sole_monetary_authority()
+                except Exception:  # noqa: BLE001
+                    sole_ok = False
                 local_value = str(cascade.get("value") or "").strip()
+                has_local = False
                 if not local_value:
                     for prior_c in candidates[1:]:
                         seed = str(
                             prior_c.get("value") or prior_c.get("raw_value") or ""
                         ).strip()
                         eng = str(prior_c.get("engine") or "").casefold()
-                        if "gpt4o" in eng:
+                        if "gpt4o" in eng or "gpt-4o" in eng:
                             continue
                         if seed:
                             local_value = seed
+                            has_local = True
                             break
-                if local_value and local_accepted:
+                else:
+                    has_local = True
+                if not sole_ok and not has_local:
+                    promote_accept = False
+                    updated["gpt4o_crop_residual"]["reason"] = (
+                        f"{promoted.reason}|GPT_NOT_MONETARY_AUTHORITY"
+                    )
+                elif local_value and local_accepted:
                     with contextlib.suppress(Exception):
                         from packages.claim_evidence.line_sum_authority import (
                             amounts_corroborate,
@@ -967,6 +985,27 @@ def maybe_attach_gpt4o_crop_to_field_row(
                             updated["gpt4o_crop_residual"]["reason"] = (
                                 f"{promoted.reason}|LOCAL_CONFLICT_REVIEW"
                             )
+                # Calibration: annotate acceptance risk (never invents STP).
+                with contextlib.suppress(Exception):
+                    from packages.architecture.acceptance_risk import (
+                        estimate_acceptance_risk,
+                    )
+
+                    risk = estimate_acceptance_risk(
+                        field_name=key,
+                        calibrated_confidence=float(promoted.confidence or 0.0),
+                        engine_count=1 + (1 if has_local else 0),
+                        dual_engine_agree=bool(has_local and promote_accept),
+                        gpt4o_only=not has_local,
+                        gap_class=gap_class,
+                    )
+                    updated["acceptance_risk"] = {
+                        "risk": risk.risk,
+                        "method": risk.method,
+                        "review_recommended": risk.review_recommended,
+                    }
+                    if risk.review_recommended and not has_local:
+                        promote_accept = False
             if promote_accept:
                 cascade_out["accepted"] = True
                 cascade_out["accept_reason"] = f"GPT4O_CROP_RESIDUAL:{promoted.reason}"

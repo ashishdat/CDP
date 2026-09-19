@@ -5,6 +5,12 @@ def independence_group(engine: str) -> str:
     normalized = engine.lower()
     if "rapidocr" in normalized:
         return "RAPIDOCR_FAMILY"
+    if "openocr" in normalized or "svtr" in normalized:
+        return "PADDLE_FAMILY"
+    if "monkeyocr" in normalized:
+        return "VL_TABLE_FAMILY"
+    if "paddleocr_vl" in normalized or "paddleocr-vl" in normalized:
+        return "VL_TABLE_FAMILY"
     if "paddle" in normalized or "pp-ocr" in normalized or "ppocr" in normalized:
         return "PADDLE_FAMILY"
     if "tesseract" in normalized:
