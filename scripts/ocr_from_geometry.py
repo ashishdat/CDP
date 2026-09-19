@@ -824,6 +824,97 @@ def _merge_gpt4o_line_charge(
         reason = f'{reason}|{g_reason}|CHARGE_GPT4O_OVERRIDE'
     return value, raw, candidates, attempts, reason
 
+
+def _maybe_attach_ppocr_v5_server_line(
+    image,
+    bbox,
+    *,
+    value,
+    raw,
+    candidates,
+    attempts,
+    reason,
+):
+    """Optional PP-OCRv5 Server residual for sparse/single-engine charge cells."""
+    try:
+        from workers.ppocr_v5.subprocess_bridge import (
+            ppocr_v5_server_enabled,
+            recognize_ppocr_v5_server,
+        )
+    except ImportError:
+        return value, raw, candidates, attempts, reason
+    if not ppocr_v5_server_enabled():
+        return value, raw, candidates, attempts, reason
+    shaped_engines = {
+        str(c.get('engine') or '')
+        for c in (candidates or [])
+        if isinstance(c, dict) and (c.get('value') or '').strip()
+    }
+    # Skip when paddle+rapid already both shaped — v5 adds no independence.
+    has_paddle = any('paddle' in e.casefold() or 'ppocr' in e.casefold() for e in shaped_engines)
+    has_rapid = any('rapid' in e.casefold() for e in shaped_engines)
+    if has_paddle and has_rapid:
+        return value, raw, candidates, attempts, reason
+    x0, y0, x1, y1 = (int(v) for v in bbox)
+    crop = image.crop((max(0, x0), max(0, y0), min(image.width, x1), min(image.height, y1)))
+    text, conf, v5_reason = recognize_ppocr_v5_server(crop)
+    attempts = list(attempts or []) + [{
+        'engine': 'ppocr_v5_server',
+        'reason': v5_reason,
+        'observation': {'text': text or ''},
+    }]
+    if not text:
+        return value, raw, candidates, attempts, reason
+    # Shape like other charge engines.
+    shaped = _currency_value_from_text(text)
+    if not shaped:
+        return value, raw, candidates, attempts, f'{reason}|{v5_reason}|PPOCRV5_UNSHAPED'
+    cand = {
+        'value': shaped,
+        'raw_value': text,
+        'engine': 'ppocr_v5_server',
+        'model_name': 'PP-OCRv5_server',
+        'model_version': 'paddleocr-3.x',
+        'preprocessing_variant': 'PPOCRV5_SERVER_CROP',
+        'raw_confidence': conf,
+        'calibrated_confidence': None,
+        'bounding_box': {
+            'x0': float(x0), 'y0': float(y0), 'x1': float(x1), 'y1': float(y1),
+            'image_width': image.width, 'image_height': image.height,
+        },
+        'latency_ms': 0.0,
+        'validation_results': ['PPOCRV5_SERVER'],
+    }
+    candidates = list(candidates or []) + [cand]
+    if not value:
+        value = shaped
+        raw = text
+        reason = f'{reason}|{v5_reason}|CHARGE_PPOCRV5_SERVER'
+    elif prefer_currency_without_digit_drop(value, shaped) == shaped and shaped != value:
+        value = shaped
+        raw = text
+        reason = f'{reason}|{v5_reason}|CHARGE_PPOCRV5_DIGIT_DROP'
+    else:
+        reason = f'{reason}|{v5_reason}|CHARGE_PPOCRV5_CANDIDATE'
+    return value, raw, candidates, attempts, reason
+
+
+def _currency_value_from_text(raw_text: str | None) -> str | None:
+    import re as _re
+
+    cleaned = str(raw_text or '').strip()
+    if not cleaned or not _re.search(r'\d', cleaned):
+        return None
+    if _re.search(r'(DIAGNOSIS|POINTER|FROM|HCPCS|CPT|NPI|PLACE|CHARGES)', cleaned.upper()):
+        return None
+    m = _re.search(r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?', cleaned)
+    if not m:
+        return None
+    amount = m.group(0).lstrip('$')
+    if '.' not in amount and _re.fullmatch(r'\d{2,6}', amount):
+        amount = f'{amount}.00'
+    return amount
+
 def recognize_service_lines(image, router, template):
     """OCR CMS-1500 service-line charge cells for claim-total E6 confirmation."""
     table = getattr(template, 'service_line_region', None) if template is not None else None
@@ -1049,6 +1140,18 @@ def recognize_service_lines(image, router, template):
                     attempts=attempts,
                     reason=reason,
                 )
+            # Optional PP-OCRv5 Server residual (isolated paddleocr 3.x venv).
+            # Adds a paddle-family candidate when local paddle/rapid left a
+            # single-engine or empty charge cell — can unlock dual-engine with rapid.
+            value, raw, candidates, attempts, reason = _maybe_attach_ppocr_v5_server_line(
+                image,
+                bbox,
+                value=value,
+                raw=raw,
+                candidates=candidates,
+                attempts=attempts,
+                reason=reason,
+            )
             score = 0
             if value:
                 score = 3 if '.' in value else 2

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,27 +16,66 @@ class PPOCRv5Line:
     confidence: float
 
 
+def _prepare_paddle_cpu_runtime() -> None:
+    """Disable OneDNN/PIR paths that crash PP-OCRv5 server on CPU (paddle 3.3)."""
+    os.environ.setdefault("FLAGS_use_mkldnn", "0")
+    os.environ.setdefault("FLAGS_enable_pir_api", "0")
+    os.environ.setdefault("FLAGS_enable_pir_in_executor", "0")
+    os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
+    try:
+        import paddle
+
+        paddle.set_flags({"FLAGS_use_mkldnn": False})
+    except ImportError:
+        # Import-time prep only; load() re-raises if paddle is truly missing.
+        pass
+    except (RuntimeError, ValueError, AttributeError):
+        pass
+
+
 class PPOCRv5Adapter:
-    def __init__(self, pipeline: Any | None = None, lang: str = "en") -> None:
+    def __init__(
+        self,
+        pipeline: Any | None = None,
+        lang: str = "en",
+        *,
+        server: bool = True,
+    ) -> None:
         self._pipeline = pipeline
         self._lang = lang
+        self._server = server
 
     def _load(self) -> None:
         if self._pipeline is not None:
             return
+        _prepare_paddle_cpu_runtime()
         try:
             from paddleocr import PaddleOCR
         except ImportError as exc:
             raise RuntimeError(
                 "PP-OCRv5 requires the isolated ppocr-v5 image/dependencies"
             ) from exc
-        self._pipeline = PaddleOCR(
-            lang=self._lang,
-            ocr_version="PP-OCRv5",
-            use_doc_orientation_classify=False,
-            use_doc_unwarping=False,
-            use_textline_orientation=True,
-        )
+        if self._server:
+            self._pipeline = PaddleOCR(
+                text_detection_model_name="PP-OCRv5_server_det",
+                text_recognition_model_name="PP-OCRv5_server_rec",
+                lang=self._lang,
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+                device="cpu",
+                enable_mkldnn=False,
+            )
+        else:
+            self._pipeline = PaddleOCR(
+                lang=self._lang,
+                ocr_version="PP-OCRv5",
+                use_doc_orientation_classify=False,
+                use_doc_unwarping=False,
+                use_textline_orientation=False,
+                device="cpu",
+                enable_mkldnn=False,
+            )
 
     def recognize(self, crop: Image.Image) -> list[PPOCRv5Line]:
         self._load()

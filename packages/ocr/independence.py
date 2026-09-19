@@ -5,7 +5,7 @@ def independence_group(engine: str) -> str:
     normalized = engine.lower()
     if "rapidocr" in normalized:
         return "RAPIDOCR_FAMILY"
-    if "paddle" in normalized or "pp-ocr" in normalized:
+    if "paddle" in normalized or "pp-ocr" in normalized or "ppocr" in normalized:
         return "PADDLE_FAMILY"
     if "tesseract" in normalized:
         return "TESSERACT_FAMILY"

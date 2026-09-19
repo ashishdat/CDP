@@ -100,3 +100,6 @@ submission/
 .model-cache/
 .tools/
 .env
+
+# Isolated PP-OCRv5 Server runtime
+.venv-ppocrv5/
