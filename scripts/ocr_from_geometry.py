@@ -792,10 +792,12 @@ def _recover_empty_monetary_crop(image, bbox, *, field_name='charges', claim_id=
 
     engines = {
         "tesseract_digits": _tess_engine,
-        "paddleocr": _paddle_engine,
-        "rapidocr": _rapid_engine,
     }
-    max_variants = int((os.environ.get("CDP_MONETARY_MAX_VARIANTS") or "6").strip() or "6")
+    # Expensive paddle/rapid only on original crop after tess variants miss.
+    include_heavy = (os.environ.get("CDP_MONETARY_HEAVY_ENGINES") or "1").strip().casefold() not in {
+        "0", "false", "no", "off", "",
+    }
+    max_variants = int((os.environ.get("CDP_MONETARY_MAX_VARIANTS") or "4").strip() or "4")
 
     with tel.track(
         "monetary_crop_variants",
@@ -817,6 +819,16 @@ def _recover_empty_monetary_crop(image, bbox, *, field_name='charges', claim_id=
             result = recognize_monetary_crop(
                 crop, engines=engines, max_variants=max_variants
             )
+            if result.best is None and include_heavy:
+                # One paddle + rapid pass on original only (not full variant grid).
+                heavy = recognize_monetary_crop(
+                    crop,
+                    engines={"paddleocr": _paddle_engine, "rapidocr": _rapid_engine},
+                    max_variants=1,
+                )
+                result.attempts.extend(heavy.attempts)
+                if heavy.best is not None:
+                    result.best = heavy.best
             inv2.outputs = {
                 "attempt_count": len(result.attempts),
                 "best": None if result.best is None else result.best.value,
@@ -1566,6 +1578,11 @@ def recognize_service_lines(image, router, template):
                 if value:
                     break
             if not value and bbox is not None:
+                # Cap expensive recovery: first 2 empty rows only under fast path.
+                if row_index > 1:
+                    if lines:
+                        break
+                    continue
                 m_val, m_cands, m_atts, m_reason, ev = _recover_empty_monetary_crop(
                     image, bbox, field_name='charges'
                 )
