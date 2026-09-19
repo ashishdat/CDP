@@ -27,6 +27,7 @@ from packages.extraction_recovery import (
 from packages.extraction_recovery.field_cascade import (
     FieldCascade,
     charge_column_windows,
+    field_requires_independent_confirmation,
     semantic_accept,
 )
 from packages.extraction_recovery.strategy import post_miss_for
@@ -377,6 +378,8 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
                 name_min = 0.80
             if conf < name_min:
                 shaped = False
+        if shaped and field_requires_independent_confirmation(name):
+            shaped = False
         # Service-line / box-28 charges: paddle often truncates trailing digits
         # that rapid recovers (157 vs 1571). Force confirm ONLY on short amounts
         # (digit-drop risk). Always-confirm regressed Independent-300 wall from

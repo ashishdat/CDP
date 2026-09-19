@@ -13,6 +13,17 @@ _E3_PLUMBING_REASONS = frozenset(
         "MISSING_E3",
     }
 )
+_POLICY_GAP_REASONS = frozenset(
+    {
+        "MISSING_E2_INDEPENDENT_CONFIRMATION",
+        "MISSING_E4_DETERMINISTIC_VALIDATION",
+        "MISSING_E6_CROSS_FIELD_CONFIRMATION",
+        "ACQUIRE_E2",
+        "ACQUIRE_E4",
+        "ACQUIRE_E6",
+        "CHEAPEST_POLICY_COMPLETING_EVIDENCE",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -69,6 +80,13 @@ def classify_field_gap(
         return _pack(
             "CALIBRATION_HITL",
             f"calendar/format-valid value held for calibrated confidence ({text!r})",
+        )
+
+    if text and reasons & _POLICY_GAP_REASONS:
+        held = sorted(reasons & _POLICY_GAP_REASONS)
+        return _pack(
+            "EVIDENCE_POLICY_GAP",
+            f"value observed; evidence policy still unsatisfied ({held})",
         )
 
     if name in {"patient_dob", "date_of_birth"}:

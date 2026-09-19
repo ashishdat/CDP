@@ -6,9 +6,16 @@ from packages.extraction_recovery.field_cascade import (
     FieldCascade,
     charge_column_windows,
     crop_variants,
+    field_requires_independent_confirmation,
     load_route_engines,
     semantic_accept,
 )
+
+
+def test_patient_name_requires_independent_confirmation():
+    assert field_requires_independent_confirmation("patient_name") is True
+    assert field_requires_independent_confirmation("insured_name") is False
+    assert field_requires_independent_confirmation("total_charge") is False
 
 
 def test_route_engines_prefer_governed_primary_then_confirmation():

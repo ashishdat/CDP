@@ -18,6 +18,7 @@ from PIL import Image
 
 from packages.extraction_recovery.field_cascade import semantic_accept
 from packages.extraction_recovery.span_selection import select_field_span
+from packages.recovery.azure_di_meter import azure_di_error_detail, record_azure_di_call
 from packages.tool_escalation import EscalationTool, plan_field_escalation
 
 _CHARGE_FIELDS = frozenset(
@@ -169,14 +170,13 @@ def _recognize_with_azure_read_engine(
     try:
         candidates = read_engine.recognize(request)
     except Exception as exc:  # noqa: BLE001
+        detail = azure_di_error_detail(exc)
         with contextlib.suppress(Exception):
-            from packages.recovery.azure_di_meter import record_azure_di_call
-
             record_azure_di_call(
                 kind="charge_crop",
                 field_name=field_name,
                 ok=False,
-                detail=type(exc).__name__,
+                detail=detail,
             )
         return ChargeAzureDiResidualResult(
             attempted=True,
@@ -185,11 +185,9 @@ def _recognize_with_azure_read_engine(
             value=None,
             raw_value=None,
             currency_shaped=False,
-            reason=f"AZURE_DI_ERROR:{type(exc).__name__}",
+            reason=f"AZURE_DI_ERROR:{detail}",
         )
     with contextlib.suppress(Exception):
-        from packages.recovery.azure_di_meter import record_azure_di_call
-
         record_azure_di_call(
             kind="charge_crop",
             field_name=field_name,

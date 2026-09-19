@@ -162,6 +162,8 @@ fields:
 gap_classes:
   EVIDENCE_PLUMBING_GAP:
     action: Fix artifact contracts (attach E3/E6 / engine authority); do not treat as ink failure.
+  EVIDENCE_POLICY_GAP:
+    action: Keep HITL until an allowed evidence path is actually present; do not relabel as unread ink.
   REGISTRATION_HITL:
     action: Registration recovery ladder or human registration; field cascade not applicable.
   HANDWRITING_UNREADABLE:

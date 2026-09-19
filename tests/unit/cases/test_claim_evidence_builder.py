@@ -91,3 +91,45 @@ def test_empty_box28_with_observed_line_charges_emits_line_totals_reconciled():
     assert item.value == "350.50"
     assert "total_charge" in item.metadata.get("supported_fields", [])
     assert item.metadata.get("provenance") == "DERIVED_FROM_OBSERVED_LINE_CHARGES"
+
+
+def _identity(**overrides):
+    values = {
+        "patient_name": "CAMARATO JOSHUA",
+        "insured_name": "CAMARATO JOSHUA",
+        "patient_dob": "03/15/1980",
+        "insured_id_number": "A123456789",
+    }
+    values.update(overrides)
+    return ClaimEvidenceBuilder.load().build(
+        claim_id="claim-identity",
+        document_family="CMS1500",
+        claim_values=values,
+    )
+
+
+def test_multi_attribute_identity_requires_name_dob_and_member_id():
+    result = _identity()
+    assert "MULTI_ATTRIBUTE_IDENTITY_CONFIRMED" in _types(result.evidence_items)
+    item = next(
+        row for row in result.evidence_items
+        if row.evidence_type == "MULTI_ATTRIBUTE_IDENTITY_CONFIRMED"
+    )
+    assert item.metadata["supported_fields"] == ["patient_name"]
+    assert "CAMARATO" not in (item.value or "")
+
+
+def test_name_agreement_alone_is_not_multi_attribute_identity():
+    result = _identity(patient_dob=None, insured_id_number=None)
+    assert "MEMBER_RELATIONSHIP_CONFIRMED" in _types(result.evidence_items)
+    assert "MULTI_ATTRIBUTE_IDENTITY_CONFIRMED" not in _types(result.evidence_items)
+
+
+def test_explicit_nonself_relationship_blocks_multi_attribute_identity():
+    result = _identity(relationship="SPOUSE")
+    assert "MULTI_ATTRIBUTE_IDENTITY_CONFIRMED" not in _types(result.evidence_items)
+
+
+def test_short_name_fragment_blocks_multi_attribute_identity():
+    result = _identity(patient_name="JO", insured_name="JO")
+    assert "MULTI_ATTRIBUTE_IDENTITY_CONFIRMED" not in _types(result.evidence_items)

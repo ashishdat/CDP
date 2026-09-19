@@ -133,6 +133,16 @@ def load_route_engines(field_name: str, route_path: Path | None = None) -> tuple
     return tuple(engines)
 
 
+def field_requires_independent_confirmation(field_name: str) -> bool:
+    """Patient name cannot STP on one engine.
+
+    The governed policy accepts independent OCR plus a strong check, or
+    multi-attribute identity. Selective confirm skips the second engine once
+    the primary read is field-shaped, so E2 never forms.
+    """
+    return (field_name or "").casefold() == "patient_name"
+
+
 def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
     """Return whether a span-selected value is field-shaped enough to stop."""
     text = (value or "").strip()

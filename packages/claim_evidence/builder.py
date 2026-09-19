@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
@@ -332,12 +332,18 @@ class ClaimEvidenceBuilder:
             or values.get("rel_code")
             or ""
         ).upper()
-        patient = self._name(values.get("patient_name"))
-        insured = self._name(values.get("insured_name"))
+        stated_relationship = relationship
+        patient_raw = str(values.get("patient_name") or "")
+        insured_raw = str(values.get("insured_name") or "")
+        patient = self._name(patient_raw)
+        insured = self._name(insured_raw)
         # Soft OCR-twin match for SELF E6 — confusable twins only, not short-
         # fragment / surname-only crops (DUDAN vs POSTIMNYCZ BOHDAN).
         from packages.candidate_reconciliation.reconciler import (
             _canonical_person_name,
+            _member_id_is_shaped,
+            _name_is_short_fragment,
+            _name_is_strong_person,
             _names_differ_by_confusable_edit,
             _names_differ_by_confusable_insertion,
             _names_differ_by_confusable_substitution,
@@ -401,6 +407,71 @@ class ClaimEvidenceBuilder:
                     metadata,
                 )
             )
+        if self._multi_attribute_identity(
+            original_relationship=stated_relationship,
+            patient_raw=patient_raw,
+            insured_raw=insured_raw,
+            names_agree=names_match,
+            values=values,
+            name_is_strong=_name_is_strong_person,
+            name_is_fragment=_name_is_short_fragment,
+            member_id_shaped=_member_id_is_shaped,
+        ):
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "MULTI_ATTRIBUTE_IDENTITY_CONFIRMED",
+                    "name+dob+member_id",
+                    {
+                        "supported_fields": ["patient_name"],
+                        "attributes": [
+                            "patient_name",
+                            "insured_name",
+                            "patient_dob",
+                            "insured_id_number",
+                        ],
+                    },
+                )
+            )
+
+    def _multi_attribute_identity(
+        self,
+        *,
+        original_relationship: str,
+        patient_raw: str,
+        insured_raw: str,
+        names_agree: bool,
+        values: dict,
+        name_is_strong,
+        name_is_fragment,
+        member_id_shaped,
+    ) -> bool:
+        """Identity E6 the patient-name policy already allows.
+
+        Name agreement alone is MEMBER_RELATIONSHIP_CONFIRMED and must not
+        auto-accept patient_name. This fact also requires a real date of birth
+        and a shaped member id, and it refuses an explicit non-self relationship.
+        """
+        if original_relationship not in {"", "SELF", "18", "01"}:
+            return False
+        if not names_agree:
+            return False
+        if (
+            not name_is_strong(patient_raw)
+            or name_is_fragment(patient_raw)
+            or not name_is_strong(insured_raw)
+            or name_is_fragment(insured_raw)
+        ):
+            return False
+        dob = self._date(values.get("patient_dob") or values.get("date_of_birth"))
+        if dob is None or dob > datetime.now(UTC).date():
+            return False
+        member = str(
+            values.get("insured_id_number")
+            or values.get("member_id")
+            or ""
+        )
+        return bool(member_id_shaped(member))
 
     def _provider_identity(self, claim_id, values, evidence, contradictions) -> None:
         repeated = self._values(values.get("provider_npi"))

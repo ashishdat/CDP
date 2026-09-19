@@ -119,6 +119,33 @@ def test_pick_prefers_multi_engine_agreement():
     assert ordered[0]["engine"] == "paddleocr"
 
 
+def test_gap_taxonomy_marks_observed_name_policy_hold_not_handwriting():
+    gap = classify_field_gap(
+        "patient_name",
+        observed_text="CAMARATO JOSHUA",
+        accepted=False,
+        reason_codes=[
+            "HARD_VALIDATION_PASSED",
+            "MISSING_E6_CROSS_FIELD_CONFIRMATION",
+            "ACQUIRE_E4",
+        ],
+    )
+    assert gap is not None
+    assert gap.gap_class == "EVIDENCE_POLICY_GAP"
+    assert "CAMARATO" not in gap.evidence
+
+
+def test_gap_taxonomy_empty_name_stays_unreadable():
+    gap = classify_field_gap(
+        "patient_name",
+        observed_text="",
+        accepted=False,
+        reason_codes=["NO_NONEMPTY_CANDIDATE"],
+    )
+    assert gap is not None
+    assert gap.gap_class == "HANDWRITING_UNREADABLE"
+
+
 def test_gap_taxonomy_marks_header_only_dob_as_handwriting():
     gap = classify_field_gap(
         "patient_dob",

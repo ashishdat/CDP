@@ -20,6 +20,15 @@ _COUNTS: dict[str, int] = {
 }
 
 
+def azure_di_error_detail(exc: BaseException) -> str:
+    """Exception class plus a short message. No crop bytes, no field values."""
+    text = " ".join(str(exc).split())[:120]
+    name = type(exc).__name__
+    if not text or text == name:
+        return name
+    return f"{name}:{text}"
+
+
 def azure_di_meter_path() -> Path:
     raw = (os.environ.get("CDP_AZURE_DI_METER_PATH") or "").strip()
     if raw:
