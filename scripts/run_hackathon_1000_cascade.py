@@ -372,13 +372,15 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_OCR_WORKER_POOL", "1")
     env.setdefault("CDP_APP_WORKER_POOL", "1")
     # Latency bar: claim mean ≤30s. TrOCR DOB residual ON with process singleton
-    # + skip-if-local-shaped (only handwriting/ambiguous gaps fire). Azure DI DOB
-    # crop residual ON as post-TrOCR fallback. Charge DI ON for box-28 corroboration.
+    # + skip-if-local-shaped (only handwriting/ambiguous gaps fire). Prefer
+    # gpt-4o crop residuals over Azure DI (F0 is 1 analyze/min).
     env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
-    env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "1")
-    env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
-    env.setdefault("CDP_AZURE_DI_CHARGE_CORROBORATE", "1")
-    env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
+    env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "0")
+    env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
+    env.setdefault("CDP_AZURE_DI_CHARGE_CORROBORATE", "0")
+    env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "0")
+    env.setdefault("CDP_GPT4O_CROP_RESIDUAL", "1")
+    env.setdefault("CDP_GPT4O_CROP_ACCEPT", "1")
     env.setdefault("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED", "1")
     # SuperPoint+LightGlue for catastrophic REG — process-lifetime singleton
     # amortizes cold load; trail-aware near-miss recovers most STP regressions
@@ -386,12 +388,10 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_LEARNED_MATCHER", "1")
     # Name Rapid confirm gate (was 0.88 — nearly always confirmed).
     env.setdefault("CDP_OCR_NAME_CONFIRM_MIN_CONF", "0.80")
-    env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "1")  # last-resort after LightGlue
-    # F0 Document Intelligence: one analyze transaction per minute, shared
-    # across spawn workers via the slot file.
+    env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")
+    # Keep slot limiter available if DI is re-enabled; defaults do not call it.
     env.setdefault("CDP_AZURE_DI_MIN_INTERVAL_SECONDS", "60")
     env.setdefault("CDP_AZURE_DI_SLOT_PATH", "/tmp/cdp-azure-di-slot")
-    # At most one service-line DI analyze per claim under F0 (box-28 separate).
     env.setdefault("CDP_AZURE_DI_SERVICE_LINE_BUDGET", "1")
     env.setdefault(
         "CDP_AZURE_DI_METER_PATH",
@@ -945,22 +945,21 @@ def main() -> int:
     _product = {
         "CDP_TROCR_DOB_RESIDUAL": "1",
         "CDP_LEARNED_MATCHER": "1",
-        # Crop-scoped Azure DI only after local+TrOCR DOB miss (rare; ~1–3s).
-        "CDP_AZURE_DI_DOB_RESIDUAL": "1",
-        "CDP_AZURE_DI_CHARGE_RESIDUAL": "1",
-        "CDP_AZURE_DI_CHARGE_CORROBORATE": "1",
-        # Last-resort only (after near-miss/LightGlue). Blind REG was 8/100
-        # terminal AZURE_DI_PAGE_CORNERS_DISABLED_LOW_COST with corners off.
-        "CDP_AZURE_DI_PAGE_CORNERS": "1",
+        # Prefer gpt-4o crop residuals; Azure DI F0 is 1 analyze/min.
+        "CDP_AZURE_DI_DOB_RESIDUAL": "0",
+        "CDP_AZURE_DI_CHARGE_RESIDUAL": "0",
+        "CDP_AZURE_DI_CHARGE_CORROBORATE": "0",
+        "CDP_AZURE_DI_CHARGE_ACCEPT": "0",
+        "CDP_AZURE_DI_PAGE_CORNERS": "0",
         "CDP_AZURE_DI_MIN_INTERVAL_SECONDS": "60",
         "CDP_AZURE_DI_SLOT_PATH": "/tmp/cdp-azure-di-slot",
         "CDP_AZURE_DI_SERVICE_LINE_BUDGET": "1",
         "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",
         "CDP_OCR_NAME_CONFIRM_MIN_CONF": "0.80",
-        # Freeform REG pages: DI page text + optional gpt-4o text agent.
-        "CDP_UNSTRUCTURED_REG_FALLBACK": "1",
-        "CDP_UNSTRUCTURED_REG_AGENT": "1",
-        # FIELD_INK DOB/ID after TrOCR+DI: crop-only gpt-4o (bakeoff v12.3n).
+        # Unstructured REG page-read path is DI-backed — off while DI is parked.
+        "CDP_UNSTRUCTURED_REG_FALLBACK": "0",
+        "CDP_UNSTRUCTURED_REG_AGENT": "0",
+        # FIELD_INK DOB/ID/charge: crop-only gpt-4o after local(+TrOCR) miss.
         "CDP_GPT4O_CROP_RESIDUAL": "1",
         "CDP_GPT4O_CROP_ACCEPT": "1",
     }
