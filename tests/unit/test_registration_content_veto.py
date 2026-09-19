@@ -68,3 +68,13 @@ def test_disabled_azure_di_does_not_mask_the_learned_matcher_reason():
         ]
     )
     assert reason == "insufficient_good_matches"
+
+
+def test_extraction_v3_pins_the_aligned_cms1500_template(monkeypatch):
+    """v02-12 name box sits on the insurance-type row of the aligned page."""
+    from workers.page_detection.template_selector import TemplateSelector
+
+    monkeypatch.setenv("CDP_PIPELINE_RELEASE", "extraction-v3")
+    monkeypatch.delenv("CDP_RELEASE_MANIFEST", raising=False)
+    pinned = TemplateSelector._preferred_template_versions()
+    assert pinned["cms1500"] == "03"

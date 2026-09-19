@@ -389,6 +389,7 @@ def _stage_env() -> dict[str, str]:
     # Name Rapid confirm gate (was 0.88 — nearly always confirmed).
     env.setdefault("CDP_OCR_NAME_CONFIRM_MIN_CONF", "0.80")
     env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")
+    env.setdefault("CDP_PIPELINE_RELEASE", "extraction-v3")
     # Keep slot limiter available if DI is re-enabled; defaults do not call it.
     env.setdefault("CDP_AZURE_DI_MIN_INTERVAL_SECONDS", "60")
     env.setdefault("CDP_AZURE_DI_SLOT_PATH", "/tmp/cdp-azure-di-slot")
@@ -986,6 +987,9 @@ def main() -> int:
         "CDP_OPENOCR_SVTR": "0",
         "CDP_MONKEYOCR": "0",
         "CDP_PADDLEOCR_VL_TABLE": "0",
+        # v02-12 identity boxes sit on the insurance-type row after alignment.
+        # A clean shell must not fall back to that release.
+        "CDP_PIPELINE_RELEASE": "extraction-v3",
     }
     for key, value in _product.items():
         if _respect:

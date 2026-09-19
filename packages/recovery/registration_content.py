@@ -95,6 +95,13 @@ def validate_cms1500_registration_content(
             )
         name_text = confirm_name
         dob_text = confirm_dob
+    import logging
+
+    logging.getLogger("registration_content").warning(
+        "identity ROI insurance-row veto name=%r dob=%r",
+        name_text,
+        dob_text,
+    )
     return ContentValidationResult(
         False,
         "IDENTITY_ROI_READS_INSURANCE_TYPE_ROW",
