@@ -5,6 +5,7 @@ from packages.claim_decision.contracts import (
     ClaimDecisionContext,
     ClaimDisposition,
 )
+from packages.claim_decision.hitl_routes import HitlRoute, route_claim_hitl
 from packages.claim_decision.service import ClaimDecisionService
 
 __all__ = [
@@ -12,4 +13,6 @@ __all__ = [
     "ClaimDecisionContext",
     "ClaimDecisionService",
     "ClaimDisposition",
+    "HitlRoute",
+    "route_claim_hitl",
 ]

@@ -176,6 +176,15 @@ def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
                 and amount > 99999.99
             ):
                 return False, "CURRENCY_IMPLAUSIBLE_TOTAL"
+            # Claim-total POS bleed: 11.00 etc. cannot semantic-accept as box-28
+            # without geometry proof (see geometry_authority / financial_reconciliation).
+            try:
+                from packages.geometry_authority import is_pos_like_currency
+
+                if name in {"total_charge", "total_charges"} and is_pos_like_currency(cleaned):
+                    return False, "CURRENCY_POS_LIKE_REQUIRES_GEOMETRY"
+            except Exception:  # noqa: BLE001 — geometry package must not break cascade
+                pass
             return True, "CURRENCY_SHAPED"
         return False, "NOT_CURRENCY_SHAPED"
 
