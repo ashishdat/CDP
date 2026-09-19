@@ -43,14 +43,13 @@ def _prefer_fuller_self_patient(report: dict) -> None:
     for row in patients:
         cand = row.get("ocr_candidate") or {}
         observed.append(str(cand.get("value") or ""))
-        observed.append(str(cand.get("raw_value") or ""))
     chosen = prefer_fuller_self_name(observed, insured)
     if not chosen:
         return
     match = None
     for row in patients:
         cand = row.get("ocr_candidate") or {}
-        if chosen in {str(cand.get("value") or ""), str(cand.get("raw_value") or "")}:
+        if chosen == str(cand.get("value") or ""):
             match = row
             break
     if match is None or match.get("is_winner"):

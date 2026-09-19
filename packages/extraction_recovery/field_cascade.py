@@ -509,7 +509,7 @@ def charge_windows_for_mode(
             "charges_cents",
         }:
             keep.append((x0, x1))
-        if len(keep) >= 3:
+        if len(keep) >= 4:
             break
     return keep or ([(named[0][1], named[0][2])] if named else [])
 
