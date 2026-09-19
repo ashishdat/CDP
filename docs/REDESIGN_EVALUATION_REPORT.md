@@ -1,8 +1,26 @@
 # Redesign evaluation report (implementation owner)
 
-**Commit at report time:** see git tip on `feature/cdp-v3`  
+**Commit at report time:** `05acb4e` on `feature/cdp-v3`  
 **Golden labels:** not modified  
-**Vendor GT on Hackathon ZIP:** none — accuracy marked unavailable; agent GT is not vendor truth
+**Vendor GT on Hackathon ZIP:** none — accuracy below is against agent silver/gold labels, with the discrepancy ledger excluded from the denominator
+
+## Latest measured run — locked 50 (`hackathon_50_stem_v3`)
+
+Complete terminal run. Workers=1. Not a partial file. Registration used `CDP_PIPELINE_RELEASE=extraction-v3` (`cms1500@03`). The earlier `hackathon_50_stem_after` directory is invalid: a clean shell fell back to `cms1500@02-12`, whose patient-name box sits on the insurance-type row, and every claim died as `REGISTRATION_CONTENT_MISMATCH` or `AZURE_DI_PAGE_CORNERS_DISABLED_LOW_COST`.
+
+| Metric | Baseline `hackathon_50_blind_cascade_v12_3x` | This run |
+| --- | --- | --- |
+| Terminal claims | 50 | **50/50** |
+| Registration OK | — | **50/50** |
+| True STP | **2/50** | **38/50** |
+| Claim HITL | **48/50** | **12/50** |
+| Mean claim latency | — | **31.6s** (sum 26.3 min, max 58.9s) |
+
+HITL blockers: `total_charge` 8, `patient_name` 5, `patient_dob` 1. Claims: DJJF.015 (charge), DJJM.002 (name), DJJM.005 (charge), DJJM.009 (charge), DJJM.019 (DOB), DJJM.023 (name), DJJM.024 (charge), DJJM.025 (name), DJJM.026 (charge), DJJM.027 (charge), DJJM.034 (name+charge), DJJM.035 (name+charge).
+
+Release gates are **not** met (need True STP ≥47/50 and HITL ≤3/50). Agent-label scoring of the 43 overlapping claims still shows critical false accepts against silver totals and names. Known source/label conflicts in `docs/gt/ground_truth_discrepancy_ledger.json` are excluded. Remaining disagreements were not re-quarantined from this run.
+
+A 300-claim slice (`--offset 50 --limit 300`, workers=1) was started only after this 50 completed, into `evaluation_results/hackathon_300_stem_v3`.
 
 ## Implementation summary
 
