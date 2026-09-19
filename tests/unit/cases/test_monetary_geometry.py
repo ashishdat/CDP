@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw
 from packages.geometry_authority.form_redundancy import (
     names_agree,
     prefer_fuller_self_name,
+    promote_fuller_observed_name,
     reconcile_box2_box4_names,
 )
 from packages.geometry_authority.monetary_geometry import (
@@ -112,6 +113,46 @@ def test_self_name_punctuation_and_multi_token_surname():
     )
     assert not non_self.agreed
     assert non_self.reason == "RELATIONSHIP_NOT_SELF"
+
+
+def test_promote_fuller_observed_name_keeps_raw_under_self_only():
+    promoted = promote_fuller_observed_name(
+        "NICOLAS, WILLIAM",
+        "SAN NICOLAS, WILLIAM",
+        "SAN NICOLAS. WILLIAM",
+        "SELF",
+    )
+    assert promoted == "SAN NICOLAS, WILLIAM"
+    # Punctuation-only twins are not a longer name.
+    assert (
+        promote_fuller_observed_name(
+            "MORALES, KENITHA",
+            "MORALES. KENITHA",
+            "MORALES, KENITHA",
+            "SELF",
+        )
+        == "MORALES, KENITHA"
+    )
+    # Disagreement stays on the candidate that was actually read.
+    assert (
+        promote_fuller_observed_name(
+            "NICOLAS, WILLIAM",
+            "SAN NICOLAS, WILLIAM",
+            "JONES, WILLIAM",
+            "SELF",
+        )
+        == "NICOLAS, WILLIAM"
+    )
+    # Non-Self must not force Box 2 to equal Box 4.
+    assert (
+        promote_fuller_observed_name(
+            "RIVERA, LARAA",
+            "RIVERA, LARAA ANDREW",
+            "RIVERA, ANDREW",
+            "SPOUSE",
+        )
+        == "RIVERA, LARAA"
+    )
 
 
 def test_prefer_fuller_observed_self_name_does_not_invent():

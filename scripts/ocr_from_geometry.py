@@ -178,6 +178,82 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
     return updated
 
 
+def _candidate_box_valid(candidate: dict) -> bool:
+    """True when the candidate already carries a usable field crop."""
+    box = candidate.get("bounding_box") or {}
+    if not isinstance(box, dict):
+        return False
+    try:
+        width = float(box.get("x1", 0)) - float(box.get("x0", 0))
+        height = float(box.get("y1", 0)) - float(box.get("y0", 0))
+    except (TypeError, ValueError):
+        return False
+    return width >= 8 and height >= 8
+
+
+def _field_rows(rows, *names: str) -> dict | None:
+    wanted = {name.casefold() for name in names}
+    for row in rows or []:
+        if str(row.get("field") or "").casefold() in wanted:
+            return row
+    return None
+
+
+def _first_text(row: dict | None) -> str:
+    if not row:
+        return ""
+    for candidate in row.get("candidates") or []:
+        text = str(candidate.get("value") or candidate.get("raw_value") or "").strip()
+        if text:
+            return text
+    return str(row.get("value") or "").strip()
+
+
+def _promote_self_box2_values(rows):
+    """Under Self, store the fuller Box 2 string already present in raw OCR.
+
+    Span selection used to keep only the token touching the comma. The raw
+    line still has the particle. Copy that observed string into ``value``
+    when Box 4 agrees. Non-Self rows are left unchanged. No new characters.
+    """
+    from packages.extraction_recovery.span_selection import _person_name_from
+    from packages.geometry_authority.form_redundancy import (
+        promote_fuller_observed_name,
+        relationship_is_self,
+    )
+
+    relationship = _first_text(_field_rows(rows, "rel_code", "insured_relationship"))
+    if not relationship_is_self(relationship):
+        return rows
+    insured = _first_text(_field_rows(rows, "insured_name"))
+    patient = _field_rows(rows, "patient_name")
+    if not insured or not patient:
+        return rows
+    for candidate in patient.get("candidates") or []:
+        if not isinstance(candidate, dict) or not _candidate_box_valid(candidate):
+            continue
+        raw = str(candidate.get("raw_value") or "").strip()
+        if not raw:
+            continue
+        observed = _person_name_from(raw) or raw
+        promoted = promote_fuller_observed_name(
+            candidate.get("value"),
+            observed,
+            insured,
+            relationship,
+        )
+        if promoted and promoted != str(candidate.get("value") or "").strip():
+            candidate["value"] = promoted
+            span = dict(candidate.get("span_selection") or {})
+            span["selected_text"] = promoted
+            reasons = list(span.get("reason_codes") or [])
+            if "BOX2_BOX4_FULLER_OBSERVED" not in reasons:
+                reasons.append("BOX2_BOX4_FULLER_OBSERVED")
+            span["reason_codes"] = reasons
+            candidate["span_selection"] = span
+    return rows
+
+
 # Back-compat alias for callers/tests that still use the Azure-only name.
 _maybe_attach_dob_azure_di_residuals = _maybe_attach_dob_handwriting_residuals
 
@@ -2990,6 +3066,7 @@ def run(directory, output):
         report['error'] = {'type': type(exc).__name__, 'message': str(exc)}
         raise
     finally:
+        report['fields'] = _promote_self_box2_values(report.get('fields') or [])
         save(report['fields'])
         wiring = tel.summary()
         report['runtime_wiring'] = wiring

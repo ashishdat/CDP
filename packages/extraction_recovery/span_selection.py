@@ -559,6 +559,31 @@ def _repair_name_digit_confusables(name: str) -> str:
     return "".join(parts)
 
 
+# Particles that legally precede a CMS surname token. Not a claim list.
+_SURNAME_PARTICLES = frozenset({
+    "SAN", "SANTA", "SANTO", "DEL", "DE", "LA", "LAS", "LOS",
+    "VAN", "VON", "DER", "DEN", "DA", "DI", "DU", "DO", "DOS",
+    "ST", "STE", "MAC", "MC", "BIN", "AL", "EL", "ABU", "IBN",
+    "LE", "LES", "TEN", "TER", "OP",
+})
+
+
+def _prepend_surname_particles(cleaned: str, last_start: int, last: str) -> str:
+    """Attach surname particles that sit immediately left of the comma token."""
+    prefix = cleaned[:last_start]
+    tokens = re.findall(r"[A-Z][A-Z'-]{1,30}", prefix)
+    extra: list[str] = []
+    for tok in reversed(tokens):
+        if tok not in _SURNAME_PARTICLES:
+            break
+        extra.append(tok)
+        if len(extra) >= 3:
+            break
+    if not extra:
+        return last
+    return " ".join([*reversed(extra), last])
+
+
 def _person_name_from(text: str) -> str | None:
     upper = text.upper()
     # Header / boilerplate OCR junk frequently appears as false Last, First pairs
@@ -602,6 +627,10 @@ def _person_name_from(text: str) -> str | None:
         # reliable Last, First — fall through to multi-token join instead.
         if len(first_tok) < 3:
             continue
+        # CMS surnames often print a particle before the comma token
+        # (SAN NICOLAS, DE LA CRUZ). Keep only a short particle run so a
+        # leftover header word cannot become part of the name.
+        last = _prepend_surname_particles(cleaned, match.start(1), last)
         matches.append(f"{last}, {first}")
     # Prefer the last Last, First in the crop — printed headers sit above ink.
     if matches:
@@ -867,7 +896,7 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
                     "BOUNDED_EDGE_PUNCTUATION_REMOVED",
                 )
             named = _person_name_from(upper)
-            if named and named != upper:
+            if named:
                 return _result(
                     raw, named, "span-v1-name-cms-strip", [named], 0.90,
                     "FIELD_SEMANTIC_SPAN",

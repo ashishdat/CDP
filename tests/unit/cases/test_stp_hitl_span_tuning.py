@@ -10,6 +10,20 @@ from packages.evidence.policy import EvidencePolicy
 from packages.extraction_recovery.span_selection import select_field_span
 
 
+def test_cms1500_name_span_keeps_surname_particle():
+    """Multi-token surnames are printed left of the comma token."""
+    selected = select_field_span(
+        "2. PATIENT'S NAME (Last Name, First Name, Middle Initial)\nSAN NICOLAS, WILLIAM",
+        "PERSON_NAME",
+        "patient_name",
+    )
+    assert selected.selected_text == "SAN NICOLAS, WILLIAM"
+    plain = select_field_span("MORALES, KENITHA", "PERSON_NAME", "patient_name")
+    assert plain.selected_text == "MORALES, KENITHA"
+    particles = select_field_span("DE LA CRUZ, MARIA", "PERSON_NAME", "insured_name")
+    assert particles.selected_text == "DE LA CRUZ, MARIA"
+
+
 def test_cms1500_name_span_strips_box_header_and_keeps_last_first():
     selected = select_field_span(
         "2. PATIENT'S NAME (Last Name, First Name, Middle lnitial)\nCAMARATO, JOSHUA",

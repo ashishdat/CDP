@@ -25,6 +25,34 @@ def normalize_person_name(value: object) -> str:
     return text
 
 
+def promote_fuller_observed_name(
+    value: object,
+    observed: object,
+    other_box_value: object,
+    relationship: object,
+) -> str:
+    """Return ``observed`` when it is a fuller Self twin of ``value``.
+
+    Copies an already-printed string. Does not invent characters. Non-Self
+    relationships keep ``value`` even when the two boxes match.
+    """
+    current = str(value or "").strip()
+    fuller = str(observed or "").strip()
+    if not current:
+        return fuller
+    if not fuller or not relationship_is_self(relationship):
+        return current
+    if not names_agree(fuller, other_box_value):
+        return current
+    current_tokens = normalize_person_name(current).split()
+    fuller_tokens = normalize_person_name(fuller).split()
+    if len(fuller_tokens) <= len(current_tokens):
+        return current
+    if not set(current_tokens).issubset(set(fuller_tokens)):
+        return current
+    return fuller
+
+
 def prefer_fuller_self_name(
     observed_values: list[object],
     other_box_value: object,
