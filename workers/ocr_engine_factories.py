@@ -84,11 +84,20 @@ def configure_default_ocr_engine_factories() -> None:
 
 
 def _tesseract_region_text(image, box: tuple[int, int, int, int]) -> str:
+    return _tesseract_region_text_psm(image, box, 6)
+
+
+def _tesseract_region_text_confirm(image, box: tuple[int, int, int, int]) -> str:
+    """Second segmentation. Disagreement blocks a one-pass insurance-row veto."""
+    return _tesseract_region_text_psm(image, box, 11)
+
+
+def _tesseract_region_text_psm(image, box: tuple[int, int, int, int], psm: int) -> str:
     from workers.cascade.tesseract_adapter import TesseractTextExtractor
 
     x0, y0, x1, y1 = box
     crop = image.crop((x0, y0, x1, y1))
-    lines = TesseractTextExtractor(psm=6).extract(crop)
+    lines = TesseractTextExtractor(psm=psm).extract(crop)
     return " ".join(
         str(line.text if hasattr(line, "text") else line) for line in lines
     ).upper()
@@ -133,7 +142,10 @@ def wire_package_ocr_providers() -> None:
     configure_trocr_adapter_factory(_get_shared_trocr_adapter)
     configure_gpt4o_vision_adapter_factory(_build_gpt4o_vision_adapter)
     configure_azure_review_adapter_factory(_build_azure_review_adapter)
-    configure_registration_region_ocr(_tesseract_region_text)
+    configure_registration_region_ocr(
+        _tesseract_region_text,
+        confirm_factory=_tesseract_region_text_confirm,
+    )
 
 
 # Back-compat aliases matching former packages.ocr_router private names.

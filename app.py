@@ -19,6 +19,22 @@ LOGGER = logging.getLogger("cdp.application")
 STAGES = ("load", "classification", "template_selection", "registration", "geometry", "ocr", "ranking",
           "validators", "decision", "evidence")
 
+# A disabled optional step is not the registration failure. Reporting it as the
+# terminal reason hid LightGlue rejections behind the Azure DI cost gate.
+_MASKED_REGISTRATION_REASONS = frozenset({
+    "AZURE_DI_PAGE_CORNERS_DISABLED_LOW_COST",
+})
+
+
+def _terminal_failure_reason(attempts: list | None) -> str:
+    for attempt in reversed(attempts or []):
+        reason = str((attempt or {}).get("reason") or "")
+        if reason and reason not in _MASKED_REGISTRATION_REASONS:
+            return reason
+    if attempts:
+        return str((attempts[-1] or {}).get("reason") or "REGISTRATION_NOT_ACCEPTED")
+    return "REGISTRATION_NOT_ACCEPTED"
+
 
 def register_classified_document(images, routing, registry, selection=None):
     """Bind the selected page to existing image registration, without field geometry.
@@ -959,9 +975,7 @@ def register_classified_document(images, routing, registry, selection=None):
         result.update(
             status="SUCCESS" if accepted else "FAILED", accepted=accepted,
             reason=(
-                "REGISTRATION_ACCEPTED" if accepted else (
-                    attempts[-1]["reason"] if attempts else "REGISTRATION_NOT_ACCEPTED"
-                )
+                "REGISTRATION_ACCEPTED" if accepted else _terminal_failure_reason(attempts)
             ),
             evidence=evidence.model_dump(mode="json") if evidence else None,
             compatibility=(aligned.compatibility.model_dump(mode="json")
