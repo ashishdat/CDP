@@ -97,6 +97,43 @@ def test_multiple_lines_sum_matches_box28_representation():
     )
 
 
+def test_ruling_tick_inserted_as_one_is_not_a_dollar():
+    from packages.geometry_authority.monetary_geometry import align_cents_column
+
+    read = align_cents_column(
+        [(104, 113), (124, 135), (141, 153), (159, 172)],
+        [(135, 138), (136, 138)],
+        "49172",
+    )
+    assert read.geometry_candidate == "49.72"
+    assert read.ambiguous is False
+    assert "RULING_TICK_DROPPED" in read.reasons
+
+
+def test_three_digit_run_does_not_imply_cents():
+    from packages.geometry_authority.monetary_geometry import align_cents_column
+
+    read = align_cents_column(
+        [(10, 20), (30, 40), (55, 65)],
+        [(48, 51)],
+        "270",
+    )
+    assert read.geometry_candidate is None
+    assert read.ambiguous is True
+
+
+def test_units_blob_right_of_cents_stays_ambiguous():
+    from packages.geometry_authority.monetary_geometry import align_cents_column
+
+    read = align_cents_column(
+        [(10, 20), (28, 38), (55, 65), (72, 82), (110, 118)],
+        [(45, 48)],
+        "49721",
+    )
+    assert read.geometry_candidate is None
+    assert read.ambiguous is True
+
+
 def test_self_name_punctuation_and_multi_token_surname():
     assert names_agree("SAN NICOLAS, WILLIAM", "SAN NICOLAS. WILLIAM")
     assert names_agree("MORALES, KENITHA", "MORALES KENITHA")

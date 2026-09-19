@@ -178,6 +178,18 @@ def amounts_within_tolerance(
     return diff <= max(absolute, target * relative)
 
 
+def _decimal_place_conflict(left: object, right: object) -> bool:
+    """True when one amount is the other shifted by exactly two decimal places.
+
+    ``49.72`` and ``4972.00`` are the same digits with a different cents column.
+    That is not a dropped leading digit and must not corroborate.
+    """
+    a, b = parse_currency(left), parse_currency(right)
+    if a is None or b is None or a == b:
+        return False
+    return a * 100 == b or b * 100 == a
+
+
 def amounts_corroborate(left: object, right: object) -> bool:
     """Box-28 / DI path only: equal, within tolerance, or digit-drop twin.
 
@@ -185,7 +197,10 @@ def amounts_corroborate(left: object, right: object) -> bool:
     require exact / $1 via ``amounts_within_tolerance(..., relative=0)``.
     Digit-drop (e.g. ``13``↔``131``) is intentional here so independently
     extracted box-28 / Azure DI can still corroborate a line-sum.
+    A two-place decimal shift (``49.72`` vs ``4972.00``) is a conflict.
     """
+    if _decimal_place_conflict(left, right):
+        return False
     if parse_currency(left) is None or parse_currency(right) is None:
         return False
     if amounts_within_tolerance(left, right):

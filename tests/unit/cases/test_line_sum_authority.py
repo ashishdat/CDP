@@ -86,6 +86,9 @@ def test_amounts_corroborate_tolerance_and_digit_twin():
     assert amounts_corroborate("157.00", "1571.00")
     assert not amounts_corroborate("270.00", "424.00")
     assert not amounts_corroborate("600.00", "1600.00")
+    # Same four digits, cents column moved. Not a dropped leading digit.
+    assert not amounts_corroborate("49.72", "4972.00")
+    assert not amounts_corroborate("4972.00", "49.72")
 
 
 def test_candidate_independence_helpers():

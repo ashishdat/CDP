@@ -2,6 +2,7 @@
 import argparse
 import contextlib
 import json
+import re
 from hashlib import sha256
 from pathlib import Path
 from time import perf_counter
@@ -317,7 +318,15 @@ def decide(extraction, family):
             variant = str(ocr.get('preprocessing_variant') or '').casefold()
             if 'derived_from_observed_line' in variant or 'phase2-line-sum' in variant:
                 continue
-            _add(ocr.get('value') or ocr.get('raw_value'))
+            # A selected currency value is the Box 28 observation. Raw soup
+            # such as "4 972" is not an independent total — thousands-space
+            # repair would turn a cents ruling into 4972.00.
+            chosen = str(ocr.get('value') or '').strip()
+            if not chosen:
+                raw_text = str(ocr.get('raw_value') or '').strip().replace(',', '')
+                if re.fullmatch(r'\$?\d{1,6}(?:\.\d{2})?', raw_text):
+                    chosen = raw_text
+            _add(chosen)
             if 'azure' in engine or 'document_intelligence' in engine:
                 _add(ocr.get('value') or ocr.get('raw_value'))
         residual = field_payload.get('azure_di_residual') or {}

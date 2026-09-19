@@ -488,6 +488,103 @@ def assemble_printed_tokens(
     )
 
 
+def align_cents_column(
+    blobs: list[tuple[int, int]],
+    ticks: list[tuple[int, int]],
+    rapid_digits: str,
+) -> MonetaryGeometryRead:
+    """Split a digit run on a validated cents ruling.
+
+    ``blobs`` and ``ticks`` are ``(x0, x1)`` spans. A narrow ruling tick is not
+    a digit. One inserted ``1`` sitting on that tick is dropped. Three-glyph
+    runs and a third cents/units blob stay ambiguous.
+    """
+    ordered = sorted(blobs)
+    sequence = rapid_digits
+    if len(ordered) < 4:
+        return MonetaryGeometryRead(
+            sequence, "", "", False, None, True, None, ("GLYPHS_TOO_FEW", "AMBIGUOUS")
+        )
+    matches: list[tuple[float, list[tuple[int, int]], list[tuple[int, int]]]] = []
+    for x0, x1 in ticks:
+        cx = (x0 + x1) / 2.0
+        right = [span for span in ordered if (span[0] + span[1]) / 2.0 > cx]
+        left = [span for span in ordered if (span[0] + span[1]) / 2.0 < cx]
+        if len(right) != 2 or len(left) < 2:
+            continue
+        gap = right[0][0] - left[-1][1]
+        if gap < 4:
+            continue
+        matches.append((cx, left, right))
+    unique: list[tuple[float, list[tuple[int, int]], list[tuple[int, int]]]] = []
+    seen: set[tuple[int, int]] = set()
+    for cx, left, right in matches:
+        key = (left[-1][0], right[0][0])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append((cx, left, right))
+    matches = unique
+    if len(matches) != 1:
+        reason = "UNITS_BLEED" if any(
+            sum(1 for span in ordered if (span[0] + span[1]) / 2.0 > (x0 + x1) / 2.0) > 2
+            for x0, x1 in ticks
+        ) else "RULING_NOT_VALIDATED"
+        return MonetaryGeometryRead(
+            sequence, "", "", False, None, True, None, (reason, "AMBIGUOUS")
+        )
+    tick_x, left, right = matches[0]
+    tick_x = int(tick_x)
+    digits = "".join(ch for ch in rapid_digits if ch.isdigit())
+    expected = len(left) + len(right)
+    reasons = ["RULING_VALIDATED", "CENTS_GAP", "IMPLIED_DECIMAL"]
+    if len(digits) == expected + 1 and digits[len(left) : len(left) + 1] == "1":
+        digits = digits[: len(left)] + digits[len(left) + 1 :]
+        reasons.append("RULING_TICK_DROPPED")
+    if len(digits) != expected:
+        return MonetaryGeometryRead(
+            sequence, "", "", False, None, True, tick_x, ("GLYPH_TOKEN_MISMATCH", "AMBIGUOUS")
+        )
+    dollars, cents = digits[: len(left)], digits[len(left) :]
+    if not dollars or len(cents) != 2:
+        return MonetaryGeometryRead(
+            sequence, dollars, cents, False, None, True, tick_x, ("AMBIGUOUS",)
+        )
+    return MonetaryGeometryRead(
+        sequence,
+        dollars,
+        cents,
+        False,
+        f"{int(dollars)}.{cents}",
+        False,
+        tick_x,
+        tuple(reasons),
+    )
+
+
+def _component_spans(gray: np.ndarray) -> tuple[list[tuple[int, int]], list[tuple[int, int]]]:
+    """Digit blobs and narrow ruling ticks inside the value band."""
+    import cv2
+
+    if gray.ndim != 2 or gray.size == 0:
+        return [], []
+    y0, y1 = locate_value_band(gray)
+    band = gray[y0:y1, :] if y1 > y0 else gray
+    masked = mask_form_lines(band)
+    ink = cv2.threshold(masked, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+    count, _labels, stats, _centroids = cv2.connectedComponentsWithStats(ink, 8)
+    digits: list[tuple[int, int]] = []
+    ticks: list[tuple[int, int]] = []
+    for index in range(1, count):
+        x, _y, width, height, area = (int(v) for v in stats[index])
+        if width <= 3 and height >= 6 and area >= 8:
+            ticks.append((x, x + width))
+            continue
+        if 5 <= width <= 22 and height >= 8 and area >= 25 and x >= 8:
+            digits.append((x, x + width))
+    return digits, ticks
+
+
 def split_digit_glyphs(glyphs: list[GlyphBox]) -> MonetaryGeometryRead:
     """Implied decimal from the gap before the last two digit glyphs.
 
@@ -615,8 +712,23 @@ def read_monetary_crop(image, *, units_x: float | None = None) -> MonetaryGeomet
         )
     except Exception:
         rapid_read = None
+    rapid_digits = ""
+    if rapid_read is not None:
+        import re
+
+        rapid_digits = re.sub(r"\D", "", rapid_read.raw_glyph_sequence)
+    component_read = align_cents_column(*_component_spans(gray), rapid_digits)
+    if (
+        component_read.geometry_candidate
+        and not component_read.ambiguous
+        and "RULING_TICK_DROPPED" in component_read.reasons
+    ):
+        # A dashed cents rule read as ``1`` must not become an extra dollar.
+        return component_read
     if rapid_read and rapid_read.geometry_candidate and not rapid_read.ambiguous:
         return rapid_read
+    if component_read.geometry_candidate and not component_read.ambiguous:
+        return component_read
     glyph_read = split_digit_glyphs(_tess_digit_glyphs(image))
     if glyph_read.geometry_candidate and not glyph_read.ambiguous:
         rapid_digits = ""
