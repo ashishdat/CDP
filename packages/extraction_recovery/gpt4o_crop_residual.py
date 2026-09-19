@@ -762,6 +762,21 @@ def recover_empty_financial_service_lines(
         x0, y0, x1, y1 = (int(v) for v in bbox)
         if x1 <= x0 or y1 <= y0:
             continue
+        # Ruling-only / blank cells must not be GPT-filled (hallucinated 260s).
+        with contextlib.suppress(Exception):
+            from packages.image_evidence import InkDisposition, analyze_roi
+
+            crop = image.crop(
+                (
+                    max(0, x0),
+                    max(0, y0),
+                    min(image.width, x1),
+                    min(image.height, y1),
+                )
+            )
+            evidence = analyze_roi(crop, ocr_empty=True, geometry_valid=True)
+            if evidence.disposition == InkDisposition.BLANK_CONFIRMED:
+                continue
         result = run_gpt4o_crop_residual(
             image=image,
             bbox=(x0, y0, x1, y1),

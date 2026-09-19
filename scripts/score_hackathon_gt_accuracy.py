@@ -189,8 +189,8 @@ SEED_VISUAL_GT: dict[str, dict[str, Any]] = {
                 "confidence": "GOLD",
             },
             "total_charge": {
-                "expected_value": "910.00",
-                "source": "box28_empty; line_sum 640+260+10",
+                "expected_value": "1160.00",
+                "source": "box28_blank_ruling; line_sum 640+260+260 from warped 24F crops",
                 "confidence": "GOLD",
             },
         },

@@ -84,8 +84,14 @@ def _unique_complete_line_charges(service_lines: list[dict] | None) -> list[Deci
         }:
             continue
         key = format_currency(parsed)
-        # Deduplicate identical row reprints; keep distinct amounts.
-        row_id = str(line.get("row_id") or line.get("line_index") or key)
+        # Distinct service rows may share the same amount (260+260). Prefer
+        # explicit row identity; never collapse solely by currency string.
+        row_id = str(
+            line.get("row_id")
+            or line.get("line_index")
+            or line.get("line_number")
+            or f"anon:{len(seen)}:{key}"
+        )
         if row_id in seen:
             continue
         seen.add(row_id)

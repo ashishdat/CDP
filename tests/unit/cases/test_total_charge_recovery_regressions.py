@@ -105,6 +105,8 @@ def test_shape_monetary_and_variants():
     # Ruling-tail noise common on right-shifted charge crops.
     assert shape_monetary("6404") == "640.00"
     assert shape_monetary("2604") in {"260.00", "26.04"}
+    assert shape_monetary("2605") == "260.00"
+    assert shape_monetary("26010") == "260.00"
     img = Image.new("RGB", (60, 20), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
     draw.text((5, 2), "12.00", fill=(0, 0, 0))
@@ -113,12 +115,38 @@ def test_shape_monetary_and_variants():
     assert "nn_2x" in ids and "bicubic_4x" in ids and "adaptive_threshold" in ids
 
 
+def test_prefer_charge_ink_over_units_bleed():
+    from packages.ocr_portfolio import prefer_charge_ink_amount
+
+    assert prefer_charge_ink_amount("640.00", "649.10") == "640.00"
+    assert prefer_charge_ink_amount("260.00", "260.10") == "260.00"
+    assert prefer_charge_ink_amount("260.00", "2605.00") == "260.00"
+    # Digit-drop twin — keep the longer stem.
+    assert prefer_charge_ink_amount("64.00", "640.00") == "640.00"
+    assert prefer_charge_ink_amount("26.00", "260.00") == "260.00"
+
+
+def test_duplicate_line_amounts_not_collapsed():
+    result = reconcile_claim_total(
+        box28_value=None,
+        service_lines=[
+            {"charges": "640.00", "line_number": 1, "bbox": [1050, 1500, 1180, 1540]},
+            {"charges": "260.00", "line_number": 2, "bbox": [1050, 1550, 1180, 1590]},
+            {"charges": "260.00", "line_number": 3, "bbox": [1050, 1600, 1180, 1640]},
+        ],
+        charge_column_verified=True,
+        all_service_rows_detected=True,
+        independent_evidence_paths=2,
+    )
+    assert result.line_sum == "1160.00"
+
+
 def test_fast_mode_keeps_right_shifted_charge_window():
     from packages.extraction_recovery.field_cascade import charge_windows_for_mode
 
     fast = charge_windows_for_mode(940, 1100, fast=True)
     full = charge_windows_for_mode(940, 1100, fast=False)
-    assert len(fast) >= 2
+    assert len(fast) >= 3
     assert len(full) >= len(fast)
     # Right-shifted window must extend past primary right edge.
     assert any(x0 >= 1000 for x0, _x1 in fast)

@@ -453,7 +453,7 @@ def charge_column_windows(primary_x0: int, primary_x1: int) -> list[tuple[str, i
 def charge_windows_for_mode(
     primary_x0: int, primary_x1: int, *, fast: bool
 ) -> list[tuple[int, int]]:
-    """In STP fast mode still keep a right-shifted band — primary alone misses ink."""
+    """In STP fast mode keep primary + mid + right — primary alone clips ink."""
     named = charge_column_windows(primary_x0, primary_x1)
     if not fast:
         return [(x0, x1) for _, x0, x1 in named]
@@ -461,7 +461,7 @@ def charge_windows_for_mode(
     for variant_id, x0, x1 in named:
         if variant_id in {"charges_primary", "charges_mid", "charges_right"}:
             keep.append((x0, x1))
-        if len(keep) >= 2:
+        if len(keep) >= 3:
             break
     return keep or ([(named[0][1], named[0][2])] if named else [])
 

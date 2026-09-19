@@ -611,58 +611,103 @@ def prefer_currency_without_digit_drop(primary: object, competitor: object) -> s
 
 
 def _recognize_charge_digits_only(image, bbox):
-    """Cheap charge OCR: digit-whitelist tesseract only (no paddle/rapid)."""
+    """Cheap charge OCR: digit-whitelist tesseract only (no paddle/rapid).
+
+    Also OCRs the dollars-only subcrop left of the CMS vertical dashed ruling so
+    units-column bleed (…10) does not corrupt whole-dollar amounts.
+    """
     attempts = []
     candidates = []
     try:
         import pytesseract
         from PIL import ImageEnhance, ImageOps
+
+        from packages.ocr_portfolio import (
+            prefer_charge_ink_amount,
+            shape_monetary,
+            split_charge_at_vertical_ruling,
+        )
+
         x0, y0, x1, y1 = (int(v) for v in bbox)
         crop = image.crop((x0, y0, x1, y1))
-        up = crop.resize(
-            (max(1, crop.width * 3), max(1, crop.height * 3)),
-            Image.Resampling.LANCZOS,
-        )
-        up = ImageOps.autocontrast(up)
-        up = ImageEnhance.Contrast(up).enhance(1.5)
-        for psm in _digit_psms_charge():
-            cfg = f'--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789.$'
-            raw = pytesseract.image_to_string(up, config=cfg).strip()
-            attempts.append({
-                'engine': 'tesseract_digits', 'reason': f'PSM_{psm}',
-                'latency_ms': 0.0,
-                'observation': {'text': raw} if raw else None,
-                'preprocessing_profile': 'charge_digit_whitelist_fast',
-            })
-            if not raw:
-                continue
-            span = select_field_span(raw, span_datatype_for_field('charges', 'currency'), 'charges')
-            box = BoundingBox(
-                x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
-                image_width=image.width, image_height=image.height,
+        crops: list[tuple[str, object]] = [("full", crop)]
+        split = split_charge_at_vertical_ruling(crop)
+        if split is not None:
+            crops.append(("dollars_ruling", split[0]))
+        best_payload = None
+        best_value = None
+        for profile, piece in crops:
+            up = piece.resize(
+                (max(1, piece.width * 3), max(1, piece.height * 3)),
+                Image.Resampling.LANCZOS,
             )
-            candidate = OCRCandidate(
-                value=span.selected_text or '', raw_value=raw, engine='tesseract_digits',
-                model_name='unknown', model_version='unknown',
-                preprocessing_variant='charge_digit_whitelist_fast',
-                preprocessing_version='cascade-v11-fast',
-                raw_confidence=0.7, calibrated_confidence=None, bounding_box=box,
-                latency_ms=0.0,
-            )
-            payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
-            # Attribute to a route-authorized producing engine so evidence decision
-            # does not strip digit-only amounts as CANDIDATE_ENGINE_NOT_AUTHORIZED.
-            payload['engine'] = 'paddleocr'
-            payload['producing_engine'] = 'tesseract_digits'
-            payload['span_selection'] = {
-                'selected_text': span.selected_text or '',
-                'rule_id': span.rule_id,
-                'confidence': span.confidence,
-                'reason_codes': list(span.reason_codes) + ['CHARGE_DIGIT_FAST'],
-                'producing_engine': 'tesseract_digits',
-            }
-            candidates.append(payload)
-            break
+            up = ImageOps.autocontrast(up)
+            up = ImageEnhance.Contrast(up).enhance(1.5)
+            for psm in _digit_psms_charge():
+                cfg = f'--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789.$'
+                raw = pytesseract.image_to_string(up, config=cfg).strip()
+                attempts.append({
+                    'engine': 'tesseract_digits', 'reason': f'PSM_{psm}',
+                    'latency_ms': 0.0,
+                    'observation': {'text': raw, 'profile': profile} if raw else None,
+                    'preprocessing_profile': f'charge_digit_whitelist_fast:{profile}',
+                })
+                if not raw:
+                    continue
+                shaped = None
+                if profile == "dollars_ruling":
+                    digits = "".join(ch for ch in raw if ch.isdigit())
+                    if digits and len(digits) <= 5:
+                        shaped = shape_monetary(digits) or (
+                            f"{digits}.00" if len(digits) >= 2 else None
+                        )
+                else:
+                    shaped = shape_monetary(raw)
+                span = select_field_span(
+                    shaped or raw,
+                    span_datatype_for_field('charges', 'currency'),
+                    'charges',
+                )
+                box = BoundingBox(
+                    x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
+                    image_width=image.width, image_height=image.height,
+                )
+                selected = shaped or (span.selected_text or '')
+                candidate = OCRCandidate(
+                    value=selected, raw_value=raw, engine='tesseract_digits',
+                    model_name='unknown', model_version='unknown',
+                    preprocessing_variant=f'charge_digit_whitelist_fast:{profile}',
+                    preprocessing_version='cascade-v11-fast',
+                    raw_confidence=0.78 if profile == "dollars_ruling" else 0.7,
+                    calibrated_confidence=None, bounding_box=box,
+                    latency_ms=0.0,
+                )
+                payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
+                # Attribute to a route-authorized producing engine so evidence decision
+                # does not strip digit-only amounts as CANDIDATE_ENGINE_NOT_AUTHORIZED.
+                payload['engine'] = 'paddleocr'
+                payload['producing_engine'] = 'tesseract_digits'
+                payload['span_selection'] = {
+                    'selected_text': selected,
+                    'rule_id': span.rule_id,
+                    'confidence': span.confidence,
+                    'reason_codes': list(span.reason_codes) + [
+                        'CHARGE_DIGIT_FAST',
+                        f'PROFILE_{profile.upper()}',
+                    ],
+                    'producing_engine': 'tesseract_digits',
+                }
+                candidates.append(payload)
+                if selected:
+                    preferred = prefer_charge_ink_amount(best_value, selected) or selected
+                    if preferred == selected:
+                        best_value = selected
+                        best_payload = payload
+                break
+        if best_payload is not None:
+            # Lead with the preferred ink read.
+            candidates = [best_payload] + [c for c in candidates if c is not best_payload]
+            return candidates, attempts, 'CHARGE_DIGITS_FAST'
     except (ImportError, OSError, ValueError, TypeError, AttributeError, RuntimeError) as _exc:
         attempts.append({"engine": "tesseract_digits", "reason": f"EXCEPTION:{type(_exc).__name__}"})
     return candidates, attempts, 'CHARGE_DIGITS_FAST'
@@ -1322,6 +1367,15 @@ def recognize_service_lines(image, router, template):
             return None
         best = shaped_vals[0]
         for other in shaped_vals[1:]:
+            try:
+                from packages.ocr_portfolio import prefer_charge_ink_amount
+
+                preferred_ink = prefer_charge_ink_amount(best, other)
+                if preferred_ink:
+                    best = preferred_ink
+                    continue
+            except Exception:  # noqa: BLE001
+                pass
             preferred = prefer_currency_without_digit_drop(best, other)
             if preferred:
                 best = preferred
@@ -1565,6 +1619,12 @@ def recognize_service_lines(image, router, template):
                 # Prefer amounts that are not tiny single-digit dollars.
                 if value[0] != '0' and not value.startswith('1.'):
                     score += 1
+                # Typed CMS charges are usually whole dollars; boost .00 and
+                # prefer mid-window clean dollars over units-bleed *.10 soup.
+                if value.endswith('.00'):
+                    score += 2
+                elif value.endswith('.10'):
+                    score -= 1
                 # Dashed-rule crops like "-200-\nLAAM" are not service charges.
                 # Allow / | : ? — common OCR noise inside repaired amounts
                 # (I/00 → 100.00, 200:00 → 200.00, 200? → 200.00).
@@ -1573,6 +1633,19 @@ def recognize_service_lines(image, router, template):
                 if _re_noise.search(r'[^0-9A-Z./|:?\s,-]', raw_u) or _re_noise.fullmatch(r'[\s\-.,/|:?]*', raw or ''):
                     score = 0
                     value = None
+            # Cross-window ink preference: keep prior best when new value is
+            # units/ruling bleed around the same dollar stem.
+            if best is not None and value and best.get('charges'):
+                try:
+                    from packages.ocr_portfolio import prefer_charge_ink_amount
+
+                    preferred = prefer_charge_ink_amount(best.get('charges'), value)
+                    if preferred == best.get('charges') and preferred != value:
+                        score = min(score, int(best.get('_score') or 0))
+                    elif preferred == value and preferred != best.get('charges'):
+                        score = max(score, int(best.get('_score') or 0) + 1)
+                except Exception:  # noqa: BLE001
+                    pass
             candidate = {
                 'line_number': row_index + 1,
                 'charges': value,
@@ -1587,7 +1660,7 @@ def recognize_service_lines(image, router, template):
             }
             if best is None or candidate['_score'] > best['_score']:
                 best = candidate
-            if score >= 4:
+            if score >= 5:
                 break
         assert best is not None
         best.pop('_score', None)

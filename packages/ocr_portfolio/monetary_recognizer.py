@@ -70,6 +70,128 @@ def _env_on(name: str, default: str = "1") -> bool:
     }
 
 
+def split_charge_at_vertical_ruling(
+    crop: Image.Image,
+) -> tuple[Image.Image, Image.Image] | None:
+    """Split CMS-1500 $CHARGES cell at the dollars|cents dashed vertical ruling.
+
+    Right-shifted windows often include the units column; OCR'ing the full crop
+    yields digit soup (64000+1 → 64910). Dollars-only left of the ruling is the
+    recoverable ink for whole-dollar typed amounts.
+    """
+    gray = np.asarray(crop.convert("L"), dtype=np.uint8)
+    if gray.size == 0:
+        return None
+    height, width = gray.shape
+    if width < 20 or height < 8:
+        return None
+    _, ink = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    vert = cv2.morphologyEx(
+        ink,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_RECT, (1, max(4, height // 4))),
+    )
+    col_sum = vert.sum(axis=0).astype(float)
+    # Decimal separator sits in the right half of a charge crop; avoid digit stems.
+    x_lo, x_hi = int(width * 0.45), int(width * 0.90)
+    if x_hi - x_lo < 4:
+        return None
+    region = col_sum[x_lo:x_hi]
+    if float(region.max()) < float(height) * 255.0 * 0.08:
+        col_sum = ink.sum(axis=0).astype(float)
+        region = col_sum[x_lo:x_hi]
+    if float(region.max()) <= 0:
+        return None
+    # Rightmost strong peak — dashed separator, not a digit vertical stroke.
+    thresh = float(region.max()) * 0.55
+    strong = np.where(region >= thresh)[0]
+    peak = int(strong[-1]) + x_lo if strong.size else int(np.argmax(region)) + x_lo
+    dollars = crop.crop((0, 0, max(1, peak - 1), height))
+    cents = crop.crop((min(width - 1, peak + 2), 0, width, height))
+    if dollars.width < 6 or cents.width < 2:
+        return None
+    return dollars, cents
+
+
+def prefer_charge_ink_amount(a: str | None, b: str | None) -> str | None:
+    """Prefer clean whole-dollar reads over units/ruling-bleed digit soup.
+
+    Digit-drop twins (64 vs 640) keep the longer stem. Units bleed (640.00 vs
+    649.10 / 260.10) keeps the .00 form when the dollar stem is shared.
+    """
+    if not a:
+        return b
+    if not b:
+        return a
+    if a == b:
+        return a
+
+    def _digits(text: str) -> str:
+        return re.sub(r"\D", "", text)
+
+    def _dollars(text: str) -> str:
+        return _digits(text.split(".", 1)[0])
+
+    da, db = _dollars(a), _dollars(b)
+    full_a, full_b = _digits(a), _digits(b)
+
+    # Ruling-tail before digit-drop: 260.00 vs 2605.00 (extra 1/4/5 from dash OCR).
+    if (
+        a.endswith(".00")
+        and da
+        and db.startswith(da)
+        and len(db) == len(da) + 1
+        and db[-1] in {"1", "4", "5"}
+    ):
+        return a
+    if (
+        b.endswith(".00")
+        and db
+        and da.startswith(db)
+        and len(da) == len(db) + 1
+        and da[-1] in {"1", "4", "5"}
+    ):
+        return b
+
+    # Digit-drop twins on dollar stems: prefer longer (64 ⊂ 640).
+    if da and db and da != db and len(da) <= 4 and len(db) <= 4:
+        if db.startswith(da) and len(db) > len(da):
+            return b
+        if da.startswith(db) and len(da) > len(db):
+            return a
+
+    # Same dollar stem → prefer whole dollars.
+    if da and db and da == db:
+        if a.endswith(".00") and not b.endswith(".00"):
+            return a
+        if b.endswith(".00") and not a.endswith(".00"):
+            return b
+
+    # Units/cents soup beyond a clean .00 stem: 640.00 vs 64910 / 649.10
+    if (
+        a.endswith(".00")
+        and 2 <= len(da) <= 4
+        and full_b.startswith(da)
+        and len(full_b) >= len(da) + 2
+        and not (2 <= len(db) <= 4 and db.startswith(da) and len(db) > len(da))
+    ):
+        return a
+    if (
+        b.endswith(".00")
+        and 2 <= len(db) <= 4
+        and full_a.startswith(db)
+        and len(full_a) >= len(db) + 2
+        and not (2 <= len(da) <= 4 and da.startswith(db) and len(da) > len(db))
+    ):
+        return b
+
+    score_a = (2 if a.endswith(".00") else 0) + (1 if 2 <= len(da) <= 4 else 0)
+    score_b = (2 if b.endswith(".00") else 0) + (1 if 2 <= len(db) <= 4 else 0)
+    if score_a != score_b:
+        return a if score_a > score_b else b
+    return a
+
+
 def shape_monetary(text: str) -> str | None:
     cleaned = "".join(ch for ch in (text or "") if ch in _WHITELIST).strip()
     if not cleaned:
@@ -94,8 +216,11 @@ def shape_monetary(text: str) -> str | None:
         candidates = [f"{digits}.00"]
         if len(digits) >= 4:
             candidates.append(f"{digits[:-2]}.{digits[-2:]}")
-            if digits[-1] in {"4", "1"}:
+            # Ruling-tail noise (4/1/5) and units-column bleed (...10).
+            if digits[-1] in {"4", "1", "5"}:
                 candidates.append(f"{digits[:-1]}.00")
+            if len(digits) >= 5 and digits.endswith("10"):
+                candidates.append(f"{digits[:-2]}.00")
         ranked: list[tuple[float, str]] = []
         for cand in candidates:
             try:
@@ -110,10 +235,14 @@ def shape_monetary(text: str) -> str | None:
             score = 2.0 if 2 <= len(dollars) <= 4 else 1.0
             if cand.endswith(".00"):
                 score += 0.5
-            if len(digits) >= 4 and digits[-1] in {"4", "1"} and dollars == digits[:-1]:
+            if len(digits) >= 4 and digits[-1] in {"4", "1", "5"} and dollars == digits[:-1]:
                 score += 2.0
-            if dollars == digits and len(digits) >= 4 and digits[-1] in {"4", "1"}:
+            if dollars == digits and len(digits) >= 4 and digits[-1] in {"4", "1", "5"}:
                 score -= 2.0
+            if len(digits) >= 5 and digits.endswith("10") and dollars == digits[:-2] and cand.endswith(".00"):
+                score += 2.5
+            if cand.endswith(".10") and len(digits) >= 5 and digits.endswith("10"):
+                score -= 1.5
             ranked.append((score, cand))
         if ranked:
             ranked.sort(key=lambda x: (-x[0], len(x[1])))
@@ -167,6 +296,20 @@ def monetary_variants_extended(crop: Image.Image) -> list[CropVariant]:
             ImageOps.expand(base, border=(pad_x, pad_y), fill=(255, 255, 255)),
         )
     )
+    split = split_charge_at_vertical_ruling(base)
+    if split is not None:
+        dollars_crop, _cents_crop = split
+        out.append(CropVariant("dollars_left_of_ruling", dollars_crop.convert("RGB")))
+        # Upscaled dollars-only — recovers 640 when full-cell OCR reads 64910.
+        dw, dh = dollars_crop.size
+        out.append(
+            CropVariant(
+                "dollars_left_of_ruling_3x",
+                dollars_crop.resize(
+                    (max(1, dw * 3), max(1, dh * 3)), Image.Resampling.NEAREST
+                ).convert("RGB"),
+            )
+        )
     # Isolated connected components (largest ink blob).
     _, bw = cv2.threshold(arr, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
     n_labels, labels, stats, _ = cv2.connectedComponentsWithStats(bw)
