@@ -189,6 +189,26 @@ Golden labels were not mutated.
 
 Smoke: `evaluation_results/hackathon_ai_confirm_smoke` (002/008/009 charges and WOOD) and `evaluation_results/hackathon_ai_confirm_dob_name_gate` (019). Claim 019 stays HITL on DOB only; total charge `270.00` and the name are AUTO. Unreadable single-token names still stay HITL. Release gates are not met; the identical 50-claim after-eval is still outstanding.
 
+## Document-family financial correction
+
+OpenOCR-on-CMS-ROI was the wrong strategy for mixed corpora. Extraction now:
+
+1. Classifies each page (`CMS1500` / `UB04` / `REIMBURSEMENT_SUPERBILL` /
+   `RUNNING_ACCOUNT_STATEMENT` / `EOB` / `SEPARATOR` / `ATTACHMENT` / `UNKNOWN`)
+2. Forbids CMS Box 28 / 24F unless the family is `CMS1500`
+3. Parses superbills as fee×qty lines with printed-total corroboration
+4. Parses ledgers with opening/service/payment/ending-balance roles
+5. Dedupes cumulative statement transactions by business fingerprint
+6. Defines `total_charges` as unique service-charge sum — never ending balance
+   or Amount Paid
+
+Disputed DOB labels (DJJF.003, DJJF.037) are recorded in
+`docs/gt/ground_truth_discrepancy_ledger.json` and quarantined from OCR accuracy.
+No Golden mutation.
+
+The locked Group A 50-claim sample is CMS-1500 on direct OCR probe; family
+routing still runs so non-CMS pages cannot enter CMS geometry.
+
 
 ## Exact evidence on 94% STP target
 
