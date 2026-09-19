@@ -2462,8 +2462,23 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     'preprocessing_variant': 'GEOMETRY_CENTS',
                     'raw_confidence': 0.91,
                     'calibrated_confidence': None,
+                    'bounding_box': {
+                        'x0': float(primary[0]),
+                        'y0': float(primary[1]),
+                        'x1': float(primary[2]),
+                        'y1': float(primary[3]),
+                        'image_width': int(image.width),
+                        'image_height': int(image.height),
+                    },
                     'latency_ms': 0.0,
+                    'validation_results': [],
+                    'evidence_reference': 'GEOMETRY_CENTS',
+                    'estimated_cost_usd': 0.0,
+                    'actual_cost_usd': None,
                     'preprocessing_version': 'geometry-cents',
+                    'registration_confidence': None,
+                    'image_quality_score': None,
+                    'provenance': None,
                 })
                 dig_reason = f'{dig_reason}|GEOMETRY_CENTS'
             ok, accept_reason = semantic_accept(
