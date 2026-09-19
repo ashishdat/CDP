@@ -34,6 +34,7 @@ class CascadeStrategy:
     crop_id_aliases: dict[str, str]
     fields: dict[str, FieldStrategy]
     gap_classes: dict[str, dict[str, str]] = field(default_factory=dict)
+    tool_stack: dict[str, Any] = field(default_factory=dict)
 
     @property
     def strategy_id(self) -> str:
@@ -77,6 +78,7 @@ def load_cascade_strategy(path: str | None = None) -> CascadeStrategy:
         gap_classes={
             str(k): dict(v) for k, v in (payload.get("gap_classes") or {}).items()
         },
+        tool_stack=dict(payload.get("tool_stack") or {}),
     )
 
 

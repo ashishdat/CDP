@@ -30,9 +30,15 @@ azure_document_intelligence_model: prebuilt-read
 # DOB crop residual may accept locally via TrOCR; Azure DI crop stays review-only
 # until CDP_AZURE_DI_DOB_ACCEPT / CDP_AZURE_DI_CHARGE_ACCEPT promote shaped crops.
 azure_document_intelligence_review_only_until_promoted: true
-# Charge cell crops: local fast+paddle/rapid first; Azure DI last (billable crop).
-# Disable with CDP_AZURE_DI_CHARGE_RESIDUAL=0. Full-page corners stay off.
-azure_di_charge_crop_residual_enabled: true
+# Charge cell crops: local paddle+rapid (+ tess fill) first; gpt-4o crop residual
+# for empty box-28 line-sum corroboration. Azure DI charge off by default (v12
+# stack — F0 thrash; enable CDP_AZURE_DI_CHARGE_RESIDUAL=1 only for experiments).
+azure_di_charge_crop_residual_enabled: false
+# gpt-4o crop residual (names + charge line corroboration). Preferred over DI.
+gpt4o_crop_residual_enabled: true
+gpt4o_crop_accept_enabled: true
+# PP-OCRv5 Server optional paddle-family residual — not on recommended stack.
+ppocr_v5_server_enabled: false
 textract_enabled: true
 textract_invoke_when: LOCAL_OCR_EXHAUSTED_AND_BLOCKS_STP_AFTER_AZURE_DI
 textract_api: DetectDocumentText

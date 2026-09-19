@@ -14,12 +14,14 @@ Principles
 4. Empty / contaminated financial crops stay empty — cascade never invents
    amounts. Claim-total E6 remains crop-total ∩ Σ line charges.
 5. Strategy id, crop ladders, and post-miss stages come from
-   ``config/field_cascade_strategy.yaml`` (field-cascade-v11).
+   ``config/field_cascade_strategy.yaml`` (field-cascade-v12).
 6. Dual-engine confirmation (primary + confirmation OBSERVED) before
    short-circuit; among engine candidates prefer multi-engine agreement
    after span-select, else first field-shaped value in route order.
 7. Name/ID value-band crops run before full-cell primary; label-contaminated
    spans are never NAME_SHAPED / ID_SHAPED.
+8. Tool stack: paddle+rapid primary, tesseract fill, gpt-4o residual for
+   names/charges; Azure DI charge and PP-OCRv5 Server off by default.
 """
 
 from __future__ import annotations
@@ -84,7 +86,7 @@ class CascadeResult:
     cascade_trace: list[CascadeStepResult] = field(default_factory=list)
     accepted: bool = False
     accept_reason: str = "EXHAUSTED"
-    strategy_id: str = "field-cascade-v11"
+    strategy_id: str = "field-cascade-v12"
 
 
 RecognizeFn = Callable[

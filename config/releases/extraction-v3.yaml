@@ -10,26 +10,54 @@ ocr_models:
     engine: PaddleOCR
     model: PP-OCRv4
     runtime: paddleocr-2.x
-  secondary:
+    role: Governed primary OCR (CMS-1500 routes)
+  confirmation:
+    engine: RapidOCR
+    model: rapidocr-onnx
+    role: Independent E2 confirmation vs paddle
+  fill:
     engine: Tesseract
-    model: field-specific-psm
+    model: field-specific-psm / CHARGE_DIGITS
     runtime: external
-  handwriting:
+    role: Fill on miss; single-engine charge tess before gpt-4o
+  residual_handwriting_and_charge:
+    engine: Azure-gpt-4o-crop
+    model: gpt-4o
+    authority: SHAPED_ACCEPT_WITH_LOCAL_CONSENSUS
+    role: >
+      Name conflict arbitrator; empty box-28 line-sum corroboration
+      (SINGLE_LINE_GPT4O_LOCAL). Never gpt-only critical AUTO.
+  handwriting_local:
     engine: TrOCR
     model: microsoft/trocr-base-handwritten
     runtime: transformers-4.x
     authority: REVIEW_ONLY_UNTIL_DOMAIN_HOLDOUT_PROMOTION
+    role: Optional DOB residual before gpt-4o
   attachment_printed:
     engine: TrOCR
     model: microsoft/trocr-base-printed
     authority: REVIEW_ONLY
+  azure_di_charge:
+    engine: Azure-Document-Intelligence
+    model: prebuilt-read
+    default: off
+    env: CDP_AZURE_DI_CHARGE_RESIDUAL
+    note: Not on recommended stack (F0 thrash); gpt-4o+local preferred.
+  ppocr_v5_server:
+    engine: PaddleOCR
+    model: PP-OCRv5_server
+    runtime: paddleocr-3.x-isolated-venv
+    default: off
+    env: CDP_PPOCRV5_SERVER
+    note: Same PADDLE_FAMILY as primary; empty on hard charge residuals.
   optional_layout:
     engine: Docling
     status: PILOT_DISABLED
-handwriting_cascade_version: field-cascade-v1
+handwriting_cascade_version: field-cascade-v12
+tool_stack_version: field-cascade-v12
 validation_rule_version: validation-v1
 output_projection_version: sentinel-projection-v1-pending-authorization
-release_timestamp: '2026-09-18T00:00:00+00:00'
+release_timestamp: '2026-09-19T00:00:00+00:00'
 supersedes_after_promotion: extraction-v2
 configuration_hashes:
   config/router_frozen_v1.yaml: 0580cca61387ccfcafba15ecc01cf9aa1bc16b9a91ea5da3b69222e5bce2a0c5
@@ -57,9 +85,11 @@ baseline_metrics:
 known_limitations:
 - Candidate only: not FROZEN until promotion gates pass with verified hashes and holdout evidence.
 - Charge-line false-accept (FA) gates still require validation; no production FA claim is made here.
+- Truly empty box-28 with no observed line charges stays HITL — never invent charge totals.
 - CMS-1500 ROIs are V3 recalibrations; operators must pin CDP_RELEASE_MANIFEST / CDP_PIPELINE_RELEASE explicitly.
 - Authorized member/provider/address datasets are not configured.
-- Generic TrOCR handwriting output is non-authoritative.
+- Generic TrOCR handwriting output is non-authoritative; gpt-4o crop is the preferred residual for names/charges.
+- Azure DI charge residual and PP-OCRv5 Server are off by default (not on recommended stack).
 - Docling remains a disabled additive pilot.
 - Baseline metrics are intentionally unset until governed evaluation completes; do not treat nulls as zeros.
 change_control:

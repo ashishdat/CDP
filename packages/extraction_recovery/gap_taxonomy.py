@@ -117,10 +117,22 @@ def classify_field_gap(
         )
 
     if name in {"total_charge", "total_charges", "charges"}:
-        if service_line_charges > 0:
+        # Prefer reason-code signal when summarize / OCR count drifts — last-20
+        # runs mislabeled LINE_SUM as EMPTY_FINANCIAL_INK when lines existed.
+        line_sum_reasons = {
+            r
+            for r in reasons
+            if "LINE_TOTALS_UNCORROBORATED" in r
+            or r.startswith("LINE_TOTALS_GATE:")
+            or r in {"LINE_TOTALS_RECONCILED", "LINE_TOTALS_CORROBORATED"}
+        }
+        if service_line_charges > 0 or line_sum_reasons:
+            n = service_line_charges or (
+                1 if any("LINE_TOTALS" in r for r in line_sum_reasons) else 0
+            )
             return _pack(
                 "LINE_SUM_UNCORROBORATED",
-                f"box-28 empty/invalid; {service_line_charges} observed line charge(s) need dual-engine or gpt-4o corroboration",
+                f"box-28 empty/invalid; {n} observed line charge(s) need dual-engine or gpt-4o corroboration",
             )
         if text and any(tok in text.upper() for tok in ("NPI", "NATIONAL")):
             return _pack("NPI_CONTAMINATED_CHARGE", f"charge crop contaminated ({text!r})")

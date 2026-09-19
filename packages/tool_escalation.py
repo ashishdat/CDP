@@ -125,7 +125,8 @@ def plan_field_escalation(
         # Env can disable charge crops independently of DOB/corners.
         import os
 
-        env_off = (os.environ.get("CDP_AZURE_DI_CHARGE_RESIDUAL") or "1").strip().casefold() in {
+        # v12 default off — match charge_azure_di_residual + tool_stack.
+        env_off = (os.environ.get("CDP_AZURE_DI_CHARGE_RESIDUAL") or "0").strip().casefold() in {
             "0",
             "false",
             "no",

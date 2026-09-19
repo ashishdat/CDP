@@ -99,6 +99,25 @@ def test_planner_prefers_gpt4o_when_charge_di_disabled(monkeypatch):
     assert decision.tool == EscalationTool.AZURE_GPT4O
 
 
+def test_charge_di_residual_defaults_off(monkeypatch):
+    """v12 stack: Azure DI charge residual off unless explicitly enabled."""
+    monkeypatch.delenv("CDP_AZURE_DI_CHARGE_RESIDUAL", raising=False)
+    from packages.extraction_recovery.charge_azure_di_residual import (
+        azure_di_charge_residual_enabled,
+    )
+
+    assert azure_di_charge_residual_enabled() is False
+    decision = plan_field_escalation(
+        gap_class="LINE_SUM_UNCORROBORATED",
+        field_name="total_charge",
+        regional_ocr_attempted=True,
+        empty_financial_ink=True,
+        azure_di_attempted=False,
+        service_line_rows_missing=False,
+    )
+    assert decision.tool == EscalationTool.AZURE_GPT4O
+
+
 def test_run_charge_azure_di_with_injected_engine(monkeypatch):
     monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
     monkeypatch.setenv("CDP_AZURE_DI_CHARGE_ACCEPT", "1")

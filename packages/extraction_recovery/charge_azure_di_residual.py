@@ -64,11 +64,13 @@ def _env_on(name: str, default: str = "1") -> bool:
 
 
 def azure_di_charge_residual_enabled() -> bool:
-    return _env_on("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
+    # field-cascade-v12: Azure DI charge crops off by default (F0 thrash;
+    # gpt-4o+local is the recommended empty-box-28 corroborator).
+    return _env_on("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
 
 
 def azure_di_charge_accept_enabled() -> bool:
-    return _env_on("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
+    return _env_on("CDP_AZURE_DI_CHARGE_ACCEPT", "0")
 
 
 def is_charge_local_residual(

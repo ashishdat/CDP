@@ -1,20 +1,50 @@
 # Field-cascade OCR strategy — operational CMS-1500 STP
 #
-# Version field-cascade-v11: name/ID value-band FIRST + label-contamination
-# conflict relief on top of v10 DOB cells-FIRST + separator-1 peel.
+# Version field-cascade-v12: last-20-run tool stack freeze on top of v11
+# name/ID value-band FIRST + label-contamination conflict relief.
 #
-# Track-B learning from hackathon_50_cascade_v11:
-# - insured_name / patient_name HITL dominated by CONFLICT_MARGIN when rapid
-#   OCR keeps "4. 1NSURED'S NAME … FURST NAME …" while paddle has clean ink.
-# - semantic_accept previously treated header residue as NAME_SHAPED.
-# - insured_id header-only crops outranked shaped IDs on raw confidence.
-# Fix: strip OCR-garbled CMS headers; reject label-contaminated shapes;
-# prefer value-band crops; relieve label/prefix name conflicts in reconciler.
+# Track-B learning from last 20 evaluation runs (~527 claims scanned):
+# - total_charge dominates HITL (~295 blockers); EMPTY_FINANCIAL_INK is correct
+#   fail-closed when box-28 and lines are blank — never invent STP.
+# - Uncorroborated line sums unlock via gpt-4o crop + local OCR consensus
+#   (SINGLE_LINE_GPT4O_LOCAL), not Azure DI charge crops or PP-OCRv5 Server.
+# - patient_name HANDWRITING / CONFLICT resolved by gpt-4o crop residual.
+# - PP-OCRv5 Server same paddle family; empty on hard residuals → leave off.
+# - Azure DI charge residual thrash under F0 → default off.
 #
-version: field-cascade-v11
+version: field-cascade-v12
 status: ACTIVE
-phase: 11
-supersedes: field-cascade-v10
+phase: 12
+supersedes: field-cascade-v11
+
+# Declared tool stack (ops). Env flags may narrow, not broaden authority.
+tool_stack:
+  primary_ocr:
+    engines: [paddleocr, rapidocr]
+    role: Governed E2 confirmation (independent families).
+  fill_ocr:
+    engines: [tesseract, tesseract_digits]
+    role: Fill on miss / single-engine charge cells before cloud residual.
+  residual_handwriting:
+    engine: azure_gpt4o_crop
+    fields: [patient_name, insured_name, patient_dob]
+    role: Name conflict arbitrator + DOB residual after local/TrOCR.
+  residual_charge:
+    engine: azure_gpt4o_crop
+    role: >
+      Empty box-28 line-sum corroboration (SINGLE_LINE_GPT4O_LOCAL /
+      MULTI_LINE_GPT4O_LOCAL). Never gpt-4o-only AUTO.
+  azure_di_charge:
+    default: off
+    env: CDP_AZURE_DI_CHARGE_RESIDUAL
+    role: Optional last-resort only; not on the recommended path.
+  ppocr_v5_server:
+    default: off
+    env: CDP_PPOCRV5_SERVER
+    role: Experimental paddle-family residual; not independent of paddleocr.
+  empty_financial_ink:
+    disposition: HITL
+    role: Truly blank box-28 with no observed line charges stays HITL.
 
 # Pipeline stages (ops path). Later stages must not invent ink.
 stages:
@@ -41,6 +71,7 @@ stages:
     role: >
       When paddle+rapid return usable but unshaped text, explicitly run tesseract
       on the same crop and re-pick — ensures fill engine is exercised and OBSERVED.
+      For single-engine service-line charges, digit-whitelist tess runs before gpt-4o.
   - id: engine_agreement
     role: >
       Among dual-engine candidates, prefer span-normalized multi-engine agreement;
@@ -63,6 +94,10 @@ stages:
     role: Prefer id_value_band crop and shaped IDs over header-only OCR.
   - id: service_lines
     role: Probe service-line charges; skip header rows; currency can prove liveness.
+  - id: charge_gpt4o_residual
+    role: >
+      gpt-4o crop on sparse / single-engine / digit-drop twin line cells with local
+      priors — empty box-28 AUTO only via LINE_TOTALS_CORROBORATED.
   - id: assemble
     role: ExtractionResult must reference registration + geometry + ocr artifacts.
   - id: complete_e3
@@ -91,6 +126,8 @@ honesty:
   - Name label contamination is never NAME_SHAPED; CONFLICT relief only for clean⊆dirty or token-prefix.
   - Report registration HITL and field-ink HITL as separate tracks.
   - Hackathon 1000 has no field GT — accuracy status UNAVAILABLE_NO_GROUND_TRUTH.
+  - gpt-4o never independently promotes critical charges (needs usable local consensus).
+  - PP-OCRv5 Server is not an independence group vs paddleocr (PADDLE_FAMILY).
 
 defaults:
   engine_source: config/ocr_field_routes.yaml
@@ -99,6 +136,9 @@ defaults:
   always_span_select: true
   confirmation_required_usable: 1  # SELECTIVE_E2 via CDP_OCR_SELECTIVE_CONFIRM (default on)
   prefer_multi_engine_agreement: true
+  gpt4o_crop_residual: true
+  azure_di_charge_residual: false
+  ppocr_v5_server: false
   e3_sources:
     - registration_report.json
     - document.json
@@ -134,7 +174,10 @@ fields:
     accept: CURRENCY_SHAPED
     reject: [CURRENCY_LEADING_MINUS, CURRENCY_SUSPICIOUS_TINY, EMPTY]
     completion: [LINE_TOTALS_RECONCILED]
-    notes: Currency confusable repair on observed glyphs; line-sum when box-28 empty.
+    notes: >
+      Currency confusable repair on observed glyphs; line-sum when box-28 empty.
+      Corroboration stack: paddle+rapid dual-engine, else gpt-4o+local, else HITL.
+      Azure DI charge and PP-OCRv5 are off by default.
   patient_name:
     crop_ladder: [name_value_band, primary]
     accept: NAME_SHAPED
@@ -142,6 +185,7 @@ fields:
       v11: value-band FIRST (below printed Last/First header). Reject
       label-contaminated spans; relieve CONFLICT when one engine is header
       bleed and the other is clean ink, or when tokens are a strict prefix.
+      gpt-4o crop is the conflict arbitrator (v12 stack).
   insured_name:
     crop_ladder: [name_value_band, primary]
     accept: NAME_SHAPED
@@ -177,7 +221,7 @@ gap_classes:
   CALIBRATION_HITL:
     action: Calendar-valid / format-valid value held for calibrated confidence; corroboration relief or HITL.
   EMPTY_FINANCIAL_INK:
-    action: Keep HITL unless LINE_TOTALS_RECONCILED from observed service-line charges.
+    action: Keep HITL — truly blank box-28 and no observed line charges (do not invent STP).
   LINE_SUM_UNCORROBORATED:
     action: >
       Box-28 empty but line charges observed — run gpt-4o crop on line cells for

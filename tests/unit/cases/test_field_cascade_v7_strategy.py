@@ -1,4 +1,4 @@
-"""Unit tests for field-cascade-v11 strategy loading, E3 honesty, crop ladders."""
+"""Unit tests for field-cascade-v12 strategy loading, E3 honesty, crop ladders."""
 
 from __future__ import annotations
 
@@ -19,12 +19,15 @@ from packages.extraction_recovery.strategy import (
 from scripts.complete_from_extraction import _load_registration_context
 
 
-def test_strategy_is_v11():
+def test_strategy_is_v12():
     load_cascade_strategy.cache_clear()
     strategy = load_cascade_strategy()
-    assert strategy.strategy_id == "field-cascade-v11"
+    assert strategy.strategy_id == "field-cascade-v12"
+    assert strategy.tool_stack.get("residual_charge", {}).get("engine") == "azure_gpt4o_crop"
+    assert strategy.defaults.get("azure_di_charge_residual") is False
+    assert strategy.defaults.get("ppocr_v5_server") is False
     assert strategy.status == "ACTIVE"
-    assert strategy.phase == 11
+    assert strategy.phase == 12
     assert "EVIDENCE_PLUMBING_GAP" in strategy.gap_classes
     assert "CALIBRATION_HITL" in strategy.gap_classes
     assert "DOB_SEPARATOR_ARTIFACT" in strategy.gap_classes
@@ -34,6 +37,7 @@ def test_strategy_is_v11():
     assert any(s.get("id") == "dob_cells_first" for s in strategy.stages)
     assert any(s.get("id") == "dob_separator_relief" for s in strategy.stages)
     assert any(s.get("id") == "name_label_relief" for s in strategy.stages)
+    assert any(s.get("id") == "charge_gpt4o_residual" for s in strategy.stages)
     assert strategy.defaults.get("confirmation_required_usable") == 1
 
 
@@ -71,7 +75,7 @@ def test_crop_variants_follow_strategy_order():
 
 def test_field_cascade_defaults_to_v11():
     load_cascade_strategy.cache_clear()
-    assert FieldCascade().strategy_id == "field-cascade-v11"
+    assert FieldCascade().strategy_id == "field-cascade-v12"
 
 
 def test_pick_prefers_confirmation_when_primary_is_header_bleed():
@@ -172,6 +176,22 @@ def test_gap_taxonomy_line_sum_uncorroborated_vs_truly_empty_charge():
     )
     assert with_lines is not None
     assert with_lines.gap_class == "LINE_SUM_UNCORROBORATED"
+
+    # Reason-code signal alone (count drift in older runs) still LINE_SUM.
+    reasons_only = classify_field_gap(
+        "total_charge",
+        observed_text="52.00",
+        accepted=False,
+        reason_codes=[
+            "FORMAT_VALID",
+            "LINE_TOTALS_GATE:SINGLE_LINE_REQUIRES_DI",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_UNCORROBORATED",
+        ],
+        service_line_charges=0,
+    )
+    assert reasons_only is not None
+    assert reasons_only.gap_class == "LINE_SUM_UNCORROBORATED"
 
     empty = classify_field_gap(
         "total_charge",

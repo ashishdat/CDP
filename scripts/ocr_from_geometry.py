@@ -1068,6 +1068,42 @@ def recognize_service_lines(image, router, template):
                 if ev:
                     engine_vals.append(ev)
             unique_vals = list(dict.fromkeys(engine_vals))
+            # v12: single-engine shaped cell → digit-whitelist tess before gpt-4o
+            # so rapid+tess can unlock SINGLE_LINE_DUAL_ENGINE without cloud.
+            if value and len(unique_vals) < 2:
+                d_cands, d_attempts, d_reason = _recognize_charge_digits_only(
+                    image, bbox
+                )
+                attempts = list(attempts or []) + list(d_attempts or [])
+                if d_cands:
+                    candidates = list(candidates or []) + list(d_cands)
+                    d_raw = d_cands[0].get('raw_value') if d_cands else ''
+                    merged = _currency_value(d_raw or raw, candidates)
+                    if merged:
+                        preferred = prefer_currency_without_digit_drop(value, merged)
+                        if preferred and preferred != value:
+                            value = preferred
+                            raw = d_raw or raw
+                            reason = f'{reason}|{d_reason}|CHARGE_TESS_DIGIT_DROP'
+                        else:
+                            reason = f'{reason}|{d_reason}|CHARGE_TESS_FILL'
+                    engine_vals = []
+                    for c in candidates or []:
+                        seed = (c.get('value') or c.get('raw_value') or '').strip()
+                        if not seed:
+                            continue
+                        import re as _re_e2
+                        m = _re_e2.search(
+                            r'\$?\d{1,3}(?:,\d{3})*\.\d{2}|\$?\d{2,6}(?:\.\d{2})?',
+                            seed,
+                        )
+                        if not m:
+                            continue
+                        ev = m.group(0).lstrip('$')
+                        if '.' not in ev and _re_e2.fullmatch(r'\d{2,6}', ev):
+                            ev = f'{ev}.00'
+                        engine_vals.append(ev)
+                    unique_vals = list(dict.fromkeys(engine_vals))
             if not value and not probe_empty:
                 need_di = True
                 di_gap = 'CHARGE_LOCAL_EXHAUSTED'
