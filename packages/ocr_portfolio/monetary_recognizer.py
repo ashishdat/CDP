@@ -205,6 +205,21 @@ def shape_monetary(text: str) -> str | None:
         if amount.startswith("(") and amount.endswith(")"):
             amount = amount[1:-1]
         if "." in amount and re.fullmatch(r"\d+\.\d{2}", amount):
+            # Already decimal-shaped — still strip units/ruling tails on .00 forms
+            # (2701.00 from units "1" bleed → 270.00).
+            if amount.endswith(".00"):
+                dollars = amount.split(".", 1)[0]
+                if (
+                    len(dollars) >= 4
+                    and dollars[-1] in {"1", "4", "5"}
+                    and 2 <= len(dollars) - 1 <= 4
+                ):
+                    trimmed = f"{dollars[:-1]}.00"
+                    try:
+                        if 1.0 <= float(trimmed) <= 99999.99:
+                            return trimmed
+                    except ValueError:
+                        pass
             return amount
         if "." not in amount and re.fullmatch(r"\d{2,6}", amount):
             # Defer to ranked digit-soup handling below (6404 → 640.00).

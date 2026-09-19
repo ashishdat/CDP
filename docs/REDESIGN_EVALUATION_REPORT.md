@@ -147,7 +147,18 @@ scripts/run_hackathon_1000_cascade.py \
 | M048DJJF.003 | EMPTY_FINANCIAL_INK | **TRUE_STP `260.00`** |
 | M048DJJF.006 | EMPTY / POS confusion | **TRUE_STP `270.00`** |
 
-Unit: `test_total_charge_recovery_regressions.py` + redesign stages + line_sum → **48 passed**.
+### Same-10 before/after (first 10 of 50-claim blind)
+
+| Metric | Before (`v12_3x`) | After ink tune |
+|---|---|---|
+| True STP | **0/10 (0%)** | **7/10 (70%)** then FA retest closed DJJF.005 `2701→270` |
+| total_charge AUTO | 0/10 | 8/10 on first pass; DJJF.005 units-bleed FA fixed |
+| Dominant residual | EMPTY_FINANCIAL_INK ×10 | LINE_SUM_UNCORROBORATED / evidence policy on 2–3 docs |
+
+Units-bleed follow-up: `shape_monetary("2701.00")→270.00` and GPT merge keeps local clean stem
+(`CHARGE_GPT4O_CORROBORATED_LOCAL_KEPT`). Retest DJJF.005/006 → both **TRUE_STP @ 270.00**.
+
+Unit: `test_total_charge_recovery_regressions.py` + redesign stages + line_sum → **48+ passed**.
 
 Full 50-claim ops re-baseline still required for release-gate True STP ≥94%.
 

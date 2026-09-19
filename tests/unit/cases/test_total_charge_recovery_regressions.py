@@ -107,6 +107,9 @@ def test_shape_monetary_and_variants():
     assert shape_monetary("2604") in {"260.00", "26.04"}
     assert shape_monetary("2605") == "260.00"
     assert shape_monetary("26010") == "260.00"
+    # Already-decimal units bleed must still trim.
+    assert shape_monetary("2701.00") == "270.00"
+    assert shape_monetary("6404.00") == "640.00"
     img = Image.new("RGB", (60, 20), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
     draw.text((5, 2), "12.00", fill=(0, 0, 0))

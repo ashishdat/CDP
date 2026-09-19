@@ -1118,31 +1118,47 @@ def _merge_gpt4o_line_charge(
         return value, raw, candidates, attempts, reason
 
     from packages.claim_evidence.line_sum_authority import amounts_corroborate
+    from packages.ocr_portfolio import prefer_charge_ink_amount, shape_monetary
+
+    g_shaped = shape_monetary(g_value) or g_value
 
     if not value:
-        value = g_value
+        value = g_shaped
         raw = g_raw or raw
         candidates = list(candidates or []) + list(g_cands or [])
         reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CROP'
-    elif amounts_corroborate(value, g_value):
-        # Digit-drop twin: prefer the longer read when gpt-4o recovered
-        # trailing digits (622→6225, 643→6430).
-        preferred = prefer_currency_without_digit_drop(value, g_value)
-        if preferred and preferred == g_value and preferred != value:
-            value = g_value
-            raw = g_raw or raw
-            candidates = list(g_cands or []) + list(candidates or [])
-            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_DIGIT_DROP'
-        else:
+    elif amounts_corroborate(value, g_shaped):
+        # Units/ruling bleed (270.00 vs 2701.00): keep the clean local .00 stem.
+        ink_pref = prefer_charge_ink_amount(value, g_shaped)
+        if ink_pref == value and value != g_shaped:
             if g_cands:
                 candidates = list(candidates or []) + list(g_cands)
-            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED'
+            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED_LOCAL_KEPT'
+        else:
+            # Digit-drop twin: prefer the longer read when gpt-4o recovered
+            # trailing digits (622→6225, 643→6430).
+            preferred = prefer_currency_without_digit_drop(value, g_shaped)
+            if preferred and preferred == g_shaped and preferred != value:
+                value = g_shaped
+                raw = g_raw or raw
+                candidates = list(g_cands or []) + list(candidates or [])
+                reason = f'{reason}|{g_reason}|CHARGE_GPT4O_DIGIT_DROP'
+            else:
+                if g_cands:
+                    candidates = list(candidates or []) + list(g_cands)
+                reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED'
     else:
-        # Non-twin local vs shaped gpt-4o: prefer gpt-4o ink.
-        value = g_value
-        raw = g_raw or raw
-        candidates = list(g_cands or []) + list(candidates or [])
-        reason = f'{reason}|{g_reason}|CHARGE_GPT4O_OVERRIDE'
+        # Non-twin local vs shaped gpt-4o: prefer charge-ink heuristic, else gpt.
+        ink_pref = prefer_charge_ink_amount(value, g_shaped)
+        if ink_pref == value:
+            if g_cands:
+                candidates = list(candidates or []) + list(g_cands)
+            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_REJECTED_INK_PREF'
+        else:
+            value = ink_pref or g_shaped
+            raw = g_raw or raw
+            candidates = list(g_cands or []) + list(candidates or [])
+            reason = f'{reason}|{g_reason}|CHARGE_GPT4O_OVERRIDE'
     return value, raw, candidates, attempts, reason
 
 
