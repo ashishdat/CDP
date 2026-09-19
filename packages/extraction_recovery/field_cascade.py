@@ -145,7 +145,13 @@ def field_requires_independent_confirmation(field_name: str) -> bool:
     return (field_name or "").casefold() == "patient_name"
 
 
-def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
+def semantic_accept(
+    field_name: str,
+    value: str,
+    *,
+    bbox: tuple[float, float, float, float] | None = None,
+    image_size: tuple[int, int] | None = None,
+) -> tuple[bool, str]:
     """Return whether a span-selected value is field-shaped enough to stop."""
     text = (value or "").strip()
     if not text:
@@ -153,7 +159,7 @@ def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
     name = (field_name or "").casefold()
     datatype = span_datatype_for_field(field_name, "")
 
-    if name in {"patient_dob", "date_of_birth"} or datatype == "DATE":
+    if name in {"patient_dob", "date_of_birth", "insured_dob"} or datatype == "DATE":
         if _DATE_SHAPE.fullmatch(text):
             return True, "DATE_SHAPED"
         return False, "NOT_DATE_SHAPED"
@@ -162,6 +168,15 @@ def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
         if name in {"total_charge", "total_charges"} and text.startswith("-"):
             return False, "CURRENCY_LEADING_MINUS"
         cleaned = text.lstrip("$").replace(",", "")
+        cleaned = re.sub(r"[Oo]", "0", cleaned)
+        cleaned = re.sub(r"[gG]", "0", cleaned)
+        spaced = re.fullmatch(r"(\d{1,6})[\s:.](\d{2})", cleaned)
+        if spaced:
+            cleaned = f"{spaced.group(1)}.{spaced.group(2)}"
+        else:
+            thousands = re.fullmatch(r"(\d{1,3})\s(\d{3})", cleaned)
+            if thousands:
+                cleaned = f"{thousands.group(1)}{thousands.group(2)}.00"
         if _CURRENCY_SHAPE.fullmatch(text.lstrip("$")) or _CURRENCY_SHAPE.fullmatch(cleaned):
             if name in {"total_charge", "total_charges"} and re.fullmatch(r"[0-9]\.\d{2}", cleaned):
                 return False, "CURRENCY_SUSPICIOUS_TINY"
@@ -177,11 +192,20 @@ def semantic_accept(field_name: str, value: str) -> tuple[bool, str]:
             ):
                 return False, "CURRENCY_IMPLAUSIBLE_TOTAL"
             # Claim-total POS bleed: 11.00 etc. cannot semantic-accept as box-28
-            # without geometry proof (see geometry_authority / financial_reconciliation).
+            # without geometry proof that the crop is inside Box 28.
             try:
-                from packages.geometry_authority import is_pos_like_currency
+                from packages.geometry_authority import (
+                    box28_contains,
+                    is_pos_like_currency,
+                )
 
-                if name in {"total_charge", "total_charges"} and is_pos_like_currency(cleaned):
+                if name in {"total_charge", "total_charges"} and is_pos_like_currency(
+                    cleaned
+                ):
+                    if bbox is not None and box28_contains(
+                        bbox, image_size=image_size
+                    ):
+                        return True, "CURRENCY_SHAPED_BOX28"
                     return False, "CURRENCY_POS_LIKE_REQUIRES_GEOMETRY"
             except Exception:  # noqa: BLE001 — geometry package must not break cascade
                 pass
@@ -262,6 +286,9 @@ def pick_engine_candidates(
     field_name: str,
     candidates: list[dict],
     field_type: str = "",
+    *,
+    bbox: tuple[float, float, float, float] | None = None,
+    image_size: tuple[int, int] | None = None,
 ) -> tuple[str, str, str, list[dict]]:
     """Choose a cascade value from dual-engine candidates.
 
@@ -294,7 +321,9 @@ def pick_engine_candidates(
             selected = (span.selected_text or "").strip()
         if not selected:
             continue
-        ok, reason = semantic_accept(field_name, selected)
+        ok, reason = semantic_accept(
+            field_name, selected, bbox=bbox, image_size=image_size
+        )
         nonempty.append((selected, raw, cand))
         if ok:
             shaped.append((selected, raw, cand, reason))
@@ -501,7 +530,11 @@ class FieldCascade:
                 engines,
             )
             selected, raw, pick_reason, ordered = pick_engine_candidates(
-                field_name, list(candidates), field_type
+                field_name,
+                list(candidates),
+                field_type,
+                bbox=variant.bbox,
+                image_size=image_size,
             )
             candidates = ordered
             if selected and candidates:
@@ -518,7 +551,12 @@ class FieldCascade:
             else:
                 accept_reason = pick_reason if pick_reason else "EMPTY"
                 if selected:
-                    ok, accept_reason = semantic_accept(field_name, selected)
+                    ok, accept_reason = semantic_accept(
+                        field_name,
+                        selected,
+                        bbox=variant.bbox,
+                        image_size=image_size,
+                    )
 
             # Tesseract fill: dual-engine confirmation short-circuits before the
             # fill engine whenever paddle+rapid return any usable text — even
@@ -543,7 +581,11 @@ class FieldCascade:
                 merged = list(candidates) + list(fill_cands)
                 attempts = list(attempts) + list(fill_attempts)
                 selected, raw, pick_reason, ordered = pick_engine_candidates(
-                    field_name, merged, field_type
+                    field_name,
+                    merged,
+                    field_type,
+                    bbox=variant.bbox,
+                    image_size=image_size,
                 )
                 candidates = ordered
                 if selected and candidates:
@@ -562,7 +604,12 @@ class FieldCascade:
                 else:
                     accept_reason = pick_reason if pick_reason else accept_reason
                     if selected:
-                        ok, base_reason = semantic_accept(field_name, selected)
+                        ok, base_reason = semantic_accept(
+                            field_name,
+                            selected,
+                            bbox=variant.bbox,
+                            image_size=image_size,
+                        )
                         if ok:
                             accept_reason = f"TESSERACT_FILL:{base_reason}"
 
@@ -599,7 +646,11 @@ class FieldCascade:
         # while primary holds MM/DD. Span over observed ink only — never invent
         # glyphs. Gated so free-text fields do not mint incomplete shells.
         datatype = span_datatype_for_field(field_name, field_type)
-        if field_name.casefold() in {"patient_dob", "date_of_birth"} or datatype == "DATE":
+        if field_name.casefold() in {
+            "patient_dob",
+            "date_of_birth",
+            "insured_dob",
+        } or datatype == "DATE":
             fused_bits: list[str] = []
             donor: dict | None = None
             for step in trace:
@@ -617,7 +668,12 @@ class FieldCascade:
             if fused:
                 span = select_field_span(fused, datatype, field_name)
                 fused_selected = span.selected_text or ""
-                ok, accept_reason = semantic_accept(field_name, fused_selected)
+                ok, accept_reason = semantic_accept(
+                    field_name,
+                    fused_selected,
+                    bbox=primary_bbox,
+                    image_size=image_size,
+                )
                 if ok and fused_selected:
                     shell = dict(donor) if donor else {}
                     shell.update(

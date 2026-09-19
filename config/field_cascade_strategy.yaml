@@ -226,6 +226,14 @@ fields:
       v10 cells-FIRST with inset MM/DD/YY (avoid dashed-rule "1"); trailing-1
       MM/DD peel in reconciler; header-safe compact; MMDDYYY century repair;
       dob_cells attributed to producing route engine; prefer paddle∩rapid agree.
+  insured_dob:
+    crop_ladder: [primary, dob_digit_band, dob_loose, dob_year_wide]
+    accept: DATE_SHAPED
+    post_miss: [dob_cells]
+    prefer: cells_first
+    notes: >
+      Box 11a insured DOB. Used with Box 3 under Self for independent DOB
+      corroboration — never fused with service-date or signature-date crops.
   total_charge:
     crop_ladder: [primary, charge_npi_cleared, charge_taller]
     accept: CURRENCY_SHAPED

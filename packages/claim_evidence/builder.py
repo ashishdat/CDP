@@ -70,6 +70,7 @@ class ClaimEvidenceBuilder:
         self._financial(claim_id, claim_values, lines, evidence, contradictions)
         self._dates(claim_id, claim_values, lines, evidence, contradictions)
         self._member_identity(claim_id, claim_values, evidence, contradictions)
+        self._form_field_redundancy(claim_id, claim_values, evidence, contradictions)
         self._provider_identity(claim_id, claim_values, evidence, contradictions)
         if document_family.upper() == "UB04":
             self._ub04_lines(claim_id, lines, evidence, contradictions)
@@ -472,6 +473,61 @@ class ClaimEvidenceBuilder:
             or ""
         )
         return bool(member_id_shaped(member))
+
+    def _form_field_redundancy(self, claim_id, values, evidence, contradictions) -> None:
+        """Box 2↔4 name and Box 3↔11a DOB agreement under Self (CMS-1500)."""
+        try:
+            from packages.geometry_authority.form_redundancy import (
+                reconcile_box2_box4_names,
+                reconcile_box3_box11a_dob,
+            )
+        except Exception:  # noqa: BLE001
+            return
+
+        relationship = (
+            values.get("insured_relationship")
+            or values.get("relationship")
+            or values.get("rel_code")
+        )
+        names = reconcile_box2_box4_names(
+            values.get("patient_name"),
+            values.get("insured_name"),
+            relationship=relationship,
+        )
+        if names.agreed:
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "BOX2_BOX4_NAME_CONFIRMED",
+                    names.patient_norm,
+                    {
+                        "supported_fields": ["patient_name", "insured_name"],
+                        "reason": names.reason,
+                        "patient_norm": names.patient_norm,
+                        "insured_norm": names.insured_norm,
+                    },
+                )
+            )
+
+        dobs = reconcile_box3_box11a_dob(
+            values.get("patient_dob") or values.get("date_of_birth"),
+            values.get("insured_dob"),
+            relationship=relationship,
+        )
+        if dobs.agreed and dobs.patient_iso:
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "BOX3_BOX11A_DOB_CONFIRMED",
+                    dobs.patient_iso,
+                    {
+                        "supported_fields": ["patient_dob", "insured_dob"],
+                        "reason": dobs.reason,
+                        "patient_iso": dobs.patient_iso,
+                        "insured_iso": dobs.insured_iso,
+                    },
+                )
+            )
 
     def _provider_identity(self, claim_id, values, evidence, contradictions) -> None:
         repeated = self._values(values.get("provider_npi"))

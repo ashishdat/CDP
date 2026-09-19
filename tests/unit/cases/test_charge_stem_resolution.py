@@ -38,7 +38,9 @@ def test_units_bleed_with_ruling_clip_selects_vision_stem():
     assert ruling_geometry_supports_charge(cands, "200.00")
     assert line_has_gpt4o_local_consensus(line)
     ok, reason = line_sum_auto_eligible([line])
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
+    ok, reason = line_sum_auto_eligible([line], corroborating_values=["200.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
 
 def test_local_stem_beats_one_digit_bleed_sibling():
@@ -139,7 +141,9 @@ def test_blank_grid_ticks_do_not_inflate_a_corroborated_line():
     assert len(resolved) == 1
     assert resolved[0]["charges"] == "115.00"
     ok, reason = line_sum_auto_eligible(resolved)
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
+    ok, reason = line_sum_auto_eligible(resolved, corroborating_values=["115.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
 
 def test_ruled_cents_reconstructed_from_split_raw():
@@ -156,7 +160,9 @@ def test_ruled_cents_reconstructed_from_split_raw():
     line = {"charges": value, "candidates": cands}
     assert line_has_gpt4o_local_consensus(line)
     ok, reason = line_sum_auto_eligible([line])
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
+    ok, reason = line_sum_auto_eligible([line], corroborating_values=["34.25"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
 
 def test_dual_engine_must_match_selected_charge():

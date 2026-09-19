@@ -168,11 +168,18 @@ field_regions:
     x1: 555
     y1: 1811
     field_type: text
+  - field_name: insured_dob
+    # Box 11a — insured DOB (value band below "a. INSURED'S DATE OF BIRTH").
+    x0: 1004
+    y0: 735
+    x1: 1280
+    y1: 780
+    field_type: date
   - field_name: total_charge
-    x0: 1335
-    y0: 1755
-    x1: 1465
-    y1: 1810
+    x0: 1045
+    y0: 1805
+    x1: 1248
+    y1: 1875
     field_type: currency
   - field_name: amount_paid
     x0: 1470

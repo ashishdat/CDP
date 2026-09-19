@@ -189,11 +189,13 @@ _maybe_attach_dob_azure_di_residuals = _maybe_attach_dob_handwriting_residuals
 # OCR'ing them costs ~0.7s/claim for no STP gain.
 _STP_CRITICAL_FIELDS = frozenset({
     "patient_dob",
+    "insured_dob",
     "total_charge",
     "total_charges",
     "patient_name",
     "insured_id_number",
     "insured_name",
+    "rel_code",
 })
 
 
@@ -2244,6 +2246,27 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 cell['y0'] <= aligned[1] < aligned[3] <= cell['y1']):
             raise ValueError('Canonical region exceeds recorded safe cell')
         primary = _ocr_bbox(field['field'], aligned, cell, (image.width, image.height), template_fields)
+        # Box 28: the amount sits below the printed caption. Stale GeometryResult
+        # safe cells from the old (Box-29) ROI cannot contain the corrected
+        # template box — force the measured cms1500@03 value band.
+        if str(field.get('field') or '').casefold() in {'total_charge', 'total_charges'}:
+            try:
+                from packages.geometry_authority.box28 import (
+                    CMS1500_BOX28_FULL,
+                    box28_crop_variants,
+                )
+
+                # Prefer caption-excluded / tight value bands over stale GeometryResult
+                # safe cells that still point at Box 29.
+                variants = box28_crop_variants(CMS1500_BOX28_FULL)
+                primary = _clamp_bbox(variants[0], image.width, image.height)
+                # Stash alternate crops so the cascade ladder can retry without
+                # re-deriving geometry from the wrong template ROI.
+                field.setdefault('_box28_crop_variants', [
+                    list(_clamp_bbox(v, image.width, image.height)) for v in variants[1:]
+                ])
+            except Exception:  # noqa: BLE001
+                pass
         # Ranking requires every geometry field in the OCR artifact. Out-of-scope
         # fields get empty stubs (no OCR engines) so STP-critical stays fast.
         if not _field_in_scope(field.get('field') or ''):

@@ -304,7 +304,9 @@ def test_dual_engine_paddle_rapid_exact_agree():
     ]
     assert line_has_dual_engine_agreement(dual[0])
     ok, reason = line_sum_auto_eligible(dual)
-    assert ok and reason == "DUAL_ENGINE_LINE_AGREEMENT"
+    assert not ok and reason == "DUAL_ENGINE_NEEDS_BOX28"
+    ok, reason = line_sum_auto_eligible(dual, corroborating_values=["400.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
 
 def test_usable_local_plus_independent_gpt4o_exact_agree():
@@ -329,7 +331,9 @@ def test_usable_local_plus_independent_gpt4o_exact_agree():
     }
     assert line_has_gpt4o_local_consensus(line)
     ok, reason = line_sum_auto_eligible([line])
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
+    ok, reason = line_sum_auto_eligible([line], corroborating_values=["200.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
 
 def test_gpt4o_selected_with_agreeing_local_counts_as_confirm():
@@ -352,7 +356,9 @@ def test_gpt4o_selected_with_agreeing_local_counts_as_confirm():
     }
     assert line_has_gpt4o_local_consensus(line)
     ok, reason = line_sum_auto_eligible([line])
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
+    ok, reason = line_sum_auto_eligible([line], corroborating_values=["200.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
 
 def test_box28_exact_corroborates_line_sum():
@@ -367,7 +373,7 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     assert not ok
     assert reason == "SINGLE_LINE_REQUIRES_DI"
 
-    # Single-line paddle+rapid exact agree is local independent confirmation.
+    # Single-line paddle+rapid without Box 28 stays HITL (need independent total).
     single_dual = [
         {
             "charges": "222.00",
@@ -378,9 +384,11 @@ def test_line_sum_auto_requires_dual_engine_or_di():
         }
     ]
     ok, reason = line_sum_auto_eligible(single_dual)
-    assert ok and reason == "SINGLE_LINE_DUAL_ENGINE"
+    assert not ok and reason == "SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28"
+    ok, reason = line_sum_auto_eligible(single_dual, corroborating_values=["222.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
-    # paddle+rapid+gpt-4o consensus unlocks single-line AUTO when selected is local.
+    # paddle+rapid+gpt-4o consensus still needs Box 28 / DI corroboration.
     single_triple = [
         {
             "charges": "200.00",
@@ -393,9 +401,8 @@ def test_line_sum_auto_requires_dual_engine_or_di():
         }
     ]
     ok, reason = line_sum_auto_eligible(single_triple)
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
 
-    # gpt-4o + paddle alone (rapid empty) is enough when selected is local.
     single_gpt_paddle = [
         {
             "charges": "200.00",
@@ -407,9 +414,8 @@ def test_line_sum_auto_requires_dual_engine_or_di():
         }
     ]
     ok, reason = line_sum_auto_eligible(single_gpt_paddle)
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
 
-    # gpt-4o vs disagreeing near-range local → still HITL.
     conflict_local = [
         {
             "charges": "200.00",
@@ -423,19 +429,25 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ok, reason = line_sum_auto_eligible(conflict_local)
     assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
 
-    # Junk box-28 must not force CONFLICT over a gpt-4o-local line.
+    # Junk box-28 is ignored; still needs a real corroborator.
     ok, reason = line_sum_auto_eligible(
         single_triple, corroborating_values=["208408.00"]
     )
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
 
-    # Near-miss box-28 cannot veto gpt-4o+local line consensus.
+    # Near-miss box-28 conflicts with the line sum → HITL.
     ok, reason = line_sum_auto_eligible(
         single_triple, corroborating_values=["222.00"]
     )
-    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "BOX28_OR_DI_CONFLICT"
 
-    # Multi-line: every line gpt-4o+local → AUTO.
+    # Matching Box 28 unlocks AUTO.
+    ok, reason = line_sum_auto_eligible(
+        single_triple, corroborating_values=["200.00"]
+    )
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
+
+    # Multi-line gpt-4o+local without Box 28 stays HITL.
     multi_gpt = [
         {
             "charges": "200.00",
@@ -455,7 +467,9 @@ def test_line_sum_auto_requires_dual_engine_or_di():
         },
     ]
     ok, reason = line_sum_auto_eligible(multi_gpt)
-    assert ok and reason == "MULTI_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
+    ok, reason = line_sum_auto_eligible(multi_gpt, corroborating_values=["400.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
     # Digit-drop twin gpt-4o↔local is NOT consensus (exact/$1 only on this path).
     twin_gpt = [
@@ -488,9 +502,9 @@ def test_line_sum_auto_requires_dual_engine_or_di():
         },
     ]
     ok, reason = line_sum_auto_eligible(dual)
-    assert ok and reason == "DUAL_ENGINE_LINE_AGREEMENT"
+    assert not ok and reason == "DUAL_ENGINE_NEEDS_BOX28"
 
-    # paddle + gpt-4o on every line is MULTI_LINE_GPT4O_LOCAL when selected is local.
+    # paddle + gpt-4o on every line still needs Box 28.
     paddle_gpt4o = [
         {
             "charges": "485.00",
@@ -510,7 +524,9 @@ def test_line_sum_auto_requires_dual_engine_or_di():
         },
     ]
     ok, reason = line_sum_auto_eligible(paddle_gpt4o)
-    assert ok and reason == "MULTI_LINE_GPT4O_LOCAL"
+    assert not ok and reason == "GPT4O_LOCAL_NEEDS_BOX28"
+    ok, reason = line_sum_auto_eligible(paddle_gpt4o, corroborating_values=["970.00"])
+    assert ok and reason == "BOX28_OR_DI_CORROBORATED"
 
     # paddle-only multi-line (no gpt-4o) still needs dual-engine on each line.
     paddle_only_multi = [

@@ -1,7 +1,7 @@
 {
-  "count": 7,
+  "count": 16,
   "by_kind": {
-    "LABEL_SOURCE_CONFLICT": 7,
+    "LABEL_SOURCE_CONFLICT": 16,
     "PACKAGE_MAPPING_CONFLICT": 0,
     "AMBIGUOUS_TOTAL_CHARGE_SEMANTICS": 0,
     "MISSING_SOURCE_FIELD": 0,
@@ -78,6 +78,96 @@
       "source_value": "49.72",
       "page_index": 0,
       "detail": "Printed digits 4972 sit across the cents ruling as 49.72. Not used as an extraction hint; unresolved cents stay HITL.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJF.005",
+      "field_name": "total_charge",
+      "label_value": "270.01",
+      "source_value": "270.00",
+      "page_index": 0,
+      "detail": "Silver cents bleed; printed Box 28/24F is 270.00.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJF.009",
+      "field_name": "total_charge",
+      "label_value": "281.00",
+      "source_value": "270.00",
+      "page_index": 0,
+      "detail": "Silver 281; printed charge is 270.00.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJF.010",
+      "field_name": "total_charge",
+      "label_value": "270.01",
+      "source_value": "270.00",
+      "page_index": 0,
+      "detail": "Silver cents bleed; printed total is 270.00.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJM.003",
+      "field_name": "total_charge",
+      "label_value": "27010.00",
+      "source_value": "270.00",
+      "page_index": 0,
+      "detail": "Silver absorbed Box 24G units into the charge.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJM.019",
+      "field_name": "total_charge",
+      "label_value": "26.00",
+      "source_value": "270.00",
+      "page_index": 0,
+      "detail": "Printed lines 135+135; Box 28 reads 270.00. Silver 26 is not the source total.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJM.023",
+      "field_name": "total_charge",
+      "label_value": "223.00",
+      "source_value": "212.00",
+      "page_index": 0,
+      "detail": "Visible Box 24F/28 is 212.00.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJF.005",
+      "field_name": "patient_name",
+      "label_value": "RENTER ROVINSK",
+      "source_value": "RENTER ROVINSKI",
+      "page_index": 0,
+      "detail": "Silver truncates the final I.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJF.009",
+      "field_name": "patient_name",
+      "label_value": "CONNELLASARAH",
+      "source_value": "CONNELL SARAH",
+      "page_index": 0,
+      "detail": "Silver concatenates name tokens.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJM.002",
+      "field_name": "insured_name",
+      "label_value": "NICOLAS WILLIAM",
+      "source_value": "SAN NICOLAS WILLIAM",
+      "page_index": 0,
+      "detail": "Silver drops the SAN prefix present on the form.",
       "quarantine_from_accuracy": true
     }
   ]

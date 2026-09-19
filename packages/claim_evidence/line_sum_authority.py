@@ -1,15 +1,15 @@
 """When box-28 OCR is empty, invalid, or strongly contradicts observed lines,
 prefer LINE_TOTALS_RECONCILED from service-line ink (never invent amounts).
 
-AUTO on line-sum is fail-closed. GPT-4o never independently promotes a critical
-charge field. Eligible paths:
+AUTO on line-sum is fail-closed. Eligible path:
 
-  - ≥2 independent usable local OCR families agree (exact / $1 only; no digit-drop);
-  - one usable local OCR + independently produced Azure DI agree (dual-engine);
-  - one usable local OCR + GPT-4o agree (exact / $1 only) when the selected value
-    was independently produced and provenance proves independence;
   - service-line sum corroborated by independently extracted box-28 / DI
     (``amounts_corroborate``, which may use digit-drop twins — box-28/DI only).
+
+Dual-engine or gpt-4o+local agreement on service-line crops alone is **not**
+enough for AUTO: those share the Box 24F evidence path and are not a second
+printed occurrence of the claim total. GPT-4o never independently promotes a
+critical charge field.
 
 Shell / form-noise locals are not corroboration. Shared crop, parent evidence,
 or independence_group lineage means candidates are not independent → HITL.
@@ -32,8 +32,24 @@ def parse_currency(value: object) -> Decimal | None:
     raw = str(value or "").strip()
     if not raw:
         return None
+    # OCR often emits space/colon as the dollars|cents separator, or a
+    # thousands space (``4 972``). Repair before stripping non-digits.
+    text = raw.lstrip("$").replace(",", "")
+    text = re.sub(r"[Oo]", "0", text)  # confusable O→0 in amounts
+    text = re.sub(r"[gG]", "0", text)  # confusable g→0 (``60g.00``)
+    m = re.fullmatch(r"(\d{1,6})[\s:.](\d{2})", text)
+    if m:
+        text = f"{m.group(1)}.{m.group(2)}"
+    else:
+        m = re.fullmatch(r"(\d{1,3})\s(\d{3})", text)
+        if m:
+            text = f"{m.group(1)}{m.group(2)}.00"
+        else:
+            m = re.fullmatch(r"(\d{1,3})\s(\d{3})[\s:.](\d{2})", text)
+            if m:
+                text = f"{m.group(1)}{m.group(2)}.{m.group(3)}"
     try:
-        return Decimal(re.sub(r"[^0-9.-]", "", raw))
+        return Decimal(re.sub(r"[^0-9.-]", "", text))
     except (InvalidOperation, ValueError):
         return None
 
@@ -563,11 +579,6 @@ def line_sum_auto_eligible(
         for ln in lines
         if any(parse_currency(ln.get(k)) is not None for k in _CHARGE_FIELDS)
     ]
-    gpt_agreed, gpt_observed = gpt4o_local_line_fraction(charge_lines)
-    if gpt_observed >= 1 and gpt_agreed >= gpt_observed:
-        if gpt_observed == 1:
-            return True, "SINGLE_LINE_GPT4O_LOCAL"
-        return True, "MULTI_LINE_GPT4O_LOCAL"
 
     corroborators = []
     for value in [box28_value, *(corroborating_values or [])]:
@@ -583,15 +594,20 @@ def line_sum_auto_eligible(
         # Plausible currency-shaped box-28 / DI disagrees → HITL, not false STP.
         return False, "BOX28_OR_DI_CONFLICT"
 
+    # No independent Box 28 / DI total: do not AUTO from line consensus alone.
+    # Printed CMS-1500 authority is Box 24F Σ ↔ Box 28; dual-engine / gpt+local
+    # on the same service-line crops is not a second printed occurrence.
+    gpt_agreed, gpt_observed = gpt4o_local_line_fraction(charge_lines)
+    if gpt_observed >= 1 and gpt_agreed >= gpt_observed:
+        return False, "GPT4O_LOCAL_NEEDS_BOX28"
+
     agreed, observed = dual_engine_line_fraction(service_lines)
     if observed == 0:
         return False, "NO_LINE_CHARGES"
     if observed == 1:
-        # Local independent confirmation (paddle+rapid exact/$1) is enough for
-        # a single observed charge line when DI/gpt-4o paths did not fire.
         if agreed >= 1:
-            return True, "SINGLE_LINE_DUAL_ENGINE"
+            return False, "SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28"
         return False, "SINGLE_LINE_REQUIRES_DI"
     if agreed >= observed >= 2:
-        return True, "DUAL_ENGINE_LINE_AGREEMENT"
+        return False, "DUAL_ENGINE_NEEDS_BOX28"
     return False, "MULTI_LINE_UNCORROBORATED"
