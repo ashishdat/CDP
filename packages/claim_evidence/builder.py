@@ -677,7 +677,6 @@ class ClaimEvidenceBuilder:
         self, claim_id, values, lines, evidence, contradictions
     ) -> None:
         """Evidence-based E6 when selected Box 24F Σ equals Box 28 exactly."""
-        del contradictions  # conflicts stay as evaluated evidence, not claim contradictions
         try:
             from packages.claim_evidence.financial_geometry_authority import (
                 evaluate_financial_geometry_arithmetic,
