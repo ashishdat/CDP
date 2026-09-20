@@ -1,0 +1,82 @@
+{
+  "_comment": "Operator-authorized member index for locked-50 identity residuals. Fill patient_name / patient_dob / insured_name only from an independently verified enrollment or payment record. Set authorized=true and identity_verified=true only after human attestation. Never copy Golden / agent OCR labels. Point CDP_AUTHORIZED_MEMBER_INDEX at this file when ready.",
+  "members": {
+    "966365929": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-template-v1",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.020"
+    },
+    "5079520266": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-template-v1",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.019"
+    },
+    "C0N43064368": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-template-v1",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.023"
+    },
+    "742357840": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-template-v1",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.025"
+    },
+    "Q1739518": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-template-v1",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.034"
+    },
+    "97734518": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-template-v1",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.035"
+    },
+    "31411100": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-template-v1",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.013"
+    }
+  }
+}

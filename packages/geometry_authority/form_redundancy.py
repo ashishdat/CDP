@@ -80,7 +80,32 @@ def names_agree(left: object, right: object) -> bool:
         return True
     # Token-set equality (LAST FIRST vs FIRST LAST).
     ta, tb = set(a.split()), set(b.split())
-    return bool(ta) and ta == tb
+    if bool(ta) and ta == tb:
+        return True
+    # OCR confusable twins (FRANCAVLLA↔FRANCAVILLA, ROVINSK↔ROVINSKI) are the
+    # same printed identity across Box 2 / Box 4 — not a relationship conflict.
+    try:
+        from packages.candidate_reconciliation.reconciler import (
+            _names_differ_by_confusable_edit,
+            _names_differ_by_confusable_insertion,
+            _names_differ_by_confusable_substitution,
+            _names_differ_by_optional_middle_initial,
+            _names_differ_by_token_order,
+            _names_differ_by_tokenwise_confusable,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    if _names_differ_by_confusable_substitution(left, right):
+        return True
+    if _names_differ_by_confusable_insertion(left, right):
+        return True
+    if _names_differ_by_confusable_edit(left, right):
+        return True
+    if _names_differ_by_tokenwise_confusable(left, right):
+        return True
+    if _names_differ_by_token_order(left, right):
+        return True
+    return bool(_names_differ_by_optional_middle_initial(left, right))
 
 
 def normalize_dob(value: object) -> str | None:
@@ -138,7 +163,7 @@ def reconcile_box2_box4_names(
     insured = normalize_person_name(insured_name)
     if not patient or not insured:
         return NameRedundancyResult(False, patient, insured, "NAME_MISSING")
-    if not names_agree(patient, insured):
+    if not names_agree(patient_name, insured_name):
         return NameRedundancyResult(False, patient, insured, "NAME_MISMATCH")
     if relationship is not None and str(relationship).strip():
         if not relationship_is_self(relationship):

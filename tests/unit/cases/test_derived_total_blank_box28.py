@@ -276,6 +276,92 @@ def test_financial_geometry_ignores_same_roi_competing_engine_soup():
     assert decision.reason == "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED"
 
 
+def test_financial_geometry_relieves_box28_single_junk_digit():
+    """``$400300`` beside clean Σ ``400.00`` is one junk digit, not a true total."""
+    lines = [
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                _cand("paddleocr", "200.00", "200.00", _CHARGE_BBOX),
+                _cand("rapidocr", "200.00", "200.00", _CHARGE_BBOX),
+            ],
+        },
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                _cand("paddleocr", "200.00", "200.00", _CHARGE_BBOX),
+                _cand("rapidocr", "200.00", "200.00", _CHARGE_BBOX),
+            ],
+        },
+    ]
+    decision = evaluate_financial_geometry_arithmetic(
+        box28_amount="400.40",
+        service_lines=lines,
+        box28_field_payload={
+            "ranked_candidate": {
+                "ocr_candidate": {"value": "400.40", "raw_value": "40040"}
+            },
+            "alternatives": [
+                {"ocr_candidate": {"value": "4003.00", "raw_value": "$400300"}},
+            ],
+            "candidates": [
+                {"value": "400.40", "raw_value": "40040"},
+                {"value": "4003.00", "raw_value": "$400300"},
+            ],
+            "attempts": [
+                {"observation": {"text": "$400300"}},
+                {"observation": {"text": "40040"}},
+            ],
+        },
+    )
+    assert decision.confirmed
+    assert decision.amount == "400.00"
+    assert decision.details.get("box28_raw_junk_digit_relieved") is True
+
+
+def test_names_agree_confusable_insertion_twins():
+    from packages.geometry_authority.form_redundancy import (
+        names_agree,
+        reconcile_box2_box4_names,
+    )
+
+    assert names_agree("FRANCAVLLA, THOMAS J", "FRANCAVILLA. THOMAS J")
+    assert names_agree("RENTER, ROVINSKI", "RENTER. ROVINSK")
+    # Explicit non-Self keeps BOX2↔4 E6 gated even when names soft-match.
+    recon_spouse = reconcile_box2_box4_names(
+        "FRANCAVLLA, THOMAS J",
+        "FRANCAVILLA. THOMAS J",
+        relationship="SPOUSE",
+    )
+    assert not recon_spouse.agreed
+    assert recon_spouse.reason == "RELATIONSHIP_NOT_SELF"
+    # Self + confusable twins confirm Box 2↔4.
+    recon_self = reconcile_box2_box4_names(
+        "FRANCAVLLA, THOMAS J",
+        "FRANCAVILLA. THOMAS J",
+        relationship="SELF",
+    )
+    assert recon_self.agreed
+    assert recon_self.reason == "BOX2_BOX4_SELF_AGREE"
+    assert not reconcile_box2_box4_names(
+        "REMS KEVIN IOHN",
+        "BRYANT BURRUS-JOYCE",
+        relationship="SELF",
+    ).agreed
+
+
 def test_financial_geometry_soft_integrity_when_exact_match():
     """Glyph integrity failure must not block already-agreeing Σ == Box28."""
     lines = [

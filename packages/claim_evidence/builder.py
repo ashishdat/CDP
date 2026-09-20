@@ -462,7 +462,16 @@ class ClaimEvidenceBuilder:
         auto-accept patient_name. This fact also requires a real date of birth
         and a shaped member id, and it refuses an explicit non-self relationship.
         """
-        if original_relationship not in {"", "SELF", "18", "01"}:
+        # Explicit non-Self (SPOUSE/CHILD/…) blocks this E6 path. Soft OCR twins
+        # still unlock patient_name via MEMBER_RELATIONSHIP_CONFIRMED (inferred
+        # Self) which the patient_name policy now allows.
+        if str(original_relationship or "").strip().upper() not in {
+            "",
+            "SELF",
+            "18",
+            "01",
+            "1",
+        }:
             return False
         if not names_agree:
             return False

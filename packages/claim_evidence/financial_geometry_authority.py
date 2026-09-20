@@ -155,6 +155,80 @@ def _same_roi_competing_soup(
     return _present(conf_digits, box_dollars) and _present(alt_digits, alt_dollars)
 
 
+def _collect_box28_raw_texts(
+    box28_field_payload: dict | None,
+    box28_observation: dict | None,
+    box28_amount: object = None,
+) -> list[str]:
+    texts: list[str] = []
+    if box28_amount not in (None, ""):
+        texts.append(str(box28_amount))
+    if isinstance(box28_observation, dict):
+        for key in ("text", "raw_digit_sequence", "canonical_monetary_value"):
+            if box28_observation.get(key) not in (None, ""):
+                texts.append(str(box28_observation[key]))
+        for token in box28_observation.get("raw_tokens") or []:
+            texts.append(str(token))
+        for attempt in box28_observation.get("attempts") or []:
+            if not isinstance(attempt, dict):
+                continue
+            obs = attempt.get("observation") or {}
+            if isinstance(obs, dict):
+                texts.extend(
+                    str(obs[k])
+                    for k in ("text", "raw_digit_sequence")
+                    if obs.get(k) not in (None, "")
+                )
+    if isinstance(box28_field_payload, dict):
+        rows = []
+        if box28_field_payload.get("ranked_candidate"):
+            rows.append(box28_field_payload["ranked_candidate"])
+        rows.extend(box28_field_payload.get("alternatives") or [])
+        rows.extend(box28_field_payload.get("candidates") or [])
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            ocr = row.get("ocr_candidate") or row
+            for key in ("value", "raw_value"):
+                if ocr.get(key) not in (None, ""):
+                    texts.append(str(ocr[key]))
+        for attempt in box28_field_payload.get("attempts") or []:
+            if not isinstance(attempt, dict):
+                continue
+            obs = attempt.get("observation") or {}
+            if isinstance(obs, dict) and obs.get("text"):
+                texts.append(str(obs["text"]))
+    return texts
+
+
+def _raw_matches_sum_with_single_junk_digit(line_sum: str, raw_texts: list[str]) -> bool:
+    """True when a Box 28 raw digit blob equals Σ after deleting ≤1 junk digit.
+
+    Example: ``$400300`` → delete ``3`` → ``40000`` for Σ ``400.00``. Does not
+    choose between two clean printed totals.
+    """
+    target = re.sub(r"\D", "", line_sum)
+    if not target:
+        return False
+    for text in raw_texts:
+        raw = str(text or "")
+        # A clean money form that already disagrees is a real printed rival.
+        if re.search(r"\d+\.\d{2}", raw):
+            parsed = parse_currency(raw)
+            if parsed is not None and format_currency(parsed) != line_sum:
+                continue
+        digits = re.sub(r"\D", "", raw)
+        if not digits:
+            continue
+        if digits == target:
+            return True
+        if len(digits) == len(target) + 1:
+            for idx in range(len(digits)):
+                if digits[:idx] + digits[idx + 1 :] == target:
+                    return True
+    return False
+
+
 def evaluate_financial_geometry_arithmetic(
     *,
     box28_amount: object,
@@ -210,6 +284,23 @@ def evaluate_financial_geometry_arithmetic(
             details={"rows": details_rows},
         )
     if box != total:
+        raw_texts = _collect_box28_raw_texts(
+            box28_field_payload, box28_observation, box28_amount
+        )
+        if _raw_matches_sum_with_single_junk_digit(line_sum, raw_texts):
+            return FinancialGeometryDecision(
+                True,
+                line_sum,
+                "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                line_sum=line_sum,
+                box28=line_sum,
+                details={
+                    "rows": details_rows,
+                    "box28_raw_junk_digit_relieved": True,
+                    "ocr_box28": box_txt,
+                    "raw_texts": raw_texts[:8],
+                },
+            )
         return FinancialGeometryDecision(
             False,
             None,
