@@ -72,6 +72,7 @@ class ClaimEvidenceBuilder:
         self._member_identity(claim_id, claim_values, evidence, contradictions)
         self._form_field_redundancy(claim_id, claim_values, evidence, contradictions)
         self._provider_identity(claim_id, claim_values, evidence, contradictions)
+        self._box28_line_sum_authority(claim_id, claim_values, lines, evidence, contradictions)
         if document_family.upper() == "UB04":
             self._ub04_lines(claim_id, lines, evidence, contradictions)
         return ClaimEvidenceResult(
@@ -637,6 +638,67 @@ class ClaimEvidenceBuilder:
                         "supported_fields": ["patient_dob"],
                         "reason": "BOX11A_IS_INSURED_DOB_WHEN_IDENTITIES_DIFFER",
                     },
+                )
+            )
+
+    def _box28_line_sum_authority(
+        self, claim_id, values, lines, evidence, contradictions
+    ) -> None:
+        """Independent Box 28 ↔ Box 24F corroboration for total_charge AUTO."""
+        try:
+            from packages.claim_evidence.box28_line_sum_authority import (
+                evaluate_box28_line_sum_authority,
+            )
+        except Exception:  # noqa: BLE001
+            return
+        box28_amount = values.get("total_charge") or values.get("total_charges")
+        field_payload = values.get("_box28_field_payload")
+        decision = evaluate_box28_line_sum_authority(
+            box28_amount=box28_amount,
+            service_lines=lines,
+            box28_field_payload=field_payload if isinstance(field_payload, dict) else None,
+            box28_region=values.get("_box28_region"),
+            box28_observation=values.get("_box28_geometry_observation")
+            if isinstance(values.get("_box28_geometry_observation"), dict)
+            else None,
+        )
+        metadata = {
+            "supported_fields": ["total_charge", "total_charges"],
+            "authority": decision.to_dict(),
+            "authority_reason": decision.authority_reason,
+            "failed_predicate": decision.failed_predicate,
+            "predicates": [p.to_dict() for p in decision.predicates],
+        }
+        if decision.disposition == "AUTO_ACCEPTED" and decision.amount:
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "BOX28_LINE_SUM_CORROBORATED",
+                    decision.amount,
+                    metadata,
+                )
+            )
+            # Bind the confirmed total so CLAIM_TOTAL paths stay consistent.
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "CLAIM_TOTAL_CONFIRMED",
+                    decision.amount,
+                    {
+                        **metadata,
+                        "reason": "BOX28_LINE_SUM_CORROBORATED",
+                        "claim_total": decision.amount,
+                        "service_line_total": decision.line_sum_amount,
+                    },
+                )
+            )
+        else:
+            contradictions.append(
+                self._item(
+                    claim_id,
+                    decision.authority_reason or "AUTHORITY_RULE_NOT_REACHED",
+                    decision.line_sum_amount or box28_amount,
+                    metadata,
                 )
             )
 

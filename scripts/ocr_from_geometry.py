@@ -1890,15 +1890,24 @@ def recognize_service_lines(image, router, template):
             )
             geometry_confirmed = False
             try:
-                from packages.geometry_authority.cms1500_regions import CMS1500_LINE_COLUMNS
+                from packages.geometry_authority.cms1500_regions import (
+                    CMS1500_CHARGE_CENTS_X,
+                    CMS1500_LINE_COLUMNS,
+                )
                 from packages.geometry_authority.monetary_geometry import read_monetary_crop
 
                 ch0, ch1 = CMS1500_LINE_COLUMNS["charges"]
                 center_x = (float(bbox[0]) + float(bbox[2])) / 2.0
+                crop_x1 = float(bbox[2])
                 if not (ch0 - 8 <= center_x <= ch1 + 8):
                     # Diagnosis-pointer window. Not an independent Box 24F read.
                     value = None
                     reason = f'{reason}|BOX24F_WINDOW_REJECTED'
+                elif crop_x1 < CMS1500_CHARGE_CENTS_X + 12:
+                    # Clipped before the cents column — do not confirm geometry
+                    # and never let a clipped window overwrite a fuller OCR amount.
+                    reason = f'{reason}|BOX24F_CENTS_CLIPPED'
+                    geometry_confirmed = False
                 else:
                     geo = read_monetary_crop(
                         image.crop(bbox),
@@ -1961,6 +1970,9 @@ def recognize_service_lines(image, router, template):
                     value = None
             if geometry_confirmed and value:
                 score += 5
+            if 'BOX24F_CENTS_CLIPPED' in str(reason or ''):
+                # Cents-clipped crops are strictly dominated by fuller Box 24F windows.
+                score = max(0, score - 3)
             # A validated cents-column read must not lose to a clipped window
             # that shape_monetary turned into a different .00 amount.
             if best is not None and best.get('_geometry') and not geometry_confirmed:
@@ -2606,41 +2618,41 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     'canonical_monetary_value': geo.canonical_monetary_value,
                     'adopted': adopt_geometry,
                 }
-                dig_cands.insert(0, {
-                    'value': geo_val,
-                    'raw_value': geo.raw_glyph_sequence,
-                    'engine': 'rapidocr',
-                    'model_name': 'geometry-cents',
-                    'model_version': 'monetary-geometry',
-                    'preprocessing_variant': 'GEOMETRY_CENTS',
-                    'raw_confidence': 0.91,
-                    'calibrated_confidence': None,
-                    'bounding_box': {
-                        'x0': float(primary[0]),
-                        'y0': float(primary[1]),
-                        'x1': float(primary[2]),
-                        'y1': float(primary[3]),
-                        'image_width': int(image.width),
-                        'image_height': int(image.height),
-                    },
-                    'latency_ms': 0.0,
-                    'validation_results': [],
-                    'evidence_reference': 'GEOMETRY_CENTS',
-                    'estimated_cost_usd': 0.0,
-                    'actual_cost_usd': None,
-                    'preprocessing_version': 'geometry-cents',
-                    'registration_confidence': None,
-                    'image_quality_score': None,
-                    # EvidenceProvenance forbids freeform monetary keys — keep
-                    # typed lineage empty and persist geometry on the attempt.
-                    'provenance': None,
-                })
                 dig_attempts = list(dig_attempts or []) + [{
                     'engine': 'rapidocr',
                     'reason': 'GEOMETRY_CENTS' if adopt_geometry else 'GEOMETRY_CENTS_UNDERREAD',
                     'observation': monetary_observation,
                 }]
                 if adopt_geometry:
+                    dig_cands.insert(0, {
+                        'value': geo_val,
+                        'raw_value': geo.raw_glyph_sequence,
+                        'engine': 'rapidocr',
+                        'model_name': 'geometry-cents',
+                        'model_version': 'monetary-geometry',
+                        'preprocessing_variant': 'GEOMETRY_CENTS',
+                        'raw_confidence': 0.91,
+                        'calibrated_confidence': None,
+                        'bounding_box': {
+                            'x0': float(primary[0]),
+                            'y0': float(primary[1]),
+                            'x1': float(primary[2]),
+                            'y1': float(primary[3]),
+                            'image_width': int(image.width),
+                            'image_height': int(image.height),
+                        },
+                        'latency_ms': 0.0,
+                        'validation_results': [],
+                        'evidence_reference': 'GEOMETRY_CENTS',
+                        'estimated_cost_usd': 0.0,
+                        'actual_cost_usd': None,
+                        'preprocessing_version': 'geometry-cents',
+                        'registration_confidence': None,
+                        'image_quality_score': None,
+                        # EvidenceProvenance forbids freeform monetary keys — keep
+                        # typed lineage empty and persist geometry on the attempt.
+                        'provenance': None,
+                    })
                     selected = geo_val
                     dig_reason = f'{dig_reason}|GEOMETRY_CENTS'
                 else:

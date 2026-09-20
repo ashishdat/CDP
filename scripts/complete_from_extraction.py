@@ -179,7 +179,102 @@ def decide(extraction, family):
     services = DecisionServiceFactory.from_profile()
     deterministic = DeterministicEvidenceService()
     claim_id = extraction['document']['document_id']
+    from packages.claim_evidence.line_sum_authority import (
+        is_decimal_place_shift,
+        line_sum_auto_eligible,
+        parse_currency,
+        should_defer_box28_to_line_sum,
+    )
     values = {f['field_name']: f['normalized_value'] for f in fields}
+    # Attach Box 28 geometry observation for independent corroboration authority.
+    for charge_field in ('total_charge', 'total_charges'):
+        field_payload = next(
+            (f for f in fields if f.get('field_name') == charge_field), None
+        )
+        if not field_payload:
+            continue
+        values['_box28_field_payload'] = field_payload
+        obs = None
+        ocr_block = field_payload.get('ocr') or {}
+        for attempt in ocr_block.get('attempts') or []:
+            reason = str(attempt.get('reason') or '')
+            if 'GEOMETRY_CENTS' in reason and 'UNDERREAD' not in reason:
+                if isinstance(attempt.get('observation'), dict):
+                    candidate_obs = dict(attempt['observation'])
+                    if candidate_obs.get('adopted') is False:
+                        continue
+                    obs = candidate_obs
+                    break
+        if obs is None:
+            for cand in ocr_block.get('candidates') or []:
+                if str(cand.get('preprocessing_variant') or '') != 'GEOMETRY_CENTS':
+                    continue
+                obs = {
+                    'text': cand.get('raw_value') or '',
+                    'raw_digit_sequence': re.sub(
+                        r'\D', '', str(cand.get('raw_value') or cand.get('value') or '')
+                    ),
+                    'canonical_monetary_value': cand.get('value'),
+                    'shaped': cand.get('value'),
+                    'adopted': True,
+                }
+                prov = cand.get('provenance')
+                if isinstance(prov, dict):
+                    obs.update({k: v for k, v in prov.items() if v is not None})
+                break
+        if obs is None:
+            for row in (
+                [field_payload.get('ranked_candidate')]
+                if field_payload.get('ranked_candidate')
+                else []
+            ) + list(field_payload.get('alternatives') or []):
+                if not row:
+                    continue
+                ocr = row.get('ocr_candidate') or {}
+                if str(ocr.get('preprocessing_variant') or '') != 'GEOMETRY_CENTS':
+                    continue
+                obs = {
+                    'text': ocr.get('raw_value') or '',
+                    'raw_digit_sequence': re.sub(
+                        r'\D', '', str(ocr.get('raw_value') or ocr.get('value') or '')
+                    ),
+                    'canonical_monetary_value': ocr.get('value'),
+                    'shaped': ocr.get('value'),
+                    'adopted': True,
+                }
+                break
+        if obs:
+            values['_box28_geometry_observation'] = obs
+            # Prefer the integrity-passing geometry amount as the Box 28 value
+            # when normalized OCR still holds a clipped/fragment competitor.
+            geo_amount = obs.get('canonical_monetary_value') or obs.get('shaped')
+            if geo_amount and parse_currency(geo_amount) is not None:
+                current = values.get(charge_field)
+                if (
+                    current in (None, '')
+                    or is_decimal_place_shift(current, geo_amount)
+                    or (
+                        parse_currency(current) is not None
+                        and parse_currency(current) != parse_currency(geo_amount)
+                        and str(obs.get('raw_digit_sequence') or '')
+                        == re.sub(r'\D', '', str(geo_amount))
+                    )
+                ):
+                    values[charge_field] = str(geo_amount)
+        region = None
+        for cand in ocr_block.get('candidates') or []:
+            bbox = cand.get('bounding_box')
+            if isinstance(bbox, dict) and bbox.get('x0') is not None:
+                region = (bbox.get('x0'), bbox.get('y0'), bbox.get('x1'), bbox.get('y1'))
+                break
+        if region is None:
+            region = tuple(ocr_block.get('canonical_region') or [])[:4] or None
+            if region and len(region) == 4:
+                region = tuple(float(v) for v in region)
+            else:
+                region = (1045.0, 1805.0, 1248.0, 1875.0)
+        values['_box28_region'] = region
+        break
     # Relationship checkbox OCR often validates INVALID while the ranked
     # candidate still carries a shaped SELF/CHILD/SPOUSE/OTHER code. Feed that
     # into claim evidence so Box 2/4 disagreement is interpreted correctly.
@@ -224,6 +319,35 @@ def decide(extraction, family):
             values[rel_field] = shaped
     # Existing cross-field facts feed the existing decision rules. No evidence acquisition.
     service_lines = extraction.get('service_lines') or []
+    # Repair cents-clipped Box 24F shells using independent OCR candidates so
+    # Box 28 ↔ line-sum authority and CLAIM_TOTAL_CONFIRMED see the same ink.
+    try:
+        from packages.claim_evidence.box28_line_sum_authority import build_box24f_rows
+        from packages.geometry_authority.cms1500_regions import CMS1500_CHARGE_CENTS_X
+
+        repaired_lines = []
+        for line in service_lines:
+            if not isinstance(line, dict):
+                repaired_lines.append(line)
+                continue
+            region = line.get('canonical_region') or line.get('ocr_region')
+            clipped = False
+            if isinstance(region, (list, tuple)) and len(region) >= 3:
+                clipped = float(region[2]) < CMS1500_CHARGE_CENTS_X + 12
+            if not clipped:
+                repaired_lines.append(line)
+                continue
+            rows = build_box24f_rows([line])
+            if rows and rows[0].integrity.passed and rows[0].amount:
+                updated = dict(line)
+                updated['charges'] = rows[0].amount
+                updated['charge_amount'] = rows[0].amount
+                repaired_lines.append(updated)
+            else:
+                repaired_lines.append(line)
+        service_lines = repaired_lines
+    except Exception:  # noqa: BLE001
+        pass
     # Prefer observed service-line Σ when box-28 is empty, suspicious-tiny, or
     # strongly contradicts multi-line charges (uncalibrated OCR soup).
     from packages.claim_evidence.line_sum_authority import (

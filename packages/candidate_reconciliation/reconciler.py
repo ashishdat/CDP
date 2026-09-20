@@ -1656,6 +1656,7 @@ class EvidenceReconciler:
                     & {
                         "CLAIM_TOTAL_CONFIRMED",
                         "FINANCIAL_RECONCILIATION_VALID",
+                        "BOX28_LINE_SUM_CORROBORATED",
                     }
                 )
                 # Bare LINE_TOTALS_RECONCILED is observed ink only — AUTO requires
@@ -1898,6 +1899,42 @@ class EvidenceReconciler:
                 for other in competing_values
                 if not values_conflict_equivalent(field_name, value, other)
             ]
+            # Decimal-place / fragment charge OCR is not a genuine conflict when
+            # Box 28 ↔ line-sum financial authority already confirmed the total.
+            if field_name in {"total_charge", "total_charges"} and financial_authority:
+                from packages.claim_evidence.line_sum_authority import (
+                    is_decimal_place_shift,
+                    parse_currency,
+                )
+
+                primary_amt = parse_currency(value)
+                cleared: list[str] = []
+                for other in genuine:
+                    other_amt = parse_currency(other)
+                    if other_amt is None or primary_amt is None:
+                        continue
+                    # Same confirmed amount — not a conflict.
+                    if other_amt == primary_amt and not is_decimal_place_shift(value, other):
+                        continue
+                    # Place-shift / fragment of the confirmed total — drop.
+                    if is_decimal_place_shift(value, other):
+                        continue
+                    if primary_amt != other_amt:
+                        # Competing non-equal amounts stay only when they are
+                        # not digit-soup fragments of the confirmed total.
+                        confirmed_digits = re.sub(r"\D", "", str(value))
+                        other_digits = re.sub(r"\D", "", str(other))
+                        if (
+                            confirmed_digits
+                            and other_digits
+                            and (
+                                confirmed_digits in other_digits
+                                or other_digits in confirmed_digits
+                            )
+                        ):
+                            continue
+                    cleared.append(other)
+                genuine = cleared
             # Future-shaped DOB OCR is digit junk, not a genuine calendar conflict.
             if is_dob_field:
                 genuine = [

@@ -872,7 +872,9 @@ def reconstruct_from_canonical_glyphs(
     # Fixed form ruling may sit a few px off a given registration. When the
     # fixed boundary does not yield exactly two cent glyphs, pick the split
     # among consecutive charge digits whose boundary is nearest the canonical
-    # cents column and still yields two cents — still using canonical centres.
+    # cents column — but only when that boundary is tight to the printed
+    # cents ruling. A loose gap in the dollars column (3000 → 30.00) must not
+    # win.
     if (not dollars or len(cents) != 2) and len(charge_digits) >= 4:
         candidates: list[tuple[float, float, list[PageGlyph], list[PageGlyph]]] = []
         for index in range(1, len(charge_digits) - 1):
@@ -884,8 +886,10 @@ def reconstruct_from_canonical_glyphs(
             if gap < 4:
                 continue
             boundary = (left[-1].canonical_cx + right[0].canonical_cx) / 2.0
-            # Prefer splits near the printed cents column, not units bleed.
-            if boundary < cents_boundary - 40 or boundary > units_boundary:
+            # Require the split to sit in the printed cents-column band.
+            if abs(boundary - cents_boundary) > 12:
+                continue
+            if boundary > units_boundary:
                 continue
             distance = abs(boundary - cents_boundary)
             candidates.append((distance, -gap, left, right))
