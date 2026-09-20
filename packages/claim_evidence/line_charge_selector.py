@@ -574,6 +574,75 @@ def select_line_charge(
         )
     ]
     if fuller_rivals:
+        fuller_best = _rank(fuller_rivals)[0]
+        # When vision/geometry carries the fuller cents read and locals only have
+        # the dollars-ruling truncation of the same stem (157.00 vs Claude/gpt4o
+        # 157.07), select the fuller amount — do not leave amount=None (that kept
+        # stale place-shifted line Σ and fought Box 28).
+        local_stem_ok = any(
+            bool(families & _LOCAL_ENGINES) and _is_dollar_truncation(other, fuller_best)
+            for other, families in by_amount.items()
+        )
+        vision_or_geometry = (
+            "azure_gpt4o_crop" in by_amount.get(fuller_best, set())
+            or quality_by_amount.get(fuller_best, 0) >= 3
+        )
+        # Fail closed when a GEOMETRY_CENTS observation names a different amount
+        # than the vision fuller read (gpt 129.15 vs geometry 1291.15).
+        geo_conflict = False
+        fuller_amt = parse_currency(fuller_best)
+        for attempt in line.get("attempts") or []:
+            reason = str(attempt.get("reason") or "")
+            if "GEOMETRY_CENTS" not in reason:
+                continue
+            obs = attempt.get("observation") or {}
+            shaped = (
+                obs.get("shaped")
+                or obs.get("canonical_monetary_value")
+                or obs.get("value")
+            )
+            geo_amt = parse_currency(shaped)
+            if geo_amt is not None and fuller_amt is not None and geo_amt != fuller_amt:
+                geo_conflict = True
+                break
+        if local_stem_ok and vision_or_geometry and not geo_conflict:
+            return LineChargeSelection(
+                "SELECTED_LOCAL_CHARGE",
+                fuller_best,
+                "VISION_FULLER_DOLLARS_STEM_CORROBORATED",
+                supporting_engines=tuple(
+                    sorted(by_amount[fuller_best] | (by_amount.get(amount) or set()))
+                ),
+                rejected=tuple(rejected[:12]) + ((amount, "DOLLARS_TRUNCATION"),),
+            )
+        # Dual independent vision readers (gpt-4o + Claude) agreeing on the
+        # fuller cents amount override a conflicting GEOMETRY_CENTS place-shift
+        # soup (1571.07 vs 157.07). Single vision still fails closed on geo conflict.
+        vision_vendors: set[str] = set()
+        for cand in line.get("candidates") or []:
+            if not isinstance(cand, dict):
+                continue
+            if parse_currency(cand.get("value")) != fuller_amt:
+                continue
+            eng = str(cand.get("engine") or "").casefold()
+            if "claude" in eng or "anthropic" in eng:
+                vision_vendors.add("claude")
+            elif "gpt4o" in eng or "gpt-4o" in eng:
+                vision_vendors.add("gpt4o")
+        if local_stem_ok and len(vision_vendors) >= 2:
+            return LineChargeSelection(
+                "SELECTED_LOCAL_CHARGE",
+                fuller_best,
+                "DUAL_VISION_FULLER_DOLLARS_STEM_CORROBORATED",
+                supporting_engines=tuple(
+                    sorted(by_amount[fuller_best] | (by_amount.get(amount) or set()))
+                ),
+                rejected=tuple(rejected[:12])
+                + (
+                    (amount, "DOLLARS_TRUNCATION"),
+                    (fuller_best, "GEOMETRY_CENTS_OVERRIDDEN_BY_DUAL_VISION"),
+                ),
+            )
         return LineChargeSelection(
             "AMBIGUOUS_LINE_CHARGE",
             None,

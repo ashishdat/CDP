@@ -37,6 +37,7 @@ from scripts.run_hackathon_1000_cascade import (  # noqa: E402
 
 BASE = ROOT / "evaluation_results" / "hackathon_200_cascade_v12"
 REMEASURE_PREFER = [
+    ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_claude_charge_e2e_v1",
     ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_claude_evidence_v1",
     ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_gap_audit_v3",
     ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_defer_fix_v2",
@@ -49,7 +50,7 @@ BAKEOFF = (
 DEFAULT_OUT = (
     ROOT
     / "evaluation_results"
-    / "hackathon_200_cascade_v12_remeasure_claude_charge_e2e_v1"
+    / "hackathon_200_cascade_v12_remeasure_claude_charge_e2e_v2"
 )
 
 _VISION_FIELDS = frozenset(

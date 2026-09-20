@@ -201,6 +201,55 @@ def test_dollars_ruling_truncation_does_not_beat_geometry():
     assert result.reason == "DOLLARS_TRUNCATION_VS_FULLER_READ"
 
 
+def test_vision_fuller_cents_selected_when_locals_are_dollars_truncation():
+    """Claude/gpt-4o ``157.07`` wins over dual-local dollars-ruling ``157.00``."""
+    dollars_bbox = (1050.0, 1458.0, 1165.0, 1513.0)
+    line = {
+        "charges": "1571.07",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "157.07", "157.07", _CHARGE_BBOX),
+            _cand("azure_gpt4o_crop", "157.07", "157.07", _CHARGE_BBOX),
+            _cand("paddleocr", "15707.00", "15707", _CHARGE_BBOX),
+            _cand("paddleocr", "157.00", "157", dollars_bbox),
+            _cand("rapidocr", "157.00", "157", dollars_bbox),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "157.07"
+    assert result.reason == "VISION_FULLER_DOLLARS_STEM_CORROBORATED"
+
+
+def test_dual_vision_overrides_geometry_cents_place_shift_soup():
+    """gpt-4o+Claude 157.07 beat GEOMETRY_CENTS 1571.07 when locals stem-agree."""
+    dollars_bbox = (1050.0, 1458.0, 1165.0, 1513.0)
+    line = {
+        "charges": "1571.07",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "157.07", "157.07", _CHARGE_BBOX),
+            _cand("azure_gpt4o_crop", "157.07", "157.07", _CHARGE_BBOX),
+            _cand("paddleocr", "157.00", "157", dollars_bbox),
+            _cand("rapidocr", "157.00", "157", dollars_bbox),
+        ],
+        "attempts": [
+            {
+                "engine": "rapidocr",
+                "reason": "GEOMETRY_CENTS",
+                "observation": {
+                    "shaped": "1571.07",
+                    "canonical_monetary_value": "1571.07",
+                },
+            }
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "157.07"
+    assert result.reason == "DUAL_VISION_FULLER_DOLLARS_STEM_CORROBORATED"
+
+
 def test_ruling_split_raw_reconstructs_cents():
     """Local ``34\\n25`` is dollars|cents ink, not a dual-local 25.00."""
     line = {
