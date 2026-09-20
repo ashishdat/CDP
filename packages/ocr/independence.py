@@ -25,8 +25,14 @@ def independence_group(engine: str) -> str:
         return "FLORENCE_FAMILY"
     if "got-ocr" in normalized or "got_ocr" in normalized:
         return "GOT_OCR_FAMILY"
-    # gpt-4o crop residual before generic "azure" (DI Read) match.
-    if "gpt4o" in normalized or "gpt-4o" in normalized or "openai" in normalized:
+    # gpt-4o / Claude crop residuals before generic "azure" (DI Read) match.
+    if (
+        "gpt4o" in normalized
+        or "gpt-4o" in normalized
+        or "openai" in normalized
+        or "claude" in normalized
+        or "anthropic" in normalized
+    ):
         return "CLOUD_AI_FAMILY"
     if "azure" in normalized:
         return "AZURE_READ_FAMILY"

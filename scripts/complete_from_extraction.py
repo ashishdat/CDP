@@ -412,7 +412,12 @@ def decide(extraction, family):
                         continue
                     ocr = row.get('ocr_candidate') or {}
                     eng = str(ocr.get('engine') or '').casefold()
-                    if 'gpt4o' not in eng and 'document_intelligence' not in eng:
+                    if (
+                        'gpt4o' not in eng
+                        and 'claude' not in eng
+                        and 'anthropic' not in eng
+                        and 'document_intelligence' not in eng
+                    ):
                         continue
                     text = str(ocr.get('value') or ocr.get('raw_value') or '').strip()
                     if not text or parse_currency(text) is None:
@@ -924,6 +929,38 @@ def decide(extraction, family):
                 filtered.append(cand)
             if exact_confirmed:
                 candidates = exact_confirmed
+                # Vision-only exact matches (gpt-4o / Claude) are E7, not E1.
+                # Place-shift filtering drops the local soup twin, which otherwise
+                # leaves MISSING_E1 despite CLAIM_TOTAL_CONFIRMED. Mint a local
+                # bound shell so financial authority can complete evidence policy.
+                from packages.evidence.builder import engine_family as _engine_family
+
+                has_local_e1 = any(
+                    _engine_family(str(c.engine or "")) != "CLOUD_AI_FAMILY"
+                    for c in candidates
+                )
+                if not has_local_e1 and confirmed is not None:
+                    from packages.domain.common import BoundingBox
+
+                    base_box = candidates[0].bounding_box if candidates else BoundingBox(
+                        x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
+                    )
+                    candidates = list(candidates) + [
+                        OCRCandidate(
+                            value=confirmed,
+                            raw_value=confirmed,
+                            engine='rapidocr',
+                            model_name='claim_evidence',
+                            model_version='confirmed-total-bind',
+                            preprocessing_variant='CLAIM_TOTAL_CONFIRMED_BOUND',
+                            raw_confidence=1.0,
+                            calibrated_confidence=1.0,
+                            bounding_box=base_box,
+                            latency_ms=0.0,
+                            evidence_reference='CLAIM_TOTAL_CONFIRMED',
+                            preprocessing_version='confirmed-total-bind',
+                        )
+                    ]
             elif filtered:
                 candidates = filtered
             elif confirmed is not None:

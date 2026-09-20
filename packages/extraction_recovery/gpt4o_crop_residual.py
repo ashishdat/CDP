@@ -265,7 +265,7 @@ def _charge_candidates_have_place_shift_rival(
     texts: list[str] = []
     for cand in candidates:
         eng = str(cand.get("engine") or "").casefold()
-        if "gpt4o" in eng or "gpt-4o" in eng:
+        if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
             continue
         raw = cand.get("value") or cand.get("raw_value")
         parsed = parse_currency(raw)
@@ -322,7 +322,7 @@ def id_local_digit_conflict(candidates: list[Mapping[str, Any]] | None) -> bool:
     shaped: list[str] = []
     for cand in candidates:
         engine = str(cand.get("engine") or "")
-        if "gpt4o" in engine.casefold() or "gpt-4o" in engine.casefold():
+        if "gpt4o" in engine.casefold() or "gpt-4o" in engine.casefold() or "claude" in engine.casefold() or "anthropic" in engine.casefold():
             continue
         raw = cand.get("value") or cand.get("text")
         text = str(raw or "").strip()
@@ -385,7 +385,7 @@ def name_local_engine_conflict(candidates: list[Mapping[str, Any]] | None) -> bo
     shaped: list[str] = []
     for cand in candidates:
         engine = str(cand.get("engine") or "")
-        if "gpt4o" in engine.casefold() or "gpt-4o" in engine.casefold():
+        if "gpt4o" in engine.casefold() or "gpt-4o" in engine.casefold() or "claude" in engine.casefold() or "anthropic" in engine.casefold():
             continue
         raw = cand.get("value") or cand.get("text")
         text = _normalize(str(raw or ""))
@@ -418,7 +418,7 @@ def _local_names_need_vision_tiebreak(
     norms: list[str] = []
     for cand in candidates or []:
         engine = str(cand.get("engine") or "").casefold()
-        if "gpt4o" in engine or "gpt-4o" in engine:
+        if "gpt4o" in engine or "gpt-4o" in engine or "claude" in engine or "anthropic" in engine:
             continue
         text = _normalize(str(cand.get("value") or cand.get("text") or ""))
         if not text or not semantic_accept("patient_name", text)[0]:
@@ -453,7 +453,7 @@ def name_needs_gpt4o(
         local_engines: set[str] = set()
         for cand in candidates or []:
             eng = str(cand.get("engine") or "").casefold()
-            if "gpt4o" in eng or "gpt-4o" in eng:
+            if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
                 continue
             if str(cand.get("value") or cand.get("text") or "").strip():
                 local_engines.add(eng)
@@ -853,13 +853,17 @@ def residual_candidate_dict(
     width, height = image_size
     x0, y0, x1, y1 = bbox
     conf = float(result.confidence) if result.confidence is not None else 0.9
+    engine = str(result.engine or "azure_gpt4o_crop")
+    claude = "claude" in engine.casefold() or "anthropic" in engine.casefold()
     return {
         "value": result.value,
         "raw_value": result.raw_value or result.value,
-        "engine": result.engine,
-        "model_name": "gpt-4o",
-        "model_version": "azure-openai",
-        "preprocessing_variant": "gpt4o_crop_residual",
+        "engine": engine,
+        "model_name": "claude-sonnet-4-6" if claude else "gpt-4o",
+        "model_version": "anthropic-messages" if claude else "azure-openai",
+        "preprocessing_variant": (
+            "claude_crop_residual" if claude else "gpt4o_crop_residual"
+        ),
         "preprocessing_version": "cascade-v12-3n",
         "raw_confidence": conf,
         "calibrated_confidence": conf,
@@ -1127,7 +1131,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
                             prior_c.get("value") or prior_c.get("raw_value") or ""
                         ).strip()
                         eng = str(prior_c.get("engine") or "").casefold()
-                        if "gpt4o" in eng or "gpt-4o" in eng:
+                        if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
                             continue
                         if seed:
                             local_value = seed
@@ -1188,7 +1192,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
                 local_ok = False
                 for prior_c in candidates[1:]:
                     eng = str(prior_c.get("engine") or "").casefold()
-                    if "gpt4o" in eng or "gpt-4o" in eng:
+                    if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
                         continue
                     digits = re.sub(
                         r"\D",
@@ -1218,7 +1222,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
                 local_ok = False
                 for prior_c in candidates[1:]:
                     eng = str(prior_c.get("engine") or "").casefold()
-                    if "gpt4o" in eng or "gpt-4o" in eng:
+                    if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
                         continue
                     local = str(
                         prior_c.get("raw_value") or prior_c.get("value") or ""

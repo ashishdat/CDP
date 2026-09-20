@@ -218,11 +218,20 @@ def amounts_corroborate(left: object, right: object) -> bool:
     return a is not None and b is not None and a == b
 
 
+def is_vision_crop_engine(engine: object) -> bool:
+    """True for Azure gpt-4o / Anthropic Claude crop residuals (same evidence family)."""
+    name = str(engine or "").strip().casefold()
+    return any(
+        token in name
+        for token in ("gpt4o", "gpt-4o", "claude", "anthropic")
+    )
+
+
 def _engine_family(engine: object) -> str:
     name = str(engine or "").strip().casefold()
-    # gpt-4o is a residual reader, not an independent OCR engine for LINE_TOTALS
-    # dual-engine AUTO (paddle+gpt4o agreeing on the same wrong amount → FA).
-    if "gpt4o" in name or "gpt-4o" in name:
+    # Vision crop residuals (gpt-4o / Claude) are not independent OCR engines for
+    # LINE_TOTALS dual-engine AUTO (local+vision agreeing on the same wrong amount).
+    if is_vision_crop_engine(name):
         return _GPT4O_FAMILY
     if "azure" in name or "document_intelligence" in name:
         return "azure_document_intelligence_read"
