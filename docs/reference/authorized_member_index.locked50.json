@@ -1,82 +1,109 @@
 {
   "_comment": "Operator-authorized member index for locked-50 identity residuals. Fill patient_name / patient_dob / insured_name only from an independently verified enrollment or payment record. Set authorized=true and identity_verified=true only after human attestation. Never copy Golden / agent OCR labels. Point CDP_AUTHORIZED_MEMBER_INDEX at this file when ready.",
+  "_status_locked50_44of50": {
+    "decide_stp": "44/50",
+    "identity_index_still_needed": [
+      "5079520266",
+      "97734518"
+    ],
+    "charge_only_hitl_no_index": [
+      "126190668",
+      "58985812900",
+      "Q1739518"
+    ],
+    "note": "Index fill unlocks identity E5/E6 only. Charge HITL (arithmetic / place-shift / calibration) is unaffected."
+  },
   "members": {
-    "966365929": {
-      "authorized": false,
-      "identity_verified": false,
-      "effective_from": null,
-      "version": "locked50-template-v1",
-      "patient_name": null,
-      "patient_dob": null,
-      "insured_name": null,
-      "source": "OPERATOR_FILL_REQUIRED",
-      "claim_hint": "Group A/M048DJJM.020"
-    },
     "5079520266": {
       "authorized": false,
       "identity_verified": false,
       "effective_from": null,
-      "version": "locked50-template-v1",
+      "version": "locked50-operator-fill-v2",
       "patient_name": null,
       "patient_dob": null,
       "insured_name": null,
       "source": "OPERATOR_FILL_REQUIRED",
-      "claim_hint": "Group A/M048DJJM.019"
-    },
-    "C0N43064368": {
-      "authorized": false,
-      "identity_verified": false,
-      "effective_from": null,
-      "version": "locked50-template-v1",
-      "patient_name": null,
-      "patient_dob": null,
-      "insured_name": null,
-      "source": "OPERATOR_FILL_REQUIRED",
-      "claim_hint": "Group A/M048DJJM.023"
-    },
-    "742357840": {
-      "authorized": false,
-      "identity_verified": false,
-      "effective_from": null,
-      "version": "locked50-template-v1",
-      "patient_name": null,
-      "patient_dob": null,
-      "insured_name": null,
-      "source": "OPERATOR_FILL_REQUIRED",
-      "claim_hint": "Group A/M048DJJM.025"
-    },
-    "Q1739518": {
-      "authorized": false,
-      "identity_verified": false,
-      "effective_from": null,
-      "version": "locked50-template-v1",
-      "patient_name": null,
-      "patient_dob": null,
-      "insured_name": null,
-      "source": "OPERATOR_FILL_REQUIRED",
-      "claim_hint": "Group A/M048DJJM.034"
+      "claim_hint": "Group A/M048DJJM.019",
+      "blocker_hint": "patient_dob MISSING_E2 under BOX2_INDEPENDENT (Self+distinct Box4). Fill patient_dob from enrollment; patient_name optional (already AUTO via Box2).",
+      "priority": "P0_IDENTITY"
     },
     "97734518": {
       "authorized": false,
       "identity_verified": false,
       "effective_from": null,
-      "version": "locked50-template-v1",
+      "version": "locked50-operator-fill-v2",
       "patient_name": null,
       "patient_dob": null,
       "insured_name": null,
       "source": "OPERATOR_FILL_REQUIRED",
-      "claim_hint": "Group A/M048DJJM.035"
+      "claim_hint": "Group A/M048DJJM.035",
+      "blocker_hint": "patient_name MISSING_E2 (handwritten OCR garble) + total_charge calibration. Index can unlock name/DOB only — charge stays HITL.",
+      "priority": "P0_IDENTITY"
+    },
+    "Q1739518": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-operator-fill-v2",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.034",
+      "blocker_hint": "Identity fields already AUTO; remaining blocker is total_charge calibration. Index fill does not unlock charge.",
+      "priority": "P2_OPTIONAL"
+    },
+    "966365929": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-operator-fill-v2",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.020",
+      "blocker_hint": "Unlocked to STP via confusable name relief — keep row for regression / re-attest only.",
+      "priority": "P3_REGRESSION"
+    },
+    "C0N43064368": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-operator-fill-v2",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.023",
+      "blocker_hint": "Unlocked via BOX2_INDEPENDENT — keep for regression.",
+      "priority": "P3_REGRESSION"
+    },
+    "742357840": {
+      "authorized": false,
+      "identity_verified": false,
+      "effective_from": null,
+      "version": "locked50-operator-fill-v2",
+      "patient_name": null,
+      "patient_dob": null,
+      "insured_name": null,
+      "source": "OPERATOR_FILL_REQUIRED",
+      "claim_hint": "Group A/M048DJJM.025",
+      "blocker_hint": "Unlocked via BOX2_INDEPENDENT — keep for regression.",
+      "priority": "P3_REGRESSION"
     },
     "31411100": {
       "authorized": false,
       "identity_verified": false,
       "effective_from": null,
-      "version": "locked50-template-v1",
+      "version": "locked50-operator-fill-v2",
       "patient_name": null,
       "patient_dob": null,
       "insured_name": null,
       "source": "OPERATOR_FILL_REQUIRED",
-      "claim_hint": "Group A/M048DJJM.013"
+      "claim_hint": "Group A/M048DJJM.013",
+      "blocker_hint": "Unlocked via BOX2_INDEPENDENT — keep for regression.",
+      "priority": "P3_REGRESSION"
     }
   }
 }

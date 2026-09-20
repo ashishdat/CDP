@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""Decide-only replay of locked-50 after LineChargeSelector + financial geometry."""
+"""Decide-only replay after LineChargeSelector + financial geometry.
+
+Defaults target locked-50 integrity OCR. Pass ``--src-run`` / ``--out-dir`` for
+broader remasure (e.g. hackathon-100c cascade artifacts).
+"""
 
 from __future__ import annotations
 
+import argparse
 import json
 import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -24,9 +30,32 @@ from scripts.run_hackathon_1000_cascade import (
 
 
 def main() -> int:
-    src_run = ROOT / "evaluation_results" / "hackathon_50_integrity_v1"
-    out_dir = ROOT / "evaluation_results" / "hackathon_50_decide_line_charge_v1"
-    workers = 6
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--src-run",
+        type=Path,
+        default=ROOT / "evaluation_results" / "hackathon_50_integrity_v1",
+        help="Prior cascade/integrity run with OCRCandidates per claim",
+    )
+    parser.add_argument(
+        "--out-dir",
+        type=Path,
+        default=ROOT / "evaluation_results" / "hackathon_50_decide_line_charge_v1",
+        help="Output directory for decide-only replay",
+    )
+    parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=0,
+        help="Optional cap on documents (0 = all)",
+    )
+    args = parser.parse_args()
+
+    src_run = args.src_run if args.src_run.is_absolute() else ROOT / args.src_run
+    out_dir = args.out_dir if args.out_dir.is_absolute() else ROOT / args.out_dir
+    workers = max(1, args.workers)
+
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
@@ -39,7 +68,12 @@ def main() -> int:
             prior_by_doc[row["document"]] = row
 
     targets = sorted(prior_by_doc)
-    print(f"decide_all n={len(targets)} workers={workers}", flush=True)
+    if args.limit and args.limit > 0:
+        targets = targets[: args.limit]
+    print(
+        f"decide_all n={len(targets)} workers={workers} src={src_run.name} out={out_dir.name}",
+        flush=True,
+    )
     lock = threading.Lock()
     rows: list[dict] = []
     t0 = time.time()
@@ -100,8 +134,9 @@ def main() -> int:
             "src_run": str(src_run),
             "charge_auto_heuristic": charge_auto,
             "elapsed_sec": round(time.time() - t0, 3),
-            "commit": __import__("subprocess")
-            .check_output(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT)
+            "commit": subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"], cwd=ROOT
+            )
             .decode()
             .strip(),
         }
