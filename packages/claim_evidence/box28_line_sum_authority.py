@@ -561,13 +561,30 @@ def build_box24f_rows(service_lines: list[dict] | None) -> tuple[Box24FRowEviden
             if line.get(key) not in (None, ""):
                 selected = line.get(key)
                 break
+        # LineChargeSelector is authoritative for the printed Box 24F amount.
+        # Do not let geometry canonical soup (6401 / 2601) override a selected
+        # charge-column stem — Box 28 verification consumes selector output.
+        selection = line.get("line_charge_selection")
+        if (
+            isinstance(selection, dict)
+            and selection.get("disposition") == "SELECTED_LOCAL_CHARGE"
+            and parse_currency(selection.get("amount")) is not None
+        ):
+            selected = format_currency(parse_currency(selection.get("amount")))
         region = _region_tuple(line.get("canonical_region") or line.get("ocr_region"))
         clipped = _region_is_cents_clipped(region)
         obs = {} if clipped else _geometry_observation(line)
-        # Prefer non-clipped geometry, else dual-engine / candidate consensus,
-        # else the selected shell — never a cents-clipped geometry amount.
+        # Prefer selector / selected shell when present. Geometry canonical is
+        # only a fallback when no selector disposition was recorded.
         amount: object = None
-        if obs.get("canonical_monetary_value") and obs.get("adopted") is not False:
+        selector_locked = (
+            isinstance(selection, dict)
+            and selection.get("disposition") == "SELECTED_LOCAL_CHARGE"
+            and parse_currency(selected) is not None
+        )
+        if selector_locked:
+            amount = format_currency(parse_currency(selected))
+        if amount is None and obs.get("canonical_monetary_value") and obs.get("adopted") is not False:
             amount = obs.get("canonical_monetary_value")
         if amount is None:
             cand_amounts = _candidate_amounts(line)

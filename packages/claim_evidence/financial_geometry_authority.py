@@ -178,6 +178,12 @@ def evaluate_financial_geometry_arithmetic(
                 continue
             if is_implausible_charge_total(alt_txt):
                 continue
+            # Same-stem OCR twins (1160.40 beside confirmed 1160.00) are not
+            # true financial conflicts like 2605 vs 2601 or 49.72 vs 4972.
+            box_dollars = box_txt.split(".", 1)[0]
+            alt_dollars = alt_txt.split(".", 1)[0]
+            if box_dollars == alt_dollars and abs(alt - box) <= Decimal("1.00"):
+                continue
             # Near-miss dollars that are not the confirmed total → conflict HITL.
             if abs(alt - box) > Decimal("0.01"):
                 return FinancialGeometryDecision(

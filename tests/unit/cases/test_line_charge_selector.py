@@ -214,6 +214,68 @@ def test_financial_geometry_confirms_exact_arithmetic():
     assert decision.reason == "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED"
 
 
+def test_financial_geometry_ignores_same_stem_box28_twin():
+    """1160.40 beside confirmed 1160.00 is OCR twin noise, not a true conflict."""
+    lines = [
+        {
+            "charges": "640.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "640.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+            },
+            "candidates": [
+                _cand("paddleocr", "640.00", "640", _CHARGE_BBOX),
+                _cand("rapidocr", "640.00", "640", _CHARGE_BBOX),
+            ],
+        },
+        {
+            "charges": "260.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "260.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+            },
+            "candidates": [
+                _cand("paddleocr", "260.00", "260", _CHARGE_BBOX),
+                _cand("rapidocr", "260.00", "260", _CHARGE_BBOX),
+            ],
+        },
+        {
+            "charges": "260.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "260.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+            },
+            "candidates": [
+                _cand("paddleocr", "260.00", "260", _CHARGE_BBOX),
+                _cand("rapidocr", "260.00", "260", _CHARGE_BBOX),
+            ],
+        },
+    ]
+    decision = evaluate_financial_geometry_arithmetic(
+        box28_amount="1160.00",
+        service_lines=lines,
+        box28_field_payload={
+            "ranked_candidate": {
+                "ocr_candidate": {"value": "1160.00", "raw_value": "1160.00"}
+            },
+            "alternatives": [
+                {"ocr_candidate": {"value": "1160.40", "raw_value": "1160.40"}},
+            ],
+        },
+        box28_observation={
+            "text": "1160.00",
+            "raw_digit_sequence": "116000",
+            "canonical_monetary_value": "1160.00",
+            "adopted": True,
+        },
+    )
+    assert decision.confirmed
+    assert decision.amount == "1160.00"
+
+
 def test_financial_geometry_keeps_true_conflict_as_hitl():
     lines = [
         {
