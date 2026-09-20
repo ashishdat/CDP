@@ -1,0 +1,30 @@
+{
+  "source": "evaluation_results/hackathon_50_integrity_v1/claims (decide-only replay)",
+  "commit": "78db57e",
+  "decide_only": {
+    "n": 50,
+    "true_stp": 22,
+    "hitl": 28,
+    "charge_auto": 25
+  },
+  "prior_cascade_integrity_v1": {
+    "true_stp": 26,
+    "hitl": 24,
+    "charge_auto_of_completed": "31/50"
+  },
+  "notes": [
+    "DJJM.002 now BOX28_LINE_SUM_CORROBORATED AUTO via observed-decimal token path",
+    "Empty-Box28 gpt4o+local / multi-line dual-engine LINE_TOTALS gate restored",
+    "Single-line paddle+rapid alone still insufficient",
+    "Box 28 never rewritten from line-sum (DJJM.028 stays 400.40 HITL)",
+    "Decide-only STP is not full cascade; registration/E3 context differs from integrity_v1 cascade recording"
+  ],
+  "focus_wins": [
+    "M048DJJM.002"
+  ],
+  "focus_fail_closed": [
+    "M048DJJM.010",
+    "M048DJJM.014",
+    "M048DJJM.028"
+  ]
+}
