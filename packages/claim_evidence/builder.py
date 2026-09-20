@@ -668,29 +668,54 @@ class ClaimEvidenceBuilder:
             from packages.claim_evidence.financial_geometry_authority import (
                 evaluate_financial_geometry_arithmetic,
             )
-            from packages.claim_evidence.line_sum_authority import parse_currency
+            from packages.claim_evidence.line_sum_authority import (
+                amounts_corroborate,
+                line_sum_total,
+                parse_currency,
+                should_defer_box28_to_line_sum,
+            )
         except Exception:  # noqa: BLE001
             return
         # Skip when Box28↔line-sum already confirmed the same amount.
         if any(item.evidence_type == "BOX28_LINE_SUM_CORROBORATED" for item in evidence):
             return
         box28_amount = values.get("total_charge") or values.get("total_charges")
-        # When Box 28 was deferred (OCR soup cleared from values), still evaluate
-        # geometry against the raw field payload so junk-digit relief can fire.
-        if box28_amount in (None, ""):
+        deferred = box28_amount in (None, "")
+        # When Box 28 was deferred (OCR soup cleared from values), only restore a
+        # payload amount that still agrees with Σ (junk-digit relief). Never
+        # reintroduce the contradictory digits-first shell that forced deferral
+        # (e.g. OCR 825.00 vs line Σ 450.00) — that falsely mints FINANCIAL_CONFLICT.
+        if deferred:
             payload = values.get("_box28_field_payload")
+            payload_amount = None
             if isinstance(payload, dict):
                 ranked = payload.get("ranked_candidate") or {}
                 ocr = ranked.get("ocr_candidate") or ranked
-                box28_amount = ocr.get("value") or ocr.get("raw_value")
-                if box28_amount in (None, ""):
+                payload_amount = ocr.get("value") or ocr.get("raw_value")
+                if payload_amount in (None, ""):
                     for cand in payload.get("candidates") or []:
                         if not isinstance(cand, dict):
                             continue
                         text = cand.get("value") or cand.get("raw_value")
                         if parse_currency(text) is not None:
-                            box28_amount = text
+                            payload_amount = text
                             break
+            line_sum = line_sum_total(lines)
+            payload_amt = parse_currency(payload_amount)
+            sum_amt = parse_currency(line_sum)
+            if (
+                payload_amt is not None
+                and sum_amt is not None
+                and not should_defer_box28_to_line_sum(payload_amount, lines)
+                and (
+                    amounts_corroborate(payload_amount, line_sum)
+                    or abs(payload_amt - sum_amt) <= Decimal("1.00")
+                )
+            ):
+                box28_amount = payload_amount
+            else:
+                # Stay deferred — derived / LINE_TOTALS owns E6; no conflict HITL.
+                return
         decision = evaluate_financial_geometry_arithmetic(
             box28_amount=box28_amount,
             service_lines=lines,

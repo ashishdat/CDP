@@ -589,3 +589,30 @@ def test_pos_like_line_sum_rejected_without_box28():
     ok, reason = line_sum_auto_eligible(lines)
     assert not ok
     assert reason == "POS_LIKE_LINE_SUM_REJECTED"
+
+
+def test_deferred_box28_shell_filtered_unlocks_gpt4o_local_line_sum():
+    """M.001: deferred OCR 825 must not veto gpt-4o+local line Σ 450."""
+    lines = [
+        {
+            "charges": "450.00",
+            "candidates": [
+                {"value": "450.00", "engine": "paddleocr"},
+                {"value": "450.00", "engine": "rapidocr"},
+                {"value": "450.00", "engine": "azure_gpt4o_crop"},
+            ],
+        }
+    ]
+    assert should_defer_box28_to_line_sum("825.00", lines)
+    raw_corr = ["825.00"]
+    filtered = [
+        v for v in raw_corr if not should_defer_box28_to_line_sum(v, lines)
+    ]
+    ok_old, reason_old = line_sum_auto_eligible(
+        lines, box28_value=None, corroborating_values=raw_corr
+    )
+    assert not ok_old and reason_old == "BOX28_OR_DI_CONFLICT"
+    ok_new, reason_new = line_sum_auto_eligible(
+        lines, box28_value=None, corroborating_values=filtered
+    )
+    assert ok_new and reason_new == "SINGLE_LINE_GPT4O_LOCAL"

@@ -531,10 +531,20 @@ def decide(extraction, family):
     line_sum_gate: dict[str, tuple[bool, str]] = {}
     for field_name, amount in list(derived_totals.items()):
         field_payload = next((f for f in fields if f.get('field_name') == field_name), {}) or {}
+        # When Box 28 was deferred away from values, do not let the raw OCR shell
+        # re-enter as a corroborator (825.00 vs Σ 450.00 → false CONFLICT).
+        corr = _charge_corroborators(field_payload)
+        if values.get(field_name) in (None, ''):
+            corr = [
+                v
+                for v in corr
+                if parse_currency(v) is not None
+                and not should_defer_box28_to_line_sum(v, service_lines)
+            ]
         eligible, reason = line_sum_auto_eligible(
             service_lines,
-            box28_value=None,
-            corroborating_values=_charge_corroborators(field_payload),
+            box28_value=values.get(field_name),
+            corroborating_values=corr,
         )
         line_sum_gate[field_name] = (eligible, reason)
     for field_name, amount in derived_totals.items():

@@ -93,6 +93,79 @@ def test_empty_box28_with_observed_line_charges_emits_line_totals_reconciled():
     assert item.metadata.get("provenance") == "DERIVED_FROM_OBSERVED_LINE_CHARGES"
 
 
+def test_deferred_box28_contradictory_payload_does_not_mint_financial_conflict():
+    """OCR Box 28 soup (825) deferred vs line Σ 450 must not restore → CONFLICT.
+
+    FG payload fallback previously reintroduced the digits-first shell and
+    falsely minted FINANCIAL_CONFLICT_HITL despite clean line totals.
+    """
+    payload = {
+        "ranked_candidate": {
+            "ocr_candidate": {
+                "value": "825.00",
+                "raw_value": "825.00",
+                "engine": "paddleocr",
+            }
+        },
+        "candidates": [
+            {"value": "825.00", "raw_value": "825.00", "engine": "paddleocr"},
+            {"value": "825.00", "raw_value": "825.00", "engine": "rapidocr"},
+        ],
+    }
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="M.001",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": None,
+            "_box28_field_payload": payload,
+        },
+        service_lines=[
+            {"charges": "225.00"},
+            {"charges": "225.00"},
+        ],
+    )
+    types = _types(result.evidence_items)
+    assert "FINANCIAL_CONFLICT_HITL" not in types
+    assert "LINE_TOTALS_RECONCILED" in types
+    assert not result.contradictions
+
+
+def test_deferred_box28_agreeing_payload_can_still_relieve_via_geometry():
+    """Junk-digit deferral relief: payload that matches Σ may re-enter FG."""
+    payload = {
+        "ranked_candidate": {
+            "ocr_candidate": {
+                "value": "450.00",
+                "raw_value": "450.00",
+                "engine": "paddleocr",
+            }
+        },
+        "candidates": [
+            {"value": "450.00", "raw_value": "450.00", "engine": "paddleocr"},
+        ],
+    }
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="agree",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": None,
+            "_box28_field_payload": payload,
+        },
+        service_lines=[
+            {"charges": "225.00"},
+            {"charges": "225.00"},
+        ],
+    )
+    types = _types(result.evidence_items)
+    assert "FINANCIAL_CONFLICT_HITL" not in types
+    # Either FG confirm or LINE_TOTALS — never conflict against matching Σ.
+    assert (
+        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED" in types
+        or "LINE_TOTALS_RECONCILED" in types
+        or "CLAIM_TOTAL_CONFIRMED" in types
+    )
+
+
 def _identity(**overrides):
     values = {
         "patient_name": "CAMARATO JOSHUA",
