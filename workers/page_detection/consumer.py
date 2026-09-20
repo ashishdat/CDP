@@ -329,6 +329,7 @@ def main() -> None:
     from packages.domain.enums import ClaimFormType
     from packages.events.bus import AIOKafkaEventBus
     from packages.observability import configure_logging
+    from packages.production_runtime import assert_production_ready
     from packages.settings import get_settings
     from packages.storage.object_store import ObjectStoreSettings
     from packages.templates.registry import DEFAULT_TEMPLATE_DIR, TemplateRegistry
@@ -336,6 +337,7 @@ def main() -> None:
 
     configure_logging("page-detection-worker")
     settings = get_settings()
+    assert_production_ready(settings)
     registry = TemplateRegistry.load_from_directory(DEFAULT_TEMPLATE_DIR)
     cms_template = registry.latest_for_form_type(ClaimFormType.CMS1500)
     ub_template = registry.latest_for_form_type(ClaimFormType.UB04)

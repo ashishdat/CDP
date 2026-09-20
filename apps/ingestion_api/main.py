@@ -40,6 +40,7 @@ from packages.events.outbox import OutboxRelay
 from packages.observability import REGISTRY, configure_logging
 from packages.observability.metrics import cache_hits_total, documents_received_total
 from packages.security.malware_scan import NoOpMalwareScanner
+from packages.production_runtime import assert_production_ready
 from packages.settings import Settings, get_settings
 from packages.storage.object_store import ObjectStore, ObjectStoreSettings
 
@@ -50,6 +51,7 @@ _state: dict[str, object] = {}
 async def lifespan(app: FastAPI):
     configure_logging("ingestion-api")
     settings = get_settings()
+    assert_production_ready(settings)
     _state["settings"] = settings
     session_factory_override = app.dependency_overrides.get(get_session_factory)
     session_factory = (

@@ -4,6 +4,8 @@ This document separates repository hardening from authorization to process
 production healthcare data. Passing the code-quality gate does not by itself
 authorize a production launch.
 
+Current platform status: **production-hardened, not production-authorized**.
+
 ## Automated code gate
 
 The following checks are mandatory on every pull request:
@@ -12,15 +14,26 @@ The following checks are mandatory on every pull request:
 - Python lint and unit/architecture tests;
 - evaluation UI tests and production build;
 - high/critical JavaScript dependency audit;
-- secret and generated-artifact exclusions.
+- secret and generated-artifact exclusions;
+- production runtime fail-closed smoke
+  (`scripts/smoke_production_fail_closed.py` +
+  `tests/unit/cases/test_production_runtime.py`).
 
-Current local verification:
+### Production fail-closed pin (shipped)
 
-- Python: 418 tests passed;
-- evaluation UI: 3 tests passed and production build completed;
-- JavaScript audit: zero known vulnerabilities;
-- Compose configuration: valid;
-- architecture and lint checks: passed.
+When `CDP_ENV=production` (or `prod`), APIs and workers refuse unsafe local
+defaults before serving traffic:
+
+| Check | Enforcement |
+|---|---|
+| Runtime profile hashes | `config/runtime_profiles/production_runtime_v1.yaml` |
+| Frozen release | `CDP_PIPELINE_RELEASE=extraction-v2` |
+| No sqlite / in-memory bus | `packages.production_runtime` |
+| No default MinIO credentials | reject `minioadmin` / `minioadmin` |
+| External AI | VLM off; Azure DI/OpenAI REVIEW_ONLY; AI gateway needs PHI approval |
+| Liveness / readiness | `/health` + `/ready` on ingestion, human-review, output APIs |
+
+Operator entrypoint: `docs/PRODUCTION_OPERATOR_RUNBOOK.md`.
 
 GitHub Actions reproduces the code checks from a clean checkout.
 

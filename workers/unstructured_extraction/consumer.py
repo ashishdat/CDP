@@ -207,6 +207,7 @@ def main() -> None:
     from apps.ingestion_api.db.session import make_session_factory
     from packages.events.bus import AIOKafkaEventBus
     from packages.observability import configure_logging
+    from packages.production_runtime import assert_production_ready
     from packages.settings import get_settings
     from packages.storage.object_store import ObjectStoreSettings
     from workers.cascade.instrumented_text_extractor import (
@@ -216,6 +217,7 @@ def main() -> None:
     from workers.page_detection.text_extraction import PaddleOCRTextExtractor
     configure_logging("unstructured-extraction-worker")
     settings = get_settings()
+    assert_production_ready(settings)
     worker = UnstructuredExtractionWorker(
         AIOKafkaEventBus(settings.kafka_bootstrap_servers),
         ObjectStore(ObjectStoreSettings(endpoint_url=settings.object_store_endpoint,

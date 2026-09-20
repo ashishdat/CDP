@@ -6,6 +6,15 @@ attachments), UB claim forms, and unstructured claim documents — decoded,
 classified, extracted, validated, and rendered to fixed-width NSF/UB92
 output with full field-level evidence.
 
+**Production operators:** start at `docs/PRODUCTION_OPERATOR_RUNBOOK.md`.
+The platform is **production-hardened** (fail-closed runtime pin, health/ready,
+frozen `extraction-v2`) but **not production-authorized** for PHI until the
+gates in `docs/PRODUCTION_READINESS.md` close. Smoke without credentials:
+
+```bash
+python3 scripts/smoke_production_fail_closed.py
+```
+
 This repository is being built phase by phase (see
 `docs/IMPLEMENTATION_PLAN.md`). **This README reflects what is actually
 implemented today, not the end-state design** — the end-state architecture

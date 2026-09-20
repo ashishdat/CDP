@@ -315,11 +315,13 @@ def main() -> None:
     from apps.ingestion_api.db.session import make_session_factory
     from packages.events.bus import AIOKafkaEventBus
     from packages.observability import configure_logging
+    from packages.production_runtime import assert_production_ready
     from packages.settings import get_settings
     from packages.storage.object_store import ObjectStoreSettings
 
     configure_logging("output-generation-worker")
     settings = get_settings()
+    assert_production_ready(settings)
     object_store = ObjectStore(
         ObjectStoreSettings(
             endpoint_url=settings.object_store_endpoint,

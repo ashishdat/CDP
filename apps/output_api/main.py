@@ -21,6 +21,7 @@ from apps.output_api.schemas import (
 )
 from apps.output_api.service import OutputService
 from packages.observability import REGISTRY, configure_logging
+from packages.production_runtime import assert_production_ready
 from packages.settings import get_settings
 from packages.storage.object_store import ObjectStore, ObjectStoreSettings
 
@@ -31,6 +32,7 @@ _state: dict[str, object] = {}
 async def lifespan(app: FastAPI):
     configure_logging("output-api")
     settings = get_settings()
+    assert_production_ready(settings)
     _state["settings"] = settings
     session_factory = make_session_factory(settings.database_url)
     _state["session_factory"] = session_factory
@@ -66,6 +68,13 @@ def get_object_store() -> ObjectStore:
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/ready")
+def ready_check():
+    if "session_factory" not in _state or "object_store" not in _state:
+        raise HTTPException(status_code=503, detail="not ready")
+    return {"status": "ready"}
 
 
 @app.get("/metrics")

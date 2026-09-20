@@ -505,10 +505,12 @@ def main() -> None:
     from packages.events.bus import AIOKafkaEventBus
     from packages.events.outbox import OutboxRelay
     from packages.observability import configure_logging
+    from packages.production_runtime import assert_production_ready
     from packages.settings import get_settings
 
     configure_logging("retry-worker")
     settings = get_settings()
+    assert_production_ready(settings)
 
     import os
 

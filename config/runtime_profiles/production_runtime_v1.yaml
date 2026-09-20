@@ -1,0 +1,45 @@
+# Production runtime decision profile.
+# Pins the same evidence hashes as canonical_runtime_v1 plus a FROZEN release
+# and fail-closed external-AI defaults. Load via:
+#   CDP_RUNTIME_PROFILE=config/runtime_profiles/production_runtime_v1.yaml
+#   CDP_ENV=production
+#   CDP_PIPELINE_RELEASE=extraction-v2
+#
+# Status: production-hardened configuration pin — NOT production authorization.
+# Holdout / IdP / BAA gates in docs/PRODUCTION_READINESS.md remain required.
+
+profile_id: cdp-runtime-decision-production
+profile_version: production-v1
+profile_status: RUNTIME
+route_mode: runtime
+created_at: 2026-09-20T00:00:00Z
+evidence_policy_path: config/evidence_policies.yaml
+evidence_policy_sha256: 525bcf8d4ea8b5c337145ed46c9cec6287dc62762bbdd272c56541bcd4ffab5b
+field_policy_path: config/field_acceptance_policies.yaml
+field_policy_sha256: 4ac8c273b36db6509e75419e60aafadff67482ad7349617a8b4a3ecd52989fd2
+route_registry_path: config/ocr_field_routes.yaml
+route_registry_sha256: 15bfef58a0eaade09c8ba3182ca93facf0382b1b17924e0bbe5c4afc87e85612
+criticality_config_path: config/field_criticality.yaml
+criticality_config_sha256: 8d3366cb75d6820b6c30edd3b9409f60f52531ea124d89167b158143fe49dc6c
+claim_policy_path: config/claim_decision_policies.yaml
+claim_policy_sha256: 86678924bc441882463366ccc3631ba138384f5009b667843973f61e7dd9d941
+reference_config_path: config/reference_enrichment.yaml
+reference_config_sha256: 2d61721d76f6a3ca9bb6eb6cd3f2129fb77e5d024a473b2fdf508b3ac9a509ad
+calibration_registry_path: config/calibration/field_models_v1.json
+calibration_registry_sha256: e8d9977e40a6e7b6c73576bbeb9c0f65eb82084a0c913f4e9b2f38545f3f9052
+
+# Production pin (validated by packages.production_runtime)
+pipeline_release: extraction-v2
+pipeline_release_manifest: config/releases/extraction-v2.yaml
+pipeline_release_sha256: 0c2774159dd138d490147e4ec70d322a4f9220be4f2ce88726a9e3515074ff17
+
+fail_closed:
+  use_in_memory_bus: false
+  azure_openai_review_only: true
+  azure_document_intelligence_review_only: true
+  azure_document_intelligence_enabled_without_auth: false
+  ai_gateway_enabled_without_phi_approval: false
+  vlm_enabled_by_default: false
+  shadow_review_only_cannot_auto: true
+  require_postgres: true
+  require_object_store_credentials: true

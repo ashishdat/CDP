@@ -549,6 +549,7 @@ def main() -> None:
     from apps.ingestion_api.db.session import make_session_factory
     from packages.events.bus import AIOKafkaEventBus
     from packages.observability import configure_logging
+    from packages.production_runtime import assert_production_ready
     from packages.settings import get_settings
     from packages.storage.object_store import ObjectStoreSettings
     from packages.templates.registry import DEFAULT_TEMPLATE_DIR
@@ -563,6 +564,7 @@ def main() -> None:
 
     configure_logging("standard-form-extraction-worker")
     settings = get_settings()
+    assert_production_ready(settings)
     templates = TemplateRegistry.load_from_directory(DEFAULT_TEMPLATE_DIR)
     audit_sink = JsonlOCRAuditSink(settings.ocr_audit_path)
     extraction_service = StandardFormExtractionService(text_extractor=CachedInstrumentedTextExtractor(

@@ -33,6 +33,9 @@ probes:
 # (DB password, object-store credentials) come from `secretName` instead,
 # never from `env` (see docs/ARCHITECTURE.md "SECURITY").
 env:
+  CDP_ENV: "production"
+  CDP_PIPELINE_RELEASE: "extraction-v2"
+  CDP_RUNTIME_PROFILE: "config/runtime_profiles/production_runtime_v1.yaml"
   PIPELINE_VERSION: "0.1.0"
   SCHEMA_VERSION: "1.0"
   OBJECT_STORE_BUCKET: "idp-documents"
@@ -40,6 +43,8 @@ env:
   MAX_UPLOAD_SIZE_BYTES: "52428800"
   VLM_ENABLED: "false"
   USE_IN_MEMORY_BUS: "false"
+  AZURE_OPENAI_REVIEW_ONLY: "true"
+  AZURE_DOCUMENT_INTELLIGENCE_REVIEW_ONLY: "true"
 
 # Name of a pre-existing Secret (created out of band -- see
 # docs/RUNBOOK.md) providing DATABASE_URL, OBJECT_STORE_ACCESS_KEY,

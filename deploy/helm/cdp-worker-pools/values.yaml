@@ -22,8 +22,13 @@ containerSecurityContext:
 
 env:
   PYTHONDONTWRITEBYTECODE: "1"
+  CDP_ENV: "production"
+  CDP_PIPELINE_RELEASE: "extraction-v2"
+  CDP_RUNTIME_PROFILE: "config/runtime_profiles/production_runtime_v1.yaml"
   USE_IN_MEMORY_BUS: "false"
   VLM_ENABLED: "false"
+  AZURE_OPENAI_REVIEW_ONLY: "true"
+  AZURE_DOCUMENT_INTELLIGENCE_REVIEW_ONLY: "true"
 
 workers:
   document-preparation-worker:

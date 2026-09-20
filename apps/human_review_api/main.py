@@ -42,6 +42,7 @@ from packages.observability.metrics import human_review_total
 from packages.retraining import CorrectionMemory
 from packages.security.fastapi_rbac import require_permission
 from packages.security.rbac import Permission
+from packages.production_runtime import assert_production_ready
 from packages.settings import Settings, get_settings
 from packages.storage.object_store import ObjectRef, ObjectStore, ObjectStoreSettings
 
@@ -52,6 +53,7 @@ _state: dict[str, object] = {}
 async def lifespan(app: FastAPI):
     configure_logging("human-review-api")
     settings = get_settings()
+    assert_production_ready(settings)
     _state["settings"] = settings
     _state["session_factory"] = make_session_factory(settings.database_url)
     object_store = ObjectStore(

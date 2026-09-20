@@ -677,10 +677,12 @@ def main() -> None:
     from packages.events.bus import AIOKafkaEventBus
     from packages.events.outbox import OutboxRelay
     from packages.observability import configure_logging
+    from packages.production_runtime import assert_production_ready
     from packages.settings import get_settings
 
     configure_logging("validation-worker")
     settings = get_settings()
+    assert_production_ready(settings)
     session_factory = make_session_factory(settings.database_url)
     event_bus = AIOKafkaEventBus(settings.kafka_bootstrap_servers)
     worker = ValidationWorker(
