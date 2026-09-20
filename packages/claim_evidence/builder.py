@@ -726,6 +726,34 @@ class ClaimEvidenceBuilder:
                     },
                 )
             )
+            # FG may relieve OCR soup that previously failed Σ tolerance. Drop the
+            # stale CLAIM_TOTAL_CONTRADICTION and bind the confirmed amount.
+            contradictions[:] = [
+                item
+                for item in contradictions
+                if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+            ]
+            for key in ("total_charge", "total_charges", "claim_total"):
+                if key in values or key == "total_charge":
+                    values[key] = decision.amount
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "CLAIM_TOTAL_WITHIN_TOLERANCE",
+                    decision.amount,
+                    {
+                        "supported_fields": [
+                            "total_charge",
+                            "total_charges",
+                            "charges",
+                            "charge_amount",
+                        ],
+                        "claim_total": decision.amount,
+                        "service_line_total": decision.line_sum,
+                        "reason": "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                    },
+                )
+            )
         elif decision.reason in {
             "ARITHMETIC_MISMATCH",
             "DECIMAL_SHIFT_CONFLICT",
