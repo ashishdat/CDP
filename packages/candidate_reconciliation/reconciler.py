@@ -1907,6 +1907,10 @@ class EvidenceReconciler:
         elif reference_contradiction:
             decision = Decision.REVIEW
             reasons.append("REFERENCE_CONTRADICTION")
+        elif "FINANCIAL_CONFLICT_HITL" in deterministic:
+            # Arithmetic Box 28 ↔ Σ conflict is never equivalent-value soup.
+            decision = Decision.REVIEW
+            reasons.append("FINANCIAL_CONFLICT_HITL")
         elif not threshold_ok:
             decision = Decision.ESCALATE
             reasons.append("CALIBRATED_CONFIDENCE_BELOW_THRESHOLD")
@@ -1931,6 +1935,8 @@ class EvidenceReconciler:
             charge_soup_authority = financial_authority or (
                 field_name in {"total_charge", "total_charges"}
                 and "LINE_TOTALS_RECONCILED" in deterministic
+                and "LINE_TOTALS_CORROBORATED" in deterministic
+                and "LINE_TOTALS_UNCORROBORATED" not in deterministic
             )
             if field_name in {"total_charge", "total_charges"} and charge_soup_authority:
                 from packages.claim_evidence.line_sum_authority import (
