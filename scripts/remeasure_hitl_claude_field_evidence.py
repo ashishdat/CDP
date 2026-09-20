@@ -36,9 +36,21 @@ from scripts.run_hackathon_1000_cascade import (  # noqa: E402
 )
 
 BASE = ROOT / "evaluation_results" / "hackathon_200_cascade_v12"
+# Newest remasures first so overlay + OCR reuse Claude line inject and prior
+# total-charge selector flips (do not fall back to pre-Claude OCR).
 REMEASURE_PREFER = [
-    ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_claude_charge_e2e_v1",
-    ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_claude_evidence_v1",
+    ROOT
+    / "evaluation_results"
+    / "hackathon_200_cascade_v12_remeasure_charge_selector_v3",
+    ROOT
+    / "evaluation_results"
+    / "hackathon_200_cascade_v12_remeasure_claude_charge_e2e_v2",
+    ROOT
+    / "evaluation_results"
+    / "hackathon_200_cascade_v12_remeasure_claude_charge_e2e_v1",
+    ROOT
+    / "evaluation_results"
+    / "hackathon_200_cascade_v12_remeasure_claude_evidence_v1",
     ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_gap_audit_v3",
     ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_defer_fix_v2",
     ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_hitl",
@@ -50,7 +62,7 @@ BAKEOFF = (
 DEFAULT_OUT = (
     ROOT
     / "evaluation_results"
-    / "hackathon_200_cascade_v12_remeasure_claude_charge_e2e_v2"
+    / "hackathon_200_cascade_v12_remeasure_dual_vision_v4"
 )
 
 _VISION_FIELDS = frozenset(
@@ -522,6 +534,7 @@ def _process_one(
     out_dir: Path,
     bakeoff: dict[tuple[str, str], dict[str, Any]],
     allow_live: bool,
+    decision_only: bool = False,
 ) -> dict[str, Any]:
     claim_id = _claim_slug(document)
     src_claim = _best_claim_dir(claim_id)
@@ -532,6 +545,11 @@ def _process_one(
     started = time.time()
     logs = claim_out / "logs"
     logs.mkdir(parents=True, exist_ok=True)
+    reprocess_tag = (
+        "dual_vision_decision_only_v4"
+        if decision_only
+        else "claude_field_evidence_v1"
+    )
 
     if src_claim is None:
         row = {
@@ -543,7 +561,7 @@ def _process_one(
             "prior_disposition": prior_row.get("disposition"),
             "elapsed_sec": round(time.time() - started, 3),
             "ts": _utc_now(),
-            "reprocess": "claude_field_evidence_v1",
+            "reprocess": reprocess_tag,
         }
         _write_json(claim_out / "result.json", row)
         return row
@@ -559,14 +577,44 @@ def _process_one(
         }
         | set(prior_row.get("critical_blockers") or [])
     )
-    inject_tel = _inject_claude_into_ocr(
-        ocr,
-        claim_id=claim_id,
-        gap_fields=[f for f in gap_fields if f in _VISION_FIELDS],
-        bakeoff=bakeoff,
-        allow_live=allow_live,
-        claim_dir=src_claim,
-    )
+    if decision_only:
+        # Preserve Claude/gpt4o already on lines from e2e remasure; re-run
+        # rank→complete so LineChargeSelector dual-vision / defer-Box28 fixes apply.
+        inject_tel = {
+            "injected": [],
+            "skipped": [],
+            "live": [],
+            "bakeoff": [],
+            "service_lines": [],
+            "decision_only": True,
+            "src_claim": str(src_claim),
+            "preserved_claude": sum(
+                1
+                for line in (ocr.get("service_lines") or [])
+                if isinstance(line, dict)
+                for c in (line.get("candidates") or [])
+                if isinstance(c, dict)
+                and (
+                    "claude" in str(c.get("engine") or "").casefold()
+                    or "anthropic" in str(c.get("engine") or "").casefold()
+                )
+            ),
+        }
+        src_inject = src_claim / "ocr" / "claude_inject_telemetry.json"
+        if src_inject.is_file():
+            try:
+                inject_tel["prior_inject"] = json.loads(src_inject.read_text())
+            except Exception:  # noqa: BLE001
+                pass
+    else:
+        inject_tel = _inject_claude_into_ocr(
+            ocr,
+            claim_id=claim_id,
+            gap_fields=[f for f in gap_fields if f in _VISION_FIELDS],
+            bakeoff=bakeoff,
+            allow_live=allow_live,
+            claim_dir=src_claim,
+        )
     (ocr_dir / "OCRCandidates.json").write_text(json.dumps(ocr, indent=2))
     _write_json(ocr_dir / "claude_inject_telemetry.json", inject_tel)
     src_tel = src_claim / "ocr" / "ocr_telemetry.json"
@@ -642,7 +690,7 @@ def _process_one(
                 "prior_blockers": prior_row.get("critical_blockers"),
                 "elapsed_sec": round(time.time() - started, 3),
                 "ts": _utc_now(),
-                "reprocess": "claude_field_evidence_v1",
+                "reprocess": reprocess_tag,
             }
             _write_json(claim_out / "result.json", row)
             return row
@@ -667,7 +715,7 @@ def _process_one(
         "prior_blockers": prior_row.get("critical_blockers"),
         "elapsed_sec": round(time.time() - started, 3),
         "ts": _utc_now(),
-        "reprocess": "claude_field_evidence_v1",
+        "reprocess": reprocess_tag,
     }
     _write_json(claim_out / "result.json", row)
     return row
@@ -695,8 +743,17 @@ def main() -> int:
         action="store_true",
         help="Bakeoff-only inject (default when --live not set is bakeoff+live).",
     )
+    parser.add_argument(
+        "--decision-only",
+        action="store_true",
+        help=(
+            "Reuse OCR (incl. Claude line inject) as-is; re-run rank→complete so "
+            "dual-vision LineChargeSelector and Box28 defer fixes apply."
+        ),
+    )
     args = parser.parse_args()
-    allow_live = bool(args.live) or not bool(args.no_live)
+    decision_only = bool(args.decision_only)
+    allow_live = False if decision_only else (bool(args.live) or not bool(args.no_live))
 
     out_dir = args.out_dir if args.out_dir.is_absolute() else ROOT / args.out_dir
     if out_dir.exists():
@@ -706,7 +763,7 @@ def main() -> int:
 
     overlay = _overlay_rows()
     prior_by_doc = {row["document"]: row for row in overlay.values()}
-    bakeoff = _load_bakeoff()
+    bakeoff = {} if decision_only else _load_bakeoff()
     targets = sorted(
         doc for doc, row in prior_by_doc.items() if row.get("disposition") == "HITL"
     )
@@ -715,7 +772,7 @@ def main() -> int:
 
     print(
         f"claude_field_evidence targets={len(targets)} bakeoff={len(bakeoff)} "
-        f"live={allow_live} workers={args.workers}",
+        f"live={allow_live} decision_only={decision_only} workers={args.workers}",
         flush=True,
     )
 
@@ -730,6 +787,7 @@ def main() -> int:
             out_dir=out_dir,
             bakeoff=bakeoff,
             allow_live=allow_live,
+            decision_only=decision_only,
         )
 
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
@@ -785,7 +843,12 @@ def main() -> int:
         ),
         "bakeoff_rows": len(bakeoff),
         "live_enabled": allow_live,
-        "fix": "claude_inject_into_existing_field_evidence",
+        "decision_only": decision_only,
+        "fix": (
+            "dual_vision_decision_only_reuse_claude_ocr"
+            if decision_only
+            else "claude_inject_into_existing_field_evidence"
+        ),
         "generated_at": _utc_now(),
     }
     _write_json(out_dir / "summary.json", summary)
