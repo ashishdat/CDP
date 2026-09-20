@@ -1,0 +1,40 @@
+{
+  "source": "evaluation_results/hackathon_100c_decide_line_charge_v1",
+  "log": "evaluation_results/hackathon_100c_decide_line_charge_v1.log",
+  "commit": "8c6b6b2",
+  "src_run": "evaluation_results/hackathon_100c_blind_cascade_v12_3k",
+  "decide_only": {
+    "n": 100,
+    "ocr_present": 92,
+    "ocr_missing": 8,
+    "true_stp": 0,
+    "hitl": 92,
+    "charge_auto": 0
+  },
+  "prior_cascade_same_corpus": {
+    "true_stp": 79,
+    "hitl": 13,
+    "note": "v12_3k cascade STP used pre-LineChargeSelector LINE_TOTALS on cents-clipped crops."
+  },
+  "root_cause": {
+    "summary": "LineChargeSelector rejects Box 24F candidates whose crop x1 stops before CMS1500_CHARGE_CENTS_X (1155). 100c OCR charge bboxes end ~1145; locked-50 integrity ends ~1180.",
+    "selector_reason": "OUTSIDE_CHARGE_COLUMN (cents-clipped window)",
+    "effect": "No SELECTED_LOCAL_CHARGE → no LINE_TOTALS_RECONCILED / FG → total_charge EMPTY_CROP on essentially all completed claims."
+  },
+  "locked50_contrast": {
+    "decide_stp": "44/50",
+    "charge_auto": 45,
+    "note": "Locked-50 integrity OCR has charge-column cents coverage; decide levers generalize there."
+  },
+  "operator_index": {
+    "template": "docs/reference/authorized_member_index.locked50.json",
+    "fill_guide": "docs/reference/AUTHORIZED_MEMBER_INDEX_OPERATOR_FILL.md",
+    "p0_member_ids": ["5079520266", "97734518"],
+    "note": "No authorized=true without human attestation; values left null."
+  },
+  "next": [
+    "Operator fills P0 index rows from enrollment, then re-decide locked-50 with CDP_AUTHORIZED_MEMBER_INDEX.",
+    "Before claiming 100c/300 decide STP: re-OCR with full Box 24F charge crops (x1 past cents ruling), then decide replay.",
+    "Do not relax cents-clip gate to chase 100c cascade parity — that would re-admit place-shift FA risk."
+  ]
+}
