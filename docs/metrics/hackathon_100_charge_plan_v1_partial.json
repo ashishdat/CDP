@@ -1,0 +1,23 @@
+{
+  "run": "evaluation_results/hackathon_100_charge_plan_v1",
+  "status": "PARTIAL_BROKEN_PROCESS_POOL",
+  "n_ledgered": 100,
+  "true_stp": 23,
+  "hitl": 31,
+  "stage_failure": 46,
+  "completed": 54,
+  "first50_true_stp": 22,
+  "integrity_v1_first50": 26,
+  "geometry_v4_first50": 32,
+  "critical_blockers_completed": {
+    "total_charge": 28,
+    "patient_name": 6,
+    "patient_dob": 1
+  },
+  "gap_classes": {
+    "LINE_SUM_UNCORROBORATED": 12,
+    "CALIBRATION_HITL": 11,
+    "EVIDENCE_POLICY_GAP": 12
+  },
+  "note": "BrokenProcessPool after ~M048DJJM.039 killed OCR/app workers; STAGE_FAILURE not treated as done \u2014 resume with pools off."
+}
