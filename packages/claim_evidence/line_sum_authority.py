@@ -415,8 +415,31 @@ def line_has_dual_engine_agreement(line: dict) -> bool:
 
     Exact / $1 tolerance only — digit-drop twins are NOT dual-engine agreement
     for LINE_TOTALS AUTO (13↔131 class false accepts on hard-15).
+
+    Local paddle+rapid agreement with the *selected* charge is authoritative
+    even when a vision crop residual carries place-shift soup of the same stem
+    (281.00 dual-local vs Claude/gpt-4o 2800.00). Vision peers must not veto
+    dual-local corroboration of the selector output.
     """
-    amounts = _shaped_candidate_amounts(line.get("candidates") if isinstance(line, dict) else None)
+    if not isinstance(line, dict):
+        return False
+    target = parse_currency(line.get("charges") or line.get("charge_amount"))
+    candidates = [c for c in (line.get("candidates") or []) if isinstance(c, dict)]
+    if target is not None:
+        target_txt = format_currency(target)
+        local_families: set[str] = set()
+        for cand in candidates:
+            fam = _engine_family(cand.get("engine") or cand.get("producing_engine"))
+            if fam not in _LOCAL_ENGINES:
+                continue
+            amt = _candidate_amount(cand)
+            if amt is None:
+                continue
+            if _exact_or_dollar_agree(target_txt, format_currency(amt)):
+                local_families.add(fam)
+        if len(local_families) >= 2:
+            return True
+    amounts = _shaped_candidate_amounts(candidates)
     if len(amounts) < 2:
         return False
     values = list(amounts.values())
@@ -428,7 +451,6 @@ def line_has_dual_engine_agreement(line: dict) -> bool:
         return False
     # Engines must agree with the selected charge, not only with each other
     # (20.00/20.00 must not AUTO a selected 200.00).
-    target = parse_currency(line.get("charges") or line.get("charge_amount"))
     if target is None:
         return True
     return _exact_or_dollar_agree(format_currency(target), format_currency(primary))

@@ -41,6 +41,12 @@ BASE = ROOT / "evaluation_results" / "hackathon_200_cascade_v12"
 REMEASURE_PREFER = [
     ROOT
     / "evaluation_results"
+    / "hackathon_200_cascade_v12_remeasure_dual_vision_v8",
+    ROOT
+    / "evaluation_results"
+    / "hackathon_200_cascade_v12_remeasure_dual_vision_v7",
+    ROOT
+    / "evaluation_results"
     / "hackathon_200_cascade_v12_remeasure_dual_vision_v6",
     ROOT
     / "evaluation_results"
@@ -71,7 +77,7 @@ BAKEOFF = (
 DEFAULT_OUT = (
     ROOT
     / "evaluation_results"
-    / "hackathon_200_cascade_v12_remeasure_dual_vision_v4"
+    / "hackathon_200_cascade_v12_remeasure_dual_vision_v8"
 )
 
 _VISION_FIELDS = frozenset(
