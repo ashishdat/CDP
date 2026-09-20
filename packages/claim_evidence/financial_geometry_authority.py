@@ -210,6 +210,10 @@ def evaluate_financial_geometry_arithmetic(
                     and alt_core in conf_digits
                 ):
                     continue
+                # Same-ROI dollars stem with junk tail (``34 125`` → ``125.00``).
+                raw_groups = re.findall(r"\d+", str(ocr.get("raw_value") or ""))
+                if box_dollars in raw_groups and alt_txt != box_txt:
+                    continue
             # Near-miss dollars that are not the confirmed total → conflict HITL.
             if abs(alt - box) > Decimal("0.01"):
                 return FinancialGeometryDecision(

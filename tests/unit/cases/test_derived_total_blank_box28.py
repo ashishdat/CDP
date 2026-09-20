@@ -188,8 +188,8 @@ def test_ambiguous_line_blocks_derive():
     assert "AMBIGUOUS" in decision.reason
 
 
-def test_financial_geometry_ignores_cents_half_fragment():
-    """``25.00`` beside confirmed ``34.25`` is ruling-split noise, not conflict."""
+def test_financial_geometry_ignores_same_roi_junk_tail():
+    """``34 125`` → ``125.00`` beside confirmed ``34.25`` is ROI soup, not conflict."""
     lines = [
         {
             "charges": "34.25",
@@ -212,7 +212,8 @@ def test_financial_geometry_ignores_cents_half_fragment():
                 "ocr_candidate": {"value": "34.25", "raw_value": "34.25"}
             },
             "alternatives": [
-                {"ocr_candidate": {"value": "25.00", "raw_value": "25"}},
+                {"ocr_candidate": {"value": "25.00", "raw_value": "34 25\n$"}},
+                {"ocr_candidate": {"value": "125.00", "raw_value": "V.\n34 125"}},
             ],
         },
         box28_observation={
