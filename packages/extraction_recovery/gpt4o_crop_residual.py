@@ -228,12 +228,68 @@ def charge_needs_gpt4o(
     local_accepted: bool,
     azure_di_shaped: bool,
     gap_class: str | None = None,
+    candidates: list[Mapping[str, Any]] | None = None,
 ) -> bool:
-    """Run gpt-4o when local+DI left box-28 empty/unshaped (hard-15 charge hole)."""
-    if local_accepted or azure_di_shaped:
+    """Run gpt-4o when local+DI left box-28 empty/unshaped (hard-15 charge hole).
+
+    Also run when DIGITS_FIRST accepted a currency shell but local candidates
+    include a decimal-place rival (222.22 vs 2221.22) — otherwise Box 28 never
+    gets vision arbitration and CALIBRATION_HITL / place-shift fights persist.
+    """
+    if azure_di_shaped:
+        return False
+    if local_accepted:
+        if _charge_candidates_have_place_shift_rival(candidates):
+            return True
         return False
     gap = (gap_class or "").upper()
     return gap in _CHARGE_GAPS
+
+
+def _charge_candidates_have_place_shift_rival(
+    candidates: list[Mapping[str, Any]] | None,
+) -> bool:
+    """True when ≥2 currency-shaped locals disagree by place/digit shift."""
+    if not candidates:
+        return False
+    try:
+        from packages.claim_evidence.line_sum_authority import (
+            is_currency_digit_drop_twin,
+            is_decimal_place_shift,
+            parse_currency,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+
+    amounts: list[object] = []
+    texts: list[str] = []
+    for cand in candidates:
+        eng = str(cand.get("engine") or "").casefold()
+        if "gpt4o" in eng or "gpt-4o" in eng:
+            continue
+        raw = cand.get("value") or cand.get("raw_value")
+        parsed = parse_currency(raw)
+        if parsed is None:
+            continue
+        amounts.append(parsed)
+        texts.append(str(raw))
+    for i, left in enumerate(amounts):
+        for j, right in enumerate(amounts):
+            if j <= i:
+                continue
+            if is_decimal_place_shift(left, right):
+                return True
+            if is_currency_digit_drop_twin(texts[i], texts[j]):
+                return True
+            # Near ×10 shells (222.22 vs 2221.22 / 157.07 vs 1571.07).
+            from decimal import Decimal
+
+            for factor in (Decimal(10), Decimal(100)):
+                if abs(left * factor - right) <= Decimal("2.00"):
+                    return True
+                if abs(right * factor - left) <= Decimal("2.00"):
+                    return True
+    return False
 
 
 def id_local_needs_gpt4o(value: str | None, *, accepted: bool) -> bool:
@@ -946,6 +1002,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
             local_accepted=local_accepted,
             azure_di_shaped=di_shaped,
             gap_class=gap_class or "EMPTY_FINANCIAL_INK",
+            candidates=list(field_row.get("candidates") or []),
         ):
             return updated
     else:

@@ -141,6 +141,23 @@ class ClaimEvidenceBuilder:
                         metadata,
                     )
                 )
+                # Configured tolerance is cent-exact (abs $0.01 / rel 0.0001).
+                # Mint CLAIM_TOTAL_CONFIRMED so evidence policy E6 / financial
+                # authority can AUTO — WITHIN_TOLERANCE alone was leaving
+                # CALIBRATION_HITL despite Box 28 == Σ.
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "CLAIM_TOTAL_CONFIRMED",
+                        str(total),
+                        {
+                            **metadata,
+                            "reason": "CLAIM_TOTAL_WITHIN_TOLERANCE",
+                            "claim_total": str(total),
+                            "service_line_total": str(observed),
+                        },
+                    )
+                )
             else:
                 contradictions.append(
                     self._item(

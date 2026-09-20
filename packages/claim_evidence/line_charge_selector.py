@@ -616,6 +616,38 @@ def apply_line_charge_selector(lines: list[dict] | None) -> list[dict]:
             if selection.amount:
                 updated["charges"] = selection.amount
                 updated["charge_amount"] = selection.amount
+            else:
+                # Stale charges (e.g. geometry 49.77) with no selector amount
+                # invent a false line Σ and fight Box 28 / gpt-4o (4972).
+                # Keep only when a live candidate still supports the amount.
+                current = parse_currency(updated.get("charges"))
+                supported = False
+                if current is not None:
+                    target = format_currency(current)
+                    for cand in updated.get("candidates") or []:
+                        if not isinstance(cand, dict):
+                            continue
+                        if parse_currency(cand.get("value")) != current:
+                            continue
+                        eng = str(cand.get("engine") or "").casefold()
+                        prep = str(
+                            cand.get("preprocessing_variant")
+                            or cand.get("evidence_reference")
+                            or ""
+                        )
+                        if (
+                            "gpt4o" in eng
+                            or "GEOMETRY_CENTS" in prep
+                            or _raw_has_observed_decimal(cand.get("raw_value"))
+                        ):
+                            supported = True
+                            break
+                        if _candidate_evidence_quality(cand, target) >= 3:
+                            supported = True
+                            break
+                if not supported:
+                    updated["charges"] = None
+                    updated["charge_amount"] = None
             updated["line_charge_ambiguous"] = True
             updated["router_reason"] = (
                 f"{line.get('router_reason') or ''}|LINE_CHARGE_AMBIGUOUS:{selection.reason}"

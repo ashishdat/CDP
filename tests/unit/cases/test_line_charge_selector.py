@@ -387,3 +387,52 @@ def test_financial_geometry_keeps_true_conflict_as_hitl():
     )
     assert not decision.confirmed
     assert decision.reason == "ARITHMETIC_MISMATCH"
+
+
+def test_ambiguous_without_amount_clears_unsupported_stale_charges():
+    """M.008: geometry 49.77 must not stick when selector amount is null."""
+    lines = [
+        {
+            "line_number": 1,
+            "charges": "49.77",
+            "canonical_region": list(_CHARGE_BBOX),
+            "candidates": [
+                _cand("paddleocr", "4972.00", "4972", _CHARGE_BBOX),
+                _cand("azure_gpt4o_crop", "4972.00", "4972.00", _CHARGE_BBOX),
+            ],
+            "attempts": [
+                {
+                    "engine": "rapidocr",
+                    "reason": "GEOMETRY_CENTS",
+                    "observation": {
+                        "shaped": "49.77",
+                        "raw_digit_sequence": "4977",
+                        "canonical_monetary_value": "49.77",
+                    },
+                }
+            ],
+        }
+    ]
+    out = apply_line_charge_selector(lines)
+    assert out[0]["line_charge_selection"]["disposition"] == "AMBIGUOUS_LINE_CHARGE"
+    assert out[0]["line_charge_selection"]["amount"] is None
+    assert out[0]["charges"] is None
+    assert out[0]["charge_amount"] is None
+
+
+def test_ambiguous_keeps_charge_when_gpt4o_candidate_supports_it():
+    lines = [
+        {
+            "line_number": 1,
+            "charges": "222.22",
+            "canonical_region": list(_CHARGE_BBOX),
+            "candidates": [
+                _cand("azure_gpt4o_crop", "222.22", "222.22", _CHARGE_BBOX),
+                _cand("paddleocr", "222.00", "222", _CHARGE_BBOX),
+                _cand("rapidocr", "22.00", "22", _CHARGE_BBOX),
+            ],
+        }
+    ]
+    out = apply_line_charge_selector(lines)
+    assert out[0]["line_charge_selection"]["disposition"] == "AMBIGUOUS_LINE_CHARGE"
+    assert out[0]["charges"] == "222.22"

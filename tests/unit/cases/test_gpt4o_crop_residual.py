@@ -340,6 +340,16 @@ def test_charge_needs_gpt4o_and_shapes_currency():
     assert not charge_needs_gpt4o(
         local_accepted=False, azure_di_shaped=True, gap_class="CHARGE_LOCAL_EXHAUSTED"
     )
+    # DIGITS_FIRST accepted but place-shift rivals → still need gpt-4o.
+    assert charge_needs_gpt4o(
+        local_accepted=True,
+        azure_di_shaped=False,
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        candidates=[
+            {"engine": "rapidocr", "value": "222.22"},
+            {"engine": "paddleocr", "value": "2221.22"},
+        ],
+    )
     shaped, ok = _shape_charge("TOTAL CHARGE 233.00")
     assert ok and shaped == "233.00"
     shaped, ok = _shape_charge("1.00")
