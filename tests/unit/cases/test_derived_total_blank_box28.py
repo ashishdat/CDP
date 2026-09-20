@@ -188,6 +188,44 @@ def test_ambiguous_line_blocks_derive():
     assert "AMBIGUOUS" in decision.reason
 
 
+def test_financial_geometry_ignores_cents_half_fragment():
+    """``25.00`` beside confirmed ``34.25`` is ruling-split noise, not conflict."""
+    lines = [
+        {
+            "charges": "34.25",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "34.25",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+            },
+            "candidates": [
+                _cand("paddleocr", "34.25", "34.25", _CHARGE_BBOX),
+                _cand("rapidocr", "34.25", "34.25", _CHARGE_BBOX),
+            ],
+        }
+    ]
+    decision = evaluate_financial_geometry_arithmetic(
+        box28_amount="34.25",
+        service_lines=lines,
+        box28_field_payload={
+            "ranked_candidate": {
+                "ocr_candidate": {"value": "34.25", "raw_value": "34.25"}
+            },
+            "alternatives": [
+                {"ocr_candidate": {"value": "25.00", "raw_value": "25"}},
+            ],
+        },
+        box28_observation={
+            "text": "34.25",
+            "raw_digit_sequence": "3425",
+            "canonical_monetary_value": "34.25",
+            "adopted": True,
+        },
+    )
+    assert decision.confirmed
+    assert decision.amount == "34.25"
+
+
 def test_financial_geometry_soft_integrity_when_exact_match():
     """Glyph integrity failure must not block already-agreeing Σ == Box28."""
     lines = [

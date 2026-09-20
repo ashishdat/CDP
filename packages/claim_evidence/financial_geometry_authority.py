@@ -197,6 +197,19 @@ def evaluate_financial_geometry_arithmetic(
             alt_dollars = alt_txt.split(".", 1)[0]
             if box_dollars == alt_dollars and abs(alt - box) <= Decimal("1.00"):
                 continue
+            # Ruling-split / fragment of the already-confirmed amount
+            # (``25.00`` beside confirmed ``34.25``) is not a competing total.
+            if box == total:
+                conf_digits = re.sub(r"\D", "", box_txt)
+                alt_digits = re.sub(r"\D", "", alt_txt)
+                alt_core = alt_digits.rstrip("0") or alt_digits
+                if (
+                    conf_digits
+                    and alt_core
+                    and len(alt_core) <= len(conf_digits)
+                    and alt_core in conf_digits
+                ):
+                    continue
             # Near-miss dollars that are not the confirmed total → conflict HITL.
             if abs(alt - box) > Decimal("0.01"):
                 return FinancialGeometryDecision(
