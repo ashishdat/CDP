@@ -267,7 +267,7 @@ class AnthropicClaudeVisionAdapter:
         self,
         api_key: str,
         *,
-        model: str = "claude-sonnet-4-20250514",
+        model: str = "claude-sonnet-4-6",
         endpoint: str = "https://api.anthropic.com/v1/messages",
         enabled: bool = True,
         http_client: httpx.Client | None = None,

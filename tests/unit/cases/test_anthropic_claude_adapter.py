@@ -53,7 +53,7 @@ def test_anthropic_claude_adapter_parses_json_fields():
     client = httpx.Client(transport=transport)
     adapter = AnthropicClaudeVisionAdapter(
         api_key="test-key",
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         enabled=True,
         http_client=client,
     )
@@ -79,7 +79,7 @@ def test_anthropic_claude_adapter_parses_json_fields():
     assert transport.last_request.url.path.endswith("/v1/messages")
     assert transport.last_request.headers["x-api-key"] == "test-key"
     body = json.loads(transport.last_request.content)
-    assert body["model"] == "claude-sonnet-4-20250514"
+    assert body["model"] == "claude-sonnet-4-6"
     assert body["temperature"] == 0
 
 

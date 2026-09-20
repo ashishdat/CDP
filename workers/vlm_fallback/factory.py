@@ -68,7 +68,7 @@ def build_anthropic_claude_adapter(
         raise AnthropicConfigurationError("ANTHROPIC_API_KEY missing")
     return AnthropicClaudeVisionAdapter(
         api_key=key,
-        model=model or settings.anthropic_model or "claude-sonnet-4-20250514",
+        model=model or settings.anthropic_model or "claude-sonnet-4-6",
         endpoint=settings.anthropic_messages_endpoint
         or "https://api.anthropic.com/v1/messages",
         enabled=enabled,
