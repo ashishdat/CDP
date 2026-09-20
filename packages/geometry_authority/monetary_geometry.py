@@ -1033,15 +1033,25 @@ def read_monetary_crop(
             )
             if canonical_read.geometry_candidate and not canonical_read.ambiguous:
                 # Tess under-reads (420 from 21200) must not beat a fuller Rapid
-                # digit string on the same crop.
+                # digit string on the same crop. A single trailing units digit on
+                # Rapid (49721 vs 4972) is not an under-read.
                 geo_digits = "".join(
                     ch for ch in canonical_read.raw_glyph_sequence if ch.isdigit()
                 )
-                if (
-                    not rapid_digit_check
-                    or rapid_digit_check == geo_digits
-                    or len(geo_digits) >= len(rapid_digit_check)
+                accept_tess = False
+                if not rapid_digit_check or rapid_digit_check == geo_digits:
+                    accept_tess = True
+                elif len(geo_digits) >= len(rapid_digit_check):
+                    accept_tess = True
+                elif (
+                    rapid_digit_check.startswith(geo_digits)
+                    and len(rapid_digit_check) <= len(geo_digits) + 1
                 ):
+                    accept_tess = True
+                elif not rapid_digit_check.endswith(geo_digits):
+                    # Unrelated Rapid noise — keep the Tess canonical split.
+                    accept_tess = True
+                if accept_tess:
                     return canonical_read
             # Fall through to crop-local / token readers; keep mapped provenance.
             page_mapped = mapped
@@ -1151,6 +1161,19 @@ def read_monetary_crop(
             cents_x=cents_boundary,
             units_x=units_boundary if units_boundary is not None else CMS1500_UNITS_X0,
         )
+        # Page-canonical Tess under-read: fall back to crop-local ruling/gap
+        # logic that does not depend on page x (still no crop-local cents assign
+        # when a page-canonical candidate already won above).
+        try:
+            local_only = read_monetary_crop(image, units_x=units_x)
+        except Exception:  # noqa: BLE001
+            local_only = None
+        if (
+            local_only is not None
+            and local_only.geometry_candidate
+            and not local_only.ambiguous
+        ):
+            return _with_provenance(local_only, page_glyphs=page_mapped)
         if rapid_read is not None and rapid_read.raw_glyph_sequence:
             return MonetaryGeometryRead(
                 rapid_read.raw_glyph_sequence,
