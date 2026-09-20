@@ -1,57 +1,48 @@
 {
   "source": "evaluation_results/hackathon_50_decide_line_charge_v1",
-  "log": "evaluation_results/hackathon_50_decide_line_charge_v5.log",
-  "commit": "f4dc21d",
+  "log": "evaluation_results/hackathon_50_decide_line_charge_v8.log",
+  "commit": "3261538",
   "decide_only": {
     "n": 50,
-    "true_stp": 32,
-    "hitl": 18,
-    "charge_auto": 39
+    "true_stp": 35,
+    "hitl": 15,
+    "charge_auto": 40
   },
   "priors": {
-    "locked50_decide_derived_blank_v1_pre_soup": {
+    "locked50_decide_derived_blank_v1_pre_identity_fix": {
       "true_stp": 32,
       "hitl": 18,
-      "charge_auto": 37,
-      "note": "prior metrics file before same-ROI engine-soup filter"
+      "charge_auto": 39
     },
     "locked50_decide_line_charge_v1": {
       "true_stp": 31,
       "hitl": 19,
       "charge_auto": 36
-    },
-    "locked50_decide_charge_plan_v1": {
-      "true_stp": 22,
-      "hitl": 28,
-      "charge_auto": 25
     }
   },
-  "deltas_vs_prior_derived_decide": {
-    "true_stp": "0 (32\u219232)",
-    "charge_auto": "+2 (37\u219239)"
+  "deltas_vs_pre_identity_fix": {
+    "true_stp": "+3 (32\u219235)",
+    "charge_auto": "+1 (39\u219240)"
   },
   "evidence": {
-    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED_claims": 7,
+    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED_claims": 8,
     "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES_claims": 0,
     "BOX28_LINE_SUM_CORROBORATED_claims": 23,
-    "FINANCIAL_CONFLICT_HITL_claims": 2,
-    "note": "DERIVED=0 on decide-only: every locked-50 Box 28 ROI has currency-shaped OCR (INK_OBSERVED). OCR-empty alone never qualifies as CONFIRMED_BLANK; no page pixels available for ink-density confirmation on decide-only replay."
+    "FINANCIAL_CONFLICT_HITL_claims": 1,
+    "note": "DERIVED=0: every locked-50 Box 28 has currency-shaped OCR (INK_OBSERVED)."
   },
   "focus": {
-    "charge_unlocked_via_fg": [
-      "M048DJJM.021",
-      "M048DJJM.013",
-      "M048DJJM.020"
+    "unlocked_this_pass": [
+      "M048DJJM.020",
+      "M048DJJM.028",
+      "M048DJJF.006"
     ],
-    "claim_stp_unlocked": [
+    "previously_unlocked": [
       "M048DJJM.021"
     ],
-    "charge_auto_but_claim_hitl": {
-      "M048DJJM.013": "UNRESOLVED_CLAIM_CONTRADICTION (relationship / DOB role)",
-      "M048DJJM.020": "patient_name identity gap \u2014 needs CDP_AUTHORIZED_MEMBER_INDEX"
-    },
-    "printed_ink_arithmetic_mismatch_hitl": [
-      "M048DJJM.028"
+    "charge_auto_claim_hitl_relationship": [
+      "M048DJJM.013",
+      "M048DJJM.011"
     ],
     "true_ambiguity_hitl": [
       "M048DJJM.010",
@@ -61,20 +52,21 @@
       "M048DJJM.034",
       "M048DJJM.035"
     ],
-    "identity_tail": [
+    "identity_tail_needs_authorized_index": [
       "M048DJJM.019",
-      "M048DJJM.020",
       "M048DJJM.023",
       "M048DJJM.025",
       "M048DJJM.034",
-      "M048DJJM.035"
+      "M048DJJM.035",
+      "M048DJJM.013"
     ]
   },
   "notes": [
-    "Same-ROI engine soup filter unlocked .020 charge (135.00 FG; 43800 digit-blob ignored).",
-    ".013 charge remains AUTO via FG (34.25); claim HITL on relationship contradictions.",
-    ".028 remains 400.40 printed vs \u03a3 400.00 \u2014 correct FINANCIAL_CONFLICT_HITL.",
-    "True ambiguity stays HITL; do not use line arithmetic to pick conflicting digits.",
-    "Identity tail requires operator-authorized CDP_AUTHORIZED_MEMBER_INDEX (exact ID, effective date, authorization, audit). Example scaffold: docs/reference/authorized_member_index.example.json."
+    ".020: confusable FRANCAVLLA\u2194FRANCAVILLA + MEMBER_RELATIONSHIP_CONFIRMED E6 \u2192 TRUE_STP.",
+    ".028: Box 28 $400300 junk-digit relief \u2192 \u03a3 400.00 FG; cleared CLAIM_TOTAL_CONTRADICTION \u2192 TRUE_STP.",
+    ".006: ROVINSKI\u2194ROVINSK confusable + BOX2_BOX4 \u2192 TRUE_STP.",
+    ".013: distinct Box2/Box4 identities under Self \u2014 correct HITL until authorized index.",
+    "Identity template: docs/reference/authorized_member_index.locked50.json (authorized=false until operator fill). Set CDP_AUTHORIZED_MEMBER_INDEX.",
+    "Ambiguity cases stay HITL; do not use line arithmetic to pick conflicting digits."
   ]
 }
