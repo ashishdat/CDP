@@ -823,6 +823,36 @@ class ClaimEvidenceBuilder:
                     },
                 )
             )
+            # Derived totals are arithmetic, not OCR — own E4/E6 path.
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "E4_DERIVATION_VALIDATED",
+                    decision.amount,
+                    {
+                        **metadata,
+                        "box28_status": "CONFIRMED_BLANK",
+                        "value_origin": "DERIVED_FROM_VERIFIED_SERVICE_LINES",
+                        "printed_box28_value": None,
+                    },
+                )
+            )
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "E6_COMPLETE_LINE_ARITHMETIC",
+                    decision.amount,
+                    {
+                        **metadata,
+                        "box28_status": "CONFIRMED_BLANK",
+                        "line_count": len(decision.line_values),
+                        "line_values": list(decision.line_values),
+                        "derivation": "SUM(Box24F)",
+                        "value_origin": "DERIVED_FROM_VERIFIED_SERVICE_LINES",
+                        "printed_box28_value": None,
+                    },
+                )
+            )
             evidence.append(
                 self._item(
                     claim_id,

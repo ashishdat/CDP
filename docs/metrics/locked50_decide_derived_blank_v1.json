@@ -1,13 +1,20 @@
 {
   "source": "evaluation_results/hackathon_50_decide_line_charge_v1",
-  "commit": "2a7838b",
+  "log": "evaluation_results/hackathon_50_decide_line_charge_v5.log",
+  "commit": "f4dc21d",
   "decide_only": {
     "n": 50,
     "true_stp": 32,
     "hitl": 18,
-    "charge_auto": 37
+    "charge_auto": 39
   },
   "priors": {
+    "locked50_decide_derived_blank_v1_pre_soup": {
+      "true_stp": 32,
+      "hitl": 18,
+      "charge_auto": 37,
+      "note": "prior metrics file before same-ROI engine-soup filter"
+    },
     "locked50_decide_line_charge_v1": {
       "true_stp": 31,
       "hitl": 19,
@@ -19,24 +26,31 @@
       "charge_auto": 25
     }
   },
-  "deltas_vs_selector_decide": {
-    "true_stp": "+1 (31\u219232)",
-    "charge_auto": "+1 (36\u219237)"
+  "deltas_vs_prior_derived_decide": {
+    "true_stp": "0 (32\u219232)",
+    "charge_auto": "+2 (37\u219239)"
   },
   "evidence": {
-    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED_claims": 5,
+    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED_claims": 7,
     "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES_claims": 0,
     "BOX28_LINE_SUM_CORROBORATED_claims": 23,
-    "FINANCIAL_CONFLICT_HITL_claims": 4,
-    "note": "DERIVED=0 on decide-only: no page ROI pixels for CONFIRMED_BLANK ink analysis; OCR-empty alone does not qualify."
+    "FINANCIAL_CONFLICT_HITL_claims": 2,
+    "note": "DERIVED=0 on decide-only: every locked-50 Box 28 ROI has currency-shaped OCR (INK_OBSERVED). OCR-empty alone never qualifies as CONFIRMED_BLANK; no page pixels available for ink-density confirmation on decide-only replay."
   },
   "focus": {
-    "unlocked": [
+    "charge_unlocked_via_fg": [
+      "M048DJJM.021",
+      "M048DJJM.013",
+      "M048DJJM.020"
+    ],
+    "claim_stp_unlocked": [
       "M048DJJM.021"
     ],
-    "still_calibration_with_agreeing_ink": [
-      "M048DJJM.013",
-      "M048DJJM.020",
+    "charge_auto_but_claim_hitl": {
+      "M048DJJM.013": "UNRESOLVED_CLAIM_CONTRADICTION (relationship / DOB role)",
+      "M048DJJM.020": "patient_name identity gap \u2014 needs CDP_AUTHORIZED_MEMBER_INDEX"
+    },
+    "printed_ink_arithmetic_mismatch_hitl": [
       "M048DJJM.028"
     ],
     "true_ambiguity_hitl": [
@@ -57,9 +71,10 @@
     ]
   },
   "notes": [
-    "FG soft-integrity unlocked .021 (135==135).",
-    ".013 blocked by CONFLICTING_BOX28_CANDIDATE 25.00 (cents-half of 34.25) \u2014 follow-up fragment filter.",
-    ".028 remains 400.40 vs selected line sum 400.00 arithmetic mismatch (printed ink present).",
-    "True ambiguity stays HITL by design."
+    "Same-ROI engine soup filter unlocked .020 charge (135.00 FG; 43800 digit-blob ignored).",
+    ".013 charge remains AUTO via FG (34.25); claim HITL on relationship contradictions.",
+    ".028 remains 400.40 printed vs \u03a3 400.00 \u2014 correct FINANCIAL_CONFLICT_HITL.",
+    "True ambiguity stays HITL; do not use line arithmetic to pick conflicting digits.",
+    "Identity tail requires operator-authorized CDP_AUTHORIZED_MEMBER_INDEX (exact ID, effective date, authorization, audit). Example scaffold: docs/reference/authorized_member_index.example.json."
   ]
 }

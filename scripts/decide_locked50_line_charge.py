@@ -87,7 +87,9 @@ def main() -> int:
         fields = r.get("fields") or {}
         tc = fields.get("total_charge") or fields.get("total_charges") or {}
         if isinstance(tc, dict) and (
-            tc.get("decision") in {"ACCEPT", "AUTO"} or tc.get("accepted")
+            tc.get("decision") in {"ACCEPT", "AUTO", "AUTO_ACCEPTED"}
+            or tc.get("disp") in {"ACCEPT", "AUTO", "AUTO_ACCEPTED"}
+            or tc.get("accepted")
         ):
             charge_auto += 1
         elif r.get("true_stp"):
