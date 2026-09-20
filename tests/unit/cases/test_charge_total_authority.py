@@ -54,8 +54,8 @@ def test_ruling_tail_70_vs_701():
             }
         ],
     )
-    assert safe == "701.00"
-    assert reason == "PRIMARY_UNCHANGED"
+    assert safe == "70.00"
+    assert reason == "RULING_TAIL_TO_FULL_STEM"
 
 
 def test_units_bleed_cents_prefer_whole_dollar():
@@ -80,8 +80,8 @@ def test_units_bleed_cents_prefer_whole_dollar():
         },
         service_lines=[{"charges": "157.07"}],
     )
-    assert safe == "157.07"
-    assert reason == "PRIMARY_UNCHANGED"
+    assert safe == "157.00"
+    assert reason == "BLEED_CENTS_TO_WHOLE_DOLLAR"
 
 
 def test_reject_place_shift_soup_still():

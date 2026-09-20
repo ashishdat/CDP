@@ -1,15 +1,15 @@
 """When box-28 OCR is empty, invalid, or strongly contradicts observed lines,
 prefer LINE_TOTALS_RECONCILED from service-line ink (never invent amounts).
 
-AUTO on line-sum is fail-closed. Eligible path:
+AUTO on line-sum is fail-closed. GPT-4o never independently promotes a critical
+charge field. Eligible paths:
 
+  - every charge line has independent gpt-4o + usable local consensus;
+  - multi-line (≥2) exact dual-engine (paddle+rapid) agreement;
   - service-line sum corroborated by independently extracted box-28 / DI
-    (``amounts_corroborate``, which may use digit-drop twins — box-28/DI only).
+    (``amounts_corroborate`` — exact monetary equality).
 
-Dual-engine or gpt-4o+local agreement on service-line crops alone is **not**
-enough for AUTO: those share the Box 24F evidence path and are not a second
-printed occurrence of the claim total. GPT-4o never independently promotes a
-critical charge field.
+Single-line paddle+rapid alone remains insufficient. Never invent Box 28 from Σ.
 
 Shell / form-noise locals are not corroboration. Shared crop, parent evidence,
 or independence_group lineage means candidates are not independent → HITL.
@@ -567,6 +567,8 @@ def line_sum_auto_eligible(
     (222 vs line 200) cannot veto a strong line consensus. Junk box-28 soup is
     ignored. Single-line paddle+rapid alone remains insufficient (hard-15 FA).
     GPT-4o never independently promotes critical charges.
+    Never invents Box 28 from Σ — this only gates line-sum E6 when Box 28 is
+    empty/absent or independently corroborates.
     """
     total = line_sum_total(service_lines)
     if total is None:
@@ -598,6 +600,26 @@ def line_sum_auto_eligible(
         if any(parse_currency(ln.get(k)) is not None for k in _CHARGE_FIELDS)
     ]
 
+    # Strong line consensus before weak box-28 conflict.
+    gpt_agreed, gpt_observed = gpt4o_local_line_fraction(charge_lines)
+    if gpt_observed >= 1 and gpt_agreed >= gpt_observed:
+        corroborators_pre = []
+        for value in [box28_value, *(corroborating_values or [])]:
+            parsed = parse_currency(value)
+            if parsed is None or is_suspicious_tiny_total(parsed):
+                continue
+            if is_implausible_corroborator(value, total):
+                continue
+            corroborators_pre.append(value)
+        if corroborators_pre and not any(
+            amounts_corroborate(total, value) for value in corroborators_pre
+        ):
+            # Plausible currency-shaped box-28 / DI disagrees → HITL.
+            return False, "BOX28_OR_DI_CONFLICT"
+        if gpt_observed == 1:
+            return True, "SINGLE_LINE_GPT4O_LOCAL"
+        return True, "MULTI_LINE_GPT4O_LOCAL"
+
     corroborators = []
     for value in [box28_value, *(corroborating_values or [])]:
         parsed = parse_currency(value)
@@ -612,20 +634,14 @@ def line_sum_auto_eligible(
         # Plausible currency-shaped box-28 / DI disagrees → HITL, not false STP.
         return False, "BOX28_OR_DI_CONFLICT"
 
-    # No independent Box 28 / DI total: do not AUTO from line consensus alone.
-    # Printed CMS-1500 authority is Box 24F Σ ↔ Box 28; dual-engine / gpt+local
-    # on the same service-line crops is not a second printed occurrence.
-    gpt_agreed, gpt_observed = gpt4o_local_line_fraction(charge_lines)
-    if gpt_observed >= 1 and gpt_agreed >= gpt_observed:
-        return False, "GPT4O_LOCAL_NEEDS_BOX28"
-
     agreed, observed = dual_engine_line_fraction(service_lines)
     if observed == 0:
         return False, "NO_LINE_CHARGES"
     if observed == 1:
+        # Single-line paddle+rapid alone is insufficient without Box 28 / gpt-4o.
         if agreed >= 1:
             return False, "SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28"
         return False, "SINGLE_LINE_REQUIRES_DI"
     if agreed >= observed >= 2:
-        return False, "DUAL_ENGINE_NEEDS_BOX28"
+        return True, "DUAL_ENGINE_LINE_AGREEMENT"
     return False, "MULTI_LINE_UNCORROBORATED"

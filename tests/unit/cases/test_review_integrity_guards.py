@@ -43,6 +43,28 @@ def test_units_glyphs_cannot_fall_back_to_token_acceptance():
     ).passed
 
 
+def test_units_zone_allows_observed_decimal_token():
+    """DJJM.002-class: units bleed + bad glyph split, but ``1 270.00`` is printed."""
+    result = evaluate_parser_integrity(
+        amount='270.00',
+        raw_digit_sequence='1 270.00',
+        dollar_glyphs=[],
+        cents_glyphs=['2', '7', '0', '0'],
+        unit_zone_glyphs=['0'],
+    )
+    assert result.passed
+    assert result.amount == '270.00'
+    assert 'OBSERVED_DECIMAL_TOKEN' in result.reasons
+
+
+def test_observed_decimal_token_without_units():
+    result = evaluate_parser_integrity(
+        amount='270.00', raw_digit_sequence='$270.00'
+    )
+    assert result.passed
+    assert 'OBSERVED_DECIMAL_TOKEN' in result.reasons
+
+
 def test_ruling_digit_cannot_be_deleted_without_geometry():
     assert not evaluate_parser_integrity(amount='212.00', raw_digit_sequence='211200').passed
 

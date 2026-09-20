@@ -182,7 +182,8 @@ def prefer_safe_charge_amount(left: object, right: object) -> str | None:
 
     Untagged ruling-tail / digit-drop twins (``70`` vs ``701``, ``25`` vs
     ``251``) abstain — those need source tags in ``resolve_safe_charge_total``
-    so we never collapse a real stem like ``251 → 25``.
+    so we never collapse a real stem like ``251 → 25``. Same-dollar ``.00``
+    preference is also tag-gated (integrity: no automatic rewrite).
     """
     a = parse_currency(left)
     b = parse_currency(right)
@@ -213,18 +214,104 @@ def resolve_safe_charge_total(
 ) -> tuple[str | None, str]:
     """Select a precision-safe total or abstain.
 
-    Returns ``(amount, reason)``. Only applies explicit C1/C2 repairs; never
-    walks digit-drop chains that could collapse ``251 → 25``.
+    Returns ``(amount, reason)``. Applies tagged C1/C2 repairs from OCR
+    candidates only — never invents Box 28 from a service-line Σ.
     """
-    parsed = parse_currency(primary)
-    if primary not in (None, ""):
-        if parsed is None or is_implausible_charge_total(primary):
-            return None, "INVALID_PRIMARY"
-        return format_currency(parsed), "PRIMARY_UNCHANGED"
+    candidates = collect_charge_candidates(
+        primary=primary,
+        field_payload=field_payload,
+        service_lines=service_lines,
+    )
+    if not candidates:
+        if primary not in (None, ""):
+            parsed = parse_currency(primary)
+            if parsed is None or is_implausible_charge_total(primary):
+                return None, "INVALID_PRIMARY"
+            return format_currency(parsed), "PRIMARY_UNCHANGED"
+        return None, "NO_CANDIDATES"
 
-    # Discovery only: do not mix service-line observations into a missing Box 28.
-    candidates = collect_charge_candidates(field_payload=field_payload)
-    amounts = {amount for amount, _tag in candidates}
+    primary_txt = None
+    if parse_currency(primary) is not None:
+        primary_txt = format_currency(parse_currency(primary))
+
+    by_tag: dict[str, list[str]] = {}
+    for amount, tag in candidates:
+        by_tag.setdefault(tag, []).append(amount)
+
+    full_amounts = [
+        amt
+        for tag, amounts in by_tag.items()
+        if tag in _FULL_TAGS
+        for amt in amounts
+        if amt.endswith(".00")
+    ]
+    ruling_amounts = [
+        amt
+        for tag, amounts in by_tag.items()
+        if tag in _RULING_TAGS
+        for amt in amounts
+    ]
+    # OCR-observed amounts only — exclude bare "line" shells used for diagnosis.
+    ocr_amounts = [
+        amt
+        for amt, tag in candidates
+        if tag not in {"line"}
+    ]
+
+    # C2: full-window stem beats dollars-ruling that added trailing 1/4/5.
+    # Only shrink when the *longer* form is ruling-tagged (or primary matches
+    # that ruling). Never treat a shorter ruling crop as license to collapse
+    # a longer primary (251 → 25).
+    for full in full_amounts:
+        fd = _dollars_part(full)
+        if len(fd) < 2:
+            continue
+        for ruling in ruling_amounts:
+            rd = _dollars_part(ruling)
+            if not (
+                rd.startswith(fd)
+                and len(rd) == len(fd) + 1
+                and rd[-1] in {"1", "4", "5"}
+            ):
+                continue
+            if primary_txt in {None, ruling, full} or (
+                primary_txt is not None and _dollars_part(primary_txt) == rd
+            ):
+                return full, "RULING_TAIL_TO_FULL_STEM"
+        if primary_txt is not None:
+            pd = _dollars_part(primary_txt)
+            if (
+                pd.startswith(fd)
+                and len(pd) == len(fd) + 1
+                and pd[-1] in {"1", "4", "5"}
+                and any(_dollars_part(r) == pd for r in ruling_amounts)
+            ):
+                return full, "RULING_TAIL_TO_FULL_STEM"
+
+    # C1: bleed cents → same-dollar .00 sibling from OCR (never from line Σ).
+    if primary_txt and is_units_bleed_cents(primary_txt):
+        dollars = _dollars_part(primary_txt)
+        sibling = f"{dollars}.00"
+        if sibling in ocr_amounts:
+            return sibling, "BLEED_CENTS_TO_WHOLE_DOLLAR"
+
+    for amount in ocr_amounts:
+        if not is_units_bleed_cents(amount):
+            continue
+        sibling = f"{_dollars_part(amount)}.00"
+        if sibling in ocr_amounts and primary_txt in {amount, sibling, None}:
+            if primary_txt == sibling:
+                return sibling, "PRIMARY_UNCHANGED"
+            if primary_txt == amount:
+                return sibling, "BLEED_CENTS_TO_WHOLE_DOLLAR"
+
+    if primary_txt:
+        return primary_txt, "PRIMARY_UNCHANGED"
+    if len(set(full_amounts)) == 1:
+        return full_amounts[0], "SAFE_CHARGE_FROM_CANDIDATES"
+    # Discovery only when Box 28 missing: single OCR candidate, not line mix.
+    box28_only = collect_charge_candidates(field_payload=field_payload)
+    amounts = {amount for amount, _tag in box28_only}
     if len(amounts) == 1:
         return next(iter(amounts)), "UNVERIFIED_BOX28_CANDIDATE"
     return None, "NO_SAFE_PRIMARY"
