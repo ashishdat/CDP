@@ -249,14 +249,26 @@ def evaluate_parser_integrity(
     glyph_count = len(mapped)
     centres = list(canonical_glyph_centres or [])
 
-    # Broken glyph splits (units bleed, 3+ cents) fall through to token path.
+    # Broken glyph splits (units bleed, 3+ cents, or glyphs that disagree with
+    # the normalised amount) fall through to the token path.
     glyph_split_usable = bool(mapped) and len(cents) == 2 and not units
     if units:
         reasons.append("UNITS_ZONE_PRESENT")
+    if mapped and glyph_split_usable:
+        mapped_digits = "".join(mapped)
+        if (
+            mapped_digits != amount_digits
+            and mapped_digits != raw_digits
+            and "".join(dollars) + "".join(cents) != amount_digits
+        ):
+            reasons.append("GLYPH_AMOUNT_MISMATCH_FALLBACK_TOKEN")
+            glyph_split_usable = False
     if mapped and not glyph_split_usable:
         reasons.append("GLYPH_SPLIT_UNUSABLE")
         mapped = ()
         glyph_count = 0
+        dollars = ()
+        cents = ()
 
     if require_cents and mapped and len(cents) != 2:
         return ParserIntegrityResult(
@@ -478,6 +490,36 @@ def build_box28_evidence(
         raw = str(cand.get("raw_value") or cand.get("value") or "").strip()
         if raw:
             raw_tokens.append(raw)
+    # Under-read geometry still contributes raw digit evidence for alternate parses.
+    for attempt in (field_payload or {}).get("ocr", {}).get("attempts") or []:
+        reason = str(attempt.get("reason") or "")
+        if "GEOMETRY_CENTS" not in reason:
+            continue
+        attempt_obs = attempt.get("observation")
+        if not isinstance(attempt_obs, dict):
+            continue
+        if attempt_obs.get("raw_digit_sequence"):
+            raw_tokens.append(str(attempt_obs["raw_digit_sequence"]))
+        if attempt_obs.get("text"):
+            raw_tokens.append(str(attempt_obs["text"]))
+    # field_payload may be the extraction field_results row (ocr nested).
+    ocr_block = (field_payload or {}).get("ocr")
+    if isinstance(ocr_block, dict):
+        for attempt in ocr_block.get("attempts") or []:
+            reason = str(attempt.get("reason") or "")
+            if "GEOMETRY_CENTS" not in reason:
+                continue
+            attempt_obs = attempt.get("observation")
+            if not isinstance(attempt_obs, dict):
+                continue
+            if attempt_obs.get("raw_digit_sequence"):
+                raw_tokens.append(str(attempt_obs["raw_digit_sequence"]))
+            if attempt_obs.get("text"):
+                raw_tokens.append(str(attempt_obs["text"]))
+        for cand in ocr_block.get("candidates") or []:
+            raw = str(cand.get("raw_value") or cand.get("value") or "").strip()
+            if raw:
+                raw_tokens.append(raw)
     if amount not in (None, ""):
         raw_tokens.append(str(amount))
     polygons = tuple(
@@ -789,13 +831,22 @@ def evaluate_box28_line_sum_authority(
                 continue
             if is_decimal_place_shift(alt, line_sum_amount):
                 continue
-            # Token-only integrity for alternate parse; do not reuse mismatched glyphs.
+            alt_digits = _digits_only(alt)
+            # Prefer the raw token whose digit run is a 0–1 leading-digit
+            # extension of the alternate amount (same Box 28 OCR string).
+            raw_for_alt = alt_digits
+            for token in box28.raw_tokens:
+                digits = _digits_only(token)
+                if not digits:
+                    continue
+                if digits == alt_digits or (
+                    len(digits) == len(alt_digits) + 1 and digits[1:] == alt_digits
+                ):
+                    raw_for_alt = digits
+                    break
             alt_integrity = evaluate_parser_integrity(
                 amount=alt,
-                raw_digit_sequence=next(
-                    (t for t in box28.raw_tokens if _digits_only(t)),
-                    _digits_only(alt),
-                ),
+                raw_digit_sequence=raw_for_alt,
                 allow_leading_contamination_drop=True,
             )
             if not alt_integrity.passed:

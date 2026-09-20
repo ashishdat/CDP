@@ -693,12 +693,19 @@ class ClaimEvidenceBuilder:
                 )
             )
         else:
-            contradictions.append(
+            # Persist the evaluated HITL reason without creating a claim-level
+            # contradiction — unresolved contradictions force CLAIM_REVIEW even
+            # when every critical field already AUTO via another path.
+            evidence.append(
                 self._item(
                     claim_id,
-                    decision.authority_reason or "AUTHORITY_RULE_NOT_REACHED",
+                    "BOX28_LINE_SUM_EVALUATED",
                     decision.line_sum_amount or box28_amount,
-                    metadata,
+                    {
+                        **metadata,
+                        "hitl_reason": decision.authority_reason
+                        or "AUTHORITY_RULE_NOT_REACHED",
+                    },
                 )
             )
 
