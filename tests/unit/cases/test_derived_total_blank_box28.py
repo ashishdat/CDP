@@ -227,6 +227,55 @@ def test_financial_geometry_ignores_same_roi_junk_tail():
     assert decision.amount == "34.25"
 
 
+def test_financial_geometry_ignores_same_roi_competing_engine_soup():
+    """``43800`` → ``438.00`` beside agreeing ``135.00`` is same-ROI engine soup."""
+    lines = [
+        {
+            "charges": "135.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "135.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                _cand("paddleocr", "135.00", "135.00", _CHARGE_BBOX),
+                _cand("rapidocr", "135.00", "135.00", _CHARGE_BBOX),
+            ],
+        }
+    ]
+    decision = evaluate_financial_geometry_arithmetic(
+        box28_amount="135.00",
+        service_lines=lines,
+        box28_field_payload={
+            "ranked_candidate": {
+                "ocr_candidate": {"value": "135.00", "raw_value": "135 00"}
+            },
+            "alternatives": [
+                {"ocr_candidate": {"value": "438.00", "raw_value": "43800"}},
+            ],
+            "candidates": [
+                {"value": "135.00", "raw_value": "135 00", "engine": "rapidocr"},
+                {"value": "438.00", "raw_value": "43800", "engine": "paddleocr"},
+            ],
+            "attempts": [
+                {"engine": "tesseract_digits", "observation": {"text": "43800"}},
+                {"engine": "rapidocr", "observation": {"text": "135 00"}},
+            ],
+        },
+        box28_observation={
+            "text": "135 00",
+            "raw_digit_sequence": "13500",
+            "canonical_monetary_value": "135.00",
+            "raw_tokens": ["135 00", "43800"],
+            "adopted": True,
+        },
+    )
+    assert decision.confirmed
+    assert decision.amount == "135.00"
+    assert decision.reason == "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED"
+
+
 def test_financial_geometry_soft_integrity_when_exact_match():
     """Glyph integrity failure must not block already-agreeing Σ == Box28."""
     lines = [

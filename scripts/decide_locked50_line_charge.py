@@ -98,7 +98,10 @@ def main() -> int:
             "src_run": str(src_run),
             "charge_auto_heuristic": charge_auto,
             "elapsed_sec": round(time.time() - t0, 3),
-            "commit": "91bff3e",
+            "commit": __import__("subprocess")
+            .check_output(["git", "rev-parse", "--short", "HEAD"], cwd=ROOT)
+            .decode()
+            .strip(),
         }
     )
     _write_json(out_dir / "summary.json", summary)

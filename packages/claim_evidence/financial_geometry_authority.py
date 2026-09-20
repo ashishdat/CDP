@@ -58,6 +58,103 @@ def _line_selected_amount(line: dict) -> tuple[str | None, str]:
     return None, result.disposition
 
 
+def _digit_groups(*texts: object) -> set[str]:
+    groups: set[str] = set()
+    for text in texts:
+        if text is None:
+            continue
+        for group in re.findall(r"\d+", str(text)):
+            if group:
+                groups.add(group)
+                stripped = group.lstrip("0")
+                if stripped:
+                    groups.add(stripped)
+    return groups
+
+
+def _roi_digit_groups(
+    box28_field_payload: dict | None,
+    box28_observation: dict | None,
+) -> set[str]:
+    """Collect digit groups observed inside the Box 28 ROI across engines."""
+    groups: set[str] = set()
+    if isinstance(box28_observation, dict):
+        groups |= _digit_groups(
+            box28_observation.get("text"),
+            box28_observation.get("raw_digit_sequence"),
+            box28_observation.get("canonical_monetary_value"),
+            *(box28_observation.get("raw_tokens") or []),
+        )
+        for attempt in box28_observation.get("attempts") or []:
+            if not isinstance(attempt, dict):
+                continue
+            obs = attempt.get("observation") or attempt
+            if isinstance(obs, dict):
+                groups |= _digit_groups(obs.get("text"), obs.get("raw_digit_sequence"))
+            groups |= _digit_groups(attempt.get("text"), attempt.get("raw_value"))
+    if not isinstance(box28_field_payload, dict):
+        return groups
+    rows = []
+    if box28_field_payload.get("ranked_candidate"):
+        rows.append(box28_field_payload["ranked_candidate"])
+    rows.extend(box28_field_payload.get("alternatives") or [])
+    rows.extend(box28_field_payload.get("candidates") or [])
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        ocr = row.get("ocr_candidate") or row
+        groups |= _digit_groups(ocr.get("value"), ocr.get("raw_value"))
+    for attempt in box28_field_payload.get("attempts") or []:
+        if not isinstance(attempt, dict):
+            continue
+        obs = attempt.get("observation") or {}
+        if isinstance(obs, dict):
+            groups |= _digit_groups(obs.get("text"), obs.get("raw_digit_sequence"))
+        groups |= _digit_groups(attempt.get("raw_value"), attempt.get("text"))
+    return groups
+
+
+def _same_roi_competing_soup(
+    *,
+    box_txt: str,
+    alt_txt: str,
+    alt_raw: object,
+    box28_field_payload: dict | None,
+    box28_observation: dict | None,
+) -> bool:
+    """True when confirmed Σ-matching Box 28 and a rival OCR share one ROI.
+
+    Example: rapidocr ``135 00`` → ``135.00`` beside paddle ``43800`` → ``438.00``
+    on the same Box 28 crop. Once arithmetic already agrees, the rival is soup.
+
+    Clean money-shaped rivals (``270.00`` beside ``260.00``) stay conflicts.
+    """
+    conf_digits = re.sub(r"\D", "", box_txt)
+    alt_digits = re.sub(r"\D", "", alt_txt)
+    if not conf_digits or not alt_digits or conf_digits == alt_digits:
+        return False
+    raw = str(alt_raw or "")
+    # A clean money form in the rival raw text is a real competing total.
+    if re.search(r"\d+\.\d{2}", raw) or re.search(r"\d+\s+\d{2}\b", raw):
+        return False
+    box_dollars = box_txt.split(".", 1)[0]
+    alt_dollars = alt_txt.split(".", 1)[0]
+    groups = _roi_digit_groups(box28_field_payload, box28_observation)
+    if not groups:
+        return False
+
+    def _present(full_digits: str, dollars: str) -> bool:
+        candidates = {
+            full_digits,
+            full_digits.lstrip("0") or full_digits,
+            dollars,
+            dollars.lstrip("0") or dollars,
+        }
+        return any(token in groups for token in candidates if token)
+
+    return _present(conf_digits, box_dollars) and _present(alt_digits, alt_dollars)
+
+
 def evaluate_financial_geometry_arithmetic(
     *,
     box28_amount: object,
@@ -213,6 +310,16 @@ def evaluate_financial_geometry_arithmetic(
                 # Same-ROI dollars stem with junk tail (``34 125`` → ``125.00``).
                 raw_groups = re.findall(r"\d+", str(ocr.get("raw_value") or ""))
                 if box_dollars in raw_groups and alt_txt != box_txt:
+                    continue
+                # Competing OCR from the same Box 28 crop (``135 00`` vs ``43800``)
+                # is soup once Σ already matches the confirmed printed total.
+                if _same_roi_competing_soup(
+                    box_txt=box_txt,
+                    alt_txt=alt_txt,
+                    alt_raw=ocr.get("raw_value"),
+                    box28_field_payload=box28_field_payload,
+                    box28_observation=box28_observation,
+                ):
                     continue
             # Near-miss dollars that are not the confirmed total → conflict HITL.
             if abs(alt - box) > Decimal("0.01"):
