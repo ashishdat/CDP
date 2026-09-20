@@ -32,6 +32,9 @@ def test_implausible_box28_digit_soup():
     assert is_implausible_corroborator("900.00", "200.00")  # 4.5× noise
     assert not is_implausible_corroborator("210.00", "200.00")
     assert not is_implausible_corroborator("222.00", "200.00")  # near-miss stays
+    # Place-adjacent rivals must not be ignored (would unlock false STP).
+    assert not is_implausible_corroborator("1571.07", "157.00")
+    assert not is_implausible_corroborator("2281.32", "228.00")
     ok, reason = semantic_accept("total_charge", "208408.00")
     assert not ok and reason == "CURRENCY_IMPLAUSIBLE_TOTAL"
 

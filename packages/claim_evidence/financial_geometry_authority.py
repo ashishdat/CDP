@@ -243,6 +243,15 @@ def _raw_matches_sum_with_single_junk_digit(line_sum: str, raw_texts: list[str])
     target = re.sub(r"\D", "", line_sum)
     if not target:
         return False
+    # A clean currency-shaped rival (``2605.00`` vs Σ ``260.00``) must keep HITL
+    # even when a digit-only twin (``260500``) could drop one junk digit to Σ.
+    for text in raw_texts:
+        raw = str(text or "")
+        if not re.search(r"\d+\.\d{2}", raw):
+            continue
+        parsed = parse_currency(raw)
+        if parsed is not None and format_currency(parsed) != line_sum:
+            return False
     for text in raw_texts:
         raw = str(text or "")
         # A clean money form that already disagrees is a real printed rival.

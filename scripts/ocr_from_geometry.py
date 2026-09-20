@@ -1935,6 +1935,35 @@ def recognize_service_lines(image, router, template):
                                 'canonical_monetary_value': geo.canonical_monetary_value,
                             },
                         }]
+                        # Promote geometry into candidates so LineChargeSelector
+                        # can dual-agree / reject place-shift soup (4972 vs 49.77).
+                        candidates = list(candidates or []) + [{
+                            'value': value,
+                            'raw_value': geo.raw_glyph_sequence or value,
+                            'engine': 'rapidocr',
+                            'model_name': 'geometry-cents',
+                            'model_version': 'monetary-geometry',
+                            'preprocessing_variant': 'GEOMETRY_CENTS',
+                            'raw_confidence': 0.91,
+                            'calibrated_confidence': None,
+                            'bounding_box': {
+                                'x0': float(bbox[0]),
+                                'y0': float(bbox[1]),
+                                'x1': float(bbox[2]),
+                                'y1': float(bbox[3]),
+                                'image_width': int(image.width),
+                                'image_height': int(image.height),
+                            },
+                            'latency_ms': 0.0,
+                            'validation_results': [],
+                            'evidence_reference': 'GEOMETRY_CENTS',
+                            'estimated_cost_usd': 0.0,
+                            'actual_cost_usd': None,
+                            'preprocessing_version': 'geometry-cents',
+                            'registration_confidence': None,
+                            'image_quality_score': None,
+                            'provenance': None,
+                        }]
             except Exception:  # noqa: BLE001
                 geometry_confirmed = False
             score = 0
@@ -2582,6 +2611,7 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 )
             except Exception:  # noqa: BLE001
                 geo = None
+            adopt_geometry = False
             if geo is not None and geo.geometry_candidate and not geo.ambiguous:
                 import re as _re_geo
 
@@ -2653,12 +2683,36 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     dig_reason = f'{dig_reason}|GEOMETRY_CENTS'
                 else:
                     dig_reason = f'{dig_reason}|GEOMETRY_CENTS_UNDERREAD'
+            # Place-shift underread (4972.00 vs 49.72): never DIGITS_FIRST-AUTO the
+            # inflated shell. Leave Box 28 unaccepted so line-sum / HITL owns it.
+            place_shift_geometry_conflict = False
+            if (
+                geo is not None
+                and geo.geometry_candidate
+                and not geo.ambiguous
+                and not adopt_geometry
+                and selected
+            ):
+                try:
+                    from packages.claim_evidence.line_sum_authority import (
+                        is_decimal_place_shift,
+                    )
+
+                    geo_cmp = geo.canonical_monetary_value or geo.geometry_candidate
+                    place_shift_geometry_conflict = is_decimal_place_shift(
+                        selected, geo_cmp
+                    )
+                except Exception:  # noqa: BLE001
+                    place_shift_geometry_conflict = False
             ok, accept_reason = semantic_accept(
                 field['field'],
                 selected,
                 bbox=primary,
                 image_size=(image.width, image.height),
             )
+            if ok and place_shift_geometry_conflict:
+                ok = False
+                accept_reason = 'PLACE_SHIFT_GEOMETRY_CONFLICT'
             if ok:
                 cascaded = CascadeResult(
                     field_name=field['field'],

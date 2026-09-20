@@ -112,6 +112,66 @@ def test_bare_digit_soup_alone_is_ambiguous_not_selected():
     }
 
 
+def test_cents_first_raw_00_212_selects_dual_local():
+    """OCR ``00\\n212`` must not collapse to SELECTION_NOISE 0.00."""
+    line = {
+        "charges": "212.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "212.00", "00\n212", _CHARGE_BBOX),
+            _cand("rapidocr", "212.00", "00\n212", _CHARGE_BBOX),
+            _cand("azure_gpt4o_crop", "212.00", "212.00", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "212.00"
+    assert result.reason == "DUAL_LOCAL_CHARGE_COLUMN"
+
+
+def test_dollars_ruling_bbox_near_cents_line_is_in_column():
+    """Dollars-ruling crop ending at x1≈1161 must still count as charge-column."""
+    dollars_bbox = (1050.0, 1458.0, 1161.0, 1513.0)
+    line = {
+        "charges": "212.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "212.00", "212", dollars_bbox),
+            _cand("rapidocr", "212.00", "212", dollars_bbox),
+            _cand("azure_gpt4o_crop", "212.00", "212.00", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "212.00"
+
+
+def test_geometry_cents_attempt_promoted_over_bare_soup():
+    """GEOMETRY_CENTS on attempts unlocks selection when candidates are soup."""
+    line = {
+        "charges": "4972.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "4972.00", "4972", _CHARGE_BBOX),
+            _cand("azure_gpt4o_crop", "4972.00", "4972.00", _CHARGE_BBOX),
+        ],
+        "attempts": [
+            {
+                "engine": "rapidocr",
+                "reason": "GEOMETRY_CENTS",
+                "observation": {
+                    "shaped": "49.72",
+                    "raw_digit_sequence": "4972",
+                    "canonical_monetary_value": "49.72",
+                },
+            }
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "49.72"
+
+
 def test_ruling_split_raw_reconstructs_cents():
     """Local ``34\\n25`` is dollars|cents ink, not a dual-local 25.00."""
     line = {

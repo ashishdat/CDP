@@ -17,6 +17,7 @@ from typing import Any
 
 from packages.claim_evidence.line_sum_authority import (
     format_currency,
+    is_decimal_place_shift,
     parse_currency,
 )
 from packages.geometry_authority.cms1500_regions import (
@@ -105,8 +106,10 @@ def _in_charge_column(bbox: tuple[float, float, float, float]) -> bool:
         return False
     if _overlaps_units_column(bbox):
         return False
-    # Reject cents-clipped windows that stop before the cents ruling.
-    if bbox[2] < CMS1500_CHARGE_CENTS_X + 8:
+    # Reject severely cents-clipped windows. Dollars-ruling crops often end
+    # within a few px of the ruling (x1≈1161 vs cents@1155); requiring
+    # cents+8 falsely marked dual-local 212.00 peers as OUTSIDE_CHARGE_COLUMN.
+    if bbox[2] < CMS1500_CHARGE_CENTS_X - 12:
         return False
     cx = _centre_x(bbox)
     ch0, ch1 = CMS1500_LINE_COLUMNS["charges"]
@@ -152,6 +155,18 @@ def _looks_like_place_shift(amount: str, peers: set[str]) -> bool:
     if amount.endswith(".00") and len(_dollars_digits(amount)) >= 4:
         shifted = f"{digits[:-2]}.{digits[-2:]}"
         if shifted in peers and shifted != amount:
+            return True
+    amt = parse_currency(amount)
+    if amt is None:
+        return False
+    for peer in peers:
+        if peer == amount:
+            continue
+        peer_amt = parse_currency(peer)
+        if peer_amt is None:
+            continue
+        # Only reject the inflated shell (×100), never the ruled smaller peer.
+        if is_decimal_place_shift(amount, peer) and amt > peer_amt:
             return True
     return False
 
@@ -203,6 +218,19 @@ def _ruling_split_amount(raw: object) -> str | None:
                 return format_currency(parse_currency(f"{int(dollars)}.{tail}"))
             except (TypeError, ValueError):
                 return None
+        # Cents-first / RTL glue: OCR emits ``00\\n212`` (cents column then
+        # dollars stem). Treating leading ``00`` as dollars yields SELECTION_NOISE
+        # ``0.00`` and drops dual-local agreement on the real ``212.00``.
+        if (
+            ("\n" in text or "!" in text or " " in text)
+            and dollars in {"0", "00"}
+            and len(tail) >= 2
+            and not (len(tail) == 2 and tail.isdigit())
+        ):
+            try:
+                return format_currency(parse_currency(f"{int(tail)}.00"))
+            except (TypeError, ValueError):
+                return None
         # Dollars stem + units/ruling bleed (``212\\n100``, ``346 !04`` with
         # a longer junk tail): keep the leading dollars as whole dollars when
         # the tail is not a clean two-digit cents read.
@@ -242,8 +270,18 @@ def _is_bare_digit_soup(amount: str, raw: object) -> bool:
 def _shaped_amount(cand: dict) -> str | None:
     raw = str(cand.get("raw_value") or cand.get("value") or "")
     ruled = _ruling_split_amount(raw)
+    value_parsed = parse_currency(cand.get("value"))
+    value_txt = format_currency(value_parsed) if value_parsed is not None else None
+    # Ruled reconstruction wins unless it collapses to selection noise while the
+    # upstream shaped value is a real charge (``00\\n212`` → ruled 0.00 vs 212.00).
     if ruled is not None:
-        return ruled
+        if not (
+            _is_selection_noise(ruled)
+            and value_txt
+            and value_txt != ruled
+            and not _is_selection_noise(value_txt)
+        ):
+            return ruled
     for key in ("value", "raw_value"):
         parsed = parse_currency(cand.get(key))
         if parsed is None:
@@ -261,6 +299,13 @@ def _shaped_amount(cand: dict) -> str | None:
 def _candidate_evidence_quality(cand: dict, amount: str) -> int:
     """Higher is better local evidence for the selected amount."""
     raw = cand.get("raw_value") or cand.get("value") or ""
+    prep = str(
+        cand.get("preprocessing_variant")
+        or cand.get("evidence_reference")
+        or ""
+    )
+    if "GEOMETRY_CENTS" in prep:
+        return 3
     if _raw_has_observed_decimal(raw):
         return 3
     if _ruling_split_amount(raw) == amount:
@@ -268,6 +313,57 @@ def _candidate_evidence_quality(cand: dict, amount: str) -> int:
     if _is_bare_digit_soup(amount, raw):
         return 0
     return 1
+
+
+def _geometry_cents_candidate_from_attempts(line: dict) -> dict | None:
+    """Promote a GEOMETRY_CENTS attempt into a selectable local candidate.
+
+    Service-line OCR often records geometry only on ``attempts`` while leaving
+    bare-digit soup in ``candidates``. Without promotion, place-shifted shells
+    like ``4972.00`` stay AMBIGUOUS even when geometry shaped ``49.77``.
+    """
+    region = _bbox_tuple(line.get("canonical_region") or line.get("ocr_region"))
+    for attempt in line.get("attempts") or []:
+        if not isinstance(attempt, dict):
+            continue
+        reason = str(attempt.get("reason") or "")
+        if "GEOMETRY_CENTS" not in reason or "UNDERREAD" in reason:
+            continue
+        obs = attempt.get("observation") or {}
+        if not isinstance(obs, dict):
+            continue
+        shaped = (
+            obs.get("canonical_monetary_value")
+            or obs.get("shaped")
+            or obs.get("text")
+        )
+        parsed = parse_currency(shaped)
+        if parsed is None:
+            continue
+        amount = format_currency(parsed)
+        if _is_selection_noise(amount):
+            continue
+        return {
+            "engine": "rapidocr",
+            "model_name": "geometry-cents",
+            "model_version": "monetary-geometry",
+            "preprocessing_variant": "GEOMETRY_CENTS",
+            "value": amount,
+            "raw_value": obs.get("raw_digit_sequence") or obs.get("text") or amount,
+            "raw_confidence": 0.91,
+            "evidence_reference": "GEOMETRY_CENTS",
+            "bounding_box": (
+                {
+                    "x0": region[0],
+                    "y0": region[1],
+                    "x1": region[2],
+                    "y1": region[3],
+                }
+                if region
+                else None
+            ),
+        }
+    return None
 
 
 def select_line_charge(
@@ -288,7 +384,21 @@ def select_line_charge(
     if row_y_band is None and line_region is not None:
         row_y_band = (line_region[1], line_region[3])
 
-    for cand in line.get("candidates") or []:
+    candidates = list(line.get("candidates") or [])
+    geo_cand = _geometry_cents_candidate_from_attempts(line)
+    if geo_cand is not None:
+        geo_amt = geo_cand.get("value")
+        already = any(
+            isinstance(c, dict)
+            and parse_currency(c.get("value")) == parse_currency(geo_amt)
+            and "GEOMETRY_CENTS"
+            in str(c.get("preprocessing_variant") or c.get("evidence_reference") or "")
+            for c in candidates
+        )
+        if not already:
+            candidates.append(geo_cand)
+
+    for cand in candidates:
         if not isinstance(cand, dict):
             continue
         family = _engine_family(cand.get("engine"))
@@ -387,11 +497,29 @@ def select_line_charge(
         # Single local engine only — ambiguous without a second reader.
         singles = sorted(by_amount.keys())
         if len(singles) == 1 and len(by_amount[singles[0]] & _LOCAL_ENGINES) >= 1:
+            amount = singles[0]
+            # Geometry-cents that defeated a place-shift / bare-digit shell is
+            # authoritative even as a single local family (4972 soup vs 49.72).
+            if quality_by_amount.get(amount, 0) >= 3 and any(
+                reason in {
+                    "PLACE_SHIFT_SOUP",
+                    "BARE_DIGIT_SOUP",
+                    "UNITS_CONCAT_BLEED",
+                }
+                for _, reason in rejected
+            ):
+                return LineChargeSelection(
+                    "SELECTED_LOCAL_CHARGE",
+                    amount,
+                    "GEOMETRY_CENTS_PLACE_SHIFT_RESOLVED",
+                    supporting_engines=tuple(sorted(by_amount[amount])),
+                    rejected=tuple(rejected[:12]),
+                )
             return LineChargeSelection(
                 "AMBIGUOUS_LINE_CHARGE",
-                singles[0],
+                amount,
                 "SINGLE_LOCAL_ENGINE_ONLY",
-                supporting_engines=tuple(sorted(by_amount[singles[0]])),
+                supporting_engines=tuple(sorted(by_amount[amount])),
                 rejected=tuple(rejected[:12]),
             )
         return LineChargeSelection(

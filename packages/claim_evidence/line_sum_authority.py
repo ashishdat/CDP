@@ -110,6 +110,13 @@ def is_implausible_corroborator(value: object, line_total: object) -> bool:
     total = parse_currency(line_total)
     if amount is None or total is None or total <= 0:
         return False
+    # Near ×10 / ×100 place-shift rivals (1571.07 vs 157.00) must CONFLICT —
+    # never ignore them as ratio junk or SINGLE_LINE_GPT4O_LOCAL false-accepts.
+    for factor in (Decimal(10), Decimal(100)):
+        if abs(amount - total * factor) <= Decimal("2.00"):
+            return False
+        if abs(total - amount * factor) <= Decimal("2.00"):
+            return False
     # >3× or <1/3 the observed line-sum and off by >$50 → form noise / truncated cell.
     ratio_hi = total * Decimal(3)
     ratio_lo = total / Decimal(3)
@@ -608,7 +615,9 @@ def line_sum_auto_eligible(
             parsed = parse_currency(value)
             if parsed is None or is_suspicious_tiny_total(parsed):
                 continue
-            if is_implausible_corroborator(value, total):
+            # Do not ratio-ignore currency-shaped Box 28 here. Near place-shifts
+            # like 2004 vs 200 / 1571 vs 157 must CONFLICT, not unlock STP.
+            if is_implausible_charge_total(value):
                 continue
             corroborators_pre.append(value)
         if corroborators_pre and not any(
