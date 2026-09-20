@@ -322,6 +322,24 @@ def decide(extraction, family):
             values[rel_field] = shaped
     # Existing cross-field facts feed the existing decision rules. No evidence acquisition.
     service_lines = extraction.get('service_lines') or []
+    # Select printed Box 24F charges from charge-column OCR before any
+    # Box 28 / line-sum verification. Stem resolution runs first; selector
+    # never uses totals to pick a line amount.
+    try:
+        from packages.ocr_portfolio.monetary_recognizer import (
+            apply_charge_line_resolution,
+        )
+
+        service_lines = apply_charge_line_resolution(service_lines)
+    except Exception:  # noqa: BLE001
+        try:
+            from packages.claim_evidence.line_charge_selector import (
+                apply_line_charge_selector,
+            )
+
+            service_lines = apply_line_charge_selector(service_lines)
+        except Exception:  # noqa: BLE001
+            pass
     # Precision-safe charge total from tagged OCR only (C1/C2). Never invent
     # Box 28 from a service-line Σ — that stays deferred / LINE_TOTALS.
     from packages.claim_evidence.charge_total_authority import (
@@ -737,7 +755,10 @@ def decide(extraction, family):
             if confirmed is None:
                 for item in facts.evidence_items:
                     if (
-                        item.evidence_type == 'BOX28_LINE_SUM_CORROBORATED'
+                        item.evidence_type in {
+                            'BOX28_LINE_SUM_CORROBORATED',
+                            'FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED',
+                        }
                         and item.value
                     ):
                         confirmed = str(item.value)

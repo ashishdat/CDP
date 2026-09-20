@@ -290,8 +290,9 @@ def resolve_service_charge(
 
 
 def apply_charge_line_resolution(lines: list[dict] | None) -> list[dict]:
-    """Apply stem selection and drop ruling-tick rows. Marks unresolved cents glue.
+    """Apply stem selection, then LineChargeSelector (charge-column only).
 
+    Box 28 / line-sum are never used here — selection is local evidence only.
     A dropped row whose vision read is the kept dollars plus two non-``10``
     cents digits (``49`` beside ``4972``) must not AUTO as whole dollars.
     """
@@ -345,6 +346,16 @@ def apply_charge_line_resolution(lines: list[dict] | None) -> list[dict]:
             ).strip("|")
             kept[kept.index(line)] = flagged
             break
+
+    # Charge-column selector is authoritative for the selected line amount.
+    try:
+        from packages.claim_evidence.line_charge_selector import (
+            apply_line_charge_selector,
+        )
+
+        kept = apply_line_charge_selector(kept)
+    except Exception:  # noqa: BLE001
+        pass
     return kept
 
 

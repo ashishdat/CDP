@@ -75,6 +75,9 @@ class ClaimEvidenceBuilder:
         self._provider_identity(claim_id, claim_values, evidence, contradictions)
         if document_family.upper() in {"CMS1500", "CMS-1500"}:
             self._box28_line_sum_authority(claim_id, claim_values, lines, evidence, contradictions)
+            self._financial_geometry_arithmetic(
+                claim_id, claim_values, lines, evidence, contradictions
+            )
         if document_family.upper() == "UB04":
             self._ub04_lines(claim_id, lines, evidence, contradictions)
         return ClaimEvidenceResult(
@@ -654,6 +657,78 @@ class ClaimEvidenceBuilder:
                         **metadata,
                         "hitl_reason": decision.authority_reason
                         or "AUTHORITY_RULE_NOT_REACHED",
+                    },
+                )
+            )
+
+    def _financial_geometry_arithmetic(
+        self, claim_id, values, lines, evidence, contradictions
+    ) -> None:
+        """Evidence-based E6 when selected Box 24F Σ equals Box 28 exactly."""
+        del contradictions  # conflicts stay as evaluated evidence, not claim contradictions
+        try:
+            from packages.claim_evidence.financial_geometry_authority import (
+                evaluate_financial_geometry_arithmetic,
+            )
+        except Exception:  # noqa: BLE001
+            return
+        # Skip when Box28↔line-sum already confirmed the same amount.
+        if any(item.evidence_type == "BOX28_LINE_SUM_CORROBORATED" for item in evidence):
+            return
+        box28_amount = values.get("total_charge") or values.get("total_charges")
+        decision = evaluate_financial_geometry_arithmetic(
+            box28_amount=box28_amount,
+            service_lines=lines,
+            box28_field_payload=values.get("_box28_field_payload")
+            if isinstance(values.get("_box28_field_payload"), dict)
+            else None,
+            box28_region=values.get("_box28_region"),
+            box28_observation=values.get("_box28_geometry_observation")
+            if isinstance(values.get("_box28_geometry_observation"), dict)
+            else None,
+        )
+        metadata = {
+            "supported_fields": ["total_charge", "total_charges"],
+            "authority": decision.to_dict(),
+            "authority_reason": decision.reason,
+        }
+        if decision.confirmed and decision.amount:
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                    decision.amount,
+                    metadata,
+                )
+            )
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "CLAIM_TOTAL_CONFIRMED",
+                    decision.amount,
+                    {
+                        **metadata,
+                        "reason": "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                        "claim_total": decision.amount,
+                        "service_line_total": decision.line_sum,
+                    },
+                )
+            )
+        elif decision.reason in {
+            "ARITHMETIC_MISMATCH",
+            "DECIMAL_SHIFT_CONFLICT",
+            "CONFLICTING_BOX28_CANDIDATE",
+        }:
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "FINANCIAL_CONFLICT_HITL",
+                    decision.box28 or decision.line_sum,
+                    {
+                        **metadata,
+                        "hitl_route": "FINANCIAL_CONFLICT",
+                        "line_sum": decision.line_sum,
+                        "box28": decision.box28,
                     },
                 )
             )

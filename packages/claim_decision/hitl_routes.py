@@ -44,6 +44,9 @@ def route_claim_hitl(
         "POS_BLEED_REJECTED",
         "EMPTY_FINANCIAL_INK",
         "WRONG_FAMILY_NO_CMS_GEOMETRY",
+        "FINANCIAL_CONFLICT",
+        "ARITHMETIC_MISMATCH",
+        "DECIMAL_SHIFT_CONFLICT",
     } or llm_only_critical:
         fields = [f for f in unresolved_critical_fields if "charge" in f.casefold()]
         return {
