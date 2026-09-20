@@ -18,6 +18,7 @@ from packages.claim_evidence.line_sum_authority import (
     format_currency,
     is_decimal_place_shift,
     is_implausible_charge_total,
+    line_sum_total,
     parse_currency,
 )
 
@@ -177,6 +178,12 @@ def collect_charge_candidates(
             )
             _add(cand.get("value") or cand.get("raw_value"), tag)
 
+    # Multi-line Σ is the whole-dollar sibling when Box 28 only has bleed cents
+    # (DJJM.028: primary 400.40, lines 200+200 → 400.00).
+    summed = line_sum_total(service_lines)
+    if summed is not None:
+        _add(summed, "line_sum")
+
     return found
 
 
@@ -291,11 +298,13 @@ def resolve_safe_charge_total(
             ):
                 return full, "RULING_TAIL_TO_FULL_STEM"
 
-    # C1: bleed cents → same-dollar .00 sibling.
+    # C1: bleed cents → same-dollar .00 sibling (OCR candidate or line-sum Σ).
     if primary_txt and is_units_bleed_cents(primary_txt):
         dollars = _dollars_part(primary_txt)
         sibling = f"{dollars}.00"
         if sibling in all_amounts:
+            if sibling in by_tag.get("line_sum", []):
+                return sibling, "BLEED_CENTS_TO_LINE_SUM"
             return sibling, "BLEED_CENTS_TO_WHOLE_DOLLAR"
 
     # Bleed line/geometry amount with .00 sibling when primary already .00.

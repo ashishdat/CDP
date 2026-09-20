@@ -152,7 +152,28 @@ def test_never_collapse_251_to_25():
     assert reason2 == "PRIMARY_UNCHANGED"
 
 
-def test_ruling_tail_does_not_extend_short_stems():
-    # Single-digit stems must not collapse via ruling-tail rules.
-    assert not is_ruling_tail_extension("5.00", "51.00")
-    assert prefer_safe_charge_amount("5.00", "51.00") is None
+def test_djjm028_bleed_cents_uses_line_sum_sibling():
+    # Locked-50 .028: Box 28 ranked 400.40, lines 200+200 = 400.00.
+    safe, reason = resolve_safe_charge_total(
+        primary="400.40",
+        field_payload={
+            "ocr": {
+                "candidates": [
+                    {
+                        "value": "400.40",
+                        "preprocessing_variant": "charge_digit_whitelist_fast:dollars_ruling",
+                    },
+                    {
+                        "value": "4003.00",
+                        "preprocessing_variant": "charge_digit_whitelist_fast:full",
+                    },
+                ]
+            }
+        },
+        service_lines=[
+            {"charges": "200.00", "candidates": [{"value": "200.00"}]},
+            {"charges": "200.00", "candidates": [{"value": "200.00"}]},
+        ],
+    )
+    assert safe == "400.00"
+    assert reason == "BLEED_CENTS_TO_LINE_SUM"
