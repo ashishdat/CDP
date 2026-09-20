@@ -103,3 +103,4 @@ submission/
 
 # Isolated PP-OCRv5 Server runtime
 .venv-ppocrv5/
+ocr_model_attempts_report.csv
