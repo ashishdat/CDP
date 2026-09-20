@@ -695,7 +695,9 @@ def decide(extraction, family):
                         _name_is_short_fragment(v) for v in insured_vals
                     )
                     all_weak = bool(insured_vals) and all(
-                        _name_is_short_fragment(v) or len(v) <= 4
+                        _name_is_short_fragment(v)
+                        or len(v) <= 4
+                        or not _name_is_strong_person(v)
                         for v in insured_vals
                     )
                     all_label = bool(insured_vals) and all(
@@ -703,7 +705,9 @@ def decide(extraction, family):
                     )
                     top = insured_vals[0] if insured_vals else ''
                     top_weak = bool(top) and (
-                        _name_is_short_fragment(top) or len(top) <= 4
+                        _name_is_short_fragment(top)
+                        or len(top) <= 4
+                        or not _name_is_strong_person(top)
                     )
                     top_label = bool(top) and _name_label_contaminated(top)
                     if (

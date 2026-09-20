@@ -47,8 +47,71 @@ def _ai_agrees_with_local(field_name: str, ai_value: str, local_value: str) -> b
                 return True
         return False
     if "dob" in name or name.endswith("_date") or "date" in name:
-        return False
+        # Normalized calendar equality is the agreement signal for DOB/date.
+        return bool(
+            normalize_agreement_value(field_name, ai_value)
+            and normalize_agreement_value(field_name, ai_value)
+            == normalize_agreement_value(field_name, local_value)
+        )
     return False
+
+
+def _vision_vendor_id(engine: object) -> str | None:
+    text = str(engine or "").casefold()
+    if "claude" in text or "anthropic" in text:
+        return "claude"
+    if "gpt4o" in text or "gpt-4o" in text:
+        return "gpt4o"
+    return None
+
+
+def _append_dual_vision_agreement(
+    bundle: FieldEvidenceBundle,
+    field_name: str,
+    candidates: list[OCRCandidate],
+) -> None:
+    """Mint independent E2 when Claude + gpt-4o agree on the same shaped value.
+
+    Active rule from remasure field evidence: dual authorized vision vendors are
+    independent confirmation even when local OCR is absent or correlated soup.
+    """
+    by_norm: dict[str, dict[str, OCRCandidate]] = {}
+    for cand in candidates:
+        if not (cand.value or "").strip():
+            continue
+        vendor = _vision_vendor_id(cand.engine)
+        if vendor is None:
+            continue
+        norm = normalize_agreement_value(field_name, cand.value)
+        if not norm:
+            continue
+        by_norm.setdefault(norm, {})[vendor] = cand
+    for norm, vendors in by_norm.items():
+        if "claude" not in vendors or "gpt4o" not in vendors:
+            continue
+        claude = vendors["claude"]
+        gpt4o = vendors["gpt4o"]
+        bundle.items.append(
+            EvidenceItem(
+                evidence_class=EvidenceClass.E2,
+                evidence_type="OCR_AGREEMENT_INDEPENDENT",
+                evidence_family="INDEPENDENT_OCR_AGREEMENT",
+                source="evidence_builder",
+                value=str(claude.value or gpt4o.value),
+                independent=True,
+                metadata={
+                    "engines": ["anthropic_claude_crop", "azure_gpt4o_crop"],
+                    "agreement_type": "DUAL_VISION_VENDOR_AGREEMENT",
+                    "dependency_relation": "INDEPENDENT",
+                    "normalized_value": norm,
+                    "candidate_ids": [
+                        candidate_identifier(claude),
+                        candidate_identifier(gpt4o),
+                    ],
+                },
+            )
+        )
+        return
 
 
 def _append_ai_local_corroboration(
@@ -311,7 +374,12 @@ def build_evidence_bundle(
             if independent and evidence_type == "OCR_AGREEMENT_INDEPENDENT":
                 emitted_independent_e2 = True
     if not emitted_independent_e2:
-        _append_ai_local_corroboration(bundle, field_name, populated)
+        _append_dual_vision_agreement(bundle, field_name, populated)
+        if not any(
+            item.evidence_class == EvidenceClass.E2 and item.independent
+            for item in bundle.items
+        ):
+            _append_ai_local_corroboration(bundle, field_name, populated)
     if structural_localization is not None:
         if structural_localization.confirmed and not wrong_crop_suspected:
             bundle.items.append(

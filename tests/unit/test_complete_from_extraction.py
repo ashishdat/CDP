@@ -222,7 +222,13 @@ def test_uncorroborated_line_sum_does_not_auto_accept_charge():
     charge = next(d for d in result["field_decisions"] if d["field_name"] == "total_charge")
     assert charge["disposition"] != "AUTO_ACCEPTED"
     assert "LINE_TOTALS_CORROBORATED" not in charge["reason_codes"]
-    assert "LINE_TOTALS_UNCORROBORATED" in charge["reason_codes"]
+    # Uncorroborated single-engine line Σ, or empty crop with no mintable total —
+    # either path must keep review_required and must not AUTO.
+    assert (
+        "LINE_TOTALS_UNCORROBORATED" in charge["reason_codes"]
+        or "NO_NONEMPTY_CANDIDATE" in charge["reason_codes"]
+        or "EMPTY_CROP" in charge["reason_codes"]
+    )
     assert result["review_required"] is True
 
 

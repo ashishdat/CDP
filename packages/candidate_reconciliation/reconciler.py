@@ -303,9 +303,12 @@ def _member_id_is_length_fragment(left: str, right: str) -> bool:
 
 
 def _is_azure_gpt4o_crop_engine(engine: str) -> bool:
+    """True for gpt-4o / Claude crop residuals (authorized vision ink readers)."""
     normalized = (engine or "").lower()
-    return "gpt4o" in normalized or "gpt-4o" in normalized
-
+    return any(
+        token in normalized
+        for token in ("gpt4o", "gpt-4o", "claude", "anthropic")
+    )
 
 def _member_id_is_weak_for_gpt4o_gate(value: str) -> bool:
     """Mirror gpt-4o residual gate: short / chrome / alpha-soup locals.
@@ -1500,6 +1503,43 @@ class EvidenceReconciler:
                     supporting = items
                     early_gpt4o_name_relief = True
                     break
+            elif (
+                not top_is_gpt4o
+                and not locals_conflict
+                and _name_is_strong_person(str(value or ""))
+            ):
+                # Sole local "strong" OCR soup vs authorized vision crop that
+                # was acquired for this field — prefer the vision ink when it
+                # is a strong person name and token-disagrees with the local.
+                for _norm, items in ranked:
+                    if not any(
+                        _is_azure_gpt4o_crop_engine(cand.engine)
+                        for cand, _, _ in items
+                    ):
+                        continue
+                    best = max(items, key=lambda row: row[1])
+                    cand_val = str(best[0].value or "")
+                    if not _name_is_strong_person(cand_val):
+                        continue
+                    if (
+                        _name_label_contaminated(cand_val)
+                        or _name_is_short_fragment(cand_val)
+                        or _name_is_form_chrome(cand_val)
+                    ):
+                        continue
+                    if values_conflict_equivalent(field_name, str(value), cand_val):
+                        continue
+                    local_toks = _name_tokens(str(value))
+                    vision_toks = _name_tokens(cand_val)
+                    if (
+                        len(vision_toks) >= 2
+                        and local_toks
+                        and vision_toks != local_toks
+                    ):
+                        value = cand_val
+                        supporting = items
+                        early_gpt4o_name_relief = True
+                        break
 
         # Prefer shaped member-id over header-only crops in the top slot.
         is_id_field = field_name in {"insured_id_number", "member_id", "subscriber_id"}

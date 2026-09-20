@@ -495,6 +495,46 @@ def _dual_vision_select_without_dual_local(
         return None
 
     local_stem_ok = _local_stem_corroborates(amount, line, by_amount)
+    # Whole-dollar dual vision (200.00) still wins when locals only emitted
+    # place-shifted shells (2000.00 / 20000.00) — those are not cents-fuller
+    # truncations after the both-.00 guard, but they corroborate the stem.
+    if not local_stem_ok:
+        for other, families in by_amount.items():
+            if not (families & _LOCAL_ENGINES):
+                continue
+            other_amt = parse_currency(other)
+            if other_amt is None or other_amt <= amt:
+                continue
+            if is_decimal_place_shift(other, amount):
+                local_stem_ok = True
+                break
+            o_digits = re.sub(r"\D", "", other)
+            v_digits = re.sub(r"\D", "", amount)
+            if (
+                other.endswith(".00")
+                and amount.endswith(".00")
+                and v_digits
+                and o_digits.startswith(v_digits)
+                and len(o_digits) > len(v_digits)
+            ):
+                local_stem_ok = True
+                break
+        if not local_stem_ok:
+            for rejected_amount, reason in rejected:
+                if reason not in {
+                    "PLACE_SHIFT_SOUP",
+                    "BARE_DIGIT_SOUP",
+                    "UNITS_CONCAT_BLEED",
+                }:
+                    continue
+                rej_amt = parse_currency(rejected_amount)
+                if rej_amt is None or rej_amt <= amt:
+                    continue
+                r_digits = re.sub(r"\D", "", rejected_amount)
+                v_digits = re.sub(r"\D", "", amount)
+                if v_digits and r_digits.startswith(v_digits):
+                    local_stem_ok = True
+                    break
 
     geo_amt = _geometry_cents_amount(line)
     geo_place_shift = False
@@ -769,6 +809,75 @@ def select_line_charge(
 
     best_q = quality_by_amount.get(winners[0], 0)
     top = [a for a in winners if quality_by_amount.get(a, 0) == best_q]
+    if len(set(top)) > 1:
+        # Drop leading-digit fragments of a longer dual-local peer
+        # (``11.00`` beside ``119.00``) instead of failing closed as competing.
+        survivors = []
+        for amount in top:
+            digits = re.sub(r"\D", "", amount)
+            if any(
+                other != amount
+                and digits
+                and re.sub(r"\D", "", other).startswith(digits)
+                and len(re.sub(r"\D", "", other)) > len(digits)
+                and len(digits) <= 3
+                for other in top
+            ):
+                rejected.append((amount, "LEADING_AMOUNT_FRAGMENT"))
+                continue
+            survivors.append(amount)
+        top = survivors or top
+    if len(set(top)) > 1:
+        # Dual vision agreement outranks dual-local-only peers at same quality
+        # (119.00 Claude+gpt4o+locals vs 3.11 dual-local bleed).
+        vendor_amounts = _vision_vendor_amounts(line)
+        dual_vision_tops = [
+            amount
+            for amount in top
+            if len(vendor_amounts.get(amount, set())) >= 2
+        ]
+        if len(set(dual_vision_tops)) == 1:
+            for amount in top:
+                if amount not in dual_vision_tops:
+                    rejected.append((amount, "DUAL_LOCAL_OUTRANKED_BY_DUAL_VISION"))
+            top = dual_vision_tops
+        else:
+            # Dual-local (+ optional vision) agreement beats a sole GEOMETRY_CENTS
+            # rival at the same quality (119.00 dual-local vs 61.19 geometry soup).
+            preferred = [
+                amount
+                for amount in top
+                if len(by_amount.get(amount, set()) & _LOCAL_ENGINES) >= 2
+                or len(vendor_amounts.get(amount, set())) >= 2
+            ]
+            geometry_only = [
+                amount
+                for amount in top
+                if amount not in preferred
+                or (
+                    len(by_amount.get(amount, set()) & _LOCAL_ENGINES) < 2
+                    and len(vendor_amounts.get(amount, set())) < 2
+                )
+            ]
+            strong = [
+                amount
+                for amount in top
+                if len(by_amount.get(amount, set()) & _LOCAL_ENGINES) >= 2
+                and (
+                    "azure_gpt4o_crop" in by_amount.get(amount, set())
+                    or len(vendor_amounts.get(amount, set())) >= 1
+                )
+            ]
+            if len(set(strong)) == 1:
+                for amount in top:
+                    if amount not in strong:
+                        rejected.append((amount, "GEOMETRY_OR_WEAK_PEER_OUTRANKED"))
+                top = strong
+            elif len(set(preferred)) == 1:
+                for amount in top:
+                    if amount not in preferred:
+                        rejected.append((amount, "GEOMETRY_OR_WEAK_PEER_OUTRANKED"))
+                top = preferred
     if len(set(top)) > 1:
         return LineChargeSelection(
             "AMBIGUOUS_LINE_CHARGE",
