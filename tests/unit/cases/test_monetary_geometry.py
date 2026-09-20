@@ -97,7 +97,39 @@ def test_multiple_lines_sum_matches_box28_representation():
     )
 
 
-def test_ruling_tick_inserted_as_one_is_not_a_dollar():
+def test_align_cents_examples_from_printed_forms():
+    from packages.geometry_authority.monetary_geometry import align_cents_column
+
+    cases = [
+        ([(10, 20), (28, 38), (46, 56), (70, 80), (88, 98)], [(60, 63)], "21200", "212.00"),
+        ([(10, 20), (28, 38), (46, 56), (70, 80), (88, 98)], [(60, 63)], "40000", "400.00"),
+        ([(10, 20), (28, 38), (55, 65), (72, 82)], [(45, 48)], "4972", "49.72"),
+        ([(10, 20), (28, 38), (55, 65), (72, 82)], [(45, 48)], "3425", "34.25"),
+    ]
+    for blobs, ticks, digits, expected in cases:
+        read = align_cents_column(blobs, ticks, digits)
+        assert read.geometry_candidate == expected, (digits, read)
+        assert read.ambiguous is False
+        assert len("".join(ch for ch in expected if ch.isdigit())) == len(blobs)
+
+
+def test_overlapping_window_candidates_are_alternatives_not_concat():
+    """212 and 400 from different windows must not become 212400."""
+    from packages.claim_evidence.line_sum_authority import parse_currency
+    from packages.extraction_recovery.span_selection import select_field_span
+
+    left = select_field_span("21200", "CURRENCY", "total_charge")
+    right = select_field_span("40000", "CURRENCY", "total_charge")
+    soup = select_field_span("212400", "CURRENCY", "total_charge")
+    assert left.selected_text.endswith("00") or left.selected_text == "212.00"
+    assert right.selected_text.endswith("00") or right.selected_text == "400.00"
+    # Six-digit soup is no longer promoted to a whole-dollar total.
+    assert soup.selected_text != "212400.00"
+    assert parse_currency("212.00") != parse_currency("212400.00")
+    # Digit-count integrity: five visible digits → five in the shaped total.
+    assert len("".join(ch for ch in "212.00" if ch.isdigit())) == 5
+    assert len("".join(ch for ch in "212400" if ch.isdigit())) == 6
+
     from packages.geometry_authority.monetary_geometry import align_cents_column
 
     read = align_cents_column(

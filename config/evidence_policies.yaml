@@ -51,10 +51,14 @@ fields:
     # Dual local-engine confirmation (paddle+rapid) is the identity confirm.
     # Correlated same-crop agreement still does not mint independent E2.
     # Format-valid E4 is enough once E2 is truly independent (same as insured_name).
+    # Non-Self Box 2 may use BOX2_INDEPENDENT_NAME_AUTHORITY when disagreement
+    # with Box 4 is expected (spouse/child/other) or Self was contradicted.
     accept_any: [[E2, E3, E4], [E1, E3, E5], [E1, E3, E6]]
     require_strong_e4: false
     allowed_e6_types:
       - MULTI_ATTRIBUTE_IDENTITY_CONFIRMED
+      - BOX2_INDEPENDENT_NAME_AUTHORITY
+      - BOX2_BOX4_NAME_CONFIRMED
   patient_first:
     accept_any: [[E2, E3, E4], [E1, E3, E5], [E1, E3, E6]]
     allowed_e6_types:

@@ -759,8 +759,9 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
         )
         amounts = _matches(r"\$?\d[\d,]*\.\d{2}", repaired)
         # Whole-dollar service-line charges often omit cents (e.g. "225", "200").
-        if not amounts and field_name in {"charges", "charge_amount"}:
-            whole = _matches(r"(?<!\d)\d{2,6}(?!\d)", repaired)
+        # Cap at five digit-dollars so ruling soup (212400) cannot become a total.
+        if not amounts and field_name in {"charges", "charge_amount", "total_charge", "total_charges"}:
+            whole = _matches(r"(?<!\d)\d{2,5}(?!\d)", repaired)
             amounts = [f"{w}.00" for w in whole if not re.fullmatch(r"0+", w)]
         # NPI legend bleed often yields empty crops or a lone "$1.00" from "1\nNPI".
         if npi_bleed and (

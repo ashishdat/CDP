@@ -478,8 +478,11 @@ class ClaimEvidenceBuilder:
         """Box 2↔4 name and Box 3↔11a DOB agreement under Self (CMS-1500)."""
         try:
             from packages.geometry_authority.form_redundancy import (
+                names_agree,
+                normalize_person_name,
                 reconcile_box2_box4_names,
                 reconcile_box3_box11a_dob,
+                relationship_is_self,
             )
         except Exception:  # noqa: BLE001
             return
@@ -489,9 +492,11 @@ class ClaimEvidenceBuilder:
             or values.get("relationship")
             or values.get("rel_code")
         )
+        patient_name = values.get("patient_name")
+        insured_name = values.get("insured_name")
         names = reconcile_box2_box4_names(
-            values.get("patient_name"),
-            values.get("insured_name"),
+            patient_name,
+            insured_name,
             relationship=relationship,
         )
         if names.agreed:
@@ -508,23 +513,108 @@ class ClaimEvidenceBuilder:
                     },
                 )
             )
+        else:
+            patient_norm = normalize_person_name(patient_name)
+            insured_norm = normalize_person_name(insured_name)
+            strong_patient = bool(patient_norm) and len(patient_norm.split()) >= 2
+            # Self printed with different Box 2 / Box 4 identities is a
+            # relationship conflict — do not force equality and do not use
+            # Box 11a to corroborate Box 3.
+            if (
+                relationship_is_self(relationship)
+                and patient_norm
+                and insured_norm
+                and not names_agree(patient_name, insured_name)
+            ):
+                contradictions.append(
+                    self._item(
+                        claim_id,
+                        "PATIENT_INSURED_RELATIONSHIP_CONFLICT",
+                        patient_norm,
+                        {
+                            "supported_fields": ["patient_name", "insured_name", "rel_code"],
+                            "reason": "SELF_WITH_DISTINCT_BOX2_BOX4",
+                            "patient_norm": patient_norm,
+                            "insured_norm": insured_norm,
+                        },
+                    )
+                )
+                if strong_patient:
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "BOX2_INDEPENDENT_NAME_AUTHORITY",
+                            patient_norm,
+                            {
+                                "supported_fields": ["patient_name"],
+                                "reason": "BOX2_AFTER_RELATIONSHIP_CONFLICT",
+                                "patient_norm": patient_norm,
+                            },
+                        )
+                    )
+            elif (
+                strong_patient
+                and relationship is not None
+                and str(relationship).strip()
+                and not relationship_is_self(relationship)
+            ):
+                # Spouse / Child / Other: Box 2 ≠ Box 4 is expected. Validate
+                # the patient name from Box 2 alone.
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "BOX2_INDEPENDENT_NAME_AUTHORITY",
+                        patient_norm,
+                        {
+                            "supported_fields": ["patient_name"],
+                            "reason": "NON_SELF_BOX2_INDEPENDENT",
+                            "relationship": str(relationship).strip().upper(),
+                            "patient_norm": patient_norm,
+                            "insured_norm": insured_norm,
+                        },
+                    )
+                )
 
-        dobs = reconcile_box3_box11a_dob(
-            values.get("patient_dob") or values.get("date_of_birth"),
-            values.get("insured_dob"),
-            relationship=relationship,
-        )
-        if dobs.agreed and dobs.patient_iso:
-            evidence.append(
+        # Box 3↔11a only under agreed Self. Distinct patient/insured identities
+        # leave patient DOB on patient-role evidence alone (DJJM.019).
+        if names.agreed or (
+            relationship_is_self(relationship)
+            and names_agree(patient_name, insured_name)
+        ):
+            dobs = reconcile_box3_box11a_dob(
+                values.get("patient_dob") or values.get("date_of_birth"),
+                values.get("insured_dob"),
+                relationship=relationship,
+            )
+            if dobs.agreed and dobs.patient_iso:
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "BOX3_BOX11A_DOB_CONFIRMED",
+                        dobs.patient_iso,
+                        {
+                            "supported_fields": ["patient_dob", "insured_dob"],
+                            "reason": dobs.reason,
+                            "patient_iso": dobs.patient_iso,
+                            "insured_iso": dobs.insured_iso,
+                        },
+                    )
+                )
+            return
+        if (
+            relationship_is_self(relationship)
+            and normalize_person_name(patient_name)
+            and normalize_person_name(insured_name)
+            and not names_agree(patient_name, insured_name)
+        ):
+            contradictions.append(
                 self._item(
                     claim_id,
-                    "BOX3_BOX11A_DOB_CONFIRMED",
-                    dobs.patient_iso,
+                    "DOB_SINGLE_ROLE_EVIDENCE",
+                    str(values.get("patient_dob") or ""),
                     {
-                        "supported_fields": ["patient_dob", "insured_dob"],
-                        "reason": dobs.reason,
-                        "patient_iso": dobs.patient_iso,
-                        "insured_iso": dobs.insured_iso,
+                        "supported_fields": ["patient_dob"],
+                        "reason": "BOX11A_IS_INSURED_DOB_WHEN_IDENTITIES_DIFFER",
                     },
                 )
             )

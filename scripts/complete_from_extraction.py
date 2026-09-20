@@ -568,6 +568,60 @@ def decide(extraction, family):
                     check.passed = False
             checks[name] = check.model_dump(mode='json')
         localization = localizations.get(name)
+        if name in {'total_charge', 'total_charges'}:
+            # Bind CLAIM_TOTAL_CONFIRMED to its confirmed amount and drop
+            # common-mode soup that only matches after inconsistent repair.
+            from decimal import Decimal
+
+            from packages.claim_evidence.line_sum_authority import (
+                amounts_within_tolerance,
+                is_decimal_place_shift,
+                is_implausible_charge_total,
+            )
+
+            confirmed = None
+            for item in facts.evidence_items:
+                if item.evidence_type == 'CLAIM_TOTAL_CONFIRMED' and item.value:
+                    confirmed = str(item.value)
+                    break
+            filtered = []
+            for cand in candidates:
+                text = str(cand.value or '').strip()
+                if not text:
+                    continue
+                if is_implausible_charge_total(text):
+                    continue
+                if confirmed is not None:
+                    if is_decimal_place_shift(text, confirmed):
+                        continue
+                    if not amounts_within_tolerance(
+                        text, confirmed, absolute=Decimal('1.00'), relative=Decimal('0')
+                    ):
+                        continue
+                filtered.append(cand)
+            if filtered:
+                candidates = filtered
+            elif confirmed is not None:
+                # Keep a single derived shell matching the confirmed total so
+                # junk cannot AUTO via unbound E6.
+                from packages.domain.common import BoundingBox
+                base_box = candidates[0].bounding_box if candidates else BoundingBox(
+                    x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
+                )
+                candidates = [OCRCandidate(
+                    value=confirmed,
+                    raw_value=confirmed,
+                    engine='rapidocr',
+                    model_name='claim_evidence',
+                    model_version='confirmed-total-bind',
+                    preprocessing_variant='CLAIM_TOTAL_CONFIRMED_BOUND',
+                    raw_confidence=1.0,
+                    calibrated_confidence=1.0,
+                    bounding_box=base_box,
+                    latency_ms=0.0,
+                    evidence_reference='CLAIM_TOTAL_CONFIRMED',
+                    preprocessing_version='confirmed-total-bind',
+                )]
         decisions.append(services.evidence_decision.decide(DecisionContext(
             field_name=name, document_family=family, criticality=policy.criticality,
             required=policy.required, blocks_stp=policy.blocks_stp,

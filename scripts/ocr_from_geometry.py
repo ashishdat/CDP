@@ -825,14 +825,21 @@ def _recognize_charge_digits_only(image, bbox):
                 shaped = None
                 if profile == "dollars_ruling":
                     digits = "".join(ch for ch in raw if ch.isdigit())
+                    # Ruling crops that emit more digits than a CMS amount cell
+                    # can hold are soup — never append ".00" via span fallthrough.
                     if digits and len(digits) <= 5:
                         shaped = shape_monetary(digits) or (
                             f"{digits}.00" if len(digits) >= 2 else None
                         )
+                    else:
+                        continue
                 else:
                     shaped = shape_monetary(raw)
+                if not shaped:
+                    # Do not promote bare digit soup (e.g. 212400 → 212400.00).
+                    continue
                 span = select_field_span(
-                    shaped or raw,
+                    shaped,
                     span_datatype_for_field('charges', 'currency'),
                     'charges',
                 )
@@ -840,7 +847,12 @@ def _recognize_charge_digits_only(image, bbox):
                     x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
                     image_width=image.width, image_height=image.height,
                 )
-                selected = shaped or (span.selected_text or '')
+                selected = shaped
+                # Glyph-count integrity: output digits must not exceed raw digits.
+                out_digits = "".join(ch for ch in selected if ch.isdigit())
+                raw_digits = "".join(ch for ch in raw if ch.isdigit())
+                if len(out_digits) > len(raw_digits):
+                    continue
                 candidate = OCRCandidate(
                     value=selected, raw_value=raw, engine='tesseract_digits',
                     model_name='unknown', model_version='unknown',
@@ -1916,9 +1928,16 @@ def recognize_service_lines(image, router, template):
                 # Dashed-rule crops like "-200-\nLAAM" are not service charges.
                 # Allow / | : ? — common OCR noise inside repaired amounts
                 # (I/00 → 100.00, 200:00 → 200.00, 200? → 200.00).
+                # Never wipe a geometry-authorised cents read for raw noise.
                 import re as _re_noise
                 raw_u = (raw or '').upper()
-                if _re_noise.search(r'[^0-9A-Z./|:?\s,-]', raw_u) or _re_noise.fullmatch(r'[\s\-.,/|:?]*', raw or ''):
+                if (
+                    not geometry_confirmed
+                    and (
+                        _re_noise.search(r'[^0-9A-Z./|:?\s,-]', raw_u)
+                        or _re_noise.fullmatch(r'[\s\-.,/|:?]*', raw or '')
+                    )
+                ):
                     score = 0
                     value = None
             if geometry_confirmed and value:

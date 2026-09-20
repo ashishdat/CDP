@@ -133,3 +133,36 @@ def test_explicit_nonself_relationship_blocks_multi_attribute_identity():
 def test_short_name_fragment_blocks_multi_attribute_identity():
     result = _identity(patient_name="JO", insured_name="JO")
     assert "MULTI_ATTRIBUTE_IDENTITY_CONFIRMED" not in _types(result.evidence_items)
+
+
+def test_non_self_box2_independent_name_authority():
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="claim-1",
+        document_family="CMS1500",
+        claim_values={
+            "patient_name": "HARRINGTON, SOPHIE",
+            "insured_name": "HARRINGTON, RACHAEL",
+            "rel_code": "CHILD",
+        },
+    )
+    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
+    assert "BOX2_BOX4_NAME_CONFIRMED" not in _types(result.evidence_items)
+    assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" not in _types(result.contradictions)
+
+
+def test_self_with_distinct_names_is_relationship_conflict_not_forced_equal():
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="claim-1",
+        document_family="CMS1500",
+        claim_values={
+            "patient_name": "RIVERA, LARA A",
+            "insured_name": "RIVERA, ANDREW",
+            "rel_code": "SELF",
+            "patient_dob": "1990-01-15",
+            "insured_dob": "1965-04-02",
+        },
+    )
+    assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" in _types(result.contradictions)
+    assert "DOB_SINGLE_ROLE_EVIDENCE" in _types(result.contradictions)
+    assert "BOX3_BOX11A_DOB_CONFIRMED" not in _types(result.evidence_items)
+    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
