@@ -4,6 +4,7 @@ from packages.claim_evidence.line_sum_authority import (
     amounts_corroborate,
     candidate_independence_key,
     candidates_are_independent,
+    is_decimal_place_shift,
     is_implausible_charge_total,
     is_implausible_corroborator,
     is_suspicious_tiny_total,
@@ -616,3 +617,12 @@ def test_deferred_box28_shell_filtered_unlocks_gpt4o_local_line_sum():
         lines, box28_value=None, corroborating_values=filtered
     )
     assert ok_new and reason_new == "SINGLE_LINE_GPT4O_LOCAL"
+
+
+def test_decimal_place_shift_box28_is_deferrable_against_line_sum():
+    """DJKN.024: gpt-4o Box 28 45000 vs line Σ 450 must defer, not preserve."""
+    lines = [{"charges": "450.00"}]
+    assert is_decimal_place_shift("45000.00", "450.00")
+    assert should_defer_box28_to_line_sum("45000.00", lines)
+    # Place-shift rivals stay CONFLICT-eligible (not ratio-ignored), but defer wins.
+    assert not is_implausible_corroborator("45000.00", "450.00")

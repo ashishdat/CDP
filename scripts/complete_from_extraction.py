@@ -388,13 +388,19 @@ def decide(extraction, family):
         preserve_azure_box28 = False
         if current_val not in (None, ''):
             from packages.claim_evidence.line_sum_authority import (
+                is_decimal_place_shift,
                 is_implausible_corroborator,
                 line_sum_total,
             )
 
             line_total = line_sum_total(service_lines)
             # Never preserve form-ruling digit soup / 10×-off Azure totals.
-            if line_total and is_implausible_corroborator(current_val, line_total):
+            # Also never preserve a decimal-place twin (45000 vs line Σ 450) —
+            # that blocked should_defer and falsely minted DECIMAL_SHIFT_CONFLICT.
+            if line_total and (
+                is_implausible_corroborator(current_val, line_total)
+                or is_decimal_place_shift(current_val, line_total)
+            ):
                 preserve_azure_box28 = False
             else:
                 for row in (

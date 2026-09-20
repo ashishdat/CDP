@@ -224,3 +224,86 @@ def test_uncorroborated_line_sum_does_not_auto_accept_charge():
     assert "LINE_TOTALS_CORROBORATED" not in charge["reason_codes"]
     assert "LINE_TOTALS_UNCORROBORATED" in charge["reason_codes"]
     assert result["review_required"] is True
+
+
+def test_place_shift_gpt4o_box28_defers_to_gpt4o_local_line_sum():
+    """DJKN.024: gpt-4o Box 28 45000 must not preserve over line Σ 450."""
+    payload = extraction()
+    payload["service_lines"] = [
+        {
+            "line_number": 1,
+            "charges": "450.00",
+            "charge_amount": "450.00",
+            "candidates": [
+                {"value": "450.00", "engine": "paddleocr"},
+                {"value": "450.00", "engine": "rapidocr"},
+                {"value": "450.00", "engine": "azure_gpt4o_crop"},
+            ],
+        }
+    ]
+    ocr_candidate = {
+        "value": "45000.00",
+        "raw_value": "45000.00",
+        "engine": "azure_gpt4o_crop",
+        "model_name": "gpt-4o",
+        "model_version": "test",
+        "preprocessing_variant": "gpt4o_crop",
+        "raw_confidence": 0.9,
+        "calibrated_confidence": 0.9,
+        "bounding_box": {
+            "x0": 0,
+            "y0": 0,
+            "x1": 10,
+            "y1": 10,
+            "image_width": 100,
+            "image_height": 100,
+        },
+        "latency_ms": 0.0,
+        "validation_results": [],
+        "evidence_reference": None,
+        "estimated_cost_usd": 0.0,
+        "actual_cost_usd": None,
+        "preprocessing_version": "test",
+        "registration_confidence": None,
+        "image_quality_score": None,
+        "provenance": None,
+    }
+    validation = {
+        "field_id": "total_charge",
+        "candidate_id": "total_charge:0",
+        "status": "VALID",
+        "reason": [],
+        "normalized_value": "45000.00",
+        "validator": ["test"],
+        "telemetry_reference": "t",
+    }
+    payload["field_results"] = [
+        {
+            "field_name": "total_charge",
+            "ocr": {"candidates": [ocr_candidate]},
+            "ranked_candidate": {
+                "field_id": "total_charge",
+                "candidate_id": "total_charge:0",
+                "winner": "total_charge:0",
+                "is_winner": True,
+                "alternatives": [],
+                "confidence": 0.9,
+                "ranking_score": 0.9,
+                "ranking_reason": ["WINNER"],
+                "provider": "azure_gpt4o_crop",
+                "telemetry_reference": "t",
+                "ocr_candidate": ocr_candidate,
+            },
+            "alternatives": [],
+            "candidate_validations": [validation],
+            "validation": validation,
+            "normalized_value": "45000.00",
+            "status": "VALID",
+        }
+    ]
+    result = decide(payload, "CMS1500")
+    charge = next(d for d in result["field_decisions"] if d["field_name"] == "total_charge")
+    assert charge["selected_value"] == "450.00"
+    assert "FINANCIAL_CONFLICT_HITL" not in charge["reason_codes"]
+    assert "LINE_TOTALS_CORROBORATED" in charge["reason_codes"]
+    assert "LINE_TOTALS_RECONCILED" in charge["reason_codes"]
