@@ -389,6 +389,8 @@ def prefer_charge_ink_amount(a: str | None, b: str | None) -> str | None:
         return b
 
     # Digit-drop twins on dollar stems: prefer longer (64 ⊂ 640).
+    # Ruling-tail (+1/4/5) is already handled above; do not re-apply a shorter
+    # preference here or untagged pairs like 25⊂251 collapse the real stem.
     if da and db and da != db and len(da) <= 4 and len(db) <= 4:
         if db.startswith(da) and len(db) > len(da):
             return b

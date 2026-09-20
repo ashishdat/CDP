@@ -348,6 +348,49 @@ def decide(extraction, family):
         service_lines = repaired_lines
     except Exception:  # noqa: BLE001
         pass
+    # Precision-safe charge total: prefer full-window / .00 over ruling-tail
+    # and units-bleed cents before CLAIM_TOTAL / Box28↔line-sum bind.
+    try:
+        from packages.claim_evidence.charge_total_authority import (
+            is_ruling_tail_extension,
+            is_units_bleed_cents,
+            prefer_safe_charge_amount,
+            resolve_safe_charge_total,
+        )
+
+        for charge_field in ('total_charge', 'total_charges'):
+            if charge_field not in values:
+                continue
+            field_payload = next(
+                (f for f in fields if f.get('field_name') == charge_field), None
+            )
+            safe, _reason = resolve_safe_charge_total(
+                primary=values.get(charge_field),
+                field_payload=field_payload,
+                service_lines=service_lines,
+            )
+            if safe and parse_currency(safe) is not None:
+                values[charge_field] = safe
+                # Align single-line shells that are ruling-tail / bleed twins.
+                if len(service_lines) == 1 and isinstance(service_lines[0], dict):
+                    line = dict(service_lines[0])
+                    current = line.get('charges') or line.get('charge_amount')
+                    preferred = prefer_safe_charge_amount(current, safe)
+                    if preferred == safe or (
+                        current
+                        and (
+                            is_ruling_tail_extension(safe, current)
+                            or (
+                                is_units_bleed_cents(current)
+                                and str(safe).endswith('.00')
+                            )
+                        )
+                    ):
+                        line['charges'] = safe
+                        line['charge_amount'] = safe
+                        service_lines = [line]
+    except Exception:  # noqa: BLE001
+        pass
     # Prefer observed service-line Σ when box-28 is empty, suspicious-tiny, or
     # strongly contradicts multi-line charges (uncalibrated OCR soup).
     from packages.claim_evidence.line_sum_authority import (
@@ -756,6 +799,7 @@ def decide(extraction, family):
                 amounts_within_tolerance,
                 is_decimal_place_shift,
                 is_implausible_charge_total,
+                parse_currency,
             )
 
             confirmed = None
@@ -763,7 +807,17 @@ def decide(extraction, family):
                 if item.evidence_type == 'CLAIM_TOTAL_CONFIRMED' and item.value:
                     confirmed = str(item.value)
                     break
+            # Also honor Box28↔line-sum AUTO amount when present.
+            if confirmed is None:
+                for item in facts.evidence_items:
+                    if (
+                        item.evidence_type == 'BOX28_LINE_SUM_CORROBORATED'
+                        and item.value
+                    ):
+                        confirmed = str(item.value)
+                        break
             filtered = []
+            exact_confirmed = []
             for cand in candidates:
                 text = str(cand.value or '').strip()
                 if not text:
@@ -773,12 +827,39 @@ def decide(extraction, family):
                 if confirmed is not None:
                     if is_decimal_place_shift(text, confirmed):
                         continue
+                    # Exact confirmed wins — never keep ±$1 bleed/ruling twins
+                    # that would outrank the corroborated total downstream.
+                    if parse_currency(text) == parse_currency(confirmed):
+                        exact_confirmed.append(cand)
+                        filtered.append(cand)
+                        continue
+                    # Drop units-bleed / ruling-tail siblings of the confirmed total.
+                    try:
+                        from packages.claim_evidence.charge_total_authority import (
+                            is_ruling_tail_extension,
+                            is_units_bleed_cents,
+                        )
+
+                        if is_ruling_tail_extension(confirmed, text):
+                            continue
+                        if (
+                            is_units_bleed_cents(text)
+                            and str(confirmed).endswith('.00')
+                            and parse_currency(text) is not None
+                            and int(parse_currency(text) or 0)
+                            == int(parse_currency(confirmed) or 0)
+                        ):
+                            continue
+                    except Exception:  # noqa: BLE001
+                        pass
                     if not amounts_within_tolerance(
-                        text, confirmed, absolute=Decimal('1.00'), relative=Decimal('0')
+                        text, confirmed, absolute=Decimal('0.01'), relative=Decimal('0')
                     ):
                         continue
                 filtered.append(cand)
-            if filtered:
+            if exact_confirmed:
+                candidates = exact_confirmed
+            elif filtered:
                 candidates = filtered
             elif confirmed is not None:
                 # Keep a single derived shell matching the confirmed total so
