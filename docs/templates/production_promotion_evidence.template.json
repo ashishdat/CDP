@@ -1,0 +1,61 @@
+{
+  "schema_version": "production-promotion-evidence-v1",
+  "status": "INCOMPLETE",
+  "notes": "Copy to evaluation_results/production_closeout/evidence.json via --init. Do not invent metrics. Leave null until measured.",
+  "configuration": {
+    "pipeline_release": "extraction-v2",
+    "runtime_profile": "config/runtime_profiles/production_runtime_v1.yaml",
+    "readiness_gate": "config/production_readiness_gate.yaml",
+    "holdout_policy": "config/production_holdout_policy.yaml",
+    "application_commit_sha": null,
+    "holdout_manifest_path": null,
+    "holdout_manifest_sha256": null
+  },
+  "organizational_approvals": {
+    "idp_rbac_passed": false,
+    "baa_phi_contract_passed": false,
+    "region_retention_keys_passed": false,
+    "security_assessment_passed": false,
+    "data_governance_attestation_passed": false,
+    "staging_cluster_passed": false,
+    "database_restore_drill_passed": false,
+    "signed_promotion": false,
+    "incident_owner": null,
+    "rollback_decision_maker": null,
+    "approver_references": {}
+  },
+  "readiness_evidence": {
+    "holdout_frozen": false,
+    "holdout_independent": false,
+    "holdout_documents": 0,
+    "holdout_fields": 0,
+    "full_suite_passed": false,
+    "overall_raw_accuracy": null,
+    "critical_accuracy": null,
+    "total_false_accept_rate": null,
+    "critical_false_accept_count": null,
+    "safe_field_coverage": null,
+    "claim_stp": null,
+    "claim_hitl": null,
+    "claim_hitl_count": null,
+    "accepted_critical_field_decisions": 0,
+    "critical_accepted_precision": null,
+    "wrong_crop_recall": null,
+    "maximum_segment_claim_hitl": null,
+    "p95_latency_ms": null,
+    "cost_per_document_usd": null,
+    "runtime_parity_passed": true,
+    "route_governance_passed": true,
+    "security_passed": false,
+    "database_and_events_passed": false,
+    "load_and_keda_passed": false,
+    "shadow_validation_passed": false,
+    "failure_injection_passed": false
+  },
+  "canary": {
+    "scope_description": null,
+    "shadow_samples": null,
+    "critical_false_accepts_observed": null,
+    "completed": false
+  }
+}

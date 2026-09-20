@@ -71,9 +71,15 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e ".[dev]"
-      - run: pytest tests/unit/cases/test_production_readiness_gate.py tests/unit/cases/test_production_runtime.py tests/unit/cases/test_route_registry.py tests/integration/test_phase8_10b_runtime_profile_parity.py -q -p no:cacheprovider --basetemp=.test-tmp/governance
+      - run: pytest tests/unit/cases/test_production_readiness_gate.py tests/unit/cases/test_production_runtime.py tests/unit/cases/test_production_closeout.py tests/unit/cases/test_route_registry.py tests/integration/test_phase8_10b_runtime_profile_parity.py -q -p no:cacheprovider --basetemp=.test-tmp/governance
       - run: python scripts/smoke_production_fail_closed.py
-
+      - name: Close-out package fails closed when incomplete
+        run: |
+          python scripts/check_production_closeout.py --init
+          if python scripts/check_production_closeout.py; then
+            echo "incomplete close-out package must not pass" >&2
+            exit 1
+          fi
   dependency-profiles:
     runs-on: ubuntu-latest
     timeout-minutes: 25

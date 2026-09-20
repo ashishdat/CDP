@@ -9,9 +9,11 @@ output with full field-level evidence.
 **Production operators:** start at `docs/PRODUCTION_OPERATOR_RUNBOOK.md`.
 The platform is **production-hardened** (fail-closed runtime pin, health/ready,
 frozen `extraction-v2`) but **not production-authorized** for PHI until the
-gates in `docs/PRODUCTION_READINESS.md` close. Smoke without credentials:
+gates in `docs/PRODUCTION_READINESS.md` close. To close them, follow
+`docs/PRODUCTION_CLOSEOUT_CHECKLIST.md`:
 
 ```bash
+python3 scripts/check_production_closeout.py --init
 python3 scripts/smoke_production_fail_closed.py
 ```
 

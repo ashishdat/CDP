@@ -1,0 +1,20 @@
+{
+  "schema_version": "holdout-attestation-v1",
+  "dataset_id": "PRODUCTION_HOLDOUT_V1",
+  "notes": "All never_* flags must be true before UntouchedHoldoutBuilder will freeze. attested_by must be a named data-governance owner.",
+  "separate_source": false,
+  "never_threshold_tuned": false,
+  "never_prompt_tuned": false,
+  "never_used_for_ocr_selection": false,
+  "never_used_for_registration_adjustment": false,
+  "never_used_for_roi_tuning": false,
+  "never_used_for_preprocessing_tuning": false,
+  "never_used_for_policy_tuning": false,
+  "never_used_for_blocking_field_tuning": false,
+  "never_used_for_route_selection": false,
+  "never_used_for_confidence_calibration": false,
+  "never_used_for_reference_matching_tuning": false,
+  "never_inspected_during_development": false,
+  "attested_by": null,
+  "evidence_reference": null
+}

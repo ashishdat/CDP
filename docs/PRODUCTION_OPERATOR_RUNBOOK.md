@@ -83,11 +83,24 @@ See `docs/reference/AUTHORIZED_MEMBER_INDEX_OPERATOR_FILL.md`. Never fill from O
 
 ## Qualification / promotion
 
+Close remaining PHI gates with the operator package (does not invent labels/BAAs):
+
+```bash
+python3 scripts/check_production_closeout.py --init
+# fill evaluation_results/production_closeout/{evidence,holdout_attestation,LAUNCH_RECORD}
+python3 scripts/check_production_closeout.py
+```
+
+Full ordered checklist: `docs/PRODUCTION_CLOSEOUT_CHECKLIST.md`.
+
+Also:
+
 ```bash
 python3 scripts/qualify_vnext.py          # exits non-zero unless PROMOTABLE
 python3 scripts/smoke_production_fail_closed.py
 pytest tests/unit/cases/test_production_runtime.py \
-       tests/unit/cases/test_production_readiness_gate.py -q
+       tests/unit/cases/test_production_readiness_gate.py \
+       tests/unit/cases/test_production_closeout.py -q
 ```
 
 Until holdout + security gates pass, the correct launch label remains

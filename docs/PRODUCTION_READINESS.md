@@ -75,3 +75,16 @@ A release record must contain:
 
 Until every blocker is closed or formally accepted by the accountable owner,
 the correct status is **production-hardened, not production-authorized**.
+
+## How to close the remaining blockers
+
+Follow `docs/PRODUCTION_CLOSEOUT_CHECKLIST.md`. Scaffold and validate evidence:
+
+```bash
+python3 scripts/check_production_closeout.py --init
+python3 scripts/check_production_closeout.py   # exit 0 only when authorized
+```
+
+Templates live under `docs/templates/`. The validator fails closed until holdout
+metrics, IdP/BAA/staging approvals, canary (0 critical FA), and a signed
+promotion are all present — it will not invent them.
