@@ -150,7 +150,7 @@ def test_non_self_box2_name_disagreement_does_not_create_authority():
     assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" not in _types(result.contradictions)
 
 
-def test_self_with_distinct_names_is_relationship_conflict_not_forced_equal():
+def test_self_with_distinct_names_is_box2_independent_not_blocking_conflict():
     result = ClaimEvidenceBuilder.load().build(
         claim_id="claim-1",
         document_family="CMS1500",
@@ -162,10 +162,11 @@ def test_self_with_distinct_names_is_relationship_conflict_not_forced_equal():
             "insured_dob": "1965-04-02",
         },
     )
-    assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" in _types(result.contradictions)
-    assert "DOB_SINGLE_ROLE_EVIDENCE" in _types(result.contradictions)
+    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
+    assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" not in _types(result.contradictions)
+    assert "DOB_SINGLE_ROLE_EVIDENCE" not in _types(result.contradictions)
+    assert "MEMBER_RELATIONSHIP_CONTRADICTION" not in _types(result.contradictions)
     assert "BOX3_BOX11A_DOB_CONFIRMED" not in _types(result.evidence_items)
-    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" not in _types(result.evidence_items)
 
 
 def test_missing_relationship_with_box2_box4_disagreement_creates_no_authority():

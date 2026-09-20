@@ -1925,14 +1925,21 @@ class EvidenceReconciler:
                 if not values_conflict_equivalent(field_name, value, other)
             ]
             # Decimal-place / fragment charge OCR is not a genuine conflict when
-            # Box 28 ↔ line-sum financial authority already confirmed the total.
-            if field_name in {"total_charge", "total_charges"} and financial_authority:
+            # Box 28 ↔ line-sum financial authority already confirmed the total,
+            # or when LINE_TOTALS_RECONCILED owns the selected amount (soup rivals
+            # like ``2605`` / ``5460.4`` beside a clean line Σ must not veto AUTO).
+            charge_soup_authority = financial_authority or (
+                field_name in {"total_charge", "total_charges"}
+                and "LINE_TOTALS_RECONCILED" in deterministic
+            )
+            if field_name in {"total_charge", "total_charges"} and charge_soup_authority:
                 from packages.claim_evidence.line_sum_authority import (
                     is_decimal_place_shift,
                     parse_currency,
                 )
 
                 primary_amt = parse_currency(value)
+                line_totals_owns = "LINE_TOTALS_RECONCILED" in deterministic
                 cleared: list[str] = []
                 for other in genuine:
                     other_amt = parse_currency(other)
@@ -1943,6 +1950,10 @@ class EvidenceReconciler:
                         continue
                     # Place-shift / fragment of the confirmed total — drop.
                     if is_decimal_place_shift(value, other):
+                        continue
+                    # When line Σ owns the selected total, deferred Box 28 OCR
+                    # rivals are soup — not a second printed claim total.
+                    if line_totals_owns and other_amt != primary_amt:
                         continue
                     if primary_amt != other_amt:
                         # Competing non-equal amounts stay only when they are
@@ -1958,6 +1969,28 @@ class EvidenceReconciler:
                             )
                         ):
                             continue
+                        # Dollars-stem junk (``2605`` beside ``260.00``).
+                        conf_dollars = str(value).split(".", 1)[0]
+                        other_dollars = str(other).split(".", 1)[0]
+                        if (
+                            conf_dollars
+                            and other_dollars.startswith(conf_dollars)
+                            and other_dollars[len(conf_dollars) :].isdigit()
+                            and 1 <= len(other_dollars) - len(conf_dollars) <= 2
+                        ):
+                            continue
+                        # Single junk-digit insertion either direction.
+                        if abs(len(confirmed_digits) - len(other_digits)) == 1:
+                            longer, shorter = (
+                                (confirmed_digits, other_digits)
+                                if len(confirmed_digits) > len(other_digits)
+                                else (other_digits, confirmed_digits)
+                            )
+                            if any(
+                                longer[:i] + longer[i + 1 :] == shorter
+                                for i in range(len(longer))
+                            ):
+                                continue
                     cleared.append(other)
                 genuine = cleared
             # Future-shaped DOB OCR is digit junk, not a genuine calendar conflict.

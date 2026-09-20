@@ -393,7 +393,7 @@ class ClaimEvidenceBuilder:
         if relationship not in {"SELF", "18", "01"} and names_match:
             relationship = "SELF"
             inferred_self = True
-        if relationship in {"SELF", "18", "01"} and patient and insured:
+        if relationship in {"SELF", "18", "01", "1"} and patient and insured:
             metadata = {
                 "supported_fields": [
                     "patient_name",
@@ -406,17 +406,18 @@ class ClaimEvidenceBuilder:
                 "inferred_self_from_matching_names": inferred_self,
                 "soft_name_match": names_match and patient != insured,
             }
-            target = evidence if names_match else contradictions
-            target.append(
-                self._item(
-                    claim_id,
-                    "MEMBER_RELATIONSHIP_CONFIRMED"
-                    if target is evidence
-                    else "MEMBER_RELATIONSHIP_CONTRADICTION",
-                    patient,
-                    metadata,
+            if names_match:
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "MEMBER_RELATIONSHIP_CONFIRMED",
+                        patient,
+                        metadata,
+                    )
                 )
-            )
+            # Distinct Box 2 / Box 4 under a Self checkbox is handled by
+            # BOX2_INDEPENDENT_NAME_AUTHORITY in form redundancy — not a
+            # claim-blocking MEMBER_RELATIONSHIP_CONTRADICTION.
         if self._multi_attribute_identity(
             original_relationship=stated_relationship,
             patient_raw=patient_raw,
@@ -534,23 +535,23 @@ class ClaimEvidenceBuilder:
         else:
             patient_norm = normalize_person_name(patient_name)
             insured_norm = normalize_person_name(insured_name)
-            # Self printed with different Box 2 / Box 4 identities is a
-            # relationship conflict — do not force equality and do not use
-            # Box 11a to corroborate Box 3.
+            # Self printed with different Box 2 / Box 4 identities: Box 2 is an
+            # independent patient-name authority (policy E6), not a forced-equal
+            # conflict that blocks STP when OCR already confirmed Box 2.
             if (
                 relationship_is_self(relationship)
                 and patient_norm
                 and insured_norm
                 and not names_agree(patient_name, insured_name)
             ):
-                contradictions.append(
+                evidence.append(
                     self._item(
                         claim_id,
-                        "PATIENT_INSURED_RELATIONSHIP_CONFLICT",
+                        "BOX2_INDEPENDENT_NAME_AUTHORITY",
                         patient_norm,
                         {
-                            "supported_fields": ["patient_name", "insured_name", "rel_code"],
-                            "reason": "SELF_WITH_DISTINCT_BOX2_BOX4",
+                            "supported_fields": ["patient_name"],
+                            "reason": "SELF_CHECKBOX_WITH_DISTINCT_BOX2_BOX4",
                             "patient_norm": patient_norm,
                             "insured_norm": insured_norm,
                         },
@@ -585,23 +586,9 @@ class ClaimEvidenceBuilder:
                     )
                 )
             return
-        if (
-            relationship_is_self(relationship)
-            and normalize_person_name(patient_name)
-            and normalize_person_name(insured_name)
-            and not names_agree(patient_name, insured_name)
-        ):
-            contradictions.append(
-                self._item(
-                    claim_id,
-                    "DOB_SINGLE_ROLE_EVIDENCE",
-                    str(values.get("patient_dob") or ""),
-                    {
-                        "supported_fields": ["patient_dob"],
-                        "reason": "BOX11A_IS_INSURED_DOB_WHEN_IDENTITIES_DIFFER",
-                    },
-                )
-            )
+        # Distinct identities under a Self checkbox: do not force Box 11a onto
+        # Box 3, and do not emit a claim-blocking DOB contradiction — patient
+        # DOB stands on its own patient-role evidence.
 
     def _box28_line_sum_authority(
         self, claim_id, values, lines, evidence, contradictions
@@ -681,12 +668,29 @@ class ClaimEvidenceBuilder:
             from packages.claim_evidence.financial_geometry_authority import (
                 evaluate_financial_geometry_arithmetic,
             )
+            from packages.claim_evidence.line_sum_authority import parse_currency
         except Exception:  # noqa: BLE001
             return
         # Skip when Box28↔line-sum already confirmed the same amount.
         if any(item.evidence_type == "BOX28_LINE_SUM_CORROBORATED" for item in evidence):
             return
         box28_amount = values.get("total_charge") or values.get("total_charges")
+        # When Box 28 was deferred (OCR soup cleared from values), still evaluate
+        # geometry against the raw field payload so junk-digit relief can fire.
+        if box28_amount in (None, ""):
+            payload = values.get("_box28_field_payload")
+            if isinstance(payload, dict):
+                ranked = payload.get("ranked_candidate") or {}
+                ocr = ranked.get("ocr_candidate") or ranked
+                box28_amount = ocr.get("value") or ocr.get("raw_value")
+                if box28_amount in (None, ""):
+                    for cand in payload.get("candidates") or []:
+                        if not isinstance(cand, dict):
+                            continue
+                        text = cand.get("value") or cand.get("raw_value")
+                        if parse_currency(text) is not None:
+                            box28_amount = text
+                            break
         decision = evaluate_financial_geometry_arithmetic(
             box28_amount=box28_amount,
             service_lines=lines,

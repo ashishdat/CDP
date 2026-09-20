@@ -45,15 +45,74 @@ def _currency_shaped_candidates(field_payload: dict | None) -> list[str]:
             continue
         ocr = row.get("ocr_candidate") or row
         text = ocr.get("value") or ocr.get("raw_value")
+        if _is_box28_label_contamination(text):
+            continue
         if parse_currency(text) is not None:
             found.append(str(text))
     for cand in field_payload.get("candidates") or []:
         if not isinstance(cand, dict):
             continue
         text = cand.get("value") or cand.get("raw_value")
+        if _is_box28_label_contamination(text):
+            continue
         if parse_currency(text) is not None:
             found.append(str(text))
     return found
+
+
+def _is_box28_label_contamination(text: object) -> bool:
+    """True when OCR is the Box 28 caption / ruling, not a printed total."""
+    raw = str(text or "")
+    upper = raw.upper()
+    if "TOTAL CHARGE" in upper or "TOTAL CHARGES" in upper:
+        return True
+    # Bare form-index digit next to the caption (``8.TOTAL CHARGE`` / ``2!``).
+    compact = "".join(ch for ch in upper if ch.isalnum())
+    if compact in {"8", "28", "2", "8TOTALCHARGE", "28TOTALCHARGE"}:
+        return True
+    # Lone box-index amount soup (``8.00``) is not a claim total.
+    amount = parse_currency(raw)
+    if amount is not None and amount in {parse_currency("8.00"), parse_currency("2.00"), parse_currency("28.00")}:
+        digits = "".join(ch for ch in raw if ch.isdigit())
+        if digits in {"8", "2", "28", "800", "200", "2800"}:
+            return True
+    return False
+
+
+def _payload_is_label_only_or_empty(
+    field_payload: dict | None,
+    observation: dict | None,
+) -> bool:
+    """True when every OCR observation is empty or Box 28 caption contamination."""
+    texts: list[str] = []
+    if isinstance(observation, dict):
+        for key in ("text", "raw_digit_sequence", "canonical_monetary_value"):
+            if observation.get(key) not in (None, ""):
+                texts.append(str(observation[key]))
+    if isinstance(field_payload, dict):
+        rows = []
+        if field_payload.get("ranked_candidate"):
+            rows.append(field_payload["ranked_candidate"])
+        rows.extend(field_payload.get("alternatives") or [])
+        rows.extend(field_payload.get("candidates") or [])
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            ocr = row.get("ocr_candidate") or row
+            for key in ("value", "raw_value"):
+                if ocr.get(key) not in (None, ""):
+                    texts.append(str(ocr[key]))
+        for attempt in field_payload.get("attempts") or []:
+            if not isinstance(attempt, dict):
+                continue
+            obs = attempt.get("observation") or {}
+            if isinstance(obs, dict) and obs.get("text"):
+                texts.append(str(obs["text"]))
+    if not texts:
+        return False  # no OCR at all — need ROI ink analysis, not label-only blank
+    return all(
+        (not str(t).strip()) or _is_box28_label_contamination(t) for t in texts
+    )
 
 
 def _image_evidence_dict(
@@ -95,16 +154,29 @@ def classify_box28_blankness(
     """
     details: dict[str, Any] = {}
     currency = _currency_shaped_candidates(field_payload)
-    if parse_currency(box28_amount) is not None:
+    amount_is_label = _is_box28_label_contamination(box28_amount)
+    # Only treat box28_amount as amount-ink when it is not caption contamination.
+    if (
+        parse_currency(box28_amount) is not None
+        and not amount_is_label
+        and str(box28_amount) not in currency
+    ):
         currency.append(str(box28_amount))
     details["currency_shaped_candidates"] = currency[:8]
+
+    # Caption / ruling OCR only (``8.TOTAL CHARGE``) is confirmed blank — do this
+    # before trusting a polluted normalized amount that is not in the payload.
+    if _payload_is_label_only_or_empty(field_payload, observation):
+        return Box28BlanknessDecision(
+            Box28Blankness.CONFIRMED_BLANK,
+            "BOX28_LABEL_ONLY_NO_AMOUNT_INK",
+            details,
+        )
 
     # Currency-shaped OCR means ink was observed — never confirmed blank.
     if currency:
         return Box28BlanknessDecision(
-            Box28Blankness.INK_OBSERVED
-            if parse_currency(box28_amount) is not None
-            else Box28Blankness.INK_PRESENT_UNREADABLE,
+            Box28Blankness.INK_OBSERVED,
             "CURRENCY_SHAPED_OCR_PRESENT",
             details,
         )

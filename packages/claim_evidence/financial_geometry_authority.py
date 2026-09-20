@@ -201,6 +201,39 @@ def _collect_box28_raw_texts(
     return texts
 
 
+def _digits_match_with_single_junk(target_digits: str, candidate_digits: str) -> bool:
+    """True when candidate equals target after deleting ≤1 digit either way."""
+    if not target_digits or not candidate_digits:
+        return False
+    if candidate_digits == target_digits:
+        return True
+    if len(candidate_digits) == len(target_digits) + 1:
+        for idx in range(len(candidate_digits)):
+            if candidate_digits[:idx] + candidate_digits[idx + 1 :] == target_digits:
+                return True
+    if len(target_digits) == len(candidate_digits) + 1:
+        for idx in range(len(target_digits)):
+            if target_digits[:idx] + target_digits[idx + 1 :] == candidate_digits:
+                return True
+    return False
+
+
+def _is_junk_digit_rival(confirmed: str, rival: str) -> bool:
+    """True when rival digits are the confirmed total with ≤1 inserted junk digit."""
+    conf = re.sub(r"\D", "", confirmed)
+    riv = re.sub(r"\D", "", rival)
+    if _digits_match_with_single_junk(conf, riv):
+        return True
+    # Dollars-stem junk (``2605`` beside confirmed ``260.00``).
+    conf_dollars = confirmed.split(".", 1)[0]
+    riv_dollars = rival.split(".", 1)[0]
+    if conf_dollars and riv_dollars.startswith(conf_dollars):
+        extra = riv_dollars[len(conf_dollars) :]
+        if extra.isdigit() and 1 <= len(extra) <= 2:
+            return True
+    return False
+
+
 def _raw_matches_sum_with_single_junk_digit(line_sum: str, raw_texts: list[str]) -> bool:
     """True when a Box 28 raw digit blob equals Σ after deleting ≤1 junk digit.
 
@@ -220,13 +253,20 @@ def _raw_matches_sum_with_single_junk_digit(line_sum: str, raw_texts: list[str])
         digits = re.sub(r"\D", "", raw)
         if not digits:
             continue
-        if digits == target:
+        if _digits_match_with_single_junk(target, digits):
             return True
-        if len(digits) == len(target) + 1:
-            for idx in range(len(digits)):
-                if digits[:idx] + digits[idx + 1 :] == target:
-                    return True
     return False
+
+
+def _same_stem_cents_twin(box_txt: str, line_sum: str) -> bool:
+    """True when Box 28 and Σ share dollars and differ by ≤ $1.00 (OCR twin)."""
+    box = parse_currency(box_txt)
+    total = parse_currency(line_sum)
+    if box is None or total is None:
+        return False
+    if box_txt.split(".", 1)[0] != line_sum.split(".", 1)[0]:
+        return False
+    return abs(box - total) <= Decimal("1.00")
 
 
 def evaluate_financial_geometry_arithmetic(
@@ -248,6 +288,19 @@ def evaluate_financial_geometry_arithmetic(
         amount, reason = _line_selected_amount(line)
         details_rows.append({"amount": amount, "reason": reason})
         if amount is None:
+            selection = line.get("line_charge_selection")
+            disposition = (
+                selection.get("disposition")
+                if isinstance(selection, dict)
+                else reason
+            )
+            # Ambiguous / unreadable rows stay out of Σ — they must not veto
+            # confirmation of already-selected clean lines against Box 28.
+            if disposition in {
+                "AMBIGUOUS_LINE_CHARGE",
+                "UNREADABLE_LINE_CHARGE",
+            }:
+                continue
             # Blank / unreadable active rows with procedure ink still block.
             if any(
                 str(line.get(k) or "").strip()
@@ -299,6 +352,21 @@ def evaluate_financial_geometry_arithmetic(
                     "box28_raw_junk_digit_relieved": True,
                     "ocr_box28": box_txt,
                     "raw_texts": raw_texts[:8],
+                },
+            )
+        # Same-stem OCR twins (``346.04`` beside Σ ``346.00``) are not true
+        # arithmetic conflicts — keep the printed Box 28 amount.
+        if _same_stem_cents_twin(box_txt, line_sum):
+            return FinancialGeometryDecision(
+                True,
+                box_txt,
+                "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                line_sum=line_sum,
+                box28=box_txt,
+                details={
+                    "rows": details_rows,
+                    "same_stem_cents_twin": True,
+                    "line_sum": line_sum,
                 },
             )
         return FinancialGeometryDecision(
@@ -397,6 +465,9 @@ def evaluate_financial_geometry_arithmetic(
                     and len(alt_core) <= len(conf_digits)
                     and alt_core in conf_digits
                 ):
+                    continue
+                # Junk-digit / dollars-stem rivals (``2605`` beside ``260.00``).
+                if _is_junk_digit_rival(box_txt, alt_txt):
                     continue
                 # Same-ROI dollars stem with junk tail (``34 125`` → ``125.00``).
                 raw_groups = re.findall(r"\d+", str(ocr.get("raw_value") or ""))

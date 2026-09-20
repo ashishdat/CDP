@@ -89,6 +89,112 @@ def test_currency_shaped_ocr_is_never_blank():
     assert decision.reason == "CURRENCY_SHAPED_OCR_PRESENT"
 
 
+def test_box28_label_only_ocr_is_confirmed_blank():
+    """Caption/ruling OCR (``8.TOTAL CHARGE``) is not printed amount ink."""
+    decision = classify_box28_blankness(
+        box28_amount="8.00",
+        field_payload={
+            "ranked_candidate": {
+                "ocr_candidate": {
+                    "value": "8.TOTAL CHARGE",
+                    "raw_value": "8.TOTAL CHARGE 2",
+                }
+            },
+            "candidates": [
+                {"value": "8.00", "raw_value": "8.00", "engine": "paddleocr"},
+                {
+                    "value": "8.TOTAL CHARGE",
+                    "raw_value": "2\n8.TOTAL CHARGE\nACnnn",
+                    "engine": "rapidocr",
+                },
+            ],
+            "attempts": [
+                {"observation": {"text": "8.TOTAL CHARGE"}},
+                {"observation": {"text": "2!\nB.TOTAL CHARGE"}},
+            ],
+        },
+        region=(1045.0, 1825.0, 1248.0, 1875.0),
+    )
+    assert decision.status == Box28Blankness.CONFIRMED_BLANK
+    assert decision.reason == "BOX28_LABEL_ONLY_NO_AMOUNT_INK"
+
+
+def test_financial_geometry_same_stem_cents_twin():
+    """``346.04`` beside Σ ``346.00`` is a same-stem OCR twin, not HITL."""
+    lines = [
+        {
+            "charges": "346.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "346.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                _cand("paddleocr", "346.00", "346.00", _CHARGE_BBOX),
+                _cand("rapidocr", "346.00", "346.00", _CHARGE_BBOX),
+            ],
+        }
+    ]
+    decision = evaluate_financial_geometry_arithmetic(
+        box28_amount="346.04",
+        service_lines=lines,
+        box28_observation={
+            "text": "346.04",
+            "raw_digit_sequence": "34604",
+            "canonical_monetary_value": "346.04",
+            "adopted": True,
+        },
+    )
+    assert decision.confirmed
+    assert decision.amount == "346.04"
+    assert decision.details.get("same_stem_cents_twin") is True
+
+
+def test_financial_geometry_skips_ambiguous_lines_in_sum():
+    """Ambiguous rows must not veto FG confirmation of clean selected lines."""
+    lines = [
+        {
+            "charges": "270.00",
+            "procedure_code": "99213",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "270.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                _cand("paddleocr", "270.00", "270.00", _CHARGE_BBOX),
+                _cand("rapidocr", "270.00", "270.00", _CHARGE_BBOX),
+            ],
+        },
+        {
+            "charges": None,
+            "procedure_code": "99214",
+            "line_charge_selection": {
+                "disposition": "AMBIGUOUS_LINE_CHARGE",
+                "amount": None,
+                "reason": "ONLY_BLEED_OR_SOUP_CANDIDATES",
+            },
+            "candidates": [
+                _cand("paddleocr", "141.00", "14100", _CHARGE_BBOX),
+            ],
+        },
+    ]
+    decision = evaluate_financial_geometry_arithmetic(
+        box28_amount="270.00",
+        service_lines=lines,
+        box28_observation={
+            "text": "270.00",
+            "raw_digit_sequence": "27000",
+            "canonical_monetary_value": "270.00",
+            "adopted": True,
+        },
+    )
+    assert decision.confirmed
+    assert decision.amount == "270.00"
+
+
 def test_ink_present_unreadable_blocks_derive():
     decision = evaluate_derived_total_from_complete_verified_lines(
         document_family="CMS1500",
