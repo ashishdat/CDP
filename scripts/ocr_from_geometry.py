@@ -2577,6 +2577,22 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             if geo is not None and geo.geometry_candidate and not geo.ambiguous:
                 selected = geo.canonical_monetary_value or geo.geometry_candidate
                 dig_cands = list(dig_cands or [])
+                monetary_observation = {
+                    'text': geo.raw_glyph_sequence,
+                    'shaped': selected,
+                    'raw_digit_sequence': geo.raw_glyph_sequence,
+                    'page_glyph_polygons': [
+                        [list(pt) for pt in poly]
+                        for poly in geo.page_glyph_polygons
+                    ],
+                    'canonical_glyph_centres': [
+                        list(c) for c in geo.canonical_glyph_centres
+                    ],
+                    'dollar_glyphs': list(geo.dollar_glyphs),
+                    'cents_glyphs': list(geo.cents_glyphs),
+                    'unit_zone_glyphs': list(geo.unit_zone_glyphs),
+                    'canonical_monetary_value': geo.canonical_monetary_value,
+                }
                 dig_cands.insert(0, {
                     'value': selected,
                     'raw_value': geo.raw_glyph_sequence,
@@ -2602,21 +2618,15 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     'preprocessing_version': 'geometry-cents',
                     'registration_confidence': None,
                     'image_quality_score': None,
-                    'provenance': {
-                        'raw_digit_sequence': geo.raw_glyph_sequence,
-                        'page_glyph_polygons': [
-                            [list(pt) for pt in poly]
-                            for poly in geo.page_glyph_polygons
-                        ],
-                        'canonical_glyph_centres': [
-                            list(c) for c in geo.canonical_glyph_centres
-                        ],
-                        'dollar_glyphs': list(geo.dollar_glyphs),
-                        'cents_glyphs': list(geo.cents_glyphs),
-                        'unit_zone_glyphs': list(geo.unit_zone_glyphs),
-                        'canonical_monetary_value': geo.canonical_monetary_value,
-                    },
+                    # EvidenceProvenance forbids freeform monetary keys — keep
+                    # typed lineage empty and persist geometry on the attempt.
+                    'provenance': None,
                 })
+                dig_attempts = list(dig_attempts or []) + [{
+                    'engine': 'rapidocr',
+                    'reason': 'GEOMETRY_CENTS',
+                    'observation': monetary_observation,
+                }]
                 dig_reason = f'{dig_reason}|GEOMETRY_CENTS'
             ok, accept_reason = semantic_accept(
                 field['field'],
