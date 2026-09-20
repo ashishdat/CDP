@@ -515,7 +515,15 @@ class _AzureGpt4oCropRecognizer:
         if provider == "claude":
             from workers.vlm_fallback.factory import build_anthropic_claude_adapter
 
-            self._adapter = build_anthropic_claude_adapter(enabled=True, timeout_seconds=60.0)
+            # 35s fail-fast — parallel 1000 runs must not stall 60s on hung sockets.
+            timeout_raw = (os.environ.get("CDP_VLM_CROP_TIMEOUT_SECONDS") or "35").strip()
+            try:
+                timeout_seconds = max(10.0, float(timeout_raw))
+            except ValueError:
+                timeout_seconds = 35.0
+            self._adapter = build_anthropic_claude_adapter(
+                enabled=True, timeout_seconds=timeout_seconds
+            )
             self.engine_name = "anthropic_claude_crop"
             return self._adapter
 
@@ -746,13 +754,16 @@ def run_gpt4o_crop_residual(
         description: str,
         field_type: str,
     ) -> Gpt4oCropResidualResult:
+        from packages.extraction_recovery.vlm_crop_lock import vlm_crop_lock
+
         try:
-            mapped = recognizer.recognize_fields(
-                {field_name: crop_image},
-                field_types={field_name: field_type},
-                descriptions={field_name: description},
-                prior_candidates={field_name: prior},
-            )
+            with vlm_crop_lock():
+                mapped = recognizer.recognize_fields(
+                    {field_name: crop_image},
+                    field_types={field_name: field_type},
+                    descriptions={field_name: description},
+                    prior_candidates={field_name: prior},
+                )
         except Exception as exc:  # noqa: BLE001 — residual must fail closed
             return Gpt4oCropResidualResult(
                 attempted=True,

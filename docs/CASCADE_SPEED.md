@@ -21,6 +21,10 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 | `CDP_AZURE_DI_DOB_RESIDUAL` | `0` | DOB Azure DI crop (off for ≤30s/doc latency bar) |
 | `CDP_TROCR_DOB_RESIDUAL` | `0` | Local TrOCR DOB residual (off for ≤30s/doc latency bar) |
 | `CDP_AZURE_DI_CHARGE_RESIDUAL` | `0` | Charge Azure DI crop (off for ≤30s/doc latency bar) |
+| `CDP_GPT4O_EMPTY_FINANCE_MAX_LINES` | `2` | Cap empty box-28 line vision recoveries |
+| `CDP_VLM_CROP_LOCK` | `1` | Serialize Claude/gpt-4o crop residuals across workers |
+| `CDP_VLM_CROP_TIMEOUT_SECONDS` | `35` | Fail-fast vision crop timeout |
+| `CDP_CROP_VLM_PROVIDER` | `claude` | Prefer Anthropic Claude for crop residual |
 | `CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED` | `1` | Skip TrOCR/DI when local OCR already date-shaped |
 | `CDP_LEARNED_MATCHER` | `1` | SuperPoint+LightGlue singleton for catastrophic REG |
 | `CDP_TROCR_DOB_RESIDUAL` | `1` | Local TrOCR DOB residual (skip-if-local-shaped) |
@@ -29,8 +33,17 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 
 **Latency bar (this VM):** claim mean **≤30s**. Independent-300 v12.3h latency path was
 11.6s mean / 70% STP; v12.3i restores trail-aware near-miss + TrOCR + LightGlue for STP
-while keeping workers=1 (early ~13s mean, 0 REG on first 12). `--workers 2+` thrash.
+while keeping workers=1 (early ~13s mean, 0 REG on first 12). `--workers 2+` thrash
+unless orphan OCR pools are killed and `CDP_VLM_CROP_LOCK=1` serializes Claude/gpt-4o.
 Opt out of product stamps with `CDP_CASCADE_RESPECT_ENV=1`.
+
+Before a parallel 1000 run:
+1. Kill orphan `multiprocessing.spawn` workers (PPID 1) left by prior crashes — they
+   hold multi-GB Paddle/Rapid heaps and dominate MemAvailable.
+2. Keep Azure DI / OpenOCR / Monkey / unstructured REG off (defaults).
+3. Cap empty-finance vision lines (`CDP_GPT4O_EMPTY_FINANCE_MAX_LINES=2`) and VLM
+   timeout (`CDP_VLM_CROP_TIMEOUT_SECONDS=35`).
+4. Use `--workers 2` on 4-vCPU hosts with OCR/app process pools.
 
 Override examples:
 

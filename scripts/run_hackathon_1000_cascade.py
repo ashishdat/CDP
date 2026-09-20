@@ -34,7 +34,7 @@ from packages.extraction_recovery.gap_taxonomy import classify_field_gap
 
 DEFAULT_ZIP = ROOT / "data" / "Hackathon - 1000 Claims.zip"
 DEFAULT_DATASET = ROOT / "dataset.yaml"
-DEFAULT_OUT = ROOT / "evaluation_results" / "hackathon_1000_cascade_v9"
+DEFAULT_OUT = ROOT / "evaluation_results" / "hackathon_1000_cascade_v12"
 
 CRITICAL = (
     "patient_dob",
@@ -407,6 +407,15 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "0")
     env.setdefault("CDP_GPT4O_CROP_RESIDUAL", "1")
     env.setdefault("CDP_GPT4O_CROP_ACCEPT", "1")
+    # Cap empty-box-28 line vision recoveries — each line is a network round-trip.
+    env.setdefault("CDP_GPT4O_EMPTY_FINANCE", "1")
+    env.setdefault("CDP_GPT4O_EMPTY_FINANCE_MAX_LINES", "2")
+    # Serialize Claude/gpt-4o crop residuals across parallel claim workers.
+    env.setdefault("CDP_VLM_CROP_LOCK", "1")
+    env.setdefault("CDP_VLM_CROP_LOCK_PATH", "/tmp/cdp_vlm_crop.lock")
+    env.setdefault("CDP_VLM_CROP_TIMEOUT_SECONDS", "35")
+    # Prefer Claude Sonnet for crop residual when configured (override via env).
+    env.setdefault("CDP_CROP_VLM_PROVIDER", "claude")
     env.setdefault("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED", "1")
     # SuperPoint+LightGlue for catastrophic REG — process-lifetime singleton
     # amortizes cold load; trail-aware near-miss recovers most STP regressions
@@ -953,9 +962,69 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
     }
 
 
+def _preflight_latency_hygiene() -> dict[str, Any]:
+    """Warn on memory pressure / orphan OCR pools that inflate claim wall time."""
+    report: dict[str, Any] = {"available_mem_gb": None, "orphan_spawn_workers": 0}
+    try:
+        meminfo = Path("/proc/meminfo").read_text(encoding="utf-8")
+        for line in meminfo.splitlines():
+            if line.startswith("MemAvailable:"):
+                kb = int(line.split()[1])
+                report["available_mem_gb"] = round(kb / (1024 * 1024), 2)
+                break
+    except (OSError, ValueError):
+        pass
+    # Orphaned spawn workers (PPID 1) from prior crashed cascades hold multi-GB
+    # Paddle/Rapid heaps and thrash the ≤30s latency bar.
+    try:
+        import subprocess as _sp
+
+        out = _sp.check_output(
+            ["ps", "-eo", "pid,ppid,etime,rss,cmd"],
+            text=True,
+            stderr=_sp.DEVNULL,
+        )
+        orphans = []
+        for line in out.splitlines()[1:]:
+            if "multiprocessing.spawn" not in line or "spawn_main" not in line:
+                continue
+            parts = line.split(None, 4)
+            if len(parts) < 5:
+                continue
+            pid, ppid, etime, rss = parts[0], parts[1], parts[2], parts[3]
+            if ppid != "1":
+                continue
+            orphans.append({"pid": int(pid), "etime": etime, "rss_kb": int(rss)})
+        report["orphan_spawn_workers"] = len(orphans)
+        report["orphan_rss_gb"] = round(
+            sum(o["rss_kb"] for o in orphans) / (1024 * 1024), 2
+        )
+        report["orphans"] = orphans[:20]
+    except (OSError, ValueError, FileNotFoundError):
+        pass
+    return report
+
+
+def _load_dotenv() -> None:
+    """Load repo .env into os.environ (setdefault) for CDP_* knobs not in Settings."""
+    env_path = ROOT / ".env"
+    if not env_path.is_file():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        raw = line.strip()
+        if not raw or raw.startswith("#") or "=" not in raw:
+            continue
+        key, value = raw.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key:
+            os.environ.setdefault(key, value)
+
+
 def main() -> int:
     from workers.ocr_engine_factories import wire_package_ocr_providers
 
+    _load_dotenv()
     wire_package_ocr_providers()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--zip", type=Path, default=DEFAULT_ZIP)
@@ -1003,10 +1072,15 @@ def main() -> int:
         # Unstructured REG page-read path is DI-backed — off while DI is parked.
         "CDP_UNSTRUCTURED_REG_FALLBACK": "0",
         "CDP_UNSTRUCTURED_REG_AGENT": "0",
-        # FIELD_INK DOB/ID/charge: crop-only gpt-4o after local(+TrOCR) miss.
+        # FIELD_INK DOB/ID/charge: crop-only Claude/gpt-4o after local(+TrOCR) miss.
         "CDP_GPT4O_CROP_RESIDUAL": "1",
         "CDP_GPT4O_CROP_ACCEPT": "1",
         "CDP_GPT4O_EMPTY_FINANCE": "1",
+        "CDP_GPT4O_EMPTY_FINANCE_MAX_LINES": "2",
+        "CDP_VLM_CROP_LOCK": "1",
+        "CDP_VLM_CROP_LOCK_PATH": "/tmp/cdp_vlm_crop.lock",
+        "CDP_VLM_CROP_TIMEOUT_SECONDS": "35",
+        "CDP_CROP_VLM_PROVIDER": "claude",
         # OpenOCR / Monkey / PaddleOCR-VL failed for charge recovery — keep off.
         "CDP_OPENOCR_SVTR": "0",
         "CDP_MONKEYOCR": "0",
@@ -1025,6 +1099,23 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     ledger = out_dir / "results.jsonl"
     lock = threading.Lock()
+
+    hygiene = _preflight_latency_hygiene()
+    _write_json(out_dir / "latency_preflight.json", hygiene)
+    print(f"latency_preflight={json.dumps(hygiene)}", flush=True)
+    avail = hygiene.get("available_mem_gb")
+    orphans = int(hygiene.get("orphan_spawn_workers") or 0)
+    if orphans > 0:
+        print(
+            f"WARNING: {orphans} orphan spawn workers (~{hygiene.get('orphan_rss_gb')} GiB) "
+            "— kill them before a latency-sensitive run",
+            flush=True,
+        )
+    if isinstance(avail, (int, float)) and avail < 3.0:
+        print(
+            f"WARNING: MemAvailable={avail} GiB is low for parallel OCR pools",
+            flush=True,
+        )
 
     try:
         engine_probe = _probe_ocr_engines()
