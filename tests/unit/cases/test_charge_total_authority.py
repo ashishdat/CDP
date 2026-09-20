@@ -19,7 +19,7 @@ from packages.ocr_portfolio.monetary_recognizer import (
 
 def test_ruling_tail_70_vs_701():
     assert is_ruling_tail_extension("70.00", "701.00")
-    # Untagged pair abstains — tagged resolve below selects the full stem.
+    # Even tagged pair abstains; raw OCR variants are not independent evidence.
     assert prefer_safe_charge_amount("70.00", "701.00") is None
     assert prefer_charge_ink_amount("70.00", "701.00") == "70.00"
     safe, reason = resolve_safe_charge_total(
@@ -54,8 +54,8 @@ def test_ruling_tail_70_vs_701():
             }
         ],
     )
-    assert safe == "70.00"
-    assert reason == "RULING_TAIL_TO_FULL_STEM"
+    assert safe == "701.00"
+    assert reason == "PRIMARY_UNCHANGED"
 
 
 def test_units_bleed_cents_prefer_whole_dollar():
@@ -64,7 +64,7 @@ def test_units_bleed_cents_prefer_whole_dollar():
     assert is_units_bleed_cents("25.43")
     assert not is_units_bleed_cents("157.00")
     assert not is_units_bleed_cents("49.72")
-    assert prefer_safe_charge_amount("157.07", "157.00") == "157.00"
+    assert prefer_safe_charge_amount("157.07", "157.00") is None
     safe, reason = resolve_safe_charge_total(
         primary="157.07",
         field_payload={
@@ -80,8 +80,8 @@ def test_units_bleed_cents_prefer_whole_dollar():
         },
         service_lines=[{"charges": "157.07"}],
     )
-    assert safe == "157.00"
-    assert reason in {"SAFE_CHARGE_AUTHORITY", "BLEED_CENTS_TO_WHOLE_DOLLAR"}
+    assert safe == "157.07"
+    assert reason == "PRIMARY_UNCHANGED"
 
 
 def test_reject_place_shift_soup_still():
@@ -175,5 +175,5 @@ def test_djjm028_bleed_cents_uses_line_sum_sibling():
             {"charges": "200.00", "candidates": [{"value": "200.00"}]},
         ],
     )
-    assert safe == "400.00"
-    assert reason == "BLEED_CENTS_TO_LINE_SUM"
+    assert safe == "400.40"
+    assert reason == "PRIMARY_UNCHANGED"

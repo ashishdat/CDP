@@ -29,14 +29,16 @@ _MAX_PLAUSIBLE_CLAIM_TOTAL = Decimal("99999.99")
 
 
 def parse_currency(value: object) -> Decimal | None:
-    raw = str(value or "").strip()
+    raw = "" if value is None else str(value).strip()
     if not raw:
         return None
     # OCR often emits space/colon as the dollars|cents separator, or a
     # thousands space (``4 972``). Repair before stripping non-digits.
-    text = raw.lstrip("$").replace(",", "")
-    text = re.sub(r"[Oo]", "0", text)  # confusable O→0 in amounts
-    text = re.sub(r"[gG]", "0", text)  # confusable g→0 (``60g.00``)
+    text = raw.removeprefix("$").strip()
+    if "," in text:
+        if not re.fullmatch(r"-?\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?", text):
+            return None
+        text = text.replace(",", "")
     m = re.fullmatch(r"(\d{1,6})[\s:.](\d{2})", text)
     if m:
         text = f"{m.group(1)}.{m.group(2)}"
@@ -48,8 +50,12 @@ def parse_currency(value: object) -> Decimal | None:
             m = re.fullmatch(r"(\d{1,3})\s(\d{3})[\s:.](\d{2})", text)
             if m:
                 text = f"{m.group(1)}{m.group(2)}.{m.group(3)}"
+    # Parsing cannot repair character identity or concatenate unrelated tokens.
+    # Such repairs belong to the recognizer with explicit source provenance.
+    if not re.fullmatch(r"-?\d+(?:\.\d{1,2})?", text):
+        return None
     try:
-        return Decimal(re.sub(r"[^0-9.-]", "", text))
+        return Decimal(text)
     except (InvalidOperation, ValueError):
         return None
 
@@ -200,21 +206,9 @@ def is_decimal_place_shift(left: object, right: object) -> bool:
 
 
 def amounts_corroborate(left: object, right: object) -> bool:
-    """Box-28 / DI path only: equal, within tolerance, or digit-drop twin.
-
-    Do NOT use for dual-engine or gpt-4o+local AUTO promotion — those paths
-    require exact / $1 via ``amounts_within_tolerance(..., relative=0)``.
-    Digit-drop (e.g. ``13``↔``131``) is intentional here so independently
-    extracted box-28 / Azure DI can still corroborate a line-sum.
-    A two-place decimal shift (``49.72`` vs ``4972.00``) is a conflict.
-    """
-    if _decimal_place_conflict(left, right):
-        return False
-    if parse_currency(left) is None or parse_currency(right) is None:
-        return False
-    if amounts_within_tolerance(left, right):
-        return True
-    return is_currency_digit_drop_twin(left, right)
+    """Corroboration requires exact monetary equality, not plausible repair."""
+    a, b = parse_currency(left), parse_currency(right)
+    return a is not None and b is not None and a == b
 
 
 def _engine_family(engine: object) -> str:

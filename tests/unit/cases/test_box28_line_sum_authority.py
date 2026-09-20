@@ -149,8 +149,8 @@ def test_djjm_010_requires_two_independent_integrity_paths():
     }
 
 
-def test_djjm_014_box28_line_sum_auto_212():
-    """DJJM.014 → 212.00 AUTO; leading Box 28 contamination may be dropped."""
+def test_djjm_014_requires_observed_box28_212():
+    """A line sum cannot pick a missing/contaminated Box 28 interpretation."""
     box28_region = (1045.0, 1825.0, 1248.0, 1875.0)
     line = {
         "line_number": 1,
@@ -194,10 +194,9 @@ def test_djjm_014_box28_line_sum_auto_212():
             "adopted": False,
         },
     )
-    assert decision.disposition == "AUTO_ACCEPTED"
-    assert decision.amount == "212.00"
-    assert decision.authority_reason == "BOX28_LINE_SUM_CORROBORATED"
-    assert "LEADING_CONTAMINATION_DROPPED" in decision.box28.integrity.reasons
+    assert decision.disposition == "HUMAN_REVIEW_REQUIRED"
+    assert decision.amount is None
+    assert decision.authority_reason == "BOX28_INTEGRITY_FAILED"
 
 
 def test_reject_false_totals_4972_212400_400406():
@@ -205,7 +204,7 @@ def test_reject_false_totals_4972_212400_400406():
     for bad in ("4972.00", "212400.00", "400406.00"):
         result = evaluate_parser_integrity(amount=bad, raw_digit_sequence=bad.replace(".", ""))
         assert result.passed is False
-        assert result.rejection_reason in {"IMPLAUSIBLE_TOTAL", "DIGIT_SOUP"}
+        assert result.rejection_reason in {"IMPLAUSIBLE_TOTAL", "DIGIT_SOUP", "DECIMAL_GEOMETRY_REQUIRED"}
 
     # 4972.00 must never be the AUTO total; place-shift reinterprets to 49.72
     # only when an independent integrity-passing line sum corroborates.
@@ -278,8 +277,8 @@ def test_overlapping_rois_are_not_independent():
     assert regions_are_independent(box28, [line]) is False
 
 
-def test_cents_clipped_line_prefers_candidate_amount():
-    """Clipped Box 24F geometry (27.01) must not beat dual-engine 270.00."""
+def test_cents_clipped_line_requires_review_even_when_candidate_agrees():
+    """A clipped 24F crop cannot form an independent financial occurrence."""
     box28_region = (1045.0, 1825.0, 1248.0, 1875.0)
     line = {
         "line_number": 1,
@@ -332,5 +331,5 @@ def test_cents_clipped_line_prefers_candidate_amount():
         ),
     )
     assert decision.line_sum_amount == "270.00"
-    assert decision.disposition == "AUTO_ACCEPTED"
-    assert decision.amount == "270.00"
+    assert decision.disposition == "HUMAN_REVIEW_REQUIRED"
+    assert decision.amount is None

@@ -80,10 +80,9 @@ def test_single_line_defers_wild_box28_contradiction():
     assert line_sum_total(lines) == "305.00"
 
 
-def test_amounts_corroborate_tolerance_and_digit_twin():
-    """Digit-drop twins remain valid on the box-28 / DI corroboration path only."""
+def test_amounts_corroborate_requires_exact_monetary_equality():
     assert amounts_corroborate("400.00", "400.00")
-    assert amounts_corroborate("157.00", "1571.00")
+    assert not amounts_corroborate("157.00", "1571.00")
     assert not amounts_corroborate("270.00", "424.00")
     assert not amounts_corroborate("600.00", "1600.00")
     # Same four digits, cents column moved. Not a dropped leading digit.

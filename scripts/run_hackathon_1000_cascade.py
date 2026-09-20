@@ -298,9 +298,9 @@ def _list_documents(archive: Path) -> list[str]:
 
 
 def _load_done(ledger: Path) -> set[str]:
-    done: set[str] = set()
+    latest: dict[str, dict] = {}
     if not ledger.exists():
-        return done
+        return set()
     with ledger.open("r", encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
@@ -311,9 +311,14 @@ def _load_done(ledger: Path) -> set[str]:
             except json.JSONDecodeError:
                 continue
             claim_id = str(row.get("claim_id") or "").strip()
-            if claim_id and row.get("finished"):
-                done.add(claim_id)
-    return done
+            if claim_id:
+                latest[claim_id] = row
+    return {
+        claim_id for claim_id, row in latest.items()
+        if row.get("finished") and row.get("disposition") in {
+            "TRUE_STP", "HITL", "REGISTRATION_FAILED"
+        }
+    }
 
 
 def _append_ledger(ledger: Path, row: dict[str, Any], lock: threading.Lock) -> None:
@@ -345,8 +350,9 @@ def _prune_trace(app_out: Path) -> None:
 def _cms1500_template_version() -> str:
     """Pin finish/validate to the same CMS-1500 template the release registered."""
     try:
-        from packages.release_selection import active_release_from_env, select_release
         import yaml
+
+        from packages.release_selection import active_release_from_env, select_release
 
         manifest_path = select_release(active_release_from_env())
         manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
@@ -645,11 +651,9 @@ def _process_one(
                         "agent_used": fb.agent_used,
                         "fields": dict(fb.fields),
                     }
-                    # STP only when all critical blockers we care about shaped.
-                    required = {"patient_name", "patient_dob", "insured_id_number", "total_charge"}
-                    if required.issubset(fb.fields):
-                        disposition = "TRUE_STP"
-                    elif fb.fields:
+                    # Extraction is not acceptance. This fallback has not run
+                    # ClaimDecision or field evidence gates, even if all keys exist.
+                    if fb.fields:
                         disposition = "HITL"
                     with contextlib.suppress(OSError, AttributeError, ValueError):
                         page_image.close()

@@ -20,7 +20,7 @@ def test_financial_and_date_relationships_create_e6_evidence():
         ],
     )
     assert {
-        "CLAIM_TOTAL_CONFIRMED",
+        "CLAIM_TOTAL_WITHIN_TOLERANCE",
         "SERVICE_LINE_RECONCILED",
         "DATE_RELATIONSHIP_CONFIRMED",
     } <= _types(result.evidence_items)
@@ -85,7 +85,7 @@ def test_empty_box28_with_observed_line_charges_emits_line_totals_reconciled():
         ],
     )
     assert "LINE_TOTALS_RECONCILED" in _types(result.evidence_items)
-    assert "CLAIM_TOTAL_CONFIRMED" not in _types(result.evidence_items)
+    assert "CLAIM_TOTAL_WITHIN_TOLERANCE" not in _types(result.evidence_items)
     assert not result.contradictions
     item = next(i for i in result.evidence_items if i.evidence_type == "LINE_TOTALS_RECONCILED")
     assert item.value == "350.50"
@@ -135,7 +135,7 @@ def test_short_name_fragment_blocks_multi_attribute_identity():
     assert "MULTI_ATTRIBUTE_IDENTITY_CONFIRMED" not in _types(result.evidence_items)
 
 
-def test_non_self_box2_independent_name_authority():
+def test_non_self_box2_name_disagreement_does_not_create_authority():
     result = ClaimEvidenceBuilder.load().build(
         claim_id="claim-1",
         document_family="CMS1500",
@@ -145,7 +145,7 @@ def test_non_self_box2_independent_name_authority():
             "rel_code": "CHILD",
         },
     )
-    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
+    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" not in _types(result.evidence_items)
     assert "BOX2_BOX4_NAME_CONFIRMED" not in _types(result.evidence_items)
     assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" not in _types(result.contradictions)
 
@@ -165,11 +165,10 @@ def test_self_with_distinct_names_is_relationship_conflict_not_forced_equal():
     assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" in _types(result.contradictions)
     assert "DOB_SINGLE_ROLE_EVIDENCE" in _types(result.contradictions)
     assert "BOX3_BOX11A_DOB_CONFIRMED" not in _types(result.evidence_items)
-    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
+    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" not in _types(result.evidence_items)
 
 
-def test_missing_relationship_with_box2_box4_disagreement_is_clean_print_authority():
-    """Unknown relationship + distinct Box 2/4 → Box 2 clean-print authority, not conflict."""
+def test_missing_relationship_with_box2_box4_disagreement_creates_no_authority():
     result = ClaimEvidenceBuilder.load().build(
         claim_id="claim-1",
         document_family="CMS1500",
@@ -178,14 +177,8 @@ def test_missing_relationship_with_box2_box4_disagreement_is_clean_print_authori
             "insured_name": "HARRINGTON, RACHAEL",
         },
     )
-    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
+    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" not in _types(result.evidence_items)
     assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" not in _types(result.contradictions)
-    item = next(
-        row
-        for row in result.evidence_items
-        if row.evidence_type == "BOX2_INDEPENDENT_NAME_AUTHORITY"
-    )
-    assert item.metadata["reason"] == "CLEAN_PRINT_DIRECT_AUTHORITY"
 
 
 def test_spouse_disagreement_does_not_escalate_as_conflict():
@@ -198,11 +191,5 @@ def test_spouse_disagreement_does_not_escalate_as_conflict():
             "rel_code": "SPOUSE",
         },
     )
-    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
+    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" not in _types(result.evidence_items)
     assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" not in _types(result.contradictions)
-    item = next(
-        row
-        for row in result.evidence_items
-        if row.evidence_type == "BOX2_INDEPENDENT_NAME_AUTHORITY"
-    )
-    assert item.metadata["reason"] == "NON_SELF_BOX2_INDEPENDENT"

@@ -86,110 +86,22 @@ def _canon_date(value: object) -> str:
     return text.upper()
 
 
-def _canon_id(value: object) -> str:
-    compact = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
-    if compact.isdigit():
-        return compact.lstrip("0") or "0"
-    return compact
-
-
-def _canon_name(value: object) -> str:
-    text = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
-    return re.sub(r"(?<=[A-Z])1(?=[A-Z]|$)", "I", text)
-
-
-def _canon_money(value: object) -> str:
-    text = str(value or "").strip().lstrip("$").replace(",", "")
-    try:
-        return f"{float(text):.2f}"
-    except ValueError:
-        return text
-
-
-_OCR_GHOST_MI = frozenset({"I", "1", "L", "T"})
-
-
-def _name_tokens_soft(value: object) -> list[str]:
-    text = re.sub(r"[^A-Za-z0-9]+", " ", str(value or "").upper())
-    return [tok for tok in text.split() if tok]
-
-
-def _names_optional_middle_initial(left: object, right: object) -> bool:
-    """True when names match except one optional single-letter middle initial."""
-    a, b = _name_tokens_soft(left), _name_tokens_soft(right)
-    if not a or not b or a == b:
-        return False
-    shorter, longer = (a, b) if len(a) < len(b) else (b, a)
-    if len(longer) != len(shorter) + 1:
-        return False
-    for idx, tok in enumerate(longer):
-        if len(tok) != 1:
-            continue
-        if longer[:idx] + longer[idx + 1 :] == shorter:
-            return True
-    return False
-
-
-def _strip_ocr_ghost_mi(value: object) -> str:
-    """Drop lone I/1/L/T tokens — common CMS form-ruling OCR ghosts."""
-    toks = [t for t in _name_tokens_soft(value) if t not in _OCR_GHOST_MI]
-    return " ".join(toks)
-
-
-_SAME_AS_PATIENT = frozenset(
-    {
-        "SAME",
-        "SAME AS PATIENT",
-        "SAME AS PT",
-        "SELF",
-        "SELF SAME",
-        "PT",
-        "PATIENT",
-    }
-)
-
-
-def _exact(
-    field: str,
-    predicted: object,
-    expected: object,
-    *,
-    patient_name: object | None = None,
-) -> bool:
+def _exact(field: str, predicted: object, expected: object, **_context: Any) -> bool:
+    """Representation normalization only; no OCR repairs or identity deletion."""
     if expected in (None, "", "EMPTY", "NULL"):
-        return str(predicted or "").strip() in {"", "None", "null"}
+        return predicted is None or str(predicted).strip() == ""
     if field in {"patient_dob", "date_of_birth"}:
         return _canon_date(predicted) == _canon_date(expected)
-    if field in {"insured_id_number", "member_id"}:
-        return _canon_id(predicted) == _canon_id(expected)
-    if field in {"patient_name", "insured_name"}:
-        # CMS self-reference marker in GT: resolved insured == patient is exact.
-        if (
-            field == "insured_name"
-            and str(expected or "").strip().upper() in _SAME_AS_PATIENT
-            and patient_name not in (None, "")
-        ):
-            if _canon_name(predicted) == _canon_name(patient_name):
-                return True
-            if _names_optional_middle_initial(predicted, patient_name):
-                return True
-            if _canon_name(_strip_ocr_ghost_mi(predicted)) == _canon_name(
-                _strip_ocr_ghost_mi(patient_name)
-            ):
-                return True
-        if _canon_name(predicted) == _canon_name(expected):
-            return True
-        # Optional CMS middle initial is not an accuracy miss vs agent GT.
-        if _names_optional_middle_initial(predicted, expected):
-            return True
-        # Form-ruling ghost MI (I/1/L/T) on either side.
-        if _canon_name(_strip_ocr_ghost_mi(predicted)) == _canon_name(
-            _strip_ocr_ghost_mi(expected)
-        ):
-            return True
-        return bool(_names_optional_middle_initial(_strip_ocr_ghost_mi(predicted), _strip_ocr_ghost_mi(expected)))
     if field in {"total_charge", "total_charges"}:
-        return _canon_money(predicted) == _canon_money(expected)
+        from packages.claim_evidence.line_sum_authority import parse_currency
+
+        a, b = parse_currency(predicted), parse_currency(expected)
+        return a is not None and b is not None and a == b
+    if field in {"insured_id_number", "member_id", "patient_name", "insured_name"}:
+        def compact(value: object) -> str:
+            return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+        return compact(predicted) == compact(expected)
     return str(predicted or "").strip().upper() == str(expected or "").strip().upper()
 
 
@@ -343,6 +255,10 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
     field_exact = Counter()
     field_total = Counter()
     false_accepts = 0
+    accepted_scored = 0
+    quarantined_fields = 0
+    missing_results = 0
+    incomplete_results = 0
     claim_perfect = 0
     claim_scored = 0
     by_bundle: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -352,9 +268,11 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
         result_path = run_dir / "claims" / claim_id / "result.json"
         if not result_path.exists():
             # try ledger
+            missing_results += 1
             continue
         result = json.loads(result_path.read_text(encoding="utf-8"))
         if not result.get("completed"):
+            incomplete_results += 1
             continue
         fields = result.get("fields") or {}
         claim_ok = True
@@ -372,6 +290,7 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
                 name, pred, expected, patient_name=patient_for_same
             )
             if _quarantined(claim_id, name, quarantine):
+                quarantined_fields += 1
                 field_rows.append(
                     {
                         "field": name,
@@ -391,6 +310,7 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
             else:
                 claim_ok = False
             auto = disp in AUTO
+            accepted_scored += int(auto)
             if auto and not exact:
                 false_accepts += 1
             field_rows.append(
@@ -430,7 +350,19 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
             round(claim_perfect / claim_scored, 6) if claim_scored else 0.0
         ),
         "false_accepts": false_accepts,
-        "false_accept_rate": round(false_accepts / n_fields, 6) if n_fields else 0.0,
+        "accepted_fields_scored": accepted_scored,
+        "accepted_field_precision": (
+            round((accepted_scored - false_accepts) / accepted_scored, 6)
+            if accepted_scored else None
+        ),
+        "false_accept_rate": round(false_accepts / accepted_scored, 6) if accepted_scored else None,
+        "false_accepts_per_scored_field": round(false_accepts / n_fields, 6) if n_fields else None,
+        "quarantined_fields": quarantined_fields,
+        "missing_claim_results": missing_results,
+        "incomplete_claim_results": incomplete_results,
+        "metric_contract": "strict_representation_only_v1",
+        "release_gate_eligible": False,
+        "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH",
         "field_exact": {
             name: {
                 "exact": field_exact[name],

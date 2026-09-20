@@ -10,6 +10,7 @@ this module only adjudicates integrity and independence.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -22,11 +23,7 @@ from packages.claim_evidence.line_sum_authority import (
     line_sum_total,
     parse_currency,
 )
-from packages.geometry_authority.cms1500_regions import (
-    CMS1500_BOX28,
-    CMS1500_CHARGE_CENTS_X,
-    CMS1500_LINE_COLUMNS,
-)
+from packages.geometry_authority.cms1500_regions import CMS1500_CHARGE_CENTS_X, CMS1500_LINE_COLUMNS
 
 _CHARGE_KEYS = ("charges", "charge_amount", "total_charge", "total_charges")
 
@@ -176,7 +173,9 @@ def _region_is_cents_clipped(
     """True when the crop ends before the printed cents column."""
     if region is None:
         return False
-    return float(region[2]) < CMS1500_CHARGE_CENTS_X + 12
+    # The right edge only needs to include the cents glyphs; requiring an
+    # extra 12 reference pixels incorrectly rejects valid narrow 24F crops.
+    return float(region[2]) < CMS1500_CHARGE_CENTS_X + 4
 
 
 def _overlap_area(
@@ -216,170 +215,71 @@ def evaluate_parser_integrity(
     require_cents: bool = True,
     allow_leading_contamination_drop: bool = False,
 ) -> ParserIntegrityResult:
-    """One-to-one digit↔glyph integrity. Reject soup, shifts, and unmapped digits."""
-    reasons: list[str] = []
+    """Validate observed digits, never a normalized answer reconstructed as evidence.
+
+    Legacy keyword flags remain API-compatible but cannot authorize digit deletion.
+    Implied decimals require geometry; token-only reads must show a decimal.
+    """
     parsed = parse_currency(amount)
-    if parsed is None:
-        return ParserIntegrityResult(
-            False,
-            None,
-            _digits_only(raw_digit_sequence or amount),
-            0,
-            0,
-            ("AMOUNT_UNPARSED",),
-            "AMOUNT_UNPARSED",
-        )
-    if is_implausible_charge_total(amount):
-        return ParserIntegrityResult(
-            False,
-            format_currency(parsed),
-            _digits_only(raw_digit_sequence or amount),
-            0,
-            0,
-            ("IMPLAUSIBLE_TOTAL",),
-            "IMPLAUSIBLE_TOTAL",
-        )
-    normalized = format_currency(parsed)
-    amount_digits = _digits_only(normalized)
-    raw_digits = _digits_only(raw_digit_sequence) or amount_digits
-    dollars = tuple(str(g) for g in (dollar_glyphs or ()) if str(g).isdigit())
-    cents = tuple(str(g) for g in (cents_glyphs or ()) if str(g).isdigit())
-    units = tuple(str(g) for g in (unit_zone_glyphs or ()) if str(g).isdigit())
+    raw = str(raw_digit_sequence or "").strip()
+    raw_digits = _digits_only(raw)
+    normalized = format_currency(parsed) if parsed is not None else None
+    dollars = tuple(str(g) for g in (dollar_glyphs or ()))
+    cents = tuple(str(g) for g in (cents_glyphs or ()))
     mapped = dollars + cents
-    glyph_count = len(mapped)
-    centres = list(canonical_glyph_centres or [])
+    centres = list(canonical_glyph_centres or ())
 
-    # Broken glyph splits (units bleed, 3+ cents, or glyphs that disagree with
-    # the normalised amount) fall through to the token path.
-    glyph_split_usable = bool(mapped) and len(cents) == 2 and not units
-    if units:
-        reasons.append("UNITS_ZONE_PRESENT")
-    if mapped and glyph_split_usable:
-        mapped_digits = "".join(mapped)
-        if (
-            mapped_digits != amount_digits
-            and mapped_digits != raw_digits
-            and "".join(dollars) + "".join(cents) != amount_digits
-        ):
-            reasons.append("GLYPH_AMOUNT_MISMATCH_FALLBACK_TOKEN")
-            glyph_split_usable = False
-    if mapped and not glyph_split_usable:
-        reasons.append("GLYPH_SPLIT_UNUSABLE")
-        mapped = ()
-        glyph_count = 0
-        dollars = ()
-        cents = ()
-
-    if require_cents and mapped and len(cents) != 2:
+    def reject(reason: str) -> ParserIntegrityResult:
         return ParserIntegrityResult(
-            False,
-            normalized,
-            raw_digits,
-            glyph_count,
-            len(mapped),
-            tuple(reasons) + ("CENTS_GLYPH_COUNT",),
-            "CENTS_GLYPH_COUNT",
+            False, normalized, raw_digits, len(mapped), 0, (reason,), reason
         )
-    if mapped:
-        mapped_digits = "".join(mapped)
-        if mapped_digits != amount_digits and mapped_digits != raw_digits:
-            if "".join(dollars) + "".join(cents) != amount_digits:
-                return ParserIntegrityResult(
-                    False,
-                    normalized,
-                    raw_digits,
-                    glyph_count,
-                    len(mapped),
-                    tuple(reasons) + ("GLYPH_AMOUNT_MISMATCH",),
-                    "GLYPH_AMOUNT_MISMATCH",
-                )
-        if len(mapped) != len(amount_digits):
-            return ParserIntegrityResult(
-                False,
-                normalized,
-                raw_digits,
-                glyph_count,
-                len(mapped),
-                tuple(reasons) + ("DIGIT_GLYPH_COUNT_MISMATCH",),
-                "DIGIT_GLYPH_COUNT_MISMATCH",
-            )
-        if centres and len(centres) < len(mapped):
-            return ParserIntegrityResult(
-                False,
-                normalized,
-                raw_digits,
-                glyph_count,
-                len(mapped),
-                tuple(reasons) + ("UNMAPPED_GLYPH_PROVENANCE",),
-                "UNMAPPED_GLYPH_PROVENANCE",
-            )
-        # Duplicate centre positions imply duplicated OCR windows / glyphs.
-        if centres:
-            rounded = {(round(float(c[0]), 1), round(float(c[1]), 1)) for c in centres}
-            if len(rounded) < len(mapped):
-                return ParserIntegrityResult(
-                    False,
-                    normalized,
-                    raw_digits,
-                    glyph_count,
-                    len(mapped),
-                    tuple(reasons) + ("DUPLICATED_GLYPH_PROVENANCE",),
-                    "DUPLICATED_GLYPH_PROVENANCE",
-                )
-        reasons.append("GLYPH_ONE_TO_ONE")
-    else:
-        # Token-only path (visible decimal / unusable glyph split).
-        if raw_digits != amount_digits:
-            if (
-                len(raw_digits) == len(amount_digits) + 1
-                and "1" in raw_digits
-                and raw_digits.replace("1", "", 1) == amount_digits
-            ):
-                reasons.append("RULING_TICK_DROPPED")
-            elif (
-                allow_leading_contamination_drop
-                and len(raw_digits) == len(amount_digits) + 1
-                and raw_digits[1:] == amount_digits
-            ):
-                # Single leading form-noise digit (box label / ruling bleed).
-                reasons.append("LEADING_CONTAMINATION_DROPPED")
-            else:
-                return ParserIntegrityResult(
-                    False,
-                    normalized,
-                    raw_digits,
-                    0,
-                    0,
-                    tuple(reasons) + ("RAW_DIGIT_COUNT_MISMATCH",),
-                    "RAW_DIGIT_COUNT_MISMATCH",
-                )
-        if len(amount_digits) >= 6:
-            return ParserIntegrityResult(
-                False,
-                normalized,
-                raw_digits,
-                0,
-                0,
-                tuple(reasons) + ("DIGIT_SOUP",),
-                "DIGIT_SOUP",
-            )
-        reasons.append("TOKEN_DIGIT_COUNT_OK")
 
-    reasons.append("PARSER_INTEGRITY_PASS")
+    if parsed is None or parsed < 0:
+        return reject("AMOUNT_UNPARSED")
+    if is_implausible_charge_total(amount):
+        return reject("IMPLAUSIBLE_TOTAL")
+    if not raw_digits:
+        return reject("MISSING_RAW_EVIDENCE")
+    if unit_zone_glyphs:
+        return reject("UNITS_ZONE_PRESENT")
+    amount_digits = _digits_only(normalized)
+    if mapped:
+        if any(len(g) != 1 or g not in "0123456789" for g in mapped):
+            return reject("INVALID_GLYPH")
+        if not dollars or len(cents) != 2:
+            return reject("CENTS_GLYPH_COUNT")
+        if "".join(mapped) != amount_digits or raw_digits != amount_digits:
+            return reject("GLYPH_AMOUNT_MISMATCH")
+        if len(centres) != len(mapped):
+            return reject("UNMAPPED_GLYPH_PROVENANCE")
+        try:
+            points = [(float(c[0]), float(c[1])) for c in centres]
+        except (TypeError, ValueError, IndexError):
+            return reject("UNMAPPED_GLYPH_PROVENANCE")
+        if not all(math.isfinite(x) and math.isfinite(y) for x, y in points):
+            return reject("UNMAPPED_GLYPH_PROVENANCE")
+        if len({(round(x, 1), round(y, 1)) for x, y in points}) != len(mapped):
+            return reject("DUPLICATED_GLYPH_PROVENANCE")
+        reason = "GLYPH_ONE_TO_ONE"
+    else:
+        if raw_digits != amount_digits:
+            return reject("RAW_DIGIT_COUNT_MISMATCH")
+        if not re.fullmatch(r"\$?\s*\d+(?:,\d{3})*\.\d{2}", raw):
+            return reject("DECIMAL_GEOMETRY_REQUIRED")
+        if parse_currency(raw) != parsed:
+            return reject("RAW_VALUE_MISMATCH")
+        reason = "OBSERVED_DECIMAL_TOKEN"
     return ParserIntegrityResult(
-        True,
-        normalized,
-        raw_digits,
-        glyph_count,
-        len(mapped) if mapped else len(amount_digits),
-        tuple(reasons),
-        None,
+        True, normalized, raw_digits, len(mapped), len(amount_digits),
+        (reason, "PARSER_INTEGRITY_PASS"), None,
     )
 
 
 def _geometry_observation(payload: dict | None) -> dict:
     if not payload:
         return {}
+    if isinstance(payload.get("ocr"), dict):
+        payload = payload["ocr"]
     for attempt in payload.get("attempts") or []:
         reason = str(attempt.get("reason") or "")
         if "GEOMETRY_CENTS" in reason and "UNDERREAD" not in reason:
@@ -418,9 +318,11 @@ def _candidate_amounts(payload: dict | None) -> list[str]:
             continue
         bbox = cand.get("bounding_box")
         # Skip cents-clipped GEOMETRY shells — those are not authoritative.
-        if str(cand.get("preprocessing_variant") or "") == "GEOMETRY_CENTS":
-            if _region_is_cents_clipped(_region_tuple(bbox)):
-                continue
+        if (
+            str(cand.get("preprocessing_variant") or "") == "GEOMETRY_CENTS"
+            and _region_is_cents_clipped(_region_tuple(bbox))
+        ):
+            continue
         for key in ("value", "raw_value"):
             parsed = parse_currency(cand.get(key))
             if parsed is None:
@@ -487,7 +389,7 @@ def build_box28_evidence(
     if obs.get("raw_digit_sequence"):
         raw_tokens.append(str(obs["raw_digit_sequence"]))
     for cand in (field_payload or {}).get("candidates") or []:
-        raw = str(cand.get("raw_value") or cand.get("value") or "").strip()
+        raw = str(cand.get("raw_value") or "").strip()
         if raw:
             raw_tokens.append(raw)
     # Under-read geometry still contributes raw digit evidence for alternate parses.
@@ -517,11 +419,9 @@ def build_box28_evidence(
             if attempt_obs.get("text"):
                 raw_tokens.append(str(attempt_obs["text"]))
         for cand in ocr_block.get("candidates") or []:
-            raw = str(cand.get("raw_value") or cand.get("value") or "").strip()
+            raw = str(cand.get("raw_value") or "").strip()
             if raw:
                 raw_tokens.append(raw)
-    if amount not in (None, ""):
-        raw_tokens.append(str(amount))
     polygons = tuple(
         tuple(tuple(float(x) for x in pt) for pt in poly)
         for poly in (obs.get("page_glyph_polygons") or [])
@@ -560,7 +460,6 @@ def build_box28_evidence(
         _region_tuple(region)
         or _region_tuple((field_payload or {}).get("canonical_region"))
         or _region_tuple((field_payload or {}).get("ocr_region"))
-        or CMS1500_BOX28
     )
     return Box28Evidence(
         raw_tokens=tuple(dict.fromkeys(raw_tokens)),
@@ -605,7 +504,7 @@ def build_box24f_rows(service_lines: list[dict] | None) -> tuple[Box24FRowEviden
                 others = [a for a in cand_amounts if a != selected_fmt]
                 if others:
                     # Prefer the mode among non-clipped candidate amounts.
-                    amount = max(set(others), key=others.count)
+                    amount = others[0] if len(others) == 1 else None
                 elif selected_fmt and not clipped:
                     amount = selected_fmt
                 elif others:
@@ -620,13 +519,11 @@ def build_box24f_rows(service_lines: list[dict] | None) -> tuple[Box24FRowEviden
                     if selected_fmt in cand_amounts:
                         amount = selected_fmt
                     else:
-                        amount = max(set(cand_amounts), key=cand_amounts.count)
+                        amount = cand_amounts[0] if len(cand_amounts) == 1 else None
                 else:
-                    amount = max(set(cand_amounts), key=cand_amounts.count)
+                    amount = cand_amounts[0] if len(cand_amounts) == 1 else None
             else:
                 amount = selected
-        if amount is None:
-            continue
         polygons = tuple(
             tuple(tuple(float(x) for x in pt) for pt in poly)
             for poly in (obs.get("page_glyph_polygons") or [])
@@ -657,20 +554,8 @@ def build_box24f_rows(service_lines: list[dict] | None) -> tuple[Box24FRowEviden
             amount=amount,
             raw_digit_sequence=(
                 (obs.get("raw_digit_sequence") if obs else None)
-                or (
-                    _digits_only(amount)
-                    if (
-                        clipped
-                        or (
-                            parse_currency(selected) is not None
-                            and parse_currency(amount) is not None
-                            and parse_currency(selected) != parse_currency(amount)
-                        )
-                    )
-                    else None
-                )
                 or line.get("raw_charges")
-                or _digits_only(amount)
+                or ""
             ),
             dollar_glyphs=dollars,
             cents_glyphs=cents,
@@ -682,8 +567,7 @@ def build_box24f_rows(service_lines: list[dict] | None) -> tuple[Box24FRowEviden
             raw_tokens.append(str(line.get("raw_charges")))
         if obs.get("raw_digit_sequence"):
             raw_tokens.append(str(obs["raw_digit_sequence"]))
-        for cand_amt in _candidate_amounts(line):
-            raw_tokens.append(cand_amt)
+        raw_tokens.extend(_candidate_amounts(line))
         rows.append(
             Box24FRowEvidence(
                 line_number=int(line.get("line_number") or index + 1),
@@ -691,7 +575,7 @@ def build_box24f_rows(service_lines: list[dict] | None) -> tuple[Box24FRowEviden
                 amount=integrity.amount,
                 canonical_glyph_polygons=polygons,
                 canonical_glyph_centres=centres,
-                region=region or _default_box24f_region(int(line.get("line_number") or index + 1)),
+                region=region,
                 integrity=integrity,
             )
         )
@@ -708,6 +592,12 @@ def regions_are_independent(
     if box28_region is None:
         return False
     if not line_regions or any(region is None for region in line_regions):
+        return False
+    if any(
+        not all(math.isfinite(v) for v in region) or _area(region) <= 0
+        for region in [box28_region, *line_regions]
+        if region is not None
+    ):
         return False
     box_area = _area(box28_region)
     if box_area <= 0:
@@ -811,58 +701,7 @@ def evaluate_box28_line_sum_authority(
         observation=box28_observation,
     )
 
-    # When primary Box 28 fails to match an integrity-passing line sum, try
-    # alternate parses of the *same* Box 28 raw tokens (leading contamination /
-    # implied decimal) — never borrow line glyphs into Box 28.
-    if (
-        line_integrity.passed
-        and line_sum_amount
-        and (
-            not box28.integrity.passed
-            or box28.normalized_amount is None
-            or parse_currency(box28.normalized_amount) != parse_currency(line_sum_amount)
-            or is_decimal_place_shift(box28.normalized_amount, line_sum_amount)
-        )
-    ):
-        for alt in _box28_alternate_amounts(
-            primary=box28_amount, raw_tokens=box28.raw_tokens
-        ):
-            if parse_currency(alt) != parse_currency(line_sum_amount):
-                continue
-            if is_decimal_place_shift(alt, line_sum_amount):
-                continue
-            alt_digits = _digits_only(alt)
-            # Prefer the raw token whose digit run is a 0–1 leading-digit
-            # extension of the alternate amount (same Box 28 OCR string).
-            raw_for_alt = alt_digits
-            for token in box28.raw_tokens:
-                digits = _digits_only(token)
-                if not digits:
-                    continue
-                if digits == alt_digits or (
-                    len(digits) == len(alt_digits) + 1 and digits[1:] == alt_digits
-                ):
-                    raw_for_alt = digits
-                    break
-            alt_integrity = evaluate_parser_integrity(
-                amount=alt,
-                raw_digit_sequence=raw_for_alt,
-                allow_leading_contamination_drop=True,
-            )
-            if not alt_integrity.passed:
-                continue
-            box28 = Box28Evidence(
-                raw_tokens=box28.raw_tokens,
-                canonical_glyph_polygons=(),
-                canonical_glyph_centres=(),
-                dollar_glyphs=(),
-                cents_glyphs=(),
-                unit_zone_glyphs=(),
-                normalized_amount=alt_integrity.amount,
-                region=box28.region,
-                integrity=alt_integrity,
-            )
-            break
+    # Interpret each printed occurrence independently; never fit it to the other.
 
     independent = regions_are_independent(
         box28.region, [row.region for row in rows]

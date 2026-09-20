@@ -70,9 +70,11 @@ class ClaimEvidenceBuilder:
         self._financial(claim_id, claim_values, lines, evidence, contradictions)
         self._dates(claim_id, claim_values, lines, evidence, contradictions)
         self._member_identity(claim_id, claim_values, evidence, contradictions)
-        self._form_field_redundancy(claim_id, claim_values, evidence, contradictions)
+        if document_family.upper() in {"CMS1500", "CMS-1500"}:
+            self._form_field_redundancy(claim_id, claim_values, evidence, contradictions)
         self._provider_identity(claim_id, claim_values, evidence, contradictions)
-        self._box28_line_sum_authority(claim_id, claim_values, lines, evidence, contradictions)
+        if document_family.upper() in {"CMS1500", "CMS-1500"}:
+            self._box28_line_sum_authority(claim_id, claim_values, lines, evidence, contradictions)
         if document_family.upper() == "UB04":
             self._ub04_lines(claim_id, lines, evidence, contradictions)
         return ClaimEvidenceResult(
@@ -128,7 +130,7 @@ class ClaimEvidenceBuilder:
                 evidence.append(
                     self._item(
                         claim_id,
-                        "CLAIM_TOTAL_CONFIRMED",
+                        "CLAIM_TOTAL_WITHIN_TOLERANCE",
                         str(total),
                         metadata,
                     )
@@ -517,8 +519,6 @@ class ClaimEvidenceBuilder:
         else:
             patient_norm = normalize_person_name(patient_name)
             insured_norm = normalize_person_name(insured_name)
-            strong_patient = bool(patient_norm) and len(patient_norm.split()) >= 2
-            rel_present = relationship is not None and bool(str(relationship).strip())
             # Self printed with different Box 2 / Box 4 identities is a
             # relationship conflict — do not force equality and do not use
             # Box 11a to corroborate Box 3.
@@ -541,61 +541,8 @@ class ClaimEvidenceBuilder:
                         },
                     )
                 )
-                if strong_patient:
-                    evidence.append(
-                        self._item(
-                            claim_id,
-                            "BOX2_INDEPENDENT_NAME_AUTHORITY",
-                            patient_norm,
-                            {
-                                "supported_fields": ["patient_name"],
-                                "reason": "BOX2_AFTER_RELATIONSHIP_CONFLICT",
-                                "patient_norm": patient_norm,
-                            },
-                        )
-                    )
-            elif strong_patient and rel_present and not relationship_is_self(relationship):
-                # Spouse / Child / Other: Box 2 ≠ Box 4 is expected. Validate
-                # the patient name from Box 2 alone. Disagreement must not escalate.
-                evidence.append(
-                    self._item(
-                        claim_id,
-                        "BOX2_INDEPENDENT_NAME_AUTHORITY",
-                        patient_norm,
-                        {
-                            "supported_fields": ["patient_name"],
-                            "reason": "NON_SELF_BOX2_INDEPENDENT",
-                            "relationship": str(relationship).strip().upper(),
-                            "patient_norm": patient_norm,
-                            "insured_norm": insured_norm,
-                        },
-                    )
-                )
-            elif (
-                strong_patient
-                and not relationship_is_self(relationship)
-                and patient_norm
-                and insured_norm
-                and not names_agree(patient_name, insured_name)
-            ):
-                # Relationship unknown / unshaped: Box2≠Box4 is not a Self
-                # conflict. Calibrated clean-print Box 2 stands alone.
-                evidence.append(
-                    self._item(
-                        claim_id,
-                        "BOX2_INDEPENDENT_NAME_AUTHORITY",
-                        patient_norm,
-                        {
-                            "supported_fields": ["patient_name"],
-                            "reason": "CLEAN_PRINT_DIRECT_AUTHORITY",
-                            "patient_norm": patient_norm,
-                            "insured_norm": insured_norm,
-                            "relationship": (
-                                str(relationship).strip().upper() if rel_present else None
-                            ),
-                        },
-                    )
-                )
+            # Non-Self disagreement is not a conflict, but name shape alone is
+            # not independent evidence. OCR/reference authority decides acceptance.
 
         # Box 3↔11a only under agreed Self. Distinct patient/insured identities
         # leave patient DOB on patient-role evidence alone (DJJM.019).
@@ -652,6 +599,8 @@ class ClaimEvidenceBuilder:
         except Exception:  # noqa: BLE001
             return
         box28_amount = values.get("total_charge") or values.get("total_charges")
+        if box28_amount in (None, "") and not lines:
+            return
         field_payload = values.get("_box28_field_payload")
         decision = evaluate_box28_line_sum_authority(
             box28_amount=box28_amount,
