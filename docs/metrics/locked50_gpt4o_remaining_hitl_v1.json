@@ -1,0 +1,54 @@
+{
+  "source": "evaluation_results/hackathon_50_gpt4o_remaining_hitl_v1",
+  "commit": "a42b835",
+  "scope": "Re-OCR remaining 6 locked-50 HITL with CDP_GPT4O_CROP_RESIDUAL=1 + ACCEPT=1 (geometry reuse from integrity_v1)",
+  "result": {
+    "n": 6,
+    "true_stp": 0,
+    "hitl": 6
+  },
+  "per_claim": {
+    "M048DJJF.004": {
+      "disposition": "HITL",
+      "blocker": "total_charge",
+      "gpt4o": "Lines 261.00+261.00 confirmed; Box28 783.00 — true arithmetic mismatch",
+      "unlock": "none — operator review"
+    },
+    "M048DJJM.008": {
+      "disposition": "HITL",
+      "blocker": "total_charge",
+      "gpt4o": "Read 4972.00 (place-shift); geometry cents 49.77; line AMBIGUOUS; SINGLE_LINE_REQUIRES_DI",
+      "unlock": "none — place-shift must not corroborate (policy)"
+    },
+    "M048DJJM.010": {
+      "disposition": "HITL",
+      "blocker": "total_charge",
+      "gpt4o": "Read 4972.00 (place-shift); geometry cents 49.72; BOX28_OR_DI_CONFLICT",
+      "unlock": "none — place-shift must not corroborate (policy)"
+    },
+    "M048DJJM.019": {
+      "disposition": "HITL",
+      "blocker": "patient_dob",
+      "gpt4o": "DOB 11/04/1980 shaped but GPT_DOB_NEEDS_LOCAL_DIGITS (locals EMPTY); name relieved",
+      "unlock": "none — vision DOB is not sole E2 without local digit corroboration"
+    },
+    "M048DJJM.034": {
+      "disposition": "HITL",
+      "blocker": "total_charge",
+      "gpt4o": "Line crops read 165/1165; Box28 50.00 calibration; no clean Σ path",
+      "unlock": "none — handwritten / calibration"
+    },
+    "M048DJJM.035": {
+      "disposition": "HITL",
+      "blocker": ["patient_name", "total_charge"],
+      "gpt4o": "Line crop 16.00 vs Box28 405.00; name still missing E2",
+      "unlock": "none — handwritten / calibration"
+    }
+  },
+  "notes": [
+    "GPT-4o ran and shaped on all 6; zero STP flips.",
+    "Charge place-shift (49.72↔4972) is explicitly non-corroborating in line_sum_authority.",
+    "GPT-4o DOB cannot mint E2 alone when local cascade is EMPTY (GPT_DOB_NEEDS_LOCAL_DIGITS).",
+    "Locked-50 decide remains 44/50; these 6 stay intentional HITL."
+  ]
+}
