@@ -41,6 +41,9 @@ BASE = ROOT / "evaluation_results" / "hackathon_200_cascade_v12"
 REMEASURE_PREFER = [
     ROOT
     / "evaluation_results"
+    / "hackathon_200_cascade_v12_remeasure_dual_vision_v6",
+    ROOT
+    / "evaluation_results"
     / "hackathon_200_cascade_v12_remeasure_dual_vision_v5",
     ROOT
     / "evaluation_results"
