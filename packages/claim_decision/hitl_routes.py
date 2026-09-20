@@ -47,6 +47,8 @@ def route_claim_hitl(
         "FINANCIAL_CONFLICT",
         "ARITHMETIC_MISMATCH",
         "DECIMAL_SHIFT_CONFLICT",
+        "BOX28_INK_PRESENT_UNREADABLE",
+        "BOX28_ROI_UNUSABLE",
     } or llm_only_critical:
         fields = [f for f in unresolved_critical_fields if "charge" in f.casefold()]
         return {

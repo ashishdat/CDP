@@ -186,6 +186,7 @@ def decide(extraction, family):
         should_defer_box28_to_line_sum,
     )
     values = {f['field_name']: f['normalized_value'] for f in fields}
+    values['_document_family'] = family
     # Attach Box 28 geometry observation for independent corroboration authority.
     for charge_field in ('total_charge', 'total_charges'):
         field_payload = next(
@@ -277,6 +278,20 @@ def decide(extraction, family):
             else:
                 region = None  # Missing observed ROI is not template-proven evidence.
         values['_box28_region'] = region
+        # Classify blankness before any derive path (OCR-empty ≠ confirmed blank).
+        try:
+            from packages.claim_evidence.box28_blankness import classify_box28_blankness
+
+            blank = classify_box28_blankness(
+                box28_amount=values.get(charge_field),
+                field_payload=field_payload,
+                observation=obs if isinstance(obs, dict) else None,
+                region=region,
+            )
+            values['_box28_blankness'] = blank.status.value
+            values['_box28_blankness_detail'] = blank.to_dict()
+        except Exception:  # noqa: BLE001
+            pass
         break
     # Relationship checkbox OCR often validates INVALID while the ranked
     # candidate still carries a shaped SELF/CHILD/SPOUSE/OTHER code. Feed that
@@ -433,18 +448,38 @@ def decide(extraction, family):
     except Exception:  # noqa: BLE001
         member_join_meta = None
 
+    registration_confidence, localizations, structural_warnings = _load_registration_context(
+        extraction
+    )
+    values['_registration_verified'] = (
+        registration_confidence is not None and float(registration_confidence) >= 0.5
+    )
+
     facts = ClaimEvidenceBuilder.load().build(claim_id=claim_id, document_family=family,
                                             claim_values=values, service_lines=service_lines)
     # Phase 2: when box-28 is empty but LINE_TOTALS_RECONCILED fired from observed
     # service-line charges, inject the derived total as a candidate (observed ink
     # only). Never rewrite a printed Box 28 from Σ.
+    # Also bind DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES as operational Σ.
     derived_totals = {}
     for item in facts.evidence_items:
-        if item.evidence_type != 'LINE_TOTALS_RECONCILED':
+        if item.evidence_type not in {
+            'LINE_TOTALS_RECONCILED',
+            'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES',
+        }:
             continue
         for field_name in item.metadata.get('supported_fields', []):
             if item.value:
                 derived_totals[field_name] = item.value
+                if item.evidence_type == 'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES':
+                    # Operational value — label origin for audit; clear empty Box 28.
+                    if values.get(field_name) in (None, ''):
+                        values[field_name] = item.value
+                    values['_total_charge_value_origin'] = (
+                        'DERIVED_FROM_VERIFIED_SERVICE_LINES'
+                    )
+                    values['_total_charge_box28_status'] = 'CONFIRMED_BLANK'
+                    values['_total_charge_printed_box28'] = None
 
     def _charge_corroborators(field_payload: dict) -> list[str]:
         """Currency-shaped box-28 / Azure DI / non-derived OCR amounts."""
@@ -506,7 +541,6 @@ def decide(extraction, family):
         current = values.get(field_name)
         if current is None or not str(current).strip():
             values[field_name] = amount
-    registration_confidence, localizations, structural_warnings = _load_registration_context(extraction)
     decisions, checks, critical = [], {}, []
     for f in fields:
         name = f['field_name']
@@ -683,58 +717,99 @@ def decide(extraction, family):
             base_box = None
             if candidates:
                 base_box = candidates[0].bounding_box
+            derived_from_blank = any(
+                item.evidence_type == 'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES'
+                and str(item.value) == str(derived)
+                for item in facts.evidence_items
+            )
             derived_candidate = OCRCandidate(
                 value=derived,
                 raw_value=derived,
                 engine='rapidocr',
                 model_name='claim_evidence',
-                model_version='phase2-line-sum',
-                preprocessing_variant='DERIVED_FROM_OBSERVED_LINE_CHARGES',
+                model_version=(
+                    'derived-complete-verified-lines'
+                    if derived_from_blank
+                    else 'phase2-line-sum'
+                ),
+                preprocessing_variant=(
+                    'DERIVED_FROM_VERIFIED_SERVICE_LINES'
+                    if derived_from_blank
+                    else 'DERIVED_FROM_OBSERVED_LINE_CHARGES'
+                ),
                 raw_confidence=1.0,
                 calibrated_confidence=1.0,
                 bounding_box=base_box or BoundingBox(x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1),
                 latency_ms=0.0,
-                evidence_reference='LINE_TOTALS_RECONCILED',
-                preprocessing_version='phase2-line-sum',
+                evidence_reference=(
+                    'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES'
+                    if derived_from_blank
+                    else 'LINE_TOTALS_RECONCILED'
+                ),
+                preprocessing_version=(
+                    'derived-complete-verified-lines'
+                    if derived_from_blank
+                    else 'phase2-line-sum'
+                ),
             )
             # Keep currency-shaped box-28 / DI competitors so conflicts HITL
             # instead of wiping independent ink with a lone line-sum AUTO.
+            # Confirmed-blank derivation has no printed Box 28 competitors.
             retained = []
-            for cand in candidates:
-                text = str(cand.value or cand.raw_value or '').strip()
-                if not text or parse_currency(text) is None:
-                    continue
-                variant = str(cand.preprocessing_variant or '').casefold()
-                if 'derived_from_observed_line' in variant:
-                    continue
-                retained.append(cand)
+            if not derived_from_blank:
+                for cand in candidates:
+                    text = str(cand.value or cand.raw_value or '').strip()
+                    if not text or parse_currency(text) is None:
+                        continue
+                    variant = str(cand.preprocessing_variant or '').casefold()
+                    if 'derived_from_observed_line' in variant:
+                        continue
+                    if 'derived_from_verified_service' in variant:
+                        continue
+                    retained.append(cand)
             candidates = [derived_candidate] + retained
             check = deterministic.evaluate(name, derived, claim_values=values)
-            eligible, gate_reason = line_sum_gate.get(name, (False, 'UNSET'))
-            if eligible:
-                # Financial E6 only when dual-engine / gpt4o+local or DI/box-28.
+            if derived_from_blank:
+                # Derived total is arithmetic, not OCR — own E4/E6 path.
                 check.evidence = set(check.evidence) | {
-                    'LINE_TOTALS_RECONCILED',
-                    'LINE_TOTALS_CORROBORATED',
+                    'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES',
+                    'E4_DERIVATION_VALIDATED',
+                    'E6_COMPLETE_LINE_ARITHMETIC',
+                    'CLAIM_TOTAL_CONFIRMED',
                     'HARD_VALIDATION_PASSED',
                 }
                 check.cross_field_evidence = set(check.cross_field_evidence) | {
-                    'LINE_TOTALS_RECONCILED',
-                    'LINE_TOTALS_CORROBORATED',
+                    'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES',
+                    'E6_COMPLETE_LINE_ARITHMETIC',
+                    'CLAIM_TOTAL_CONFIRMED',
                 }
                 check.passed = True
             else:
-                # Observed line-sum stays as a candidate for review — no E6 AUTO.
-                check.evidence = set(check.evidence) | {
-                    'LINE_TOTALS_UNCORROBORATED',
-                    f'LINE_TOTALS_GATE:{gate_reason}',
-                }
-                check.cross_field_evidence = set(check.cross_field_evidence) | {
-                    'LINE_TOTALS_UNCORROBORATED',
-                }
-                # Fail-closed: do not treat uncorroborated line-sum as hard-valid E6.
-                if name in {'total_charge', 'total_charges'} and not retained:
-                    check.passed = False
+                eligible, gate_reason = line_sum_gate.get(name, (False, 'UNSET'))
+                if eligible:
+                    # Financial E6 only when dual-engine / gpt4o+local or DI/box-28.
+                    check.evidence = set(check.evidence) | {
+                        'LINE_TOTALS_RECONCILED',
+                        'LINE_TOTALS_CORROBORATED',
+                        'HARD_VALIDATION_PASSED',
+                    }
+                    check.cross_field_evidence = set(check.cross_field_evidence) | {
+                        'LINE_TOTALS_RECONCILED',
+                        'LINE_TOTALS_CORROBORATED',
+                    }
+                    check.passed = True
+                else:
+                    # Observed line-sum stays as a candidate for review — no E6 AUTO.
+                    check.evidence = set(check.evidence) | {
+                        'LINE_TOTALS_UNCORROBORATED',
+                        f'LINE_TOTALS_GATE:{gate_reason}',
+                    }
+                    check.cross_field_evidence = set(check.cross_field_evidence) | {
+                        'LINE_TOTALS_UNCORROBORATED',
+                    }
+                    # Fail-closed: do not treat uncorroborated line-sum as hard-valid E6.
+                    if name in {'total_charge', 'total_charges'} and not retained:
+                        check.passed = False
             checks[name] = check.model_dump(mode='json')
         localization = localizations.get(name)
         if name in {'total_charge', 'total_charges'}:
@@ -758,6 +833,7 @@ def decide(extraction, family):
                         item.evidence_type in {
                             'BOX28_LINE_SUM_CORROBORATED',
                             'FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED',
+                            'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES',
                         }
                         and item.value
                     ):
@@ -978,6 +1054,20 @@ def decide(extraction, family):
         'registration_confidence':registration_confidence,
         'authorized_member_join': member_join_meta,
         'authorized_reference_authority': reference_authority_meta,
+        'total_charge_audit': {
+            'total_charge': values.get('total_charge') or values.get('total_charges'),
+            'value_origin': values.get('_total_charge_value_origin') or (
+                'PRINTED_BOX28'
+                if (values.get('total_charge') or values.get('total_charges'))
+                not in (None, '')
+                else None
+            ),
+            'printed_box28_value': values.get('_total_charge_printed_box28')
+            if '_total_charge_printed_box28' in values
+            else (values.get('total_charge') or values.get('total_charges')),
+            'box28_status': values.get('_total_charge_box28_status')
+            or values.get('_box28_blankness'),
+        },
         'missing_fields_basis':'Required policy fields absent or blank; invalid nonempty values are not missing.',
         'telemetry':{'extraction':extraction['telemetry']}}
 

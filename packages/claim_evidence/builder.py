@@ -78,6 +78,9 @@ class ClaimEvidenceBuilder:
             self._financial_geometry_arithmetic(
                 claim_id, claim_values, lines, evidence, contradictions
             )
+            self._derived_total_from_verified_lines(
+                claim_id, claim_values, lines, evidence, contradictions
+            )
         if document_family.upper() == "UB04":
             self._ub04_lines(claim_id, lines, evidence, contradictions)
         return ClaimEvidenceResult(
@@ -729,6 +732,110 @@ class ClaimEvidenceBuilder:
                         "hitl_route": "FINANCIAL_CONFLICT",
                         "line_sum": decision.line_sum,
                         "box28": decision.box28,
+                    },
+                )
+            )
+
+    def _derived_total_from_verified_lines(
+        self, claim_id, values, lines, evidence, contradictions
+    ) -> None:
+        """Operational Σ(Box24F) when Box 28 is confirmed blank — not printed ink."""
+        del contradictions
+        if any(
+            item.evidence_type
+            in {
+                "BOX28_LINE_SUM_CORROBORATED",
+                "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                "CLAIM_TOTAL_CONFIRMED",
+                "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+            }
+            for item in evidence
+        ):
+            return
+        try:
+            from packages.claim_evidence.derived_total_authority import (
+                evaluate_derived_total_from_complete_verified_lines,
+            )
+        except Exception:  # noqa: BLE001
+            return
+        registration_ok = bool(
+            values.get("_registration_verified")
+            if values.get("_registration_verified") is not None
+            else True
+        )
+        decision = evaluate_derived_total_from_complete_verified_lines(
+            document_family=str(values.get("_document_family") or "CMS1500"),
+            registration_verified=registration_ok,
+            service_lines=lines,
+            box28_amount=values.get("total_charge") or values.get("total_charges"),
+            box28_field_payload=values.get("_box28_field_payload")
+            if isinstance(values.get("_box28_field_payload"), dict)
+            else None,
+            box28_region=values.get("_box28_region"),
+            box28_observation=values.get("_box28_geometry_observation")
+            if isinstance(values.get("_box28_geometry_observation"), dict)
+            else None,
+            box28_roi_image=values.get("_box28_roi_image"),
+            blankness_status=values.get("_box28_blankness")
+            if isinstance(values.get("_box28_blankness"), str)
+            else None,
+        )
+        metadata = {
+            "supported_fields": ["total_charge", "total_charges"],
+            "authority": decision.to_dict(),
+            "authority_reason": decision.reason,
+            "source": "CMS1500_BOX24F_ARITHMETIC",
+        }
+        # Always record blankness classification for audit when evaluated.
+        if decision.blankness:
+            evidence.append(
+                self._item(
+                    claim_id,
+                    f"BOX28_{decision.blankness}"
+                    if decision.blankness
+                    in {
+                        "CONFIRMED_BLANK",
+                        "INK_PRESENT_UNREADABLE",
+                        "ROI_UNUSABLE",
+                    }
+                    else "BOX28_BLANKNESS_EVALUATED",
+                    decision.amount or values.get("total_charge"),
+                    {
+                        **metadata,
+                        "box28_status": decision.blankness,
+                    },
+                )
+            )
+        if decision.derived and decision.amount:
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+                    decision.amount,
+                    {
+                        **metadata,
+                        "box28_status": "CONFIRMED_BLANK",
+                        "line_count": len(decision.line_values),
+                        "line_values": list(decision.line_values),
+                        "derivation": "SUM(Box24F)",
+                        "value_origin": "DERIVED_FROM_VERIFIED_SERVICE_LINES",
+                        "printed_box28_value": None,
+                    },
+                )
+            )
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "CLAIM_TOTAL_CONFIRMED",
+                    decision.amount,
+                    {
+                        **metadata,
+                        "reason": "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+                        "claim_total": decision.amount,
+                        "service_line_total": decision.amount,
+                        "value_origin": "DERIVED_FROM_VERIFIED_SERVICE_LINES",
+                        "printed_box28_value": None,
+                        "box28_status": "CONFIRMED_BLANK",
                     },
                 )
             )

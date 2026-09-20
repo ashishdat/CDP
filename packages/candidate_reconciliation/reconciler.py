@@ -1660,6 +1660,9 @@ class EvidenceReconciler:
                         # Evidence-based exception: selected Box 24F Σ == Box 28
                         # with charge-column geometry — not threshold lowering.
                         "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                        # Operational Σ when Box 28 is confirmed blank.
+                        "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+                        "E6_COMPLETE_LINE_ARITHMETIC",
                     }
                 )
                 # Bare LINE_TOTALS_RECONCILED is observed ink only — AUTO requires
@@ -1670,12 +1673,16 @@ class EvidenceReconciler:
                 )
             )
         )
-        # Explicit Field Value Authority exception for verified financial ink.
-        # This is not calibrated-threshold fitting: geometry+arithmetic evidence
-        # already proved the printed total.
+        # Explicit Field Value Authority exception for verified financial ink /
+        # derived complete-line arithmetic. Not calibrated-threshold fitting.
         accept_even_if_calibrated_confidence_below_threshold = bool(
             financial_authority
-            and "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED" in deterministic
+            and deterministic
+            & {
+                "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+                "E6_COMPLETE_LINE_ARITHMETIC",
+            }
         )
         # A verified reference is an independent E5 authority, not an OCR
         # calibration shortcut. Exact candidate/reference agreement may use

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
+import re
 from typing import Any
 
 from packages.claim_evidence.box28_line_sum_authority import (
@@ -141,18 +142,30 @@ def evaluate_financial_geometry_arithmetic(
             raw = str(box28_amount)
         integrity = evaluate_parser_integrity(amount=box_txt, raw_digit_sequence=raw)
         if not integrity.passed:
-            return FinancialGeometryDecision(
-                False,
-                None,
-                "BOX28_GEOMETRY_FAILED",
-                line_sum=line_sum,
-                box28=box_txt,
-                details={
-                    "rows": details_rows,
-                    "integrity": box28.integrity.rejection_reason,
-                    "fallback": integrity.rejection_reason,
-                },
+            # Soft path: printed amount already equals selected Σ exactly and the
+            # raw/token text contains an observed decimal for that amount. Glyph
+            # mapping failures must not block already-agreeing arithmetic.
+            observed_decimal = bool(
+                re.search(r"\d+\.\d{2}", str(raw))
+                or re.search(r"\d+\.\d{2}", str(box28_amount or ""))
             )
+            if not (
+                observed_decimal
+                and parse_currency(box_txt) == total
+                and not is_decimal_place_shift(box_txt, line_sum)
+            ):
+                return FinancialGeometryDecision(
+                    False,
+                    None,
+                    "BOX28_GEOMETRY_FAILED",
+                    line_sum=line_sum,
+                    box28=box_txt,
+                    details={
+                        "rows": details_rows,
+                        "integrity": box28.integrity.rejection_reason,
+                        "fallback": integrity.rejection_reason,
+                    },
+                )
 
     # Conflicting currency-shaped Box 28 competitors that are not place-shift
     # noise of the confirmed amount stay HITL.
