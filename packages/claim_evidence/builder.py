@@ -709,13 +709,32 @@ class ClaimEvidenceBuilder:
                 ranked = payload.get("ranked_candidate") or {}
                 ocr = ranked.get("ocr_candidate") or ranked
                 payload_amount = ocr.get("value") or ocr.get("raw_value")
+                nested = payload.get("ocr") if isinstance(payload.get("ocr"), dict) else {}
+                candidate_lists = [
+                    payload.get("candidates") or [],
+                    nested.get("candidates") or [],
+                    list(payload.get("alternatives") or []),
+                ]
                 if payload_amount in (None, ""):
-                    for cand in payload.get("candidates") or []:
-                        if not isinstance(cand, dict):
-                            continue
-                        text = cand.get("value") or cand.get("raw_value")
-                        if parse_currency(text) is not None:
-                            payload_amount = text
+                    for cand_list in candidate_lists:
+                        for cand in cand_list:
+                            if not isinstance(cand, dict):
+                                continue
+                            shell = cand.get("ocr_candidate") or cand
+                            text = shell.get("value") or shell.get("raw_value")
+                            if parse_currency(text) is not None:
+                                payload_amount = text
+                                break
+                        if payload_amount not in (None, ""):
+                            break
+                # Residual meta may sit on assembled top-level or nested ocr.
+                if payload_amount in (None, ""):
+                    for residual_key in ("gpt4o_crop_residual", "azure_di_residual"):
+                        residual = payload.get(residual_key) or nested.get(residual_key) or {}
+                        if residual.get("value") and (
+                            residual.get("shaped") or residual.get("currency_shaped")
+                        ):
+                            payload_amount = residual.get("value")
                             break
             line_sum = line_sum_total(lines)
             payload_amt = parse_currency(payload_amount)

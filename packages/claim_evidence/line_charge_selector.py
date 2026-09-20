@@ -60,7 +60,8 @@ def _engine_family(engine: object) -> str:
         return "rapidocr"
     if "tesseract" in text:
         return "tesseract"
-    if "gpt4o" in text or "gpt-4o" in text:
+    # gpt-4o / Claude crop residuals share one vision family for dual agreement.
+    if any(token in text for token in ("gpt4o", "gpt-4o", "claude", "anthropic")):
         return "azure_gpt4o_crop"
     return text
 
@@ -637,6 +638,8 @@ def apply_line_charge_selector(lines: list[dict] | None) -> list[dict]:
                         )
                         if (
                             "gpt4o" in eng
+                            or "claude" in eng
+                            or "anthropic" in eng
                             or "GEOMETRY_CENTS" in prep
                             or _raw_has_observed_decimal(cand.get("raw_value"))
                         ):

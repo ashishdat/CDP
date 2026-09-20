@@ -37,6 +37,7 @@ from scripts.run_hackathon_1000_cascade import (  # noqa: E402
 
 BASE = ROOT / "evaluation_results" / "hackathon_200_cascade_v12"
 REMEASURE_PREFER = [
+    ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_claude_evidence_v1",
     ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_gap_audit_v3",
     ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_defer_fix_v2",
     ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_hitl",
@@ -46,7 +47,9 @@ BAKEOFF = (
     ROOT / "evaluation_results" / "claude_sonnet_hitl_crop_bakeoff_v1" / "results.jsonl"
 )
 DEFAULT_OUT = (
-    ROOT / "evaluation_results" / "hackathon_200_cascade_v12_remeasure_claude_evidence_v1"
+    ROOT
+    / "evaluation_results"
+    / "hackathon_200_cascade_v12_remeasure_claude_charge_e2e_v1"
 )
 
 _VISION_FIELDS = frozenset(
@@ -281,6 +284,48 @@ def _live_claude(
     return cand
 
 
+def _line_bbox(line: dict[str, Any]) -> list[int] | None:
+    for key in ("canonical_region", "ocr_region", "charge_region", "bbox"):
+        region = line.get(key)
+        if isinstance(region, (list, tuple)) and len(region) == 4:
+            return [int(v) for v in region]
+    for cand in line.get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        bb = cand.get("bounding_box") or cand.get("bbox")
+        if isinstance(bb, dict) and bb.get("x0") is not None:
+            return [int(bb["x0"]), int(bb["y0"]), int(bb["x1"]), int(bb["y1"])]
+        if isinstance(bb, (list, tuple)) and len(bb) >= 4:
+            return [int(v) for v in bb[:4]]
+    return None
+
+
+def _line_needs_vision(line: dict[str, Any]) -> bool:
+    """True when line lacks usable gpt4o/Claude + local consensus."""
+    try:
+        from packages.claim_evidence.line_sum_authority import (
+            line_has_gpt4o_local_consensus,
+            parse_currency,
+        )
+    except Exception:  # noqa: BLE001
+        return True
+    try:
+        if line_has_gpt4o_local_consensus(line):
+            return False
+    except Exception:  # noqa: BLE001
+        pass
+    has_charge = parse_currency(line.get("charges") or line.get("charge_amount")) is not None
+    engines = {
+        str(c.get("engine") or "").casefold()
+        for c in (line.get("candidates") or [])
+        if isinstance(c, dict)
+    }
+    has_vision = any(
+        tok in e for e in engines for tok in ("gpt4o", "gpt-4o", "claude", "anthropic")
+    )
+    return (not has_vision) or (not has_charge)
+
+
 def _inject_claude_into_ocr(
     ocr: dict[str, Any],
     *,
@@ -290,16 +335,29 @@ def _inject_claude_into_ocr(
     allow_live: bool,
     claim_dir: Path | None = None,
 ) -> dict[str, Any]:
-    """Return mutation telemetry; mutates ``ocr`` in place."""
-    telemetry: dict[str, Any] = {"injected": [], "skipped": [], "live": [], "bakeoff": []}
+    """Mutate OCR in place: Claude on blocking headers + charge service lines."""
+    telemetry: dict[str, Any] = {
+        "injected": [],
+        "skipped": [],
+        "live": [],
+        "bakeoff": [],
+        "service_lines": [],
+    }
     page = None
     image_width = image_height = 0
+
+    def _ensure_page():
+        nonlocal page, image_width, image_height
+        if page is not None:
+            return page
+        page = _page_image(ocr, claim_dir=claim_dir)
+        if page is not None:
+            image_width, image_height = page.size
+        return page
+
     for field in ocr.get("fields") or []:
         name = str(field.get("field") or "")
-        if name not in gap_fields and name not in _VISION_FIELDS:
-            continue
-        if name not in gap_fields:
-            # Only touch fields that are actually blocking this claim.
+        if name not in gap_fields or name not in _VISION_FIELDS:
             continue
         bbox = _field_bbox(field) or [0, 0, 1, 1]
         priors = [
@@ -307,7 +365,6 @@ def _inject_claude_into_ocr(
             for c in (field.get("candidates") or [])
             if isinstance(c, dict) and (c.get("value") or "").strip()
         ]
-        # Drop prior Claude/gpt injects so remasure is idempotent.
         kept = [
             c
             for c in (field.get("candidates") or [])
@@ -321,9 +378,7 @@ def _inject_claude_into_ocr(
         cand = None
         source = None
         if bake and bake.get("shaped_value"):
-            # Prefer bakeoff — already paid Claude call on this crop + priors.
             if not image_width:
-                # bbox image size from existing candidate if present
                 for prior in kept:
                     bb = prior.get("bounding_box") or {}
                     if bb.get("image_width"):
@@ -343,23 +398,16 @@ def _inject_claude_into_ocr(
             )
             source = "bakeoff"
         elif allow_live:
-            if page is None:
-                page = _page_image(ocr, claim_dir=claim_dir)
-            if page is None:
+            if _ensure_page() is None:
                 telemetry["skipped"].append({"field": name, "reason": "PAGE_UNAVAILABLE"})
                 continue
-            image_width, image_height = page.size
             cand = _live_claude(
-                field_name=name,
-                image=page,
-                bbox=bbox,
-                priors=priors,
+                field_name=name, image=page, bbox=bbox, priors=priors
             )
             source = "live"
             if cand is None:
                 telemetry["skipped"].append({"field": name, "reason": "CLAUDE_ABSTAIN"})
                 continue
-
         if cand is None:
             telemetry["skipped"].append({"field": name, "reason": "NO_CLAUDE_VALUE"})
             continue
@@ -391,7 +439,87 @@ def _inject_claude_into_ocr(
             {"field": name, "value": cand.get("value"), "source": source}
         )
         telemetry[source].append(name)
+
+    charge_blocked = any(f in {"total_charge", "total_charges"} for f in gap_fields)
+    if charge_blocked and allow_live:
+        max_lines = int(os.environ.get("CDP_CLAUDE_LINE_MAX") or "4")
+        touched = 0
+        for index, line in enumerate(ocr.get("service_lines") or []):
+            if touched >= max_lines:
+                break
+            if not isinstance(line, dict) or not _line_needs_vision(line):
+                continue
+            bbox = _line_bbox(line)
+            if bbox is None:
+                telemetry["skipped"].append(
+                    {"field": f"service_line[{index}]", "reason": "BBOX_MISSING"}
+                )
+                continue
+            if _ensure_page() is None:
+                telemetry["skipped"].append(
+                    {"field": f"service_line[{index}]", "reason": "PAGE_UNAVAILABLE"}
+                )
+                break
+            priors = [
+                str(c.get("value") or c.get("raw_value") or "").strip()
+                for c in (line.get("candidates") or [])
+                if isinstance(c, dict)
+                and (c.get("value") or c.get("raw_value") or "").strip()
+            ]
+            if line.get("charges"):
+                priors.insert(0, str(line.get("charges")))
+            kept = [
+                c
+                for c in (line.get("candidates") or [])
+                if isinstance(c, dict)
+                and "claude" not in str(c.get("engine") or "").casefold()
+                and "anthropic" not in str(c.get("engine") or "").casefold()
+            ]
+            cand = _live_claude(
+                field_name="charges", image=page, bbox=bbox, priors=priors[:6]
+            )
+            if cand is None:
+                telemetry["skipped"].append(
+                    {"field": f"service_line[{index}]", "reason": "CLAUDE_ABSTAIN"}
+                )
+                continue
+            line["candidates"] = [cand, *kept]
+            if cand.get("value") and not str(line.get("charges") or "").strip():
+                line["charges"] = cand["value"]
+                line["charge_amount"] = cand["value"]
+            line["gpt4o_crop_residual"] = {
+                "attempted": True,
+                "configured": True,
+                "review_only": False,
+                "shaped": True,
+                "value": cand.get("value"),
+                "engine": "anthropic_claude_crop",
+                "source": "live_line",
+            }
+            attempts = list(line.get("attempts") or [])
+            attempts.append(
+                {
+                    "engine": "anthropic_claude_crop",
+                    "reason": "CLAUDE_LINE_CHARGE_INJECTED",
+                    "observation": {"text": cand.get("raw_value") or cand.get("value")},
+                }
+            )
+            line["attempts"] = attempts
+            telemetry["service_lines"].append(
+                {"line_index": index, "value": cand.get("value"), "source": "live"}
+            )
+            telemetry["injected"].append(
+                {
+                    "field": f"service_line[{index}].charges",
+                    "value": cand.get("value"),
+                    "source": "live",
+                }
+            )
+            telemetry["live"].append(f"service_line[{index}]")
+            touched += 1
+
     return telemetry
+
 
 
 def _process_one(

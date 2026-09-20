@@ -151,7 +151,9 @@ def _charge_digit_tokens(text: object) -> list[str]:
 
 def _is_gpt_charge_candidate(cand: dict) -> bool:
     engine = str(cand.get("engine") or cand.get("producing_engine") or "").casefold()
-    return "gpt4o" in engine or "gpt-4o" in engine
+    return any(
+        token in engine for token in ("gpt4o", "gpt-4o", "claude", "anthropic")
+    )
 
 
 def _is_dollars_ruling_candidate(cand: dict) -> bool:

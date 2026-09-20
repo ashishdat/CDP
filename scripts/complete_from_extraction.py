@@ -383,7 +383,15 @@ def decide(extraction, family):
             (f for f in fields if f.get('field_name') == charge_field), {}
         ) or {}
         current_val = values.get(charge_field)
-        # Do not wipe currency-shaped Azure DI / gpt-4o box-28 in favor of a
+        # Defer band always wins over vision preserve. A gpt-4o/Claude Box28 that
+        # is a place-shift / digit-soup twin of Σ must not veto should_defer —
+        # that re-arms FINANCIAL_CONFLICT after we cleared the contradictory shell.
+        if current_val not in (None, '') and should_defer_box28_to_line_sum(
+            current_val, service_lines
+        ):
+            values[charge_field] = None
+            continue
+        # Do not wipe currency-shaped Azure DI / gpt-4o / Claude box-28 in favor of a
         # contradictory single-line OCR sum (hard-15: residual recovers ink).
         preserve_azure_box28 = False
         if current_val not in (None, ''):
@@ -403,6 +411,13 @@ def decide(extraction, family):
             ):
                 preserve_azure_box28 = False
             else:
+                nested_ocr = field_payload.get('ocr') or {}
+                residual_sources = [
+                    field_payload.get('gpt4o_crop_residual') or {},
+                    nested_ocr.get('gpt4o_crop_residual') or {},
+                    field_payload.get('azure_di_residual') or {},
+                    nested_ocr.get('azure_di_residual') or {},
+                ]
                 for row in (
                     [field_payload.get('ranked_candidate')]
                     if field_payload.get('ranked_candidate')
@@ -425,20 +440,18 @@ def decide(extraction, family):
                     if parse_currency(text) == parse_currency(current_val):
                         preserve_azure_box28 = True
                         break
-                gpt4o = field_payload.get('gpt4o_crop_residual') or {}
-                if (
-                    gpt4o.get('shaped')
-                    and not gpt4o.get('review_only')
-                    and parse_currency(gpt4o.get('value')) == parse_currency(current_val)
-                ):
-                    preserve_azure_box28 = True
-                di = field_payload.get('azure_di_residual') or {}
-                if (
-                    di.get('currency_shaped')
-                    and not di.get('review_only')
-                    and parse_currency(di.get('value')) == parse_currency(current_val)
-                ):
-                    preserve_azure_box28 = True
+                for residual in residual_sources:
+                    if not residual:
+                        continue
+                    shaped = residual.get('shaped') or residual.get('currency_shaped')
+                    if (
+                        shaped
+                        and not residual.get('review_only')
+                        and parse_currency(residual.get('value'))
+                        == parse_currency(current_val)
+                    ):
+                        preserve_azure_box28 = True
+                        break
         if preserve_azure_box28:
             continue
         if should_defer_box28_to_line_sum(current_val, service_lines):
