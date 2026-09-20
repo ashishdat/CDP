@@ -10,7 +10,7 @@ proxy — it does not close holdout / IdP / BAA gates in
 | Layer | Ready when |
 |---|---|
 | Code / config pin | `production_runtime_v1` hashes verify; fail-closed settings enforce; CI green |
-| Compose / Helm | Images build; `/health` + `/ready` respond; APIs + workers call `assert_production_ready` |
+| Compose / Helm | Images build; `/health` + `/ready` respond; APIs + workers call `assert_production_ready`; Helm charts for ingestion / human-review / output |
 | Authorized PHI | Holdout, IdP/RBAC, migrations drill, BAA/region, signed promotion |
 
 ## Quick start (staging / hardened local)

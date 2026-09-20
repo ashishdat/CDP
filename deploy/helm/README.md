@@ -1,35 +1,38 @@
 # deploy/helm
 
-One values-driven Helm chart per deployable that actually has a running
-entrypoint today:
+One values-driven Helm chart per deployable that has a running entrypoint:
 
 - `ingestion-api/` — FastAPI app (Deployment + Service + ConfigMap)
 - `human-review-api/` — FastAPI app + server-rendered UI (Deployment + Service + ConfigMap)
+- `output-api/` — FastAPI app for NSF/UB92/canonical artifact retrieval (Deployment + Service + ConfigMap)
 - `document-preparation-worker/` — Kafka consumer, no Service (Deployment + ConfigMap; see `deploy/keda`)
+- `cdp-worker-pools/` — pooled worker Deployments + KEDA ScaledObjects for the remaining consumers
 
 Each chart pulls secrets (DB URL, object-store credentials, Kafka
 bootstrap servers) from a pre-existing `Secret` named in `values.yaml`'s
 `secretName` — never templated from `values.yaml` itself (see
 docs/ARCHITECTURE.md "SECURITY").
 
-Validated with a real `helm` binary (v3.15.4, downloaded for this
-session — no live cluster available):
+Production charts pin fail-closed defaults:
+
+```
+CDP_ENV=production
+CDP_PIPELINE_RELEASE=extraction-v2
+CDP_RUNTIME_PROFILE=config/runtime_profiles/production_runtime_v1.yaml
+```
+
+API readiness probes use `/ready` (DB + object store initialized); liveness
+uses `/health`. See `docs/PRODUCTION_OPERATOR_RUNBOOK.md`.
+
+Validated with a real `helm` binary:
 
 ```
 helm lint deploy/helm/<chart>
 helm template <release-name> deploy/helm/<chart>
 ```
 
-All three charts pass both. Not validated: `helm install` against a real
-cluster (none available), or the KEDA `ScaledObject`s in `deploy/keda`
-against the actual KEDA CRD schema (KEDA isn't installed anywhere
-reachable from this environment either — see that directory's README for
-which ScaledObjects target a Deployment defined here vs. one that doesn't
-exist yet).
+Not validated: `helm install` against a live cluster, or KEDA ScaledObjects
+against an installed KEDA CRD schema (see `deploy/keda` README).
 
-Remaining workers (`page_detection`, `standard_form_extraction`,
-`unstructured_extraction`, `validation`, `retry`, `vlm_fallback`,
-`output_generation`) have complete, tested library code but no
-`consumer.py` wiring them to a Kafka topic as a standalone process yet —
-see docs/IMPLEMENTATION_PLAN.md. Charts for them would follow the exact
-same pattern as `document-preparation-worker/` once that wiring exists.
+Until holdout / IdP / BAA gates close, deploy status remains
+**production-hardened, not production-authorized**.

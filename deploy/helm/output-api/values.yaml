@@ -1,0 +1,66 @@
+replicaCount: 2
+
+image:
+  repository: idp-claims-platform-output-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+command: ["uvicorn", "apps.output_api.main:app", "--host", "0.0.0.0", "--port", "8002"]
+
+service:
+  type: ClusterIP
+  port: 8002
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  liveness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    path: /ready
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+# Non-secret configuration -- rendered into a ConfigMap. Secret values
+# (DB password, object-store credentials) come from `secretName` instead.
+env:
+  CDP_ENV: "production"
+  CDP_PIPELINE_RELEASE: "extraction-v2"
+  CDP_RUNTIME_PROFILE: "config/runtime_profiles/production_runtime_v1.yaml"
+  OBJECT_STORE_BUCKET: "idp-documents"
+  OBJECT_STORE_USE_SSL: "false"
+  USE_IN_MEMORY_BUS: "false"
+  VLM_ENABLED: "false"
+  AZURE_OPENAI_REVIEW_ONLY: "true"
+  AZURE_DOCUMENT_INTELLIGENCE_REVIEW_ONLY: "true"
+
+# Name of a pre-existing Secret providing DATABASE_URL,
+# OBJECT_STORE_ACCESS_KEY, OBJECT_STORE_SECRET_KEY, OBJECT_STORE_ENDPOINT.
+secretName: idp-output-api-secrets
+
+serviceAccount:
+  create: true
+  name: ""
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8002"
+  prometheus.io/path: "/metrics"
+
+podDisruptionBudget: {enabled: true, minAvailable: 1}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  seccompProfile: {type: RuntimeDefault}
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities: {drop: ["ALL"]}

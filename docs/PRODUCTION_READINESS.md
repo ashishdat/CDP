@@ -54,7 +54,8 @@ control before processing production PHI:
    environment and test backup, restore, retention, and deletion workflows.
 5. Add deployment definitions for every live worker and validate Helm/KEDA,
    network policy, secret injection, resource limits, and rollback in a staging
-   cluster.
+   cluster. *(API charts for ingestion, human-review, and output are present;
+   staging cluster validation remains.)*
 6. Complete security/contract approval for any external OCR or VLM processing,
    including BAA, region, retention, diagnostics, key rotation, and cost limits.
 7. Pass the frozen untouched holdout and canary gates defined in the evaluation

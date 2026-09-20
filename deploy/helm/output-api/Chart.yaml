@@ -1,0 +1,6 @@
+apiVersion: v2
+name: output-api
+description: IDP claims platform -- output API (NSF/UB92/canonical artifact retrieval)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

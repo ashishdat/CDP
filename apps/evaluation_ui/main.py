@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from fastapi.staticfiles import StaticFiles
 
 DIST_DIR = Path(__file__).resolve().parent / "dist"
+PUBLIC_DIR = Path(__file__).resolve().parent / "public"
 TRANSFORMATION_DIR = Path(__file__).resolve().parent.parent / "transformation_ui"
 
 INGESTION_API_URL = os.getenv("INGESTION_API_URL", "http://localhost:8000")
@@ -182,6 +183,22 @@ def read_root(request: Request):
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/favicon.ico")
+def favicon_ico():
+    for candidate in (DIST_DIR / "favicon.ico", PUBLIC_DIR / "favicon.ico"):
+        if candidate.is_file():
+            return FileResponse(candidate, media_type="image/x-icon")
+    return JSONResponse({"error": "favicon_missing"}, status_code=404)
+
+
+@app.get("/favicon.svg")
+def favicon_svg():
+    for candidate in (DIST_DIR / "favicon.svg", PUBLIC_DIR / "favicon.svg"):
+        if candidate.is_file():
+            return FileResponse(candidate, media_type="image/svg+xml")
+    return JSONResponse({"error": "favicon_missing"}, status_code=404)
 
 
 if __name__ == "__main__":

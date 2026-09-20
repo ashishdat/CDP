@@ -117,6 +117,56 @@ def main() -> int:
             detail = getattr(exc, "stderr", None) or str(exc)
             print(f"WARN compose config: {detail[:200]}")
 
+    # Helm charts (when helm is available)
+    helm_root = ROOT / "deploy" / "helm"
+    charts = [
+        "ingestion-api",
+        "human-review-api",
+        "output-api",
+        "document-preparation-worker",
+        "cdp-worker-pools",
+    ]
+    try:
+        for chart in charts:
+            chart_path = helm_root / chart
+            if not chart_path.is_dir():
+                _fail(f"missing helm chart {chart}")
+                failures += 1
+                continue
+            subprocess.run(
+                ["helm", "lint", str(chart_path)],
+                check=True,
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            subprocess.run(
+                ["helm", "template", f"smoke-{chart}", str(chart_path)],
+                check=True,
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        _ok(f"helm lint+template ({len(charts)} charts)")
+    except FileNotFoundError:
+        _ok("helm not installed — skipped chart lint")
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        detail = getattr(exc, "stderr", None) or str(exc)
+        _fail(f"helm chart validation: {detail[:300]}")
+        failures += 1
+
+    # Compose readiness probes must use /ready (not /health alone).
+    compose_text = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+    for port in ("8000", "8001", "8002"):
+        needle = f"http://localhost:{port}/ready"
+        if needle not in compose_text:
+            _fail(f"docker-compose missing readiness check {needle}")
+            failures += 1
+        else:
+            _ok(f"compose readiness {needle}")
+
     if failures:
         _fail(f"{failures} check(s) failed")
         return 1
