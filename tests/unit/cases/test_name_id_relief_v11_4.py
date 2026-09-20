@@ -57,6 +57,35 @@ def test_grant_gc_confusable():
     assert values_conflict_equivalent("patient_name", "GRANT JASON", "CRANT JASON")
 
 
+def test_acosta_ou_and_hector_ti_confusable():
+    """EJG7.007: Claude ACOSTA,HECTOR vs rapid ACUSTA,HECIOR (O↔U + T↔I)."""
+    assert values_conflict_equivalent(
+        "patient_name", "ACOSTA, HECTOR", "ACUSTA, HECIOR"
+    )
+    assert values_conflict_equivalent("patient_name", "ACOSTA", "ACUSTA")
+    assert values_conflict_equivalent("patient_name", "HECTOR", "HECIOR")
+    result = EvidenceReconciler().reconcile(
+        "patient_name",
+        [
+            _candidate("ACOSTA, HECTOR", "azure_gpt4o_crop", 0.94),
+            _candidate("ACUSTA, HECIOR", "rapidocr", 0.91),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "BOX2_BOX4_NAME_CONFIRMED",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+            "MULTI_ATTRIBUTE_IDENTITY_CONFIRMED",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
 def test_mrs_title_strip_shared_given():
     assert _names_differ_by_shared_given_name("BEAUDOINMRS CHERYL", "MRS CHERYLA")
     assert values_conflict_equivalent(

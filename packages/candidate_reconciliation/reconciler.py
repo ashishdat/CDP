@@ -972,6 +972,7 @@ _NAME_CONFUSABLE_PAIRS = {
     frozenset({"C", "O"}),  # SCARTET vs SOARTET (Independent-300 v12.2)
     frozenset({"O", "D"}),
     frozenset({"O", "0"}),
+    frozenset({"O", "U"}),  # ACOSTA vs ACUSTA (Claude↔rapid typed CMS)
     frozenset({"K", "R"}),  # KIVERA vs RIVERA on typed CMS names
     frozenset({"U", "V"}),
     frozenset({"V", "Y"}),
