@@ -172,6 +172,35 @@ def test_geometry_cents_attempt_promoted_over_bare_soup():
     assert result.amount == "49.72"
 
 
+def test_dollars_ruling_truncation_does_not_beat_geometry():
+    """Dual-local ``129.00`` must not erase GEOMETRY_CENTS ``1291.15``."""
+    dollars_bbox = (1050.0, 1458.0, 1160.0, 1513.0)
+    line = {
+        "charges": "1291.15",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("azure_gpt4o_crop", "129.15", "129.15", _CHARGE_BBOX),
+            _cand("paddleocr", "12919.00", "12919", _CHARGE_BBOX),
+            _cand("paddleocr", "129.00", "129\n1", dollars_bbox),
+            _cand("rapidocr", "129.00", "11\n129", dollars_bbox),
+        ],
+        "attempts": [
+            {
+                "engine": "rapidocr",
+                "reason": "GEOMETRY_CENTS",
+                "observation": {
+                    "shaped": "1291.15",
+                    "raw_digit_sequence": "129115",
+                    "canonical_monetary_value": "1291.15",
+                },
+            }
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "AMBIGUOUS_LINE_CHARGE"
+    assert result.reason == "DOLLARS_TRUNCATION_VS_FULLER_READ"
+
+
 def test_ruling_split_raw_reconstructs_cents():
     """Local ``34\\n25`` is dollars|cents ink, not a dual-local 25.00."""
     line = {

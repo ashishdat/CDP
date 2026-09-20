@@ -366,6 +366,26 @@ def _geometry_cents_candidate_from_attempts(line: dict) -> dict | None:
     return None
 
 
+def _is_dollar_truncation(short: str, longer: str) -> bool:
+    """True when ``short`` is a dollars-ruling truncation of ``longer``.
+
+    Examples: ``129.00`` vs geometry ``1291.15``, or ``129.00`` vs gpt-4o ``129.15``.
+    """
+    short_amt = parse_currency(short)
+    long_amt = parse_currency(longer)
+    if short_amt is None or long_amt is None or short_amt == long_amt:
+        return False
+    short_txt = format_currency(short_amt)
+    long_txt = format_currency(long_amt)
+    sd, ld = short_txt.split(".", 1)[0], long_txt.split(".", 1)[0]
+    if ld.startswith(sd) and len(ld) > len(sd):
+        return True
+    # Same dollar stem; short is whole-dollar while longer carries observed cents.
+    if sd == ld and short_txt.endswith(".00") and not long_txt.endswith(".00"):
+        return True
+    return False
+
+
 def select_line_charge(
     line: dict | None,
     *,
@@ -540,6 +560,27 @@ def select_line_charge(
         )
 
     amount = top[0]
+    # Dollars-ruling dual-local must not erase geometry / gpt-4o fuller reads
+    # (129.00 vs GEOMETRY_CENTS 1291.15, or 129.00 vs gpt-4o 129.15).
+    fuller_rivals = [
+        other
+        for other in by_amount
+        if other != amount
+        and _is_dollar_truncation(amount, other)
+        and (
+            quality_by_amount.get(other, 0) >= 3
+            or "azure_gpt4o_crop" in by_amount.get(other, set())
+        )
+    ]
+    if fuller_rivals:
+        return LineChargeSelection(
+            "AMBIGUOUS_LINE_CHARGE",
+            None,
+            "DOLLARS_TRUNCATION_VS_FULLER_READ",
+            rejected=tuple(rejected[:12])
+            + tuple((amount, "DOLLARS_TRUNCATION") for _ in [0]),
+        )
+
     engines = tuple(sorted(by_amount[amount]))
     return LineChargeSelection(
         "SELECTED_LOCAL_CHARGE",
