@@ -302,3 +302,141 @@ def test_glyph_gap_implies_cents_not_thousands():
     assert short.ambiguous is True
     assert short.geometry_candidate is None
 
+
+def test_canonical_page_cents_for_4972():
+    """Page→canonical centres assign dollars/cents; crop-local x is ignored."""
+    from packages.geometry_authority.cms1500_regions import CMS1500_CHARGE_CENTS_X
+    from packages.geometry_authority.monetary_geometry import (
+        GlyphBox,
+        map_crop_glyphs_to_canonical,
+        reconstruct_from_canonical_glyphs,
+    )
+
+    # Digits 4 9 | 7 2 on a Box 24F crop whose page x0 is 1050 (canonical page).
+    crop = (1050.0, 1458.0, 1180.0, 1513.0)
+    local = [
+        GlyphBox("4", 70, 10, 82, 28),   # page cx ≈ 1131
+        GlyphBox("9", 88, 10, 100, 28),  # page cx ≈ 1149 → still dollar (<1145?  (88+100)/2=94 → 1144)
+        GlyphBox("7", 110, 10, 122, 28), # page cx ≈ 1161
+        GlyphBox("2", 126, 10, 138, 28), # page cx ≈ 1177
+    ]
+    # Nudge 9 left of the cents ruling and 7/2 right of it.
+    local = [
+        GlyphBox("4", 70, 10, 82, 28),
+        GlyphBox("9", 85, 10, 97, 28),   # cx=91 → page 1141
+        GlyphBox("7", 110, 10, 122, 28), # cx=116 → page 1166
+        GlyphBox("2", 126, 10, 138, 28),
+    ]
+    mapped = map_crop_glyphs_to_canonical(
+        local, crop_bbox=crop, image_size=(1712, 2214)
+    )
+    assert all(g.canonical_cx for g in mapped)
+    assert mapped[0].zone == "dollar"
+    assert mapped[1].zone == "dollar"
+    assert mapped[2].zone == "cent"
+    assert mapped[3].zone == "cent"
+    read = reconstruct_from_canonical_glyphs(mapped)
+    assert read.raw_glyph_sequence == "4972"
+    assert read.geometry_candidate == "49.72"
+    assert read.canonical_monetary_value == "49.72"
+    assert read.dollar_glyphs == ("4", "9")
+    assert read.cents_glyphs == ("7", "2")
+    assert read.page_glyph_polygons
+    assert read.canonical_glyph_centres
+    assert read.ruling_x == int(CMS1500_CHARGE_CENTS_X)
+
+
+def test_canonical_amount_invariant_under_crop_expand_shift_scale():
+    """Expanding, shifting, or scaling the crop must not change the canonical amount."""
+    from packages.geometry_authority.monetary_geometry import (
+        GlyphBox,
+        map_crop_glyphs_to_canonical,
+        page_to_canonical,
+        reconstruct_from_canonical_glyphs,
+    )
+
+    # Fixed page-space digit boxes for 49.72.
+    page_digits = [
+        ("4", 1120.0, 1132.0),
+        ("9", 1134.0, 1146.0),
+        ("7", 1152.0, 1164.0),
+        ("2", 1168.0, 1180.0),
+    ]
+    y0, y1 = 1465.0, 1505.0
+    image_size = (1712, 2214)
+
+    def _read_for_crop(crop):
+        local_glyphs = []
+        for text, px0, px1 in page_digits:
+            local_glyphs.append(
+                GlyphBox(
+                    text,
+                    int(px0 - crop[0]),
+                    int(y0 - crop[1]),
+                    int(px1 - crop[0]),
+                    int(y1 - crop[1]),
+                )
+            )
+        mapped = map_crop_glyphs_to_canonical(
+            local_glyphs, crop_bbox=crop, image_size=image_size
+        )
+        return reconstruct_from_canonical_glyphs(mapped)
+
+    base = (1050.0, 1458.0, 1185.0, 1513.0)
+    expanded = (1030.0, 1440.0, 1210.0, 1530.0)  # expand
+    shifted = (1060.0, 1465.0, 1195.0, 1520.0)  # shift
+    # Scale: same page digits on a 2× page, crop scaled accordingly.
+    scaled_size = (3424, 4428)
+    scaled_crop = tuple(v * 2 for v in base)
+    scaled_digits = [(t, a * 2, b * 2) for t, a, b in page_digits]
+
+    def _read_scaled():
+        local_glyphs = []
+        for text, px0, px1 in scaled_digits:
+            local_glyphs.append(
+                GlyphBox(
+                    text,
+                    int(px0 - scaled_crop[0]),
+                    int(y0 * 2 - scaled_crop[1]),
+                    int(px1 - scaled_crop[0]),
+                    int(y1 * 2 - scaled_crop[1]),
+                )
+            )
+        mapped = map_crop_glyphs_to_canonical(
+            local_glyphs, crop_bbox=scaled_crop, image_size=scaled_size
+        )
+        # Centres must land on the same canonical positions as the base crop.
+        base_mapped = map_crop_glyphs_to_canonical(
+            [
+                GlyphBox(
+                    t,
+                    int(a - base[0]),
+                    int(y0 - base[1]),
+                    int(b - base[0]),
+                    int(y1 - base[1]),
+                )
+                for t, a, b in page_digits
+            ],
+            crop_bbox=base,
+            image_size=image_size,
+        )
+        for left, right in zip(mapped, base_mapped, strict=True):
+            assert abs(left.canonical_cx - right.canonical_cx) < 0.6
+        return reconstruct_from_canonical_glyphs(mapped)
+
+    results = [
+        _read_for_crop(base),
+        _read_for_crop(expanded),
+        _read_for_crop(shifted),
+        _read_scaled(),
+    ]
+    for read in results:
+        assert read.raw_glyph_sequence == "4972", read
+        assert read.canonical_monetary_value == "49.72", read
+        assert read.geometry_candidate == "49.72", read
+        assert read.ambiguous is False
+
+    # Sanity: page→canonical is linear in image size.
+    cx, _ = page_to_canonical(1145.0, 1480.0, image_size)
+    assert abs(cx - 1145.0) < 1e-6
+

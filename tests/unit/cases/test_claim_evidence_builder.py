@@ -166,3 +166,43 @@ def test_self_with_distinct_names_is_relationship_conflict_not_forced_equal():
     assert "DOB_SINGLE_ROLE_EVIDENCE" in _types(result.contradictions)
     assert "BOX3_BOX11A_DOB_CONFIRMED" not in _types(result.evidence_items)
     assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
+
+
+def test_missing_relationship_with_box2_box4_disagreement_is_clean_print_authority():
+    """Unknown relationship + distinct Box 2/4 → Box 2 clean-print authority, not conflict."""
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="claim-1",
+        document_family="CMS1500",
+        claim_values={
+            "patient_name": "HARRINGTON, SOPHIE",
+            "insured_name": "HARRINGTON, RACHAEL",
+        },
+    )
+    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
+    assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" not in _types(result.contradictions)
+    item = next(
+        row
+        for row in result.evidence_items
+        if row.evidence_type == "BOX2_INDEPENDENT_NAME_AUTHORITY"
+    )
+    assert item.metadata["reason"] == "CLEAN_PRINT_DIRECT_AUTHORITY"
+
+
+def test_spouse_disagreement_does_not_escalate_as_conflict():
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="claim-1",
+        document_family="CMS1500",
+        claim_values={
+            "patient_name": "SMITH, JANE",
+            "insured_name": "SMITH, JOHN",
+            "rel_code": "SPOUSE",
+        },
+    )
+    assert "BOX2_INDEPENDENT_NAME_AUTHORITY" in _types(result.evidence_items)
+    assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" not in _types(result.contradictions)
+    item = next(
+        row
+        for row in result.evidence_items
+        if row.evidence_type == "BOX2_INDEPENDENT_NAME_AUTHORITY"
+    )
+    assert item.metadata["reason"] == "NON_SELF_BOX2_INDEPENDENT"

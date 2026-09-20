@@ -31,6 +31,30 @@ class GlyphBox:
 
 
 @dataclass(frozen=True)
+class PageGlyph:
+    """One digit glyph with crop-local, page, and canonical CMS centres."""
+
+    text: str
+    crop_x0: float
+    crop_y0: float
+    crop_x1: float
+    crop_y1: float
+    page_polygon: tuple[tuple[float, float], ...]
+    canonical_cx: float
+    canonical_cy: float
+    zone: str  # dollar | cent | unit | outside
+
+    def to_dict(self) -> dict:
+        return {
+            "text": self.text,
+            "crop_bbox": [self.crop_x0, self.crop_y0, self.crop_x1, self.crop_y1],
+            "page_polygon": [list(pt) for pt in self.page_polygon],
+            "canonical_centre": [self.canonical_cx, self.canonical_cy],
+            "zone": self.zone,
+        }
+
+
+@dataclass(frozen=True)
 class MonetaryGeometryRead:
     raw_glyph_sequence: str
     dollars: str
@@ -40,6 +64,12 @@ class MonetaryGeometryRead:
     ambiguous: bool
     ruling_x: int | None
     reasons: tuple[str, ...]
+    page_glyph_polygons: tuple[tuple[tuple[float, float], ...], ...] = ()
+    canonical_glyph_centres: tuple[tuple[float, float], ...] = ()
+    dollar_glyphs: tuple[str, ...] = ()
+    cents_glyphs: tuple[str, ...] = ()
+    unit_zone_glyphs: tuple[str, ...] = ()
+    canonical_monetary_value: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -51,6 +81,14 @@ class MonetaryGeometryRead:
             "ambiguous": self.ambiguous,
             "ruling_x": self.ruling_x,
             "reasons": list(self.reasons),
+            "page_glyph_polygons": [
+                [list(pt) for pt in poly] for poly in self.page_glyph_polygons
+            ],
+            "canonical_glyph_centres": [list(c) for c in self.canonical_glyph_centres],
+            "dollar_glyphs": list(self.dollar_glyphs),
+            "cents_glyphs": list(self.cents_glyphs),
+            "unit_zone_glyphs": list(self.unit_zone_glyphs),
+            "canonical_monetary_value": self.canonical_monetary_value,
         }
 
 
@@ -687,12 +725,268 @@ def _tess_digit_glyphs(image) -> list[GlyphBox]:
     return out
 
 
-def read_monetary_crop(image, *, units_x: float | None = None) -> MonetaryGeometryRead:
-    """Label-free monetary read. Existing Rapid tokens, Tesseract boxes as fallback.
+def page_to_canonical(
+    page_x: float,
+    page_y: float,
+    image_size: tuple[int, int],
+) -> tuple[float, float]:
+    """Map a page-pixel point into CMS-1500 reference coordinates."""
+    from packages.geometry_authority.cms1500_regions import _REF_H, _REF_W
 
-    Disagreement between the two reads is ambiguous. No third OCR engine.
+    width, height = image_size
+    sx = _REF_W / max(1.0, float(width))
+    sy = _REF_H / max(1.0, float(height))
+    return (page_x * sx, page_y * sy)
+
+
+def crop_local_to_page_polygon(
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
+    crop_bbox: tuple[float, float, float, float],
+) -> tuple[tuple[float, float], ...]:
+    """Translate a crop-local box into a page-space rectangle polygon."""
+    cx0, cy0, _cx1, _cy1 = crop_bbox
+    return (
+        (cx0 + x0, cy0 + y0),
+        (cx0 + x1, cy0 + y0),
+        (cx0 + x1, cy0 + y1),
+        (cx0 + x0, cy0 + y1),
+    )
+
+
+def assign_monetary_zone(canonical_cx: float, *, cents_x: float, units_x: float) -> str:
+    if canonical_cx >= float(units_x):
+        return "unit"
+    if canonical_cx >= float(cents_x):
+        return "cent"
+    ch0, _ch1 = (1030.0, 1207.0)
+    try:
+        from packages.geometry_authority.cms1500_regions import CMS1500_LINE_COLUMNS
+
+        ch0, _ch1 = CMS1500_LINE_COLUMNS["charges"]
+    except Exception:  # noqa: BLE001
+        pass
+    if canonical_cx < ch0 - 12:
+        return "outside"
+    return "dollar"
+
+
+def map_crop_glyphs_to_canonical(
+    glyphs: list[GlyphBox],
+    *,
+    crop_bbox: tuple[float, float, float, float],
+    image_size: tuple[int, int],
+    cents_x: float | None = None,
+    units_x: float | None = None,
+) -> list[PageGlyph]:
+    """Map crop-local digit boxes onto canonical CMS centres and zones."""
+    from packages.geometry_authority.cms1500_regions import (
+        CMS1500_CHARGE_CENTS_X,
+        CMS1500_UNITS_X0,
+    )
+
+    cents_boundary = CMS1500_CHARGE_CENTS_X if cents_x is None else float(cents_x)
+    units_boundary = CMS1500_UNITS_X0 if units_x is None else float(units_x)
+    mapped: list[PageGlyph] = []
+    for glyph in glyphs:
+        if not glyph.text.isdigit():
+            continue
+        polygon = crop_local_to_page_polygon(
+            float(glyph.x0),
+            float(glyph.y0),
+            float(glyph.x1),
+            float(glyph.y1),
+            crop_bbox,
+        )
+        page_cx = sum(pt[0] for pt in polygon) / 4.0
+        page_cy = sum(pt[1] for pt in polygon) / 4.0
+        canon_cx, canon_cy = page_to_canonical(page_cx, page_cy, image_size)
+        zone = assign_monetary_zone(canon_cx, cents_x=cents_boundary, units_x=units_boundary)
+        mapped.append(
+            PageGlyph(
+                text=glyph.text,
+                crop_x0=float(glyph.x0),
+                crop_y0=float(glyph.y0),
+                crop_x1=float(glyph.x1),
+                crop_y1=float(glyph.y1),
+                page_polygon=polygon,
+                canonical_cx=canon_cx,
+                canonical_cy=canon_cy,
+                zone=zone,
+            )
+        )
+    mapped.sort(key=lambda g: g.canonical_cx)
+    return mapped
+
+
+def reconstruct_from_canonical_glyphs(
+    glyphs: list[PageGlyph],
+    *,
+    cents_x: float | None = None,
+    units_x: float | None = None,
+) -> MonetaryGeometryRead:
+    """Assign dollars/cents from canonical CMS centres — never crop-local x."""
+    from packages.geometry_authority.cms1500_regions import (
+        CMS1500_CHARGE_CENTS_X,
+        CMS1500_UNITS_X0,
+    )
+
+    cents_boundary = CMS1500_CHARGE_CENTS_X if cents_x is None else float(cents_x)
+    units_boundary = CMS1500_UNITS_X0 if units_x is None else float(units_x)
+    ordered = sorted(glyphs, key=lambda g: g.canonical_cx)
+    units = [
+        g
+        for g in ordered
+        if assign_monetary_zone(
+            g.canonical_cx, cents_x=cents_boundary, units_x=units_boundary
+        )
+        == "unit"
+    ]
+    charge_digits = [
+        g
+        for g in ordered
+        if assign_monetary_zone(
+            g.canonical_cx, cents_x=cents_boundary, units_x=units_boundary
+        )
+        in {"dollar", "cent"}
+    ]
+
+    def _provenance(dollars: list[PageGlyph], cents: list[PageGlyph]) -> dict:
+        zoned = list(dollars) + list(cents) + list(units)
+        return dict(
+            page_glyph_polygons=tuple(g.page_polygon for g in zoned),
+            canonical_glyph_centres=tuple((g.canonical_cx, g.canonical_cy) for g in zoned),
+            dollar_glyphs=tuple(g.text for g in dollars),
+            cents_glyphs=tuple(g.text for g in cents),
+            unit_zone_glyphs=tuple(g.text for g in units),
+        )
+
+    def _split_at(boundary: float) -> tuple[list[PageGlyph], list[PageGlyph]]:
+        left = [g for g in charge_digits if g.canonical_cx < boundary]
+        right = [g for g in charge_digits if g.canonical_cx >= boundary]
+        return left, right
+
+    dollars, cents = _split_at(cents_boundary)
+    # Fixed form ruling may sit a few px off a given registration. When the
+    # fixed boundary does not yield exactly two cent glyphs, pick the split
+    # among consecutive charge digits whose boundary is nearest the canonical
+    # cents column and still yields two cents — still using canonical centres.
+    if (not dollars or len(cents) != 2) and len(charge_digits) >= 4:
+        candidates: list[tuple[float, float, list[PageGlyph], list[PageGlyph]]] = []
+        for index in range(1, len(charge_digits) - 1):
+            right = charge_digits[index:]
+            left = charge_digits[:index]
+            if len(right) != 2 or not left:
+                continue
+            gap = right[0].canonical_cx - left[-1].canonical_cx
+            if gap < 4:
+                continue
+            boundary = (left[-1].canonical_cx + right[0].canonical_cx) / 2.0
+            # Prefer splits near the printed cents column, not units bleed.
+            if boundary < cents_boundary - 40 or boundary > units_boundary:
+                continue
+            distance = abs(boundary - cents_boundary)
+            candidates.append((distance, -gap, left, right))
+        if candidates:
+            candidates.sort()
+            _dist, _gap, dollars, cents = candidates[0]
+            cents_boundary = (dollars[-1].canonical_cx + cents[0].canonical_cx) / 2.0
+
+    raw_digits = "".join(g.text for g in dollars + cents)
+    provenance = _provenance(dollars, cents)
+    if not dollars or len(cents) != 2:
+        return MonetaryGeometryRead(
+            raw_digits,
+            "".join(g.text for g in dollars),
+            "".join(g.text for g in cents),
+            False,
+            None,
+            True,
+            int(cents_boundary),
+            ("CANONICAL_CENTS_UNRESOLVED", "AMBIGUOUS"),
+            canonical_monetary_value=None,
+            **provenance,
+        )
+    dollars_text = "".join(g.text for g in dollars)
+    cents_text = "".join(g.text for g in cents)
+    if not dollars_text.isdigit() or len(dollars_text) > 5:
+        return MonetaryGeometryRead(
+            raw_digits,
+            dollars_text,
+            cents_text,
+            False,
+            None,
+            True,
+            int(cents_boundary),
+            ("CANONICAL_DOLLARS_UNRESOLVED", "AMBIGUOUS"),
+            canonical_monetary_value=None,
+            **provenance,
+        )
+    candidate = f"{int(dollars_text)}.{cents_text}"
+    return MonetaryGeometryRead(
+        raw_digits,
+        dollars_text,
+        cents_text,
+        False,
+        candidate,
+        False,
+        int(cents_boundary),
+        ("CANONICAL_PAGE_CENTS", "RULING_VALIDATED", "CENTS_COLUMN"),
+        canonical_monetary_value=candidate,
+        **provenance,
+    )
+
+
+def _with_provenance(
+    read: MonetaryGeometryRead,
+    *,
+    page_glyphs: list[PageGlyph] | None = None,
+) -> MonetaryGeometryRead:
+    if not page_glyphs:
+        return read
+    dollars = tuple(g.text for g in page_glyphs if g.zone == "dollar")
+    cents = tuple(g.text for g in page_glyphs if g.zone == "cent")
+    units = tuple(g.text for g in page_glyphs if g.zone == "unit")
+    return MonetaryGeometryRead(
+        read.raw_glyph_sequence,
+        read.dollars,
+        read.cents,
+        read.decimal_visible,
+        read.geometry_candidate,
+        read.ambiguous,
+        read.ruling_x,
+        read.reasons,
+        page_glyph_polygons=tuple(g.page_polygon for g in page_glyphs),
+        canonical_glyph_centres=tuple((g.canonical_cx, g.canonical_cy) for g in page_glyphs),
+        dollar_glyphs=dollars,
+        cents_glyphs=cents,
+        unit_zone_glyphs=units,
+        canonical_monetary_value=read.geometry_candidate if not read.ambiguous else None,
+    )
+
+
+def read_monetary_crop(
+    image,
+    *,
+    units_x: float | None = None,
+    crop_bbox: tuple[float, float, float, float] | None = None,
+    image_size: tuple[int, int] | None = None,
+    cents_x: float | None = None,
+) -> MonetaryGeometryRead:
+    """Label-free monetary read with optional page→canonical cents assignment.
+
+    When ``crop_bbox`` and ``image_size`` are provided, every digit glyph is
+    mapped from crop-local coordinates to canonical CMS centres before
+    dollars/cents assignment. Crop-local x is never used as the cents rule.
     """
     from PIL import Image
+
+    from packages.geometry_authority.cms1500_regions import (
+        CMS1500_CHARGE_CENTS_X,
+        CMS1500_UNITS_X0,
+    )
 
     if not hasattr(image, "convert"):
         image = Image.fromarray(image)
@@ -701,15 +995,95 @@ def read_monetary_crop(image, *, units_x: float | None = None) -> MonetaryGeomet
     band = gray[y0:y1, :] if y1 > y0 else gray
     ruling = find_cents_ruling(band)
     authorised = (y1 - y0) >= 8 and template_signature(gray) != "empty"
+    page_context = crop_bbox is not None and image_size is not None
+    cents_boundary = CMS1500_CHARGE_CENTS_X if cents_x is None else float(cents_x)
+    units_boundary = (
+        float(units_x)
+        if units_x is not None
+        else (CMS1500_UNITS_X0 if page_context else None)
+    )
+
+    # Preferred path: page glyphs → canonical CMS centres → dollars/cents.
+    if page_context:
+        try:
+            local_glyphs = _tess_digit_glyphs(image)
+        except Exception:  # noqa: BLE001
+            local_glyphs = []
+        if len(local_glyphs) >= 3:
+            mapped = map_crop_glyphs_to_canonical(
+                local_glyphs,
+                crop_bbox=crop_bbox,  # type: ignore[arg-type]
+                image_size=image_size,  # type: ignore[arg-type]
+                cents_x=cents_boundary,
+                units_x=units_boundary if units_boundary is not None else CMS1500_UNITS_X0,
+            )
+            canonical_read = reconstruct_from_canonical_glyphs(
+                mapped,
+                cents_x=cents_boundary,
+                units_x=units_boundary if units_boundary is not None else CMS1500_UNITS_X0,
+            )
+            if canonical_read.geometry_candidate and not canonical_read.ambiguous:
+                return canonical_read
+            # Fall through to crop-local readers only when canonical is unresolved;
+            # still attach mapped provenance so callers can inspect the attempt.
+            page_mapped = mapped
+        else:
+            page_mapped = []
+    else:
+        page_mapped = []
+
     rapid_read = None
     try:
         tokens = _rapid_tokens(image)
-        rapid_read = assemble_printed_tokens(
-            tokens,
-            ruling_x=ruling,
-            geometry_authorised=authorised,
-            units_x=units_x,
-        )
+        # When page context exists, convert token centres to canonical before
+        # assembly so cents are not taken from crop-local x.
+        if page_context and tokens:
+            canon_tokens: list[TextToken] = []
+            crop_x0, crop_y0, _c1, _c2 = crop_bbox  # type: ignore[misc]
+            for token in tokens:
+                page_cx = crop_x0 + token.cx
+                page_cy = crop_y0 + (token.y0 + token.y1) / 2.0
+                canon_cx, _cy = page_to_canonical(page_cx, page_cy, image_size)  # type: ignore[arg-type]
+                # Represent the token at its canonical x so assemble_printed_tokens
+                # compares against a canonical ruling, not crop-local pixels.
+                shift = canon_cx - token.cx
+                canon_tokens.append(
+                    TextToken(
+                        token.text,
+                        token.x0 + shift,
+                        token.y0,
+                        token.x1 + shift,
+                        token.y1,
+                    )
+                )
+            rapid_read = assemble_printed_tokens(
+                canon_tokens,
+                ruling_x=int(cents_boundary),
+                geometry_authorised=authorised,
+                units_x=units_boundary,
+            )
+            if rapid_read.geometry_candidate and not rapid_read.ambiguous:
+                return _with_provenance(
+                    MonetaryGeometryRead(
+                        rapid_read.raw_glyph_sequence,
+                        rapid_read.dollars,
+                        rapid_read.cents,
+                        rapid_read.decimal_visible,
+                        rapid_read.geometry_candidate,
+                        False,
+                        int(cents_boundary),
+                        tuple(rapid_read.reasons) + ("CANONICAL_TOKEN_CENTS",),
+                        canonical_monetary_value=rapid_read.geometry_candidate,
+                    ),
+                    page_glyphs=page_mapped,
+                )
+        else:
+            rapid_read = assemble_printed_tokens(
+                tokens,
+                ruling_x=ruling,
+                geometry_authorised=authorised,
+                units_x=units_x,
+            )
     except Exception:
         rapid_read = None
     rapid_digits = ""
@@ -724,11 +1098,11 @@ def read_monetary_crop(image, *, units_x: float | None = None) -> MonetaryGeomet
         and "RULING_TICK_DROPPED" in component_read.reasons
     ):
         # A dashed cents rule read as ``1`` must not become an extra dollar.
-        return component_read
+        return _with_provenance(component_read, page_glyphs=page_mapped)
     if rapid_read and rapid_read.geometry_candidate and not rapid_read.ambiguous:
-        return rapid_read
+        return _with_provenance(rapid_read, page_glyphs=page_mapped)
     if component_read.geometry_candidate and not component_read.ambiguous:
-        return component_read
+        return _with_provenance(component_read, page_glyphs=page_mapped)
     glyph_read = split_digit_glyphs(_tess_digit_glyphs(image))
     if glyph_read.geometry_candidate and not glyph_read.ambiguous:
         rapid_digits = ""
@@ -751,8 +1125,32 @@ def read_monetary_crop(image, *, units_x: float | None = None) -> MonetaryGeomet
                 ("GLYPH_TOKEN_MISMATCH", "AMBIGUOUS"),
             )
         else:
-            return glyph_read
+            return _with_provenance(glyph_read, page_glyphs=page_mapped)
+    if page_mapped and not (rapid_read and rapid_read.geometry_candidate):
+        # Prefer the canonical unresolved read so callers see page provenance.
+        unresolved = reconstruct_from_canonical_glyphs(
+            page_mapped,
+            cents_x=cents_boundary,
+            units_x=units_boundary if units_boundary is not None else CMS1500_UNITS_X0,
+        )
+        if rapid_read is not None and rapid_read.raw_glyph_sequence:
+            return MonetaryGeometryRead(
+                rapid_read.raw_glyph_sequence,
+                unresolved.dollars,
+                unresolved.cents,
+                rapid_read.decimal_visible,
+                unresolved.geometry_candidate,
+                True,
+                unresolved.ruling_x,
+                unresolved.reasons,
+                page_glyph_polygons=unresolved.page_glyph_polygons,
+                canonical_glyph_centres=unresolved.canonical_glyph_centres,
+                dollar_glyphs=unresolved.dollar_glyphs,
+                cents_glyphs=unresolved.cents_glyphs,
+                unit_zone_glyphs=unresolved.unit_zone_glyphs,
+                canonical_monetary_value=None,
+            )
+        return unresolved
     if rapid_read is not None:
-        return rapid_read
-    return glyph_read
-
+        return _with_provenance(rapid_read, page_glyphs=page_mapped)
+    return _with_provenance(glyph_read, page_glyphs=page_mapped)

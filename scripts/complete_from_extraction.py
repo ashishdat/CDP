@@ -180,6 +180,48 @@ def decide(extraction, family):
     deterministic = DeterministicEvidenceService()
     claim_id = extraction['document']['document_id']
     values = {f['field_name']: f['normalized_value'] for f in fields}
+    # Relationship checkbox OCR often validates INVALID while the ranked
+    # candidate still carries a shaped SELF/CHILD/SPOUSE/OTHER code. Feed that
+    # into claim evidence so Box 2/4 disagreement is interpreted correctly.
+    _REL_SHAPED = {
+        'SELF', 'CHILD', 'SPOUSE', 'OTHER',
+        '18', '19', 'G8',
+        '01', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12',
+        '13', '14', '15', '16', '17', '21', '22', '23', '24', '29', '32', '33',
+        '34', '36', '39', '40', '41', '43', '53',
+    }
+
+    def _shaped_relationship(raw: object) -> str | None:
+        text = str(raw or '').strip().upper()
+        if not text:
+            return None
+        if text in _REL_SHAPED:
+            return text
+        # Span selectors sometimes leave a leading code token.
+        token = text.split()[0].strip(',.;:')
+        if token in _REL_SHAPED:
+            return token
+        return None
+
+    for rel_field in ('rel_code', 'relationship', 'insured_relationship'):
+        if rel_field not in values:
+            continue
+        if values.get(rel_field) not in (None, ''):
+            continue
+        field_payload = next((f for f in fields if f.get('field_name') == rel_field), None)
+        if not field_payload:
+            continue
+        ranked = field_payload.get('ranked_candidate') or {}
+        ocr = ranked.get('ocr_candidate') or {}
+        shaped = _shaped_relationship(ocr.get('value'))
+        if shaped is None:
+            for row in field_payload.get('alternatives') or []:
+                alt = (row.get('ocr_candidate') or {}).get('value')
+                shaped = _shaped_relationship(alt)
+                if shaped is not None:
+                    break
+        if shaped is not None:
+            values[rel_field] = shaped
     # Existing cross-field facts feed the existing decision rules. No evidence acquisition.
     service_lines = extraction.get('service_lines') or []
     # Prefer observed service-line Σ when box-28 is empty, suspicious-tiny, or
@@ -411,6 +453,8 @@ def decide(extraction, family):
         # v12.2 gap: insured_name CONFLICT / short-fragment when patient_name is a
         # strong accepted SELF twin. Inject the observed patient ink as a
         # competitor so fragment / confusable relief can prefer it (no invention).
+        # Non-Self (CHILD/SPOUSE/OTHER): Box 2 and Box 4 are independent — never
+        # copy patient ink into insured_name.
         if name == 'insured_name':
             from packages.candidate_reconciliation.reconciler import (
                 _canonical_person_name,
@@ -424,8 +468,19 @@ def decide(extraction, family):
                 _names_differ_by_token_order,
                 _names_differ_by_tokenwise_confusable,
             )
+            from packages.geometry_authority.form_redundancy import relationship_is_self
+
+            relationship = (
+                values.get('insured_relationship')
+                or values.get('relationship')
+                or values.get('rel_code')
+            )
             patient_val = str(values.get('patient_name') or '').strip()
-            if patient_val and _name_is_strong_person(patient_val):
+            if (
+                relationship_is_self(relationship)
+                and patient_val
+                and _name_is_strong_person(patient_val)
+            ):
                 already = {
                     str(c.value or '').strip().casefold()
                     for c in candidates

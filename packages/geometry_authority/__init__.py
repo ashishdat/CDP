@@ -8,7 +8,9 @@ from .box28 import (
 )
 from .cms1500_regions import (
     CMS1500_BOX28,
+    CMS1500_CHARGE_CENTS_X,
     CMS1500_LINE_COLUMNS,
+    CMS1500_UNITS_X0,
     RegionVerdict,
     box28_contains,
     charge_region_verdict,
@@ -28,7 +30,9 @@ from .quality_lanes import (
 __all__ = [
     "CMS1500_BOX28",
     "CMS1500_BOX28_FULL",
+    "CMS1500_CHARGE_CENTS_X",
     "CMS1500_LINE_COLUMNS",
+    "CMS1500_UNITS_X0",
     "FormQualityLane",
     "QualityLaneDecision",
     "RegionVerdict",

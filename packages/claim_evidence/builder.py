@@ -517,6 +517,7 @@ class ClaimEvidenceBuilder:
             patient_norm = normalize_person_name(patient_name)
             insured_norm = normalize_person_name(insured_name)
             strong_patient = bool(patient_norm) and len(patient_norm.split()) >= 2
+            rel_present = relationship is not None and bool(str(relationship).strip())
             # Self printed with different Box 2 / Box 4 identities is a
             # relationship conflict — do not force equality and do not use
             # Box 11a to corroborate Box 3.
@@ -552,14 +553,9 @@ class ClaimEvidenceBuilder:
                             },
                         )
                     )
-            elif (
-                strong_patient
-                and relationship is not None
-                and str(relationship).strip()
-                and not relationship_is_self(relationship)
-            ):
+            elif strong_patient and rel_present and not relationship_is_self(relationship):
                 # Spouse / Child / Other: Box 2 ≠ Box 4 is expected. Validate
-                # the patient name from Box 2 alone.
+                # the patient name from Box 2 alone. Disagreement must not escalate.
                 evidence.append(
                     self._item(
                         claim_id,
@@ -571,6 +567,31 @@ class ClaimEvidenceBuilder:
                             "relationship": str(relationship).strip().upper(),
                             "patient_norm": patient_norm,
                             "insured_norm": insured_norm,
+                        },
+                    )
+                )
+            elif (
+                strong_patient
+                and not relationship_is_self(relationship)
+                and patient_norm
+                and insured_norm
+                and not names_agree(patient_name, insured_name)
+            ):
+                # Relationship unknown / unshaped: Box2≠Box4 is not a Self
+                # conflict. Calibrated clean-print Box 2 stands alone.
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "BOX2_INDEPENDENT_NAME_AUTHORITY",
+                        patient_norm,
+                        {
+                            "supported_fields": ["patient_name"],
+                            "reason": "CLEAN_PRINT_DIRECT_AUTHORITY",
+                            "patient_norm": patient_norm,
+                            "insured_norm": insured_norm,
+                            "relationship": (
+                                str(relationship).strip().upper() if rel_present else None
+                            ),
                         },
                     )
                 )

@@ -1900,16 +1900,35 @@ def recognize_service_lines(image, router, template):
                     value = None
                     reason = f'{reason}|BOX24F_WINDOW_REJECTED'
                 else:
-                    geo = read_monetary_crop(image.crop(bbox))
+                    geo = read_monetary_crop(
+                        image.crop(bbox),
+                        crop_bbox=tuple(float(v) for v in bbox),
+                        image_size=(int(image.width), int(image.height)),
+                    )
                     if geo.geometry_candidate and not geo.ambiguous:
-                        value = geo.geometry_candidate
+                        value = geo.canonical_monetary_value or geo.geometry_candidate
                         raw = geo.raw_glyph_sequence or raw
                         geometry_confirmed = True
                         reason = f'{reason}|GEOMETRY_CENTS'
                         attempts = list(attempts or []) + [{
                             'engine': 'rapidocr',
                             'reason': 'GEOMETRY_CENTS',
-                            'observation': {'text': geo.raw_glyph_sequence, 'shaped': value},
+                            'observation': {
+                                'text': geo.raw_glyph_sequence,
+                                'shaped': value,
+                                'raw_digit_sequence': geo.raw_glyph_sequence,
+                                'page_glyph_polygons': [
+                                    [list(pt) for pt in poly]
+                                    for poly in geo.page_glyph_polygons
+                                ],
+                                'canonical_glyph_centres': [
+                                    list(c) for c in geo.canonical_glyph_centres
+                                ],
+                                'dollar_glyphs': list(geo.dollar_glyphs),
+                                'cents_glyphs': list(geo.cents_glyphs),
+                                'unit_zone_glyphs': list(geo.unit_zone_glyphs),
+                                'canonical_monetary_value': geo.canonical_monetary_value,
+                            },
                         }]
             except Exception:  # noqa: BLE001
                 geometry_confirmed = False
@@ -2548,11 +2567,15 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             try:
                 from packages.geometry_authority.monetary_geometry import read_monetary_crop
 
-                geo = read_monetary_crop(image.crop(primary))
+                geo = read_monetary_crop(
+                    image.crop(primary),
+                    crop_bbox=tuple(float(v) for v in primary),
+                    image_size=(int(image.width), int(image.height)),
+                )
             except Exception:  # noqa: BLE001
                 geo = None
             if geo is not None and geo.geometry_candidate and not geo.ambiguous:
-                selected = geo.geometry_candidate
+                selected = geo.canonical_monetary_value or geo.geometry_candidate
                 dig_cands = list(dig_cands or [])
                 dig_cands.insert(0, {
                     'value': selected,
@@ -2579,7 +2602,20 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     'preprocessing_version': 'geometry-cents',
                     'registration_confidence': None,
                     'image_quality_score': None,
-                    'provenance': None,
+                    'provenance': {
+                        'raw_digit_sequence': geo.raw_glyph_sequence,
+                        'page_glyph_polygons': [
+                            [list(pt) for pt in poly]
+                            for poly in geo.page_glyph_polygons
+                        ],
+                        'canonical_glyph_centres': [
+                            list(c) for c in geo.canonical_glyph_centres
+                        ],
+                        'dollar_glyphs': list(geo.dollar_glyphs),
+                        'cents_glyphs': list(geo.cents_glyphs),
+                        'unit_zone_glyphs': list(geo.unit_zone_glyphs),
+                        'canonical_monetary_value': geo.canonical_monetary_value,
+                    },
                 })
                 dig_reason = f'{dig_reason}|GEOMETRY_CENTS'
             ok, accept_reason = semantic_accept(
