@@ -34,6 +34,9 @@ Hackathon claims were ~150–170s wall-clock each under 3 workers because:
 **Latency bar (this VM):** claim mean **≤30s**. Independent-300 v12.3h latency path was
 11.6s mean / 70% STP; v12.3i restores trail-aware near-miss + TrOCR + LightGlue for STP
 while keeping workers=1 (early ~13s mean, 0 REG on first 12). `--workers 2+` thrash
+on this 4-vCPU host was reconfirmed on hackathon_1000_cascade_v12: workers=2 mean
+~224s/claim vs workers=1 mean ~34s/claim (same product stamps). Prefer `--workers 1`
+for the full 1000; OCR/app process pools still amortize cold start.
 unless orphan OCR pools are killed and `CDP_VLM_CROP_LOCK=1` serializes Claude/gpt-4o.
 Opt out of product stamps with `CDP_CASCADE_RESPECT_ENV=1`.
 
