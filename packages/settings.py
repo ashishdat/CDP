@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     azure_openai_api_version: str = "2024-10-21"
     azure_openai_review_only: bool = True
 
+    # Anthropic Claude crop-only vision residual (Messages API).
+    anthropic_api_key: str | None = None
+    anthropic_model: str = "claude-sonnet-4-20250514"
+    anthropic_messages_endpoint: str = "https://api.anthropic.com/v1/messages"
+    anthropic_crop_residual_enabled: bool = False
+
     # Azure Document Intelligence prebuilt-read (cloud OCR residual). Distinct
     # from Azure OpenAI — requires its own endpoint + key. Review/shadow until
     # route promotion; PHI + region + authorization gates must all be true.

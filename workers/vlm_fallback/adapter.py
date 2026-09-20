@@ -254,6 +254,180 @@ class AzureOpenAIVisionAdapter(OpenAIVLLMAdapter):
                 part["image_url"]["detail"] = "high"
         return messages
 
+
+class AnthropicClaudeVisionAdapter:
+    """Anthropic Messages API crop-only vision adapter (Claude Sonnet).
+
+    Uses POST ``https://api.anthropic.com/v1/messages`` with temperature 0,
+    crop images only, and a strict JSON object matching ``VLMFieldResult``.
+    Credentials are supplied at runtime and never persisted on disk by this class.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        model: str = "claude-sonnet-4-20250514",
+        endpoint: str = "https://api.anthropic.com/v1/messages",
+        enabled: bool = True,
+        http_client: httpx.Client | None = None,
+        timeout_seconds: float = 60.0,
+        anthropic_version: str = "2023-06-01",
+        max_tokens: int = 1024,
+    ) -> None:
+        self._api_key = api_key
+        self._model = model
+        self._endpoint = endpoint.rstrip("/")
+        self._enabled = enabled
+        self._client = http_client or httpx.Client(timeout=timeout_seconds)
+        self._anthropic_version = anthropic_version
+        self._max_tokens = max_tokens
+        self.last_usage: dict[str, int] = {}
+
+    def extract_fields(
+        self, crops: dict[str, bytes], requests: list[VLMFieldRequest]
+    ) -> list[VLMFieldResult]:
+        if not self._enabled:
+            raise VLMDisabledError("Anthropic Claude vision adapter is disabled")
+        if not requests:
+            return []
+        if not self._api_key:
+            raise VLMResponseError("ANTHROPIC_API_KEY missing")
+
+        content: list[dict] = []
+        for field_name, image_bytes in crops.items():
+            encoded = base64.b64encode(image_bytes).decode("ascii")
+            content.append(
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "image/png",
+                        "data": encoded,
+                    },
+                }
+            )
+            # Tag which crop this is so multi-field requests stay aligned.
+            content.append({"type": "text", "text": f"[crop for field: {field_name}]"})
+        content.append({"type": "text", "text": self._build_prompt(requests)})
+
+        payload = {
+            "model": self._model,
+            "max_tokens": self._max_tokens,
+            "temperature": 0,
+            "messages": [{"role": "user", "content": content}],
+        }
+        response = self._client.post(
+            self._endpoint,
+            json=payload,
+            headers={
+                "x-api-key": self._api_key,
+                "anthropic-version": self._anthropic_version,
+                "content-type": "application/json",
+            },
+        )
+        if response.is_error:
+            try:
+                err = response.json().get("error") or {}
+                detail = {
+                    "status": response.status_code,
+                    "type": err.get("type"),
+                    "message": str(err.get("message") or response.text)[:500],
+                }
+            except (ValueError, AttributeError):
+                detail = {
+                    "status": response.status_code,
+                    "message": (response.text or "Anthropic request rejected")[:500],
+                }
+            raise VLMResponseError(json.dumps(detail))
+
+        body = response.json()
+        usage = body.get("usage") or {}
+        self.last_usage = {
+            "input_tokens": int(usage.get("input_tokens", 0)),
+            "output_tokens": int(usage.get("output_tokens", 0)),
+            "total_tokens": int(usage.get("input_tokens", 0))
+            + int(usage.get("output_tokens", 0)),
+        }
+        text_parts = [
+            block.get("text") or ""
+            for block in (body.get("content") or [])
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        raw_text = "\n".join(text_parts).strip()
+        parsed = self._parse_json_object(raw_text)
+        results = [
+            VLMFieldResult.model_validate(item) for item in parsed.get("fields", [])
+        ]
+        requested = {request.field_name for request in requests}
+        unsupported = {result.field_name for result in results} - requested
+        if unsupported:
+            raise VLMResponseError(
+                f"VLM returned unrequested field(s): {sorted(unsupported)}"
+            )
+        # Fill abstains for any requested field Claude omitted.
+        have = {result.field_name for result in results}
+        for name in requested - have:
+            results.append(
+                VLMFieldResult(
+                    field_name=name,
+                    value=None,
+                    confidence=0.0,
+                    insufficient_evidence=True,
+                    citation=None,
+                )
+            )
+        return results
+
+    def _build_prompt(self, requests: list[VLMFieldRequest]) -> str:
+        lines = [
+            (
+                "Extract the following fields using ONLY the evidence visible in the "
+                "provided image crop(s). Do not guess. If the evidence is unclear, "
+                "cut off, or absent, set insufficient_evidence=true and value=null "
+                "for that field rather than inventing a value."
+            ),
+            "",
+            "Respond with ONLY a JSON object of this exact shape (no markdown):",
+            '{"fields":[{"field_name":"...","value":"...|null","confidence":0.0,'
+            '"insufficient_evidence":false,"citation":null}]}',
+            f"field_name must be one of: {[r.field_name for r in requests]}",
+            "",
+        ]
+        for request in requests:
+            lines.append(
+                f"- {request.field_name} ({request.field_type}): "
+                f"{request.expected_description}"
+            )
+            if request.prior_ocr_candidates:
+                lines.append(
+                    f"  Prior OCR candidates (may be wrong): "
+                    f"{request.prior_ocr_candidates}"
+                )
+        return "\n".join(lines)
+
+    @staticmethod
+    def _parse_json_object(raw_text: str) -> dict:
+        text = (raw_text or "").strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.lower().startswith("json"):
+                text = text[4:].lstrip()
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+        start = text.find("{")
+        end = text.rfind("}")
+        if start >= 0 and end > start:
+            parsed = json.loads(text[start : end + 1])
+            if isinstance(parsed, dict):
+                return parsed
+        raise VLMResponseError("Claude response was not valid JSON object")
+
+
 class FlorenceVLMAdapter:
     def __init__(self, model_name: str, enabled: bool) -> None:
         self._model_name = model_name

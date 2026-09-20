@@ -486,14 +486,39 @@ def _crop_image(image: Image.Image, bbox: tuple[int, int, int, int]) -> Image.Im
 
 
 class _AzureGpt4oCropRecognizer:
-    """Production recognizer over an injected Azure OpenAI vision adapter."""
+    """Crop recognizer over Azure gpt-4o or Anthropic Claude Sonnet (env-selected)."""
 
-    def __init__(self, adapter: Any | None = None) -> None:
+    def __init__(self, adapter: Any | None = None, *, provider: str | None = None) -> None:
         self._adapter = adapter
+        self._provider = (provider or "").strip().casefold()
+        self.engine_name = "azure_gpt4o_crop"
+
+    def _resolve_provider(self) -> str:
+        if self._provider:
+            return self._provider
+        raw = (os.environ.get("CDP_CROP_VLM_PROVIDER") or "").strip().casefold()
+        if raw in {"claude", "anthropic", "sonnet"}:
+            return "claude"
+        try:
+            from packages.settings import Settings
+
+            if Settings().anthropic_crop_residual_enabled:
+                return "claude"
+        except Exception:  # noqa: BLE001
+            pass
+        return "gpt4o"
 
     def _ensure(self) -> Any:
         if self._adapter is not None:
             return self._adapter
+        provider = self._resolve_provider()
+        if provider == "claude":
+            from workers.vlm_fallback.factory import build_anthropic_claude_adapter
+
+            self._adapter = build_anthropic_claude_adapter(enabled=True, timeout_seconds=60.0)
+            self.engine_name = "anthropic_claude_crop"
+            return self._adapter
+
         from packages.settings import Settings
 
         if _build_gpt4o_vision_adapter is None:
@@ -518,6 +543,7 @@ class _AzureGpt4oCropRecognizer:
             enabled=True,
             timeout_seconds=45.0,
         )
+        self.engine_name = "azure_gpt4o_crop"
         return self._adapter
 
     def recognize_fields(
@@ -531,6 +557,13 @@ class _AzureGpt4oCropRecognizer:
         from packages.vlm_schema import VLMFieldRequest
 
         adapter = self._ensure()
+        provider = self._resolve_provider()
+        stamp = (
+            "ANTHROPIC_CLAUDE_CROP"
+            if provider == "claude"
+            else "AZURE_GPT4O_CROP"
+        )
+        reason_prefix = "CLAUDE" if provider == "claude" else "GPT4O"
         pngs: dict[str, bytes] = {}
         requests: list[VLMFieldRequest] = []
         for name, crop in crops.items():
@@ -562,9 +595,9 @@ class _AzureGpt4oCropRecognizer:
                 shaped_val, shaped = raw, False
             insuff = bool(item.insufficient_evidence) or not raw
             reason = (
-                "GPT4O_ABSTAIN"
+                f"{reason_prefix}_ABSTAIN"
                 if insuff
-                else ("GPT4O_SHAPED" if shaped else "GPT4O_UNSHAPED")
+                else (f"{reason_prefix}_SHAPED" if shaped else f"{reason_prefix}_UNSHAPED")
             )
             out[name] = Gpt4oCropResidualResult(
                 attempted=True,
@@ -575,9 +608,25 @@ class _AzureGpt4oCropRecognizer:
                 shaped=shaped and not insuff,
                 insufficient_evidence=insuff,
                 reason=reason,
+                engine=self.engine_name,
                 confidence=float(item.confidence),
-                validation_results=("AZURE_GPT4O_CROP",),
+                validation_results=(stamp,),
             )
+        for name in crops:
+            if name not in out:
+                out[name] = Gpt4oCropResidualResult(
+                    attempted=True,
+                    configured=True,
+                    review_only=True,
+                    value=None,
+                    raw_value=None,
+                    shaped=False,
+                    insufficient_evidence=True,
+                    reason=f"{reason_prefix}_MISSING_FIELD",
+                    engine=self.engine_name,
+                    confidence=0.0,
+                    validation_results=(stamp,),
+                )
         return out
 
 

@@ -7,6 +7,7 @@ from pathlib import Path
 from packages.retraining import CorrectionMemory
 from packages.settings import Settings
 from workers.vlm_fallback.adapter import (
+    AnthropicClaudeVisionAdapter,
     AzureOpenAIVisionAdapter,
     FlorenceVLMAdapter,
     OpenAIVLLMAdapter,
@@ -15,6 +16,10 @@ from workers.vlm_fallback.adapter import (
 
 
 class AzureProductionConfigurationError(RuntimeError):
+    pass
+
+
+class AnthropicConfigurationError(RuntimeError):
     pass
 
 
@@ -45,6 +50,29 @@ def build_azure_review_adapter(settings: Settings) -> AzureOpenAIVisionAdapter:
             Path(settings.correction_memory_path), limit=settings.correction_exemplar_limit
         ),
         tenant_id=settings.default_tenant_id,
+    )
+
+
+def build_anthropic_claude_adapter(
+    settings: Settings | None = None,
+    *,
+    api_key: str | None = None,
+    model: str | None = None,
+    enabled: bool = True,
+    timeout_seconds: float = 60.0,
+) -> AnthropicClaudeVisionAdapter:
+    """Build Claude Sonnet crop-only Messages API adapter."""
+    settings = settings or Settings()
+    key = api_key or settings.anthropic_api_key
+    if not key:
+        raise AnthropicConfigurationError("ANTHROPIC_API_KEY missing")
+    return AnthropicClaudeVisionAdapter(
+        api_key=key,
+        model=model or settings.anthropic_model or "claude-sonnet-4-20250514",
+        endpoint=settings.anthropic_messages_endpoint
+        or "https://api.anthropic.com/v1/messages",
+        enabled=enabled,
+        timeout_seconds=timeout_seconds,
     )
 
 

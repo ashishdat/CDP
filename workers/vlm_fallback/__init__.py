@@ -3,6 +3,7 @@ disabled by default (`VLM_ENABLED=false`). See adapter.py for the full
 list of enforced safety properties."""
 
 from workers.vlm_fallback.adapter import (
+    AnthropicClaudeVisionAdapter,
     AzureOpenAIVisionAdapter,
     OpenAIVLLMAdapter,
     VLMAdapter,
@@ -12,6 +13,7 @@ from workers.vlm_fallback.adapter import (
 from workers.vlm_fallback.factory import (
     AzureProductionConfigurationError,
     build_azure_review_adapter,
+    build_anthropic_claude_adapter,
 )
 from workers.vlm_fallback.schema import (
     VLMFieldRequest,
@@ -21,6 +23,7 @@ from workers.vlm_fallback.schema import (
 from workers.vlm_fallback.service import VLMFallbackService
 
 __all__ = [
+    "AnthropicClaudeVisionAdapter",
     "AzureOpenAIVisionAdapter",
     "AzureProductionConfigurationError",
     "OpenAIVLLMAdapter",
@@ -30,6 +33,7 @@ __all__ = [
     "VLMFieldRequest",
     "VLMFieldResult",
     "VLMResponseError",
+    "build_anthropic_claude_adapter",
     "build_azure_review_adapter",
     "build_response_json_schema",
 ]
