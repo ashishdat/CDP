@@ -33,11 +33,12 @@ no inventing amounts. Prefer fail-closed HITL over a wrong AUTO.
 
 ## Landed (this iteration)
 
-| Guard | Where |
+| Fix | Where |
 |---|---|
+| Dollars-ruling crop → whole dollars only (no `21240→212.40`) | `shape_dollars_ruling_amount` + `ocr_from_geometry` |
 | C1 bleed cents → `.00` sibling | `charge_total_authority.resolve_safe_charge_total` |
-| C1 non-`.00` Box28↔line AUTO needs glyph proof | `box28_line_sum_authority` predicate `bleed_cents_require_glyph_proof` |
 | C2 ruling-tail only when longer is ruling-tagged | `resolve_safe_charge_total` (never `251→25`) |
-| Untagged C2 abstain | `prefer_safe_charge_amount` |
-| CLAIM_TOTAL bind exact confirmed (not ±$1) | `scripts/complete_from_extraction.py` |
-| Wire before claim evidence | `complete_from_extraction.decide` |
+| CLAIM_TOTAL bind exact confirmed amount | `scripts/complete_from_extraction.py` |
+
+Removed: HITL-only `bleed_cents_require_glyph_proof` guard and silent `except: pass`
+wrappers around the charge resolver — fix the amount at source instead.

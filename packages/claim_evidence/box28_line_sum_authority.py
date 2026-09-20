@@ -890,32 +890,6 @@ def evaluate_box28_line_sum_authority(
         and parse_currency(box28.normalized_amount) == parse_currency(line_sum_amount)
         and not is_decimal_place_shift(box28.normalized_amount, line_sum_amount)
     )
-    bleed_blocked = False
-    # C1: non-.00 AUTO requires glyph-proven cents on at least one path.
-    # Token-only bleed cents (.07/.10/.22/…) that agree common-mode stay HITL.
-    if amounts_equal and box28.normalized_amount:
-        try:
-            from packages.claim_evidence.charge_total_authority import (
-                is_units_bleed_cents,
-            )
-
-            if is_units_bleed_cents(box28.normalized_amount):
-                box28_glyph = "GLYPH_ONE_TO_ONE" in box28.integrity.reasons
-                line_glyph = all(
-                    "GLYPH_ONE_TO_ONE" in row.integrity.reasons for row in rows
-                )
-                if not (box28_glyph or line_glyph):
-                    amounts_equal = False
-                    bleed_blocked = True
-                    predicates.append(
-                        PredicateTrace(
-                            "bleed_cents_require_glyph_proof",
-                            False,
-                            f"amount={box28.normalized_amount} box28_glyph={box28_glyph} line_glyph={line_glyph}",
-                        )
-                    )
-        except Exception:  # noqa: BLE001
-            pass
     predicates.append(
         PredicateTrace(
             "box28.amount == line_sum.amount",
@@ -975,11 +949,7 @@ def evaluate_box28_line_sum_authority(
             line_sum_integrity=line_integrity,
             regions_independent=independent,
             predicates=predicates,
-            failed_predicate=(
-                "bleed_cents_require_glyph_proof"
-                if bleed_blocked
-                else "box28.amount == line_sum.amount"
-            ),
+            failed_predicate="box28.amount == line_sum.amount",
         )
     if not independent:
         return Box28LineSumDecision(

@@ -792,6 +792,7 @@ def _recognize_charge_digits_only(image, bbox):
 
         from packages.ocr_portfolio import (
             prefer_charge_ink_amount,
+            shape_dollars_ruling_amount,
             shape_monetary,
             split_charge_at_vertical_ruling,
         )
@@ -825,14 +826,9 @@ def _recognize_charge_digits_only(image, bbox):
                 shaped = None
                 if profile == "dollars_ruling":
                     digits = "".join(ch for ch in raw if ch.isdigit())
-                    # Ruling crops that emit more digits than a CMS amount cell
-                    # can hold are soup — never append ".00" via span fallthrough.
-                    if digits and len(digits) <= 5:
-                        shaped = shape_monetary(digits) or (
-                            f"{digits}.00" if len(digits) >= 2 else None
-                        )
-                    else:
-                        continue
+                    # Dollars-only crop: whole dollars only — never invent cents
+                    # via implied decimal (21240 → 212.40 false accept).
+                    shaped = shape_dollars_ruling_amount(digits)
                 else:
                     shaped = shape_monetary(raw)
                 if not shaped:

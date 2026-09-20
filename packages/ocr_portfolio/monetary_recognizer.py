@@ -433,6 +433,31 @@ def prefer_charge_ink_amount(a: str | None, b: str | None) -> str | None:
     return a
 
 
+def shape_dollars_ruling_amount(text: str) -> str | None:
+    """Shape a dollars|cents-ruling left crop as whole dollars only.
+
+    The dollars-only crop has no cents column. Implied-decimal shaping
+    (``21240`` → ``212.40``) invents cents from ruling/cents-column bleed and
+    must not win over a full-window ``212.00``. Trailing ruling-tail digits
+    ``1/4/5`` are stripped; five-digit leftovers are rejected as soup.
+    """
+    digits = re.sub(r"\D", "", text or "")
+    if not digits or not (2 <= len(digits) <= 5):
+        return None
+    stem = digits
+    if len(stem) >= 3 and stem[-1] in {"1", "4", "5"}:
+        stem = stem[:-1]
+    if not (2 <= len(stem) <= 4):
+        return None
+    try:
+        amount = int(stem)
+    except ValueError:
+        return None
+    if not 1 <= amount <= 99999:
+        return None
+    return f"{amount}.00"
+
+
 def shape_monetary(text: str) -> str | None:
     recovered = recover_dollars_from_split_raw(text)
     if recovered:

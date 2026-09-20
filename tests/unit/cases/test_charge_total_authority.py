@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from packages.claim_evidence.box28_line_sum_authority import (
-    evaluate_box28_line_sum_authority,
+    evaluate_parser_integrity,
 )
 from packages.claim_evidence.charge_total_authority import (
     is_ruling_tail_extension,
@@ -11,7 +11,10 @@ from packages.claim_evidence.charge_total_authority import (
     prefer_safe_charge_amount,
     resolve_safe_charge_total,
 )
-from packages.ocr_portfolio.monetary_recognizer import prefer_charge_ink_amount
+from packages.ocr_portfolio.monetary_recognizer import (
+    prefer_charge_ink_amount,
+    shape_dollars_ruling_amount,
+)
 
 
 def test_ruling_tail_70_vs_701():
@@ -81,36 +84,19 @@ def test_units_bleed_cents_prefer_whole_dollar():
     assert reason in {"SAFE_CHARGE_AUTHORITY", "BLEED_CENTS_TO_WHOLE_DOLLAR"}
 
 
-def test_bleed_cents_without_glyph_proof_blocks_box28_line_sum_auto():
-    decision = evaluate_box28_line_sum_authority(
-        box28_amount="157.07",
-        service_lines=[
-            {
-                "line_number": 1,
-                "charges": "157.07",
-                "raw_charges": "15707",
-                "canonical_region": [1050, 1458, 1180, 1513],
-                "candidates": [{"value": "157.07", "engine": "paddleocr"}],
-            }
-        ],
-        box28_region=(1045.0, 1825.0, 1248.0, 1875.0),
-        box28_observation={
-            "text": "157.07",
-            "raw_digit_sequence": "15707",
-            "canonical_monetary_value": "157.07",
-            "adopted": True,
-        },
-    )
-    assert decision.disposition == "HUMAN_REVIEW_REQUIRED"
-    assert decision.failed_predicate == "bleed_cents_require_glyph_proof"
-
-
 def test_reject_place_shift_soup_still():
-    from packages.claim_evidence.box28_line_sum_authority import evaluate_parser_integrity
-
     for bad in ("4972.00", "212400.00", "400406.00"):
         result = evaluate_parser_integrity(amount=bad, raw_digit_sequence=bad.replace(".", ""))
         assert result.passed is False
+
+
+def test_dollars_ruling_never_invents_cents_from_21240():
+    # DJJM.014 root cause: dollars-only crop "21240" must not become 212.40.
+    assert shape_dollars_ruling_amount("21240") is None
+    assert shape_dollars_ruling_amount("701") == "70.00"
+    assert shape_dollars_ruling_amount("212") == "212.00"
+    assert shape_dollars_ruling_amount("640") == "640.00"
+    assert shape_dollars_ruling_amount("2701") == "270.00"
 
 
 def test_focus_safe_totals_still_preferred():

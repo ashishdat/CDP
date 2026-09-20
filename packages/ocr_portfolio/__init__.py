@@ -10,6 +10,7 @@ from .monetary_recognizer import (
     recognize_monetary_crop,
     resolve_service_charge,
     recover_dollars_from_split_raw,
+    shape_dollars_ruling_amount,
     shape_monetary,
     split_charge_at_vertical_ruling,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "resolve_service_charge",
     "recognize_monetary_crop",
     "recover_dollars_from_split_raw",
+    "shape_dollars_ruling_amount",
     "shape_monetary",
     "split_charge_at_vertical_ruling",
 ]
