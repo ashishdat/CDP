@@ -4,6 +4,9 @@ When ``CDP_ENV=production`` (or ``prod``), refuse unsafe local defaults:
 in-memory bus, sqlite, missing object-store credentials, and external AI
 without authorization gates. REVIEW_ONLY shadows must remain review-only.
 
+Production database preference: **MySQL** (``mysql+pymysql://``). Postgres
+remains accepted for legacy deploys.
+
 This does **not** authorize PHI processing — see docs/PRODUCTION_READINESS.md.
 """
 
@@ -16,6 +19,7 @@ from typing import Any
 
 import yaml
 
+from packages.db_engine import looks_like_mysql, looks_like_postgres, looks_like_sqlite
 from packages.runtime_profile.contracts import (
     ROOT,
     RuntimeDecisionProfile,
@@ -51,13 +55,15 @@ class ProductionValidationResult:
         raise RuntimeError(f"PRODUCTION_RUNTIME_INVALID: {detail}")
 
 
-def _looks_like_sqlite(url: str) -> bool:
-    lowered = (url or "").strip().casefold()
-    return lowered.startswith("sqlite:") or ":memory:" in lowered
-
-
 def _looks_like_default_minio(access_key: str, secret_key: str) -> bool:
     return access_key == "minioadmin" and secret_key == "minioadmin"
+
+
+def _production_database_ok(url: str) -> bool:
+    """Production accepts MySQL (preferred) or Postgres. SQLite is forbidden."""
+    if looks_like_sqlite(url):
+        return False
+    return looks_like_mysql(url) or looks_like_postgres(url)
 
 
 def validate_production_settings(settings: Settings) -> ProductionValidationResult:
@@ -71,11 +77,12 @@ def validate_production_settings(settings: Settings) -> ProductionValidationResu
                 "USE_IN_MEMORY_BUS must be false in production",
             )
         )
-    if _looks_like_sqlite(settings.database_url):
+    if not _production_database_ok(settings.database_url):
         issues.append(
             ProductionValidationIssue(
-                "SQLITE_FORBIDDEN",
-                "DATABASE_URL must be Postgres (or equivalent) in production",
+                "SQLITE_FORBIDDEN" if looks_like_sqlite(settings.database_url) else "UNSUPPORTED_DATABASE",
+                "DATABASE_URL must be MySQL (preferred) or Postgres in production "
+                "(mysql+pymysql://... or postgresql+psycopg://...)",
             )
         )
     if not (settings.object_store_access_key and settings.object_store_secret_key):

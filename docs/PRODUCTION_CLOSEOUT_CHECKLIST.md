@@ -57,12 +57,17 @@ python3 scripts/check_production_closeout.py
 
 ## Phase B — Infrastructure drills (parallel with A)
 
-### B1. Database (blocker #4)
+### B1. Database (blocker #4) — MySQL (preferred)
 
-- [ ] Apply `deploy/postgres/migrations` against prod-like Postgres
-- [ ] Backup → restore drill; record RTO and migration IDs
+Platform DB is **MySQL 8.4** (`DATABASE_URL=mysql+pymysql://...`). Postgres remains
+available only via compose profile `legacy-postgres`.
+
+- [ ] Provision MySQL 8.4 (InnoDB, utf8mb4) with non-default credentials
+- [ ] Apply `deploy/mysql/migrations` via `python3 scripts/apply_mysql_migrations.py`
+- [ ] Backup → restore drill (`mysqldump` / restore); record RTO and migration filenames
 - [ ] Retention / deletion workflow exercised
 - [ ] Attach evidence paths in launch record
+- [ ] See `deploy/mysql/README.md`
 
 ### B2. Staging cluster (blocker #5)
 

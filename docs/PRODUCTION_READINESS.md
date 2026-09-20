@@ -50,8 +50,10 @@ control before processing production PHI:
 3. ~~Complete and exercise the live validation, retry, VLM-escalation, and output
    consumer chain. Offline evaluation success is not a substitute for an
    end-to-end production event flow.~~ (Wired via Phase 7)
-4. Apply versioned database migrations against a production-like Postgres
+4. Apply versioned database migrations against a production-like **MySQL 8**
    environment and test backup, restore, retention, and deletion workflows.
+   *(MySQL is the preferred platform DB; see `deploy/mysql/` and
+   `scripts/apply_mysql_migrations.py`. Postgres remains legacy-only.)*
 5. Add deployment definitions for every live worker and validate Helm/KEDA,
    network policy, secret injection, resource limits, and rollback in a staging
    cluster. *(API charts for ingestion, human-review, and output are present;

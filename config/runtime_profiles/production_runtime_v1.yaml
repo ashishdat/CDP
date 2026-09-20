@@ -41,5 +41,6 @@ fail_closed:
   ai_gateway_enabled_without_phi_approval: false
   vlm_enabled_by_default: false
   shadow_review_only_cannot_auto: true
-  require_postgres: true
+  require_mysql_or_postgres: true
+  preferred_database: mysql
   require_object_store_credentials: true

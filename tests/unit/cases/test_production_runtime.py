@@ -55,7 +55,7 @@ def test_production_env_rejects_sqlite_and_in_memory_bus(monkeypatch):
 def test_production_env_rejects_unapproved_ai_gateway():
     result = validate_production_settings(
         Settings(
-            database_url="postgresql+psycopg://idp:secret@db:5432/idp",
+            database_url="mysql+pymysql://idp:secret@db:3306/idp",
             use_in_memory_bus=False,
             object_store_access_key="prod-key",
             object_store_secret_key="prod-secret",
@@ -69,7 +69,7 @@ def test_production_env_rejects_unapproved_ai_gateway():
 def test_production_env_rejects_azure_di_without_gates():
     result = validate_production_settings(
         Settings(
-            database_url="postgresql+psycopg://idp:secret@db:5432/idp",
+            database_url="mysql+pymysql://idp:secret@db:3306/idp",
             use_in_memory_bus=False,
             object_store_access_key="prod-key",
             object_store_secret_key="prod-secret",
@@ -86,7 +86,7 @@ def test_production_env_rejects_azure_di_without_gates():
 def test_production_env_accepts_hardened_defaults():
     result = validate_production_settings(
         Settings(
-            database_url="postgresql+psycopg://idp:secret@db:5432/idp",
+            database_url="mysql+pymysql://idp:secret@db:3306/idp",
             use_in_memory_bus=False,
             object_store_access_key="prod-key",
             object_store_secret_key="prod-secret",
@@ -99,6 +99,18 @@ def test_production_env_accepts_hardened_defaults():
     )
     assert result.ok
     assert result.issues == ()
+
+
+def test_production_env_still_accepts_postgres():
+    result = validate_production_settings(
+        Settings(
+            database_url="postgresql+psycopg://idp:secret@db:5432/idp",
+            use_in_memory_bus=False,
+            object_store_access_key="prod-key",
+            object_store_secret_key="prod-secret",
+        )
+    )
+    assert result.ok
 
 
 def test_assert_production_ready_raises_in_prod(monkeypatch):

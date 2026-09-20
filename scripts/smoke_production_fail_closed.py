@@ -84,7 +84,7 @@ def main() -> int:
 
     safe = validate_production_settings(
         Settings(
-            database_url="postgresql+psycopg://idp:secret@db:5432/idp",
+            database_url="mysql+pymysql://idp:secret@db:3306/idp",
             use_in_memory_bus=False,
             object_store_access_key="prod-key",
             object_store_secret_key="prod-secret",

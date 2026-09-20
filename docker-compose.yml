@@ -46,6 +46,7 @@ services:
       retries: 20
 
   postgres:
+    profiles: ["legacy-postgres"]
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: idp
@@ -61,6 +62,27 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-idp}
+      MYSQL_USER: ${MYSQL_USER:-idp}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-idp_dev_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-idp_root_dev_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=caching_sha2_password
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$$MYSQL_USER -p$$MYSQL_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
   redis:
     image: redis:7-alpine
@@ -123,7 +145,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -142,7 +164,7 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "workers.document_preparation.consumer"]
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -172,7 +194,7 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "workers.page_detection.consumer"]
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -202,7 +224,7 @@ services:
     restart: unless-stopped
     command: ["python", "-m", "workers.standard_form_extraction.consumer"]
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -218,7 +240,7 @@ services:
     volumes:
       - ocr_audit_data:/data
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -237,7 +259,7 @@ services:
       - ./evaluation_results/feedback:/data/feedback
       - ./evaluation_results:/evaluation_results:ro
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -254,7 +276,7 @@ services:
     command: ["python", "-m", "apps.human_review_api.consumer"]
     restart: unless-stopped
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redpanda:
         condition: service_healthy
@@ -265,7 +287,7 @@ services:
     command: ["python", "-m", "workers.retry.consumer"]
     restart: unless-stopped
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redpanda:
         condition: service_healthy
@@ -278,7 +300,7 @@ services:
     command: ["python", "-m", "workers.validation.consumer"]
     restart: unless-stopped
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       redpanda:
         condition: service_healthy
@@ -289,7 +311,7 @@ services:
     command: ["python", "-m", "workers.output_generation.consumer"]
     restart: unless-stopped
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -303,7 +325,7 @@ services:
     ports:
       - "8102:8002"
     depends_on:
-      postgres:
+      mysql:
         condition: service_healthy
       minio:
         condition: service_healthy
@@ -390,6 +412,7 @@ services:
 volumes:
   trusted_claims_mysql_data:
   postgres_data:
+  mysql_data:
   minio_data:
   redpanda_data:
   ocr_audit_data:

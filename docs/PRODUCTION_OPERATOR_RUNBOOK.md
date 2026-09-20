@@ -24,13 +24,14 @@ export CDP_PIPELINE_RELEASE=extraction-v2
 export CDP_RUNTIME_PROFILE=config/runtime_profiles/production_runtime_v1.yaml
 
 # Required for CDP_ENV=production (fail-closed):
-# DATABASE_URL=postgresql+psycopg://...
+# DATABASE_URL=mysql+pymysql://idp:...@mysql:3306/idp
 # OBJECT_STORE_ACCESS_KEY / OBJECT_STORE_SECRET_KEY  (not minioadmin)
 # USE_IN_MEMORY_BUS=false
 # AZURE_*_REVIEW_ONLY=true until route promotion
 # AI_GATEWAY_ENABLED=false unless PHI approved
 
 docker compose up -d
+python3 scripts/apply_mysql_migrations.py
 python3 scripts/smoke_production_fail_closed.py
 ```
 
