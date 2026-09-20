@@ -1009,6 +1009,15 @@ def read_monetary_crop(
             local_glyphs = _tess_digit_glyphs(image)
         except Exception:  # noqa: BLE001
             local_glyphs = []
+        rapid_digit_check = ""
+        try:
+            import re as _re_chk
+
+            rapid_digit_check = _re_chk.sub(
+                r"\D", "", " ".join(t.text for t in _rapid_tokens(image))
+            )
+        except Exception:  # noqa: BLE001
+            rapid_digit_check = ""
         if len(local_glyphs) >= 3:
             mapped = map_crop_glyphs_to_canonical(
                 local_glyphs,
@@ -1023,9 +1032,18 @@ def read_monetary_crop(
                 units_x=units_boundary if units_boundary is not None else CMS1500_UNITS_X0,
             )
             if canonical_read.geometry_candidate and not canonical_read.ambiguous:
-                return canonical_read
-            # Fall through to crop-local readers only when canonical is unresolved;
-            # still attach mapped provenance so callers can inspect the attempt.
+                # Tess under-reads (420 from 21200) must not beat a fuller Rapid
+                # digit string on the same crop.
+                geo_digits = "".join(
+                    ch for ch in canonical_read.raw_glyph_sequence if ch.isdigit()
+                )
+                if (
+                    not rapid_digit_check
+                    or rapid_digit_check == geo_digits
+                    or len(geo_digits) >= len(rapid_digit_check)
+                ):
+                    return canonical_read
+            # Fall through to crop-local / token readers; keep mapped provenance.
             page_mapped = mapped
         else:
             page_mapped = []

@@ -2575,11 +2575,23 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             except Exception:  # noqa: BLE001
                 geo = None
             if geo is not None and geo.geometry_candidate and not geo.ambiguous:
-                selected = geo.canonical_monetary_value or geo.geometry_candidate
+                import re as _re_geo
+
+                geo_val = geo.canonical_monetary_value or geo.geometry_candidate
+                geo_digits = _re_geo.sub(r'\D', '', geo.raw_glyph_sequence or '')
+                sel_digits = _re_geo.sub(r'\D', '', str(selected or ''))
+                # Under-read glyph sets (e.g. 420 from 212.00) must not replace a
+                # fuller currency observation already shaped for this Box 28 crop.
+                adopt_geometry = (
+                    not sel_digits
+                    or geo_digits == sel_digits
+                    or geo_val == selected
+                    or len(geo_digits) >= len(sel_digits)
+                )
                 dig_cands = list(dig_cands or [])
                 monetary_observation = {
                     'text': geo.raw_glyph_sequence,
-                    'shaped': selected,
+                    'shaped': geo_val,
                     'raw_digit_sequence': geo.raw_glyph_sequence,
                     'page_glyph_polygons': [
                         [list(pt) for pt in poly]
@@ -2592,9 +2604,10 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     'cents_glyphs': list(geo.cents_glyphs),
                     'unit_zone_glyphs': list(geo.unit_zone_glyphs),
                     'canonical_monetary_value': geo.canonical_monetary_value,
+                    'adopted': adopt_geometry,
                 }
                 dig_cands.insert(0, {
-                    'value': selected,
+                    'value': geo_val,
                     'raw_value': geo.raw_glyph_sequence,
                     'engine': 'rapidocr',
                     'model_name': 'geometry-cents',
@@ -2624,10 +2637,14 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 })
                 dig_attempts = list(dig_attempts or []) + [{
                     'engine': 'rapidocr',
-                    'reason': 'GEOMETRY_CENTS',
+                    'reason': 'GEOMETRY_CENTS' if adopt_geometry else 'GEOMETRY_CENTS_UNDERREAD',
                     'observation': monetary_observation,
                 }]
-                dig_reason = f'{dig_reason}|GEOMETRY_CENTS'
+                if adopt_geometry:
+                    selected = geo_val
+                    dig_reason = f'{dig_reason}|GEOMETRY_CENTS'
+                else:
+                    dig_reason = f'{dig_reason}|GEOMETRY_CENTS_UNDERREAD'
             ok, accept_reason = semantic_accept(
                 field['field'],
                 selected,
