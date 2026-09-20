@@ -1,0 +1,60 @@
+{
+  "source": "evaluation_results/hackathon_50_decide_line_charge_v1 (decide-only replay of hackathon_50_integrity_v1 OCR)",
+  "commit": "e568b90",
+  "decide_only": {
+    "n": 50,
+    "true_stp": 31,
+    "hitl": 19,
+    "charge_auto": 36
+  },
+  "priors": {
+    "locked50_decide_charge_plan_v1": {
+      "true_stp": 22,
+      "hitl": 28,
+      "charge_auto": 25
+    },
+    "integrity_v1_cascade": {
+      "true_stp": 26,
+      "hitl": 24,
+      "charge_auto": "31/50"
+    },
+    "interim_selector_before_box28_lock": {
+      "true_stp": 27,
+      "charge_auto": 32
+    }
+  },
+  "deltas_vs_prior_decide": {
+    "true_stp": "+9 (22→31)",
+    "charge_auto": "+11 (25→36)",
+    "hitl": "-9 (28→19)"
+  },
+  "evidence": {
+    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED_claims": 4,
+    "BOX28_LINE_SUM_CORROBORATED_claims": 23,
+    "FINANCIAL_CONFLICT_HITL_claims": 2
+  },
+  "critical_blockers_remaining": {
+    "total_charge": 14,
+    "patient_name": 5,
+    "patient_dob": 1
+  },
+  "gap_classes_remaining": {
+    "EVIDENCE_POLICY_GAP": 9,
+    "CALIBRATION_HITL": 6,
+    "LINE_SUM_UNCORROBORATED": 5
+  },
+  "focus": {
+    "unlocked": ["M048DJJF.002", "M048DJJM.012", "M048DJJM.014", "M048DJJM.002", "M048DJJF.013"],
+    "true_conflict_or_unreadable_hitl": ["M048DJJM.010", "M048DJJF.003"],
+    "still_calibration_or_policy": ["M048DJJM.013", "M048DJJM.021", "M048DJJM.028"],
+    "name_dob_tail": ["M048DJJM.019", "M048DJJM.020", "M048DJJM.023", "M048DJJM.025"]
+  },
+  "notes": [
+    "LineChargeSelector selects charge-column OCR only (no Box 28 / line-sum for selection).",
+    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED is an evidence-based calibration exception, not threshold fitting.",
+    "Box 28 line-sum rows now lock to SELECTED_LOCAL_CHARGE amounts (no geometry 6401/2601 override).",
+    "Same-stem Box 28 twins (1160.40 vs 1160.00) no longer force FINANCIAL_CONFLICT.",
+    "Decide-only STP is not full cascade; registration/E3 context can differ from integrity_v1 cascade recording.",
+    "Hackathon-100 cascade (29/100) predates this selector path and should not be read as the post-fix STP."
+  ]
+}

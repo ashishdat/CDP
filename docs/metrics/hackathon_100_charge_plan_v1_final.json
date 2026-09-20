@@ -1,0 +1,36 @@
+{
+  "source": "evaluation_results/hackathon_100_charge_plan_v1",
+  "commit_at_run": "35012c5 (pre LineChargeSelector)",
+  "note": "Full 100 finished after STAGE_FAILURE resume with CDP_OCR/APP_WORKER_POOL=0. This cascade predates LineChargeSelector + FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED; locked-50 decide-only after those changes is the charge-lever remeasure.",
+  "full_100": {
+    "n": 100,
+    "true_stp": 29,
+    "hitl": 62,
+    "stage_failure": 9,
+    "true_stp_rate_of_all": 0.29,
+    "true_stp_rate_of_completed": 0.3187,
+    "charge_auto_of_completed": "35/91",
+    "critical_blockers": {
+      "total_charge": 56,
+      "patient_name": 9,
+      "patient_dob": 2
+    },
+    "gap_classes": {
+      "CALIBRATION_HITL": 25,
+      "LINE_SUM_UNCORROBORATED": 23,
+      "EVIDENCE_POLICY_GAP": 18,
+      "AMBIGUOUS_DIGIT_FRAGMENTS": 1
+    }
+  },
+  "first_50_vs_integrity_v1": {
+    "charge_plan_first50_true_stp": 22,
+    "integrity_v1_true_stp": 26,
+    "first50_hitl_blockers": {
+      "total_charge": 26,
+      "patient_name": 5,
+      "patient_dob": 1
+    },
+    "delta_vs_integrity": -4
+  },
+  "generated_at": "2026-09-20T07:18:51.358229+00:00"
+}
