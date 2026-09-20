@@ -382,9 +382,8 @@ def decide(extraction, family):
         if should_defer_box28_to_line_sum(current_val, service_lines):
             values[charge_field] = None
 
-    # Authoritative member join for Lane C / overprinted residuals — exact ID
-    # only, and only when CDP_AUTHORIZED_MEMBER_INDEX is configured. Never uses
-    # Golden / agent labels as a lookup source.
+    # Authoritative member join telemetry only here. Identity fills happen after
+    # Field Value Authority so the join key must already be independently accepted.
     member_join_meta = None
     try:
         from packages.reference_enrichment.authorized_member_join import (
@@ -395,18 +394,6 @@ def decide(extraction, family):
         hit = join_member_by_id(mid)
         if hit is not None:
             member_join_meta = hit.to_dict()
-            if hit.patient_name and (
-                not str(values.get('patient_name') or '').strip()
-                or len(str(values.get('patient_name') or '')) < 4
-            ):
-                values['patient_name'] = hit.patient_name
-            if hit.insured_name and (
-                not str(values.get('insured_name') or '').strip()
-                or len(str(values.get('insured_name') or '')) < 4
-            ):
-                values['insured_name'] = hit.insured_name
-            if hit.patient_dob and not str(values.get('patient_dob') or '').strip():
-                values['patient_dob'] = hit.patient_dob
     except Exception:  # noqa: BLE001
         member_join_meta = None
 
@@ -585,6 +572,141 @@ def decide(extraction, family):
             structural_evidence_source='geometry' if localization is not None else None,
             structural_localization=localization,
             cross_field_evidence=set(check.cross_field_evidence) | facts.evidence_types_for(name))))
+
+    # Safe 94% path: authorized reference fills unresolved identity fields only
+    # when an independently AUTO-accepted member ID joins an authorized index.
+    # total_charge is never filled from reference.
+    reference_authority_meta: list[dict] = []
+    try:
+        from packages.candidate_reconciliation.contracts import EvidenceReference
+        from packages.evidence_decision.contracts import (
+            FieldDisposition,
+            NextAction,
+        )
+        from packages.reference_enrichment.critical_field_authority import (
+            REFERENCE_ELIGIBLE_FIELDS,
+            lookup_authorized_reference,
+            resolve_critical_field,
+        )
+
+        verified_member_id = None
+        for decision in decisions:
+            if decision.field_name not in {
+                'insured_id_number',
+                'member_id',
+                'subscriber_id',
+            }:
+                continue
+            if (
+                decision.disposition == FieldDisposition.AUTO_ACCEPTED
+                and str(decision.selected_value or '').strip()
+            ):
+                verified_member_id = str(decision.selected_value).strip()
+                break
+
+        document_date = None
+        for key in (
+            'date_of_service',
+            'service_date',
+            'admission_date',
+            'statement_from_date',
+        ):
+            raw = values.get(key)
+            if raw not in (None, ''):
+                document_date = str(raw).strip()[:10]
+                break
+
+        reference = (
+            lookup_authorized_reference(verified_member_id)
+            if verified_member_id
+            else None
+        )
+        if reference is not None:
+            member_join_meta = {
+                **(member_join_meta or {}),
+                'verified_member_id': verified_member_id,
+                'reference_authorized': bool(reference.get('authorized')),
+                'reference_version': reference.get('version'),
+            }
+
+        rebuilt: list = []
+        for decision in decisions:
+            name = decision.field_name
+            if name not in REFERENCE_ELIGIBLE_FIELDS:
+                rebuilt.append(decision)
+                continue
+            ocr_auto = decision.disposition in {
+                FieldDisposition.AUTO_ACCEPTED,
+                FieldDisposition.REFERENCE_CONFIRMED,
+            }
+            authority = resolve_critical_field(
+                field=name,
+                ocr_value=decision.selected_value,
+                ocr_auto=ocr_auto,
+                verified_member_id=verified_member_id,
+                reference=reference,
+                document_date=document_date,
+            )
+            if (
+                authority.disposition != 'AUTO_ACCEPTED'
+                or authority.evidence_type != 'AUTHORIZED_REFERENCE'
+                or not authority.value
+            ):
+                rebuilt.append(decision)
+                continue
+
+            check = deterministic.evaluate(
+                name, authority.value, claim_values=values
+            )
+            if not check.passed:
+                rebuilt.append(decision)
+                continue
+
+            # Authority already enforced exact-ID + authorized + effective-date.
+            # Promote to REFERENCE_CONFIRMED without OCR calibration gates.
+            supporting = list(decision.supporting_evidence)
+            supporting.append(
+                EvidenceReference(
+                    evidence_type='AUTHORIZED_REFERENCE',
+                    reference=str(
+                        authority.metadata.get('reference_version')
+                        or 'authorized-member-index'
+                    ),
+                    source='AUTHORIZED_REFERENCE',
+                    reason_code='EXACT_ID_AUTHORIZED_REFERENCE',
+                )
+            )
+            rebuilt.append(
+                decision.model_copy(
+                    update={
+                        'selected_value': authority.value,
+                        'disposition': FieldDisposition.REFERENCE_CONFIRMED,
+                        'calibrated_probability': 1.0,
+                        'reason_codes': [
+                            'AUTHORIZED_REFERENCE',
+                            'EXACT_ID_AUTHORIZED_REFERENCE',
+                            authority.reason,
+                            *sorted(check.evidence),
+                        ],
+                        'next_action': NextAction.NONE,
+                        'supporting_evidence': supporting,
+                    }
+                )
+            )
+            values[name] = authority.value
+            reference_authority_meta.append(
+                {
+                    'field': name,
+                    'value': authority.value,
+                    'reason': authority.reason,
+                    'evidence_type': authority.evidence_type,
+                    'metadata': dict(authority.metadata),
+                }
+            )
+        decisions = rebuilt
+    except Exception:  # noqa: BLE001
+        reference_authority_meta = []
+
     claim = services.claim_decision.decide(ClaimDecisionContext(
         claim_id=claim_id, document_family=family, field_decisions=decisions,
         claim_evidence=facts.evidence_items, contradictions=facts.contradictions,
@@ -610,6 +732,7 @@ def decide(extraction, family):
         'extracted_fields':fields,
         'registration_confidence':registration_confidence,
         'authorized_member_join': member_join_meta,
+        'authorized_reference_authority': reference_authority_meta,
         'missing_fields_basis':'Required policy fields absent or blank; invalid nonempty values are not missing.',
         'telemetry':{'extraction':extraction['telemetry']}}
 

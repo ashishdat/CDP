@@ -1,7 +1,11 @@
 {
-  "_comment": "Example only. Point CDP_AUTHORIZED_MEMBER_INDEX at an operator-authorized file. Never populate from Golden / agent labels. Exact member_id join only.",
+  "_comment": "Example only. Point CDP_AUTHORIZED_MEMBER_INDEX at an operator-authorized file. Never populate from Golden / agent labels. Exact member_id join only. Rows used for STP94 identity fill must set authorized + identity_verified.",
   "members": {
     "97739518": {
+      "authorized": true,
+      "identity_verified": true,
+      "effective_from": "2020-01-01",
+      "version": "intake-v1",
       "patient_name": null,
       "patient_dob": null,
       "insured_name": null,
