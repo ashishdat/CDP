@@ -294,6 +294,50 @@ def test_dual_vision_selects_when_locals_only_have_units_bleed():
     }
 
 
+def test_whole_dollar_place_shift_is_not_dollars_truncation():
+    """``116.00`` vs ``1165.00`` is digit insertion, not cents fuller."""
+    from packages.claim_evidence.line_charge_selector import _is_dollar_truncation
+
+    assert not _is_dollar_truncation("116.00", "1165.00")
+    assert _is_dollar_truncation("157.00", "157.07")
+    assert _is_dollar_truncation("129.00", "1291.15")
+
+
+def test_dual_vision_rejects_whole_dollar_place_shift_without_geo():
+    """DJJM.036-class: dual vision ``1165.00`` must not win via ``116.00`` stem."""
+    line = {
+        "charges": "1165.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "1165.00", "1165.00", _CHARGE_BBOX),
+            _cand("azure_gpt4o_crop", "1165.00", "1165.00", _CHARGE_BBOX),
+            _cand("paddleocr", "11.00", "11h5", _CHARGE_BBOX),
+            _cand("rapidocr", "116.00", "116.5", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.amount != "1165.00"
+    assert result.disposition == "AMBIGUOUS_LINE_CHARGE"
+
+
+def test_vision_fuller_beats_peer_place_shift_soup_without_dual_local():
+    """DJKH.018-class: Claude ``25.43`` + local ``25.00`` beats gpt-4o ``25143``."""
+    line = {
+        "charges": "25143.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "25.43", "25.43", _CHARGE_BBOX),
+            _cand("azure_gpt4o_crop", "25143.00", "25143.00", _CHARGE_BBOX),
+            _cand("paddleocr", "25.00", "25", _CHARGE_BBOX),
+            _cand("rapidocr", "14.00", "25\n14", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "25.43"
+    assert result.reason == "VISION_FULLER_STEM_WITHOUT_DUAL_LOCAL"
+
+
 def test_ruling_split_raw_reconstructs_cents():
     """Local ``34\\n25`` is dollars|cents ink, not a dual-local 25.00."""
     line = {
@@ -514,6 +558,7 @@ def test_ambiguous_without_amount_clears_unsupported_stale_charges():
 
 
 def test_ambiguous_keeps_charge_when_gpt4o_candidate_supports_it():
+    """gpt-4o fuller cents + local dollars stem selects without dual-local."""
     lines = [
         {
             "line_number": 1,
@@ -527,5 +572,7 @@ def test_ambiguous_keeps_charge_when_gpt4o_candidate_supports_it():
         }
     ]
     out = apply_line_charge_selector(lines)
-    assert out[0]["line_charge_selection"]["disposition"] == "AMBIGUOUS_LINE_CHARGE"
+    assert out[0]["line_charge_selection"]["disposition"] == "SELECTED_LOCAL_CHARGE"
+    assert out[0]["line_charge_selection"]["amount"] == "222.22"
+    assert out[0]["line_charge_selection"]["reason"] == "VISION_FULLER_STEM_WITHOUT_DUAL_LOCAL"
     assert out[0]["charges"] == "222.22"

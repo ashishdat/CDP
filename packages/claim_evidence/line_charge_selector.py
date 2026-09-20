@@ -385,6 +385,8 @@ def _is_dollar_truncation(short: str, longer: str) -> bool:
     """True when ``short`` is a dollars-ruling truncation of ``longer``.
 
     Examples: ``129.00`` vs geometry ``1291.15``, or ``129.00`` vs gpt-4o ``129.15``.
+    Whole-dollar place-shifts (``116.00`` vs ``1165.00``) are NOT truncations —
+    those insert a digit rather than truncating observed cents.
     """
     short_amt = parse_currency(short)
     long_amt = parse_currency(longer)
@@ -393,10 +395,16 @@ def _is_dollar_truncation(short: str, longer: str) -> bool:
     short_txt = format_currency(short_amt)
     long_txt = format_currency(long_amt)
     sd, ld = short_txt.split(".", 1)[0], long_txt.split(".", 1)[0]
-    if ld.startswith(sd) and len(ld) > len(sd):
-        return True
     # Same dollar stem; short is whole-dollar while longer carries observed cents.
     if sd == ld and short_txt.endswith(".00") and not long_txt.endswith(".00"):
+        return True
+    if ld.startswith(sd) and len(ld) > len(sd):
+        # Geometry / vision fuller embeds cents into a longer dollar run
+        # (129.00 vs 1291.15). Both-.00 digit insertions are place-shifts
+        # (116.00 vs 1165.00); cents-vs-whole-dollar inflation (116.50 vs
+        # 1165.00) is also not a dollars-ruling truncation.
+        if long_txt.endswith(".00"):
+            return False
         return True
     return False
 
@@ -438,6 +446,28 @@ def _geometry_cents_amount(line: dict) -> object | None:
     return None
 
 
+def _local_stem_corroborates(amount: str, line: dict, by_amount: dict[str, set[str]]) -> bool:
+    """True when a local engine carries dollars-ruling truncation of ``amount``."""
+    if any(
+        bool(families & _LOCAL_ENGINES) and _is_dollar_truncation(other, amount)
+        for other, families in by_amount.items()
+    ):
+        return True
+    for cand in line.get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        if _engine_family(cand.get("engine")) not in _LOCAL_ENGINES:
+            continue
+        for key in ("value", "raw_value"):
+            peer = parse_currency(cand.get(key))
+            if peer is None:
+                continue
+            peer_txt = format_currency(peer)
+            if _is_dollar_truncation(peer_txt, amount) or peer_txt == amount:
+                return True
+    return False
+
+
 def _dual_vision_select_without_dual_local(
     line: dict,
     *,
@@ -464,41 +494,21 @@ def _dual_vision_select_without_dual_local(
     if amt is None:
         return None
 
-    local_stem_ok = any(
-        bool(families & _LOCAL_ENGINES) and _is_dollar_truncation(other, amount)
-        for other, families in by_amount.items()
-    )
-    # Upstream value tokens that failed shaping still count as stem evidence.
-    for cand in line.get("candidates") or []:
-        if not isinstance(cand, dict):
-            continue
-        if _engine_family(cand.get("engine")) not in _LOCAL_ENGINES:
-            continue
-        for key in ("value", "raw_value"):
-            peer = parse_currency(cand.get(key))
-            if peer is None:
-                continue
-            peer_txt = format_currency(peer)
-            if _is_dollar_truncation(peer_txt, amount) or peer_txt == amount:
-                local_stem_ok = True
-                break
+    local_stem_ok = _local_stem_corroborates(amount, line, by_amount)
 
     geo_amt = _geometry_cents_amount(line)
     geo_place_shift = False
     if geo_amt is not None and amt is not None and geo_amt != amt:
         geo_txt = format_currency(geo_amt)
-        # Geometry is a ×10 / concatenated shell of the vision cents read.
         if is_decimal_place_shift(geo_txt, amount) or _is_dollar_truncation(
             amount if amt < geo_amt else geo_txt,
             geo_txt if amt < geo_amt else amount,
         ):
             geo_place_shift = True
-        # ``157.07`` vs geometry ``1571.07``: same digit run with inserted place.
         v_digits = re.sub(r"\D", "", amount)
         g_digits = re.sub(r"\D", "", geo_txt)
         if v_digits and g_digits and (
             g_digits == v_digits
-            or g_digits.startswith(v_digits[:-2] + "1" + v_digits[-2:])
             or (len(g_digits) == len(v_digits) + 1 and v_digits in g_digits)
         ):
             geo_place_shift = True
@@ -521,6 +531,66 @@ def _dual_vision_select_without_dual_local(
             if geo_amt is not None and geo_amt != amt
             else ()
         ),
+    )
+
+
+def _vision_fuller_select_without_dual_local(
+    line: dict,
+    *,
+    by_amount: dict[str, set[str]],
+    rejected: list[tuple[str, str]],
+) -> LineChargeSelection | None:
+    """Single vision fuller cents when the peer vision is place-shift soup.
+
+    Active rule from DJKH.018-class: Claude ``25.43`` + local ``25.00`` must win
+    even when gpt-4o emits ``25143.00`` soup and dual-local never forms.
+    """
+    vendor_amounts = _vision_vendor_amounts(line)
+    if not vendor_amounts:
+        return None
+    corroborated: list[str] = []
+    for amount in vendor_amounts:
+        if amount.endswith(".00"):
+            continue
+        if _local_stem_corroborates(amount, line, by_amount):
+            corroborated.append(amount)
+    if len(corroborated) != 1:
+        return None
+    amount = corroborated[0]
+    amt = parse_currency(amount)
+    if amt is None:
+        return None
+    v_digits = re.sub(r"\D", "", amount)
+
+    def _peer_is_soup(other: str) -> bool:
+        other_amt = parse_currency(other)
+        if other_amt is None:
+            return False
+        o_digits = re.sub(r"\D", "", other)
+        if is_decimal_place_shift(other, amount) or _is_dollar_truncation(amount, other):
+            return True
+        if v_digits and o_digits and v_digits in o_digits and len(o_digits) >= len(v_digits) + 1:
+            return True
+        # Inflated whole-dollar shells (25143.00 vs 25.43).
+        if other.endswith(".00") and other_amt >= amt * 50:
+            return True
+        return False
+
+    peers = [other for other in vendor_amounts if other != amount]
+    if peers and not all(_peer_is_soup(other) for other in peers):
+        return None
+
+    engines = set(by_amount.get(amount) or set()) | {"azure_gpt4o_crop"}
+    for other, families in by_amount.items():
+        if other == amount or _is_dollar_truncation(other, amount):
+            engines |= families
+    return LineChargeSelection(
+        "SELECTED_LOCAL_CHARGE",
+        amount,
+        "VISION_FULLER_STEM_WITHOUT_DUAL_LOCAL",
+        supporting_engines=tuple(sorted(engines)),
+        rejected=tuple(rejected[:12])
+        + tuple((peer, "VISION_PEER_PLACE_SHIFT_SOUP") for peer in peers),
     )
 
 
@@ -657,6 +727,11 @@ def select_line_charge(
         )
         if dual_vision is not None:
             return dual_vision
+        vision_fuller = _vision_fuller_select_without_dual_local(
+            line, by_amount=by_amount, rejected=rejected
+        )
+        if vision_fuller is not None:
+            return vision_fuller
         # Single local engine only — ambiguous without a second reader.
         singles = sorted(by_amount.keys())
         if len(singles) == 1 and len(by_amount[singles[0]] & _LOCAL_ENGINES) >= 1:
