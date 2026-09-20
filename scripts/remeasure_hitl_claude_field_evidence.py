@@ -160,33 +160,90 @@ def _field_bbox(field: dict[str, Any]) -> list[int] | None:
     return None
 
 
-def _page_image(ocr: dict[str, Any]):
+def _page_image(ocr: dict[str, Any], claim_dir: Path | None = None):
+    """Reconstruct rectified page the same way as Claude bakeoff (zip + warp)."""
     from PIL import Image
 
+    # Prefer explicit paths when present.
     geom_ref = ocr.get("geometry_reference")
-    if not geom_ref:
+    if geom_ref:
+        geom_path = Path(geom_ref)
+        if not geom_path.is_file():
+            geom_path = ROOT / geom_ref
+        if geom_path.is_file():
+            geom = json.loads(geom_path.read_text())
+            for key in ("page_image", "warped_page", "image_path", "rectified_page"):
+                page_path = geom.get(key)
+                if page_path and Path(page_path).is_file():
+                    return Image.open(page_path).convert("RGB")
+                if page_path and (ROOT / page_path).is_file():
+                    return Image.open(ROOT / page_path).convert("RGB")
+
+    if claim_dir is None:
         return None
-    geom_path = Path(geom_ref)
-    if not geom_path.is_file():
-        # relative to repo
-        alt = ROOT / geom_ref
-        if alt.is_file():
-            geom_path = alt
-        else:
-            return None
+    try:
+        import io
+
+        import cv2
+        import numpy as np
+        from zipfile import ZipFile
+    except ImportError:
+        return None
+
+    app_dirs = list((claim_dir / "application").glob("application-*"))
+    if not app_dirs:
+        # Remasure copies may omit application/ — fall back to base run claim.
+        claim_id = claim_dir.name
+        base_claim = BASE / "claims" / claim_id
+        app_dirs = list((base_claim / "application").glob("application-*"))
+        if app_dirs:
+            claim_dir = base_claim
+    if not app_dirs:
+        return None
+    app = app_dirs[0]
+    geom_path = app / "GeometryResult.json"
+    telem_path = app / "geometry_telemetry.json"
+    if not geom_path.exists() or not telem_path.exists():
+        return None
     geom = json.loads(geom_path.read_text())
-    page_path = geom.get("page_image") or geom.get("warped_page") or geom.get("image_path")
-    if not page_path:
-        doc = geom.get("document") or {}
-        page_path = doc.get("warped_page") or doc.get("page_image")
-    if not page_path:
+    telem = json.loads(telem_path.read_text())
+    src = telem.get("source") or {}
+    archive = src.get("archive")
+    entry = src.get("entry")
+    if not archive or not entry or not Path(archive).exists():
         return None
-    path = Path(page_path)
-    if not path.is_file():
-        path = ROOT / page_path
-    if not path.is_file():
-        return None
-    return Image.open(path).convert("RGB")
+    matrix = np.asarray(geom["source_to_geometry_transform"], dtype=float)
+    size = (2550, 3300)
+    rr = app / "registration_report.json"
+    if rr.exists():
+
+        def walk(obj):
+            if isinstance(obj, dict):
+                if isinstance(obj.get("size"), (list, tuple)) and len(obj["size"]) == 2:
+                    return int(obj["size"][0]), int(obj["size"][1])
+                for value in obj.values():
+                    found = walk(value)
+                    if found:
+                        return found
+            elif isinstance(obj, list):
+                for value in obj[:80]:
+                    found = walk(value)
+                    if found:
+                        return found
+            return None
+
+        found = walk(json.loads(rr.read_text()))
+        if found:
+            size = found
+    with ZipFile(archive) as zf:
+        payload = zf.read(entry)
+    with Image.open(io.BytesIO(payload)) as tiff:
+        tiff.seek(int(geom["page_number"]) - 1)
+        source = tiff.convert("L")
+        pixels = cv2.warpPerspective(
+            np.asarray(source), matrix, tuple(size), borderValue=255
+        )
+    return Image.fromarray(pixels).convert("RGB")
 
 
 def _live_claude(
@@ -197,17 +254,16 @@ def _live_claude(
     priors: list[str],
 ) -> dict[str, Any] | None:
     from packages.extraction_recovery.gpt4o_crop_residual import (
-        Gpt4oCropRecognizer,
         residual_candidate_dict,
         run_gpt4o_crop_residual,
     )
 
+    # Provider selected via CDP_CROP_VLM_PROVIDER / ANTHROPIC_CROP_RESIDUAL_ENABLED.
     result = run_gpt4o_crop_residual(
         image=image,
         bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
         field_name=field_name,
         prior_candidates=priors[:6],
-        engine=Gpt4oCropRecognizer(provider="claude"),
     )
     if not result.attempted or not result.shaped or not result.value:
         return None
@@ -232,6 +288,7 @@ def _inject_claude_into_ocr(
     gap_fields: list[str],
     bakeoff: dict[tuple[str, str], dict[str, Any]],
     allow_live: bool,
+    claim_dir: Path | None = None,
 ) -> dict[str, Any]:
     """Return mutation telemetry; mutates ``ocr`` in place."""
     telemetry: dict[str, Any] = {"injected": [], "skipped": [], "live": [], "bakeoff": []}
@@ -287,7 +344,7 @@ def _inject_claude_into_ocr(
             source = "bakeoff"
         elif allow_live:
             if page is None:
-                page = _page_image(ocr)
+                page = _page_image(ocr, claim_dir=claim_dir)
             if page is None:
                 telemetry["skipped"].append({"field": name, "reason": "PAGE_UNAVAILABLE"})
                 continue
@@ -387,6 +444,7 @@ def _process_one(
         gap_fields=[f for f in gap_fields if f in _VISION_FIELDS],
         bakeoff=bakeoff,
         allow_live=allow_live,
+        claim_dir=src_claim,
     )
     (ocr_dir / "OCRCandidates.json").write_text(json.dumps(ocr, indent=2))
     _write_json(ocr_dir / "claude_inject_telemetry.json", inject_tel)
