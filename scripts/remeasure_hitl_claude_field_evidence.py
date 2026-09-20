@@ -301,29 +301,21 @@ def _line_bbox(line: dict[str, Any]) -> list[int] | None:
 
 
 def _line_needs_vision(line: dict[str, Any]) -> bool:
-    """True when line lacks usable gpt4o/Claude + local consensus."""
+    """True when line lacks usable vision+local consensus on the selected charge.
+
+    Presence of a gpt4o/Claude candidate is not enough — place-shift rivals often
+    leave the selected amount uncorroborated. Only skip when consensus already holds.
+    """
     try:
         from packages.claim_evidence.line_sum_authority import (
             line_has_gpt4o_local_consensus,
-            parse_currency,
         )
     except Exception:  # noqa: BLE001
         return True
     try:
-        if line_has_gpt4o_local_consensus(line):
-            return False
+        return not line_has_gpt4o_local_consensus(line)
     except Exception:  # noqa: BLE001
-        pass
-    has_charge = parse_currency(line.get("charges") or line.get("charge_amount")) is not None
-    engines = {
-        str(c.get("engine") or "").casefold()
-        for c in (line.get("candidates") or [])
-        if isinstance(c, dict)
-    }
-    has_vision = any(
-        tok in e for e in engines for tok in ("gpt4o", "gpt-4o", "claude", "anthropic")
-    )
-    return (not has_vision) or (not has_charge)
+        return True
 
 
 def _inject_claude_into_ocr(
