@@ -1,18 +1,18 @@
 {
   "source": "evaluation_results/hackathon_50_decide_line_charge_v1",
-  "log": "evaluation_results/hackathon_50_decide_line_charge_v8.log",
-  "commit": "3261538",
+  "log": "evaluation_results/hackathon_50_decide_line_charge_v9.log",
+  "commit": "68539f9",
   "decide_only": {
     "n": 50,
-    "true_stp": 35,
-    "hitl": 15,
-    "charge_auto": 40
+    "true_stp": 44,
+    "hitl": 6,
+    "charge_auto": 45
   },
   "priors": {
-    "locked50_decide_derived_blank_v1_pre_identity_fix": {
-      "true_stp": 32,
-      "hitl": 18,
-      "charge_auto": 39
+    "locked50_decide_derived_blank_v1_pre_blocker_pass": {
+      "true_stp": 35,
+      "hitl": 15,
+      "charge_auto": 40
     },
     "locked50_decide_line_charge_v1": {
       "true_stp": 31,
@@ -20,53 +20,45 @@
       "charge_auto": 36
     }
   },
-  "deltas_vs_pre_identity_fix": {
-    "true_stp": "+3 (32\u219235)",
-    "charge_auto": "+1 (39\u219240)"
+  "deltas_vs_pre_blocker_pass": {
+    "true_stp": "+9 (35→44)",
+    "charge_auto": "+5 (40→45)",
+    "hitl": "-9 (15→6)"
   },
   "evidence": {
-    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED_claims": 8,
+    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED_claims": 16,
     "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES_claims": 0,
     "BOX28_LINE_SUM_CORROBORATED_claims": 23,
-    "FINANCIAL_CONFLICT_HITL_claims": 1,
-    "note": "DERIVED=0: every locked-50 Box 28 has currency-shaped OCR (INK_OBSERVED)."
+    "FINANCIAL_CONFLICT_HITL_claims": 7,
+    "note": "Self+distinct → BOX2_INDEPENDENT_NAME_AUTHORITY; label-only Box28 → CONFIRMED_BLANK; LINE_TOTALS soup rivals dropped; FG same-stem cents twins. DERIVED=0 this pass — unlocks came from FG + LINE_TOTALS conflict relief + identity E6."
   },
   "focus": {
     "unlocked_this_pass": [
-      "M048DJJM.020",
-      "M048DJJM.028",
-      "M048DJJF.006"
-    ],
-    "previously_unlocked": [
-      "M048DJJM.021"
-    ],
-    "charge_auto_claim_hitl_relationship": [
-      "M048DJJM.013",
-      "M048DJJM.011"
-    ],
-    "true_ambiguity_hitl": [
-      "M048DJJM.010",
-      "M048DJJM.008",
-      "M048DJJF.004",
+      "M048DJJF.003",
       "M048DJJF.009",
-      "M048DJJM.034",
-      "M048DJJM.035"
-    ],
-    "identity_tail_needs_authorized_index": [
-      "M048DJJM.019",
+      "M048DJJM.001",
+      "M048DJJM.011",
+      "M048DJJM.013",
+      "M048DJJM.022",
       "M048DJJM.023",
       "M048DJJM.025",
-      "M048DJJM.034",
-      "M048DJJM.035",
-      "M048DJJM.013"
-    ]
+      "M048DJJM.026"
+    ],
+    "remaining_true_hitl": {
+      "arithmetic_mismatch": ["M048DJJF.004"],
+      "line_totals_uncorroborated_single_line": ["M048DJJM.008", "M048DJJM.010"],
+      "dob_needs_independent_e2_under_box2_independent": ["M048DJJM.019"],
+      "handwritten_or_calibration": ["M048DJJM.034", "M048DJJM.035"]
+    }
   },
   "notes": [
-    ".020: confusable FRANCAVLLA\u2194FRANCAVILLA + MEMBER_RELATIONSHIP_CONFIRMED E6 \u2192 TRUE_STP.",
-    ".028: Box 28 $400300 junk-digit relief \u2192 \u03a3 400.00 FG; cleared CLAIM_TOTAL_CONTRADICTION \u2192 TRUE_STP.",
-    ".006: ROVINSKI\u2194ROVINSK confusable + BOX2_BOX4 \u2192 TRUE_STP.",
-    ".013: distinct Box2/Box4 identities under Self \u2014 correct HITL until authorized index.",
-    "Identity template: docs/reference/authorized_member_index.locked50.json (authorized=false until operator fill). Set CDP_AUTHORIZED_MEMBER_INDEX.",
-    "Ambiguity cases stay HITL; do not use line arithmetic to pick conflicting digits."
+    "Self checkbox with distinct Box2/Box4 emits BOX2_INDEPENDENT_NAME_AUTHORITY (E6) — not PATIENT_INSURED_RELATIONSHIP_CONFLICT.",
+    "Label-only Box28 caption OCR (8.TOTAL CHARGE) is CONFIRMED_BLANK for derived-total / LINE_TOTALS paths.",
+    "When LINE_TOTALS_RECONCILED owns the selected total, deferred Box28 OCR rivals are not FIELD_CONFLICT.",
+    "FG same-stem cents twins (346.04↔346.00) confirm printed Box28; junk-digit relief still preferred when raw supports Σ.",
+    "M.008/M.010 remain HITL: LINE_TOTALS_UNCORROBORATED (SINGLE_LINE_REQUIRES_DI / BOX28_OR_DI_CONFLICT) — C3 independent evidence gate.",
+    "F.004 remains true arithmetic mismatch (783 vs Σ 522).",
+    "M.019 DOB stays HITL under BOX2_INDEPENDENT (Box11a is insured DOB).",
+    "M.034/M.035 handwritten / calibration — no OCR invention."
   ]
 }
