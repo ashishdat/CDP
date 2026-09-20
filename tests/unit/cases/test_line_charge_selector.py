@@ -250,6 +250,50 @@ def test_dual_vision_overrides_geometry_cents_place_shift_soup():
     assert result.reason == "DUAL_VISION_FULLER_DOLLARS_STEM_CORROBORATED"
 
 
+def test_units_prefix_raw_keeps_trailing_dollars_stem():
+    """``70\\\\n157`` is units bleed then dollars, not dual-local 70.00."""
+    from packages.claim_evidence.line_charge_selector import _shaped_amount
+
+    shaped = _shaped_amount(_cand("paddleocr", "157.00", "70\n157", _CHARGE_BBOX))
+    assert shaped == "157.00"
+    shaped7 = _shaped_amount(_cand("paddleocr", "157.00", "7c\n157", _CHARGE_BBOX))
+    assert shaped7 == "157.00"
+
+
+def test_dual_vision_selects_when_locals_only_have_units_bleed():
+    """DJKH.008-class: Claude+gpt4o 157.07 wins with no dual-local 157.00."""
+    line = {
+        "charges": "1571.07",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "157.07", "157.07", _CHARGE_BBOX),
+            _cand("azure_gpt4o_crop", "157.07", "157.07", _CHARGE_BBOX),
+            # Upstream value is 157.00 but raw was units-prefix bleed.
+            _cand("paddleocr", "157.00", "70\n157", _CHARGE_BBOX),
+            _cand("rapidocr", "15710.00", "15710:", _CHARGE_BBOX),
+            _cand("rapidocr", "1571.00", "1571c", _CHARGE_BBOX),
+        ],
+        "attempts": [
+            {
+                "engine": "rapidocr",
+                "reason": "GEOMETRY_CENTS",
+                "observation": {
+                    "shaped": "1571.07",
+                    "canonical_monetary_value": "1571.07",
+                },
+            }
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "157.07"
+    assert result.reason in {
+        "DUAL_VISION_AGREEMENT_WITHOUT_DUAL_LOCAL",
+        "DUAL_VISION_FULLER_DOLLARS_STEM_CORROBORATED",
+        "VISION_FULLER_DOLLARS_STEM_CORROBORATED",
+    }
+
+
 def test_ruling_split_raw_reconstructs_cents():
     """Local ``34\\n25`` is dollars|cents ink, not a dual-local 25.00."""
     line = {

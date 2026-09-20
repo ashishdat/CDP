@@ -213,6 +213,7 @@ def _ruling_split_amount(raw: object) -> str | None:
     groups = re.findall(r"\d+", text)
     if len(groups) == 2 and 1 <= len(groups[0]) <= 5:
         dollars, tail = groups[0], groups[1]
+        split_mark = "\n" in text or "/" in text or "|" in text or "!" in text or " " in text
         # Classic dollars|cents: ``34\\n25``.
         if len(tail) == 2 and ("\n" in text or "/" in text or "|" in text):
             try:
@@ -223,10 +224,23 @@ def _ruling_split_amount(raw: object) -> str | None:
         # dollars stem). Treating leading ``00`` as dollars yields SELECTION_NOISE
         # ``0.00`` and drops dual-local agreement on the real ``212.00``.
         if (
-            ("\n" in text or "!" in text or " " in text)
+            split_mark
             and dollars in {"0", "00"}
             and len(tail) >= 2
             and not (len(tail) == 2 and tail.isdigit())
+        ):
+            try:
+                return format_currency(parse_currency(f"{int(tail)}.00"))
+            except (TypeError, ValueError):
+                return None
+        # Units/POS prefix then charge dollars (``70\\n157``, ``7c\\n157``):
+        # short leading token is Box 24G bleed; keep the longer dollars stem.
+        # Do not treat ``212\\n100`` this way — that is dollars then units.
+        if (
+            split_mark
+            and len(dollars) <= 2
+            and len(tail) >= 3
+            and dollars not in {"0", "00"}
         ):
             try:
                 return format_currency(parse_currency(f"{int(tail)}.00"))
@@ -236,7 +250,7 @@ def _ruling_split_amount(raw: object) -> str | None:
         # a longer junk tail): keep the leading dollars as whole dollars when
         # the tail is not a clean two-digit cents read.
         if (
-            ("\n" in text or "!" in text or " " in text)
+            split_mark
             and len(tail) >= 2
             and not (len(tail) == 2 and tail.isdigit() and "." in text)
         ):
@@ -387,6 +401,129 @@ def _is_dollar_truncation(short: str, longer: str) -> bool:
     return False
 
 
+def _vision_vendor_amounts(line: dict) -> dict[str, set[str]]:
+    """Map shaped charge → independent vision vendor ids (``claude`` / ``gpt4o``)."""
+    by_amount: dict[str, set[str]] = {}
+    for cand in line.get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        amount = _shaped_amount(cand)
+        if amount is None:
+            continue
+        eng = str(cand.get("engine") or "").casefold()
+        vendor = None
+        if "claude" in eng or "anthropic" in eng:
+            vendor = "claude"
+        elif "gpt4o" in eng or "gpt-4o" in eng:
+            vendor = "gpt4o"
+        if vendor is None:
+            continue
+        by_amount.setdefault(amount, set()).add(vendor)
+    return by_amount
+
+
+def _geometry_cents_amount(line: dict) -> object | None:
+    for attempt in line.get("attempts") or []:
+        if not isinstance(attempt, dict):
+            continue
+        if "GEOMETRY_CENTS" not in str(attempt.get("reason") or ""):
+            continue
+        obs = attempt.get("observation") or {}
+        shaped = (
+            obs.get("shaped")
+            or obs.get("canonical_monetary_value")
+            or obs.get("value")
+        )
+        return parse_currency(shaped)
+    return None
+
+
+def _dual_vision_select_without_dual_local(
+    line: dict,
+    *,
+    by_amount: dict[str, set[str]],
+    rejected: list[tuple[str, str]],
+) -> LineChargeSelection | None:
+    """Claude + gpt-4o agreement when locals never dual-agree (units-bleed soup).
+
+    Active rule from DJKH.008-class claims: dual independent vision on ``157.07``
+    must not fall through to ``NO_DUAL_LOCAL_AGREEMENT`` just because paddle/rapid
+    reshaped ``70\\\\n157`` into units bleed. Geometry place-shift soup
+    (``1571.07``) or a local dollars-stem of the vision amount corroborates.
+    """
+    vendor_amounts = _vision_vendor_amounts(line)
+    dual = [
+        amount
+        for amount, vendors in vendor_amounts.items()
+        if len(vendors) >= 2
+    ]
+    if len(dual) != 1:
+        return None
+    amount = dual[0]
+    amt = parse_currency(amount)
+    if amt is None:
+        return None
+
+    local_stem_ok = any(
+        bool(families & _LOCAL_ENGINES) and _is_dollar_truncation(other, amount)
+        for other, families in by_amount.items()
+    )
+    # Upstream value tokens that failed shaping still count as stem evidence.
+    for cand in line.get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        if _engine_family(cand.get("engine")) not in _LOCAL_ENGINES:
+            continue
+        for key in ("value", "raw_value"):
+            peer = parse_currency(cand.get(key))
+            if peer is None:
+                continue
+            peer_txt = format_currency(peer)
+            if _is_dollar_truncation(peer_txt, amount) or peer_txt == amount:
+                local_stem_ok = True
+                break
+
+    geo_amt = _geometry_cents_amount(line)
+    geo_place_shift = False
+    if geo_amt is not None and amt is not None and geo_amt != amt:
+        geo_txt = format_currency(geo_amt)
+        # Geometry is a ×10 / concatenated shell of the vision cents read.
+        if is_decimal_place_shift(geo_txt, amount) or _is_dollar_truncation(
+            amount if amt < geo_amt else geo_txt,
+            geo_txt if amt < geo_amt else amount,
+        ):
+            geo_place_shift = True
+        # ``157.07`` vs geometry ``1571.07``: same digit run with inserted place.
+        v_digits = re.sub(r"\D", "", amount)
+        g_digits = re.sub(r"\D", "", geo_txt)
+        if v_digits and g_digits and (
+            g_digits == v_digits
+            or g_digits.startswith(v_digits[:-2] + "1" + v_digits[-2:])
+            or (len(g_digits) == len(v_digits) + 1 and v_digits in g_digits)
+        ):
+            geo_place_shift = True
+
+    if not (local_stem_ok or geo_place_shift):
+        return None
+
+    engines = set(by_amount.get(amount) or set()) | {"azure_gpt4o_crop"}
+    for other, families in by_amount.items():
+        if other == amount or _is_dollar_truncation(other, amount):
+            engines |= families
+    return LineChargeSelection(
+        "SELECTED_LOCAL_CHARGE",
+        amount,
+        "DUAL_VISION_AGREEMENT_WITHOUT_DUAL_LOCAL",
+        supporting_engines=tuple(sorted(engines)),
+        rejected=tuple(rejected[:12])
+        + (
+            ((format_currency(geo_amt), "GEOMETRY_CENTS_OVERRIDDEN_BY_DUAL_VISION"),)
+            if geo_amt is not None and geo_amt != amt
+            else ()
+        ),
+    )
+
+
 def select_line_charge(
     line: dict | None,
     *,
@@ -515,6 +652,11 @@ def select_line_charge(
 
     winners = _rank(dual_local) or _rank(local_or_vision)
     if not winners:
+        dual_vision = _dual_vision_select_without_dual_local(
+            line, by_amount=by_amount, rejected=rejected
+        )
+        if dual_vision is not None:
+            return dual_vision
         # Single local engine only — ambiguous without a second reader.
         singles = sorted(by_amount.keys())
         if len(singles) == 1 and len(by_amount[singles[0]] & _LOCAL_ENGINES) >= 1:
