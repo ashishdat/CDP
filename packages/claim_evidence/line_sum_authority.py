@@ -218,6 +218,22 @@ def amounts_corroborate(left: object, right: object) -> bool:
     return a is not None and b is not None and a == b
 
 
+def amounts_same_stem_cents_twin(left: object, right: object) -> bool:
+    """True when amounts share dollars and differ by ≤ $1.00 (OCR twin noise)."""
+    a, b = parse_currency(left), parse_currency(right)
+    if a is None or b is None or a == b:
+        return False
+    la, lb = format_currency(a), format_currency(b)
+    if la.split(".", 1)[0] != lb.split(".", 1)[0]:
+        return False
+    return abs(a - b) <= Decimal("1.00")
+
+
+def amounts_corroborate_or_cents_twin(left: object, right: object) -> bool:
+    """Exact corroboration, or same-stem ≤ $1 OCR twin (157.00 vs 157.07)."""
+    return amounts_corroborate(left, right) or amounts_same_stem_cents_twin(left, right)
+
+
 def is_vision_crop_engine(engine: object) -> bool:
     """True for Azure gpt-4o / Anthropic Claude crop residuals (same evidence family)."""
     name = str(engine or "").strip().casefold()
@@ -652,7 +668,7 @@ def line_sum_auto_eligible(
                 continue
             corroborators_pre.append(value)
         if corroborators_pre and not any(
-            amounts_corroborate(total, value) for value in corroborators_pre
+            amounts_corroborate_or_cents_twin(total, value) for value in corroborators_pre
         ):
             # Plausible currency-shaped box-28 / DI disagrees → HITL.
             return False, "BOX28_OR_DI_CONFLICT"
@@ -669,7 +685,7 @@ def line_sum_auto_eligible(
             continue
         corroborators.append(value)
     if corroborators:
-        if any(amounts_corroborate(total, value) for value in corroborators):
+        if any(amounts_corroborate_or_cents_twin(total, value) for value in corroborators):
             return True, "BOX28_OR_DI_CORROBORATED"
         # Plausible currency-shaped box-28 / DI disagrees → HITL, not false STP.
         return False, "BOX28_OR_DI_CONFLICT"

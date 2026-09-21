@@ -433,6 +433,63 @@ def test_financial_geometry_relieves_box28_single_junk_digit():
         },
     )
     assert decision.confirmed
+    # Printed same-stem twin keeps Box 28; junk-digit raw relief applies when
+    # there is no same-stem shaped amount (see junk-digit-only case below).
+    assert decision.amount == "400.40"
+    assert decision.details.get("same_stem_cents_twin") is True
+
+
+def test_financial_geometry_relieves_box28_single_junk_digit_raw_only():
+    """Raw ``$400300`` with no clean disagreeing currency rival → adopt Σ ``400.00``."""
+    from packages.claim_evidence.financial_geometry_authority import (
+        evaluate_financial_geometry_arithmetic,
+    )
+
+    lines = [
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                _cand("paddleocr", "200.00", "200.00", _CHARGE_BBOX),
+                _cand("rapidocr", "200.00", "200.00", _CHARGE_BBOX),
+            ],
+        },
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                _cand("paddleocr", "200.00", "200.00", _CHARGE_BBOX),
+                _cand("rapidocr", "200.00", "200.00", _CHARGE_BBOX),
+            ],
+        },
+    ]
+    decision = evaluate_financial_geometry_arithmetic(
+        # Digit soup without a clean ``\d+\.\d{2}`` rival that would veto relief.
+        box28_amount="40040",
+        service_lines=lines,
+        box28_field_payload={
+            "ranked_candidate": {
+                "ocr_candidate": {"value": "40040", "raw_value": "$400300"}
+            },
+            "candidates": [
+                {"value": "40040", "raw_value": "$400300"},
+            ],
+            "attempts": [
+                {"observation": {"text": "$400300"}},
+            ],
+        },
+    )
+    assert decision.confirmed
     assert decision.amount == "400.00"
     assert decision.details.get("box28_raw_junk_digit_relieved") is True
 

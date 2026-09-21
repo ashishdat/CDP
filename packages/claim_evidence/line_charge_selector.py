@@ -15,6 +15,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
+from decimal import Decimal
+
 from packages.claim_evidence.line_sum_authority import (
     format_currency,
     is_decimal_place_shift,
@@ -418,6 +420,22 @@ def _is_dollar_truncation(short: str, longer: str) -> bool:
             return False
         return True
     return False
+
+
+def _is_same_stem_cents_twin(left: str, right: str) -> bool:
+    """True when amounts share dollars and differ by ≤ $1.00 (OCR twin noise).
+
+    ``640.00`` beside ``640.40`` is not a vision/geometry fuller read — both are
+    the same printed dollars stem with cents jitter. Only treat same-stem
+    cents as a fuller rival when vision actually carries the fuller amount.
+    """
+    a, b = parse_currency(left), parse_currency(right)
+    if a is None or b is None or a == b:
+        return False
+    la, lb = format_currency(a), format_currency(b)
+    if la.split(".", 1)[0] != lb.split(".", 1)[0]:
+        return False
+    return abs(a - b) <= Decimal("1.00")
 
 
 def _vision_vendor_amounts(line: dict) -> dict[str, set[str]]:
@@ -910,14 +928,19 @@ def select_line_charge(
     amount = top[0]
     # Dollars-ruling dual-local must not erase geometry / gpt-4o fuller reads
     # (129.00 vs GEOMETRY_CENTS 1291.15, or 129.00 vs gpt-4o 129.15).
+    # Same-stem cents twins (640.00 vs rapid 640.40) are OCR jitter — only a
+    # vision-backed fuller amount may outrank dual-local / local+vision dollars.
     fuller_rivals = [
         other
         for other in by_amount
         if other != amount
         and _is_dollar_truncation(amount, other)
         and (
-            quality_by_amount.get(other, 0) >= 3
-            or "azure_gpt4o_crop" in by_amount.get(other, set())
+            "azure_gpt4o_crop" in by_amount.get(other, set())
+            or (
+                quality_by_amount.get(other, 0) >= 3
+                and not _is_same_stem_cents_twin(amount, other)
+            )
         )
     ]
     if fuller_rivals:

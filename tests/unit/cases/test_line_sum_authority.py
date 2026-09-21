@@ -626,3 +626,36 @@ def test_decimal_place_shift_box28_is_deferrable_against_line_sum():
     assert should_defer_box28_to_line_sum("45000.00", lines)
     # Place-shift rivals stay CONFLICT-eligible (not ratio-ignored), but defer wins.
     assert not is_implausible_corroborator("45000.00", "450.00")
+
+
+def test_same_stem_cents_twin_box28_corroborates_line_sum():
+    """157.07 beside Σ 157.00 is OCR twin noise — corroborate, do not CONFLICT."""
+    from packages.claim_evidence.line_sum_authority import (
+        amounts_corroborate_or_cents_twin,
+        amounts_same_stem_cents_twin,
+    )
+
+    assert amounts_same_stem_cents_twin("157.00", "157.07")
+    assert amounts_corroborate_or_cents_twin("157.00", "157.07")
+    assert not amounts_corroborate("157.00", "157.07")
+
+    lines = [
+        {
+            "charges": "157.00",
+            "producing_engine": "paddleocr",
+            "candidates": [
+                {"value": "157.00", "engine": "paddleocr", "source_crop_id": "l1"},
+                {
+                    "value": "157.00",
+                    "engine": "azure_gpt4o_crop",
+                    "source_crop_id": "g1",
+                },
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(lines, box28_value="157.07")
+    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+
+    # True near-miss dollars still CONFLICT.
+    ok, reason = line_sum_auto_eligible(lines, box28_value="222.00")
+    assert not ok and reason == "BOX28_OR_DI_CONFLICT"

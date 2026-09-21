@@ -593,3 +593,97 @@ def test_ambiguous_keeps_charge_when_gpt4o_candidate_supports_it():
     assert out[0]["line_charge_selection"]["amount"] == "222.22"
     assert out[0]["line_charge_selection"]["reason"] == "VISION_FULLER_STEM_WITHOUT_DUAL_LOCAL"
     assert out[0]["charges"] == "222.22"
+
+
+def test_same_stem_cents_twin_does_not_force_dollars_truncation_ambiguity():
+    """Rapid ``640.40`` beside paddle+Claude ``640.00`` is OCR twin, not fuller.
+
+    DJJF.002-class false AMBIGUOUS left FG summing only one line → FINANCIAL_CONFLICT.
+    """
+    line = {
+        "charges": "640.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "640.00", "640.00", _CHARGE_BBOX),
+            _cand("rapidocr", "640.40", "640.400", _CHARGE_BBOX),
+            _cand("paddleocr", "64010.00", "64010", _CHARGE_BBOX),
+            _cand("anthropic_claude_crop", "640.00", "640.00", _CHARGE_BBOX),
+            _cand("rapidocr", "6401.00", "640100", _CHARGE_BBOX),
+        ],
+        "attempts": [
+            {
+                "engine": "rapidocr",
+                "reason": "GEOMETRY_CENTS",
+                "observation": {
+                    "shaped": "6401.00",
+                    "raw_digit_sequence": "640100",
+                    "canonical_monetary_value": "6401.00",
+                },
+            }
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "640.00"
+
+
+def test_djjf002_style_lines_sum_confirms_same_stem_box28():
+    """Full DJJF.002 path: select all lines, FG confirms 1160.40 twin of Σ 1160."""
+    from packages.claim_evidence.financial_geometry_authority import (
+        evaluate_financial_geometry_arithmetic,
+    )
+
+    lines = [
+        {
+            "charges": "640.00",
+            "canonical_region": list(_CHARGE_BBOX),
+            "candidates": [
+                _cand("paddleocr", "640.00", "640.00", _CHARGE_BBOX),
+                _cand("rapidocr", "640.40", "640.400", _CHARGE_BBOX),
+                _cand("anthropic_claude_crop", "640.00", "640.00", _CHARGE_BBOX),
+                _cand("rapidocr", "6401.00", "640100", _CHARGE_BBOX),
+            ],
+            "attempts": [
+                {
+                    "engine": "rapidocr",
+                    "reason": "GEOMETRY_CENTS",
+                    "observation": {
+                        "shaped": "6401.00",
+                        "canonical_monetary_value": "6401.00",
+                    },
+                }
+            ],
+        },
+        {
+            "charges": "260.00",
+            "canonical_region": list(_CHARGE_BBOX),
+            "candidates": [
+                _cand("paddleocr", "260.00", "260.00", _CHARGE_BBOX),
+                _cand("rapidocr", "260.00", "260.00", _CHARGE_BBOX),
+                _cand("rapidocr", "260.01", "260.01", _CHARGE_BBOX),
+                _cand("anthropic_claude_crop", "260.00", "260.00", _CHARGE_BBOX),
+                _cand("rapidocr", "2601.00", "260100", _CHARGE_BBOX),
+            ],
+        },
+        {
+            "charges": "260.00",
+            "canonical_region": list(_CHARGE_BBOX),
+            "candidates": [
+                _cand("paddleocr", "260.00", "260.00", _CHARGE_BBOX),
+                _cand("rapidocr", "260.00", "260.00", _CHARGE_BBOX),
+                _cand("anthropic_claude_crop", "260.00", "260.00", _CHARGE_BBOX),
+            ],
+        },
+    ]
+    selected = apply_line_charge_selector(lines)
+    assert all(
+        ln["line_charge_selection"]["disposition"] == "SELECTED_LOCAL_CHARGE"
+        for ln in selected
+    )
+    decision = evaluate_financial_geometry_arithmetic(
+        box28_amount="1160.40",
+        service_lines=selected,
+    )
+    assert decision.confirmed
+    assert decision.line_sum == "1160.00"
+    assert decision.amount == "1160.40"

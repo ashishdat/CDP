@@ -245,20 +245,29 @@ def _raw_matches_sum_with_single_junk_digit(line_sum: str, raw_texts: list[str])
         return False
     # A clean currency-shaped rival (``2605.00`` vs Σ ``260.00``) must keep HITL
     # even when a digit-only twin (``260500``) could drop one junk digit to Σ.
+    # Same-stem cents twins (``400.40`` beside Σ ``400.00``) do not veto — the
+    # caller prefers same-stem confirmation before invoking this helper.
     for text in raw_texts:
         raw = str(text or "")
         if not re.search(r"\d+\.\d{2}", raw):
             continue
         parsed = parse_currency(raw)
-        if parsed is not None and format_currency(parsed) != line_sum:
-            return False
+        if parsed is None:
+            continue
+        shaped = format_currency(parsed)
+        if shaped == line_sum or _same_stem_cents_twin(shaped, line_sum):
+            continue
+        return False
     for text in raw_texts:
         raw = str(text or "")
         # A clean money form that already disagrees is a real printed rival.
         if re.search(r"\d+\.\d{2}", raw):
             parsed = parse_currency(raw)
             if parsed is not None and format_currency(parsed) != line_sum:
-                continue
+                if _same_stem_cents_twin(format_currency(parsed), line_sum):
+                    pass
+                else:
+                    continue
         digits = re.sub(r"\D", "", raw)
         if not digits:
             continue
@@ -346,6 +355,22 @@ def evaluate_financial_geometry_arithmetic(
             details={"rows": details_rows},
         )
     if box != total:
+        # Same-stem OCR twins (``346.04`` beside Σ ``346.00`` / ``400.40`` beside
+        # ``400.00``) are not true arithmetic conflicts — keep the printed Box 28
+        # amount before attempting junk-digit raw relief.
+        if _same_stem_cents_twin(box_txt, line_sum):
+            return FinancialGeometryDecision(
+                True,
+                box_txt,
+                "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                line_sum=line_sum,
+                box28=box_txt,
+                details={
+                    "rows": details_rows,
+                    "same_stem_cents_twin": True,
+                    "line_sum": line_sum,
+                },
+            )
         raw_texts = _collect_box28_raw_texts(
             box28_field_payload, box28_observation, box28_amount
         )
@@ -363,20 +388,22 @@ def evaluate_financial_geometry_arithmetic(
                     "raw_texts": raw_texts[:8],
                 },
             )
-        # Same-stem OCR twins (``346.04`` beside Σ ``346.00``) are not true
-        # arithmetic conflicts — keep the printed Box 28 amount.
-        if _same_stem_cents_twin(box_txt, line_sum):
+        # Partial Σ from skipping AMBIGUOUS rows must not mint FINANCIAL_CONFLICT
+        # against Box 28 (DJJF.002: 260 of 1160 after cents-twin ambiguity).
+        skipped_incomplete = any(
+            row.get("amount") is None
+            and row.get("reason")
+            in {"AMBIGUOUS_LINE_CHARGE", "UNREADABLE_LINE_CHARGE"}
+            for row in details_rows
+        )
+        if skipped_incomplete:
             return FinancialGeometryDecision(
-                True,
-                box_txt,
-                "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                False,
+                None,
+                "PARTIAL_LINES_SKIPPED",
                 line_sum=line_sum,
                 box28=box_txt,
-                details={
-                    "rows": details_rows,
-                    "same_stem_cents_twin": True,
-                    "line_sum": line_sum,
-                },
+                details={"rows": details_rows},
             )
         return FinancialGeometryDecision(
             False,

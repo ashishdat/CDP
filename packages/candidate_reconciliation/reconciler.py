@@ -1948,8 +1948,21 @@ class EvidenceReconciler:
         elif reference_contradiction:
             decision = Decision.REVIEW
             reasons.append("REFERENCE_CONTRADICTION")
-        elif "FINANCIAL_CONFLICT_HITL" in deterministic:
-            # Arithmetic Box 28 ↔ Σ conflict is never equivalent-value soup.
+        elif (
+            "FINANCIAL_CONFLICT_HITL" in deterministic
+            and not (
+                deterministic
+                & {
+                    "CLAIM_TOTAL_CONFIRMED",
+                    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                    "BOX28_LINE_SUM_CORROBORATED",
+                    "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+                    "E6_COMPLETE_LINE_ARITHMETIC",
+                }
+            )
+        ):
+            # Arithmetic Box 28 ↔ Σ conflict is never equivalent-value soup —
+            # unless a confirmed financial authority already owns the amount.
             decision = Decision.REVIEW
             reasons.append("FINANCIAL_CONFLICT_HITL")
         elif not threshold_ok:

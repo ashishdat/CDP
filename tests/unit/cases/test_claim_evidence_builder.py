@@ -268,3 +268,95 @@ def test_spouse_disagreement_does_not_escalate_as_conflict():
     )
     assert "BOX2_INDEPENDENT_NAME_AUTHORITY" not in _types(result.evidence_items)
     assert "PATIENT_INSURED_RELATIONSHIP_CONFLICT" not in _types(result.contradictions)
+
+
+def test_confirmed_total_not_overridden_by_conflicting_box28_soup_rival():
+    """HJI6.016-class: Box 28 == Σ, but a rival OCR (560) must not mint CONFLICT."""
+    payload = {
+        "ranked_candidate": {
+            "ocr_candidate": {
+                "value": "160.00",
+                "raw_value": "1. 60 00",
+                "engine": "rapidocr",
+            }
+        },
+        "alternatives": [
+            {
+                "ocr_candidate": {
+                    "value": "560.00",
+                    "raw_value": "560.00.",
+                    "engine": "paddleocr",
+                }
+            }
+        ],
+        "candidates": [
+            {"value": "160.00", "raw_value": "1. 60 00", "engine": "rapidocr"},
+            {"value": "560.00", "raw_value": "560.00.", "engine": "paddleocr"},
+        ],
+    }
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="hji6",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "160.00",
+            "_box28_field_payload": payload,
+        },
+        service_lines=[
+            {
+                "charges": "160.00",
+                "line_charge_selection": {
+                    "disposition": "SELECTED_LOCAL_CHARGE",
+                    "amount": "160.00",
+                    "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                },
+                "candidates": [
+                    {"value": "160.00", "engine": "paddleocr"},
+                    {"value": "160.00", "engine": "rapidocr"},
+                ],
+            }
+        ],
+    )
+    types = _types(result.evidence_items)
+    assert "CLAIM_TOTAL_CONFIRMED" in types
+    assert "FINANCIAL_CONFLICT_HITL" not in types
+
+
+def test_partial_line_selection_does_not_mint_financial_conflict():
+    """Ambiguous skipped rows → PARTIAL_LINES_SKIPPED, never under-sum CONFLICT."""
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="partial",
+        document_family="CMS1500",
+        claim_values={"total_charge": "1160.40"},
+        service_lines=[
+            {
+                "charges": "640.00",
+                "line_charge_selection": {
+                    "disposition": "AMBIGUOUS_LINE_CHARGE",
+                    "amount": None,
+                    "reason": "DOLLARS_TRUNCATION_VS_FULLER_READ",
+                },
+            },
+            {
+                "charges": "260.00",
+                "line_charge_selection": {
+                    "disposition": "AMBIGUOUS_LINE_CHARGE",
+                    "amount": None,
+                    "reason": "DOLLARS_TRUNCATION_VS_FULLER_READ",
+                },
+            },
+            {
+                "charges": "260.00",
+                "line_charge_selection": {
+                    "disposition": "SELECTED_LOCAL_CHARGE",
+                    "amount": "260.00",
+                    "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                },
+                "candidates": [
+                    {"value": "260.00", "engine": "paddleocr"},
+                    {"value": "260.00", "engine": "rapidocr"},
+                ],
+            },
+        ],
+    )
+    types = _types(result.evidence_items)
+    assert "FINANCIAL_CONFLICT_HITL" not in types

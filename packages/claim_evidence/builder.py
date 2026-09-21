@@ -797,6 +797,13 @@ class ClaimEvidenceBuilder:
                 for item in contradictions
                 if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
             ]
+            # Stale FINANCIAL_CONFLICT from an earlier pass / rival soup must not
+            # survive confirmed arithmetic (CLAIM_TOTAL_CONFIRMED + CONFLICT HITL).
+            evidence[:] = [
+                item
+                for item in evidence
+                if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+            ]
             for key in ("total_charge", "total_charges", "claim_total"):
                 if key in values or key == "total_charge":
                     values[key] = decision.amount
@@ -823,6 +830,19 @@ class ClaimEvidenceBuilder:
             "DECIMAL_SHIFT_CONFLICT",
             "CONFLICTING_BOX28_CANDIDATE",
         }:
+            # Do not mint CONFLICT when Box 28 ↔ Σ already confirmed (tolerance
+            # path) or when FG only saw a partial line selection.
+            already_confirmed = any(
+                item.evidence_type
+                in {
+                    "CLAIM_TOTAL_CONFIRMED",
+                    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                    "BOX28_LINE_SUM_CORROBORATED",
+                }
+                for item in evidence
+            )
+            if already_confirmed:
+                return
             evidence.append(
                 self._item(
                     claim_id,
