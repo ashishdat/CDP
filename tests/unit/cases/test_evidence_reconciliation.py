@@ -151,6 +151,52 @@ def test_line_totals_e6_can_authorize_total_charge_without_second_engine():
     assert "LINE_TOTALS_CORROBORATED" in result.rationale_codes
 
 
+def test_line_sum_scale_twin_does_not_veto_the_smaller_total():
+    """Box 28 25000 must not keep line Σ 250 in review once line totals own it."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate("250.00", "rapidocr", 0.99),
+            _candidate("25000.00", "paddleocr", 0.98),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_CORROBORATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "250.00"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_inflated_box28_scale_twin_stays_in_review():
+    """Do not auto-accept Box 28 25000 just because line Σ 250 is a scale twin."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate("25000.00", "paddleocr", 0.99),
+            _candidate("250.00", "rapidocr", 0.98),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_CORROBORATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.selected_value == "25000.00"
+    assert result.decision != Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
+
+
 def test_line_totals_without_corroboration_does_not_financial_auto():
     """Bare LINE_TOTALS (no dual-engine / DI) must not E6-AUTO critical charge."""
     result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(

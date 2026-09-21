@@ -2029,10 +2029,20 @@ class EvidenceReconciler:
                     # Same confirmed amount — not a conflict.
                     if other_amt == primary_amt and not is_decimal_place_shift(value, other):
                         continue
-                    # ×100 cents-column and dropped-digit twins are real conflicts.
-                    # Line-sum authority must not swallow them as OCR soup.
+                    # ×10/×100 and dropped-digit twins are real conflicts when the
+                    # selected amount is the inflated Box 28. Once line Σ owns the
+                    # smaller amount (250 vs Box 28 25000), the twin is the same
+                    # ink at the wrong scale and must not veto AUTO.
                     if is_scale_shift(value, other) or is_currency_digit_drop_twin(value, other):
-                        cleared.append(other)
+                        line_sum_is_smaller_scale = (
+                            line_totals_owns
+                            and is_scale_shift(value, other)
+                            and primary_amt is not None
+                            and other_amt is not None
+                            and primary_amt < other_amt
+                        )
+                        if not line_sum_is_smaller_scale:
+                            cleared.append(other)
                         continue
                     # When line Σ owns the selected total, deferred Box 28 OCR
                     # rivals are soup — not a second printed claim total.
