@@ -150,13 +150,8 @@ def _looks_like_units_concat(amount: str, peers: set[str]) -> bool:
 
 def _looks_like_place_shift(amount: str, peers: set[str]) -> bool:
     """Reject ``4972.00`` when ``49.72`` is an observed peer."""
-    digits = re.sub(r"\D", "", amount)
-    if len(digits) < 4:
-        return False
-    if amount.endswith(".00") and len(_dollars_digits(amount)) >= 4:
-        shifted = f"{digits[:-2]}.{digits[-2:]}"
-        if shifted in peers and shifted != amount:
-            return True
+    if _is_concat_place_shift_shell(amount, peers):
+        return True
     amt = parse_currency(amount)
     if amt is None:
         return False
@@ -170,6 +165,22 @@ def _looks_like_place_shift(amount: str, peers: set[str]) -> bool:
         if is_decimal_place_shift(amount, peer) and amt > peer_amt:
             return True
     return False
+
+
+def _is_concat_place_shift_shell(amount: str, peers: set[str]) -> bool:
+    """True for bare ``4972.00`` shells whose ``49.72`` peer is also observed.
+
+    Uses dollar digits only (not the trailing ``00`` cents) so ``4972.00`` maps
+    to peer ``49.72``. Short stems like ``175.00`` (3 dollar digits) are not
+    concat shells — those are handled as ×100 under-reads vs ``1.75``.
+    """
+    if not amount.endswith(".00"):
+        return False
+    dollars = _dollars_digits(amount)
+    if len(dollars) < 4:
+        return False
+    shifted = f"{dollars[:-2]}.{dollars[-2:]}"
+    return shifted in peers and shifted != amount
 
 
 def _row_band_ok(
@@ -718,8 +729,18 @@ def select_line_charge(
             rejected.append((amount, "UNITS_CONCAT_BLEED"))
             continue
         if _looks_like_place_shift(amount, peer_amounts):
-            rejected.append((amount, "PLACE_SHIFT_SOUP"))
-            continue
+            # Concat shells (4972.00 vs 49.72) always reject. ×10/×100 under-reads
+            # (paddle 1.75 vs rapid+Claude 175.00) keep the vision+local fuller
+            # amount so GEOMETRY_CENTS_PLACE_SHIFT_RESOLVED cannot lock onto 1.75.
+            if _is_concat_place_shift_shell(amount, peer_amounts):
+                rejected.append((amount, "PLACE_SHIFT_SOUP"))
+                continue
+            vision_and_local = any(
+                a == amount and fam == "azure_gpt4o_crop" for a, fam, _ in usable
+            ) and any(a == amount and fam in _LOCAL_ENGINES for a, fam, _ in usable)
+            if not vision_and_local:
+                rejected.append((amount, "PLACE_SHIFT_SOUP"))
+                continue
         quality = _candidate_evidence_quality(cand, amount)
         # Concatenated shells (6401 / 2601 / 4972) are never SELECTED alone —
         # keep them as conflict evidence for verification / HITL.

@@ -94,6 +94,23 @@ def test_place_shift_4972_rejected_when_49_72_present():
     assert result.amount == "49.72"
 
 
+def test_vision_fuller_not_vetoed_by_local_underread_place_shift():
+    """DJJM.016-class: paddle 1.75 must not mark rapid+Claude 175.00 as soup."""
+    line = {
+        "charges": "1.75",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "1.75", "1\n1.75\n0", _CHARGE_BBOX),
+            _cand("rapidocr", "175.00", "1\nia\n175.", _CHARGE_BBOX),
+            _cand("anthropic_claude_crop", "175.00", "175.00", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "175.00"
+    assert result.amount != "1.75"
+
+
 def test_bare_digit_soup_alone_is_ambiguous_not_selected():
     """4972 with no observed-decimal peer stays conflict/HITL, not SELECTED."""
     line = {
