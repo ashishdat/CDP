@@ -775,11 +775,12 @@ def test_geometry_scale_shift_does_not_outrank_dual_local_dollars():
     }
     line["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
     result = select_line_charge(line)
-    assert result.disposition == "AMBIGUOUS_LINE_CHARGE"
-    assert result.amount is None
-    assert result.reason == "GEOMETRY_SCALE_SHIFT_NOT_VISION_FULLER"
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "157.00"
+    assert result.reason == "DUAL_LOCAL_CHARGE_COLUMN"
+    assert ("1571.07", "GEOMETRY_SCALE_SHIFT") in result.rejected
     out = apply_line_charge_selector([line])
-    assert out[0]["charges"] is None
+    assert out[0]["charges"] == "157.00"
 
 
 def test_geometry_ruling_tick_is_not_digit_drop_fuller():

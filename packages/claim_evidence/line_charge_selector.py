@@ -1160,12 +1160,16 @@ def select_line_charge(
                 and is_scale_shift(fuller_best, amount)
                 and parse_currency(fuller_best) > parse_currency(amount)
             ):
+                # Keep the dual-local dollars (157.00), not the ruling-tick
+                # 1571.07, and not an empty line. Empty lines drop the Σ that
+                # Box 28 needs. The inflated geometry amount stays rejected.
                 return LineChargeSelection(
-                    "AMBIGUOUS_LINE_CHARGE",
-                    None,
-                    "GEOMETRY_SCALE_SHIFT_NOT_VISION_FULLER",
+                    "SELECTED_LOCAL_CHARGE",
+                    amount,
+                    "DUAL_LOCAL_CHARGE_COLUMN",
+                    supporting_engines=tuple(sorted(by_amount.get(amount) or ())),
                     rejected=tuple(rejected[:12])
-                    + ((amount, "DOLLARS_TRUNCATION"), (fuller_best, "GEOMETRY_SCALE_SHIFT")),
+                    + ((fuller_best, "GEOMETRY_SCALE_SHIFT"),),
                 )
             return LineChargeSelection(
                 "SELECTED_LOCAL_CHARGE",
