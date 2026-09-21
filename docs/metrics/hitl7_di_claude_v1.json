@@ -1,0 +1,52 @@
+{
+  "sample_100": {
+    "out_dir": "evaluation_results/hackathon_100_v12_di_claude",
+    "completed": 100,
+    "true_stp": 78,
+    "field_ink_hitl": 22,
+    "infra": 0,
+    "true_stp_of_completed": "78/100",
+    "note": "Rates use the completed denominator. This run is not the earlier 47/50 slice."
+  },
+  "seven_field_reviews": [
+    {
+      "document": "Group A/M048DJJF.004",
+      "result": "HITL",
+      "why": "Box 28 is 783.00 on paddle, rapid, and Document Intelligence. Two service lines are each 261.00. 522 does not equal 783. Claude was not allowed to replace either agreeing local line."
+    },
+    {
+      "document": "Group A/M048DJJM.008",
+      "result": "HITL",
+      "why": "Claude and Document Intelligence read 4972. The cents-column local read is 49.77, which is not an exact times-100 twin of 4972. Neither side was allowed to replace the other."
+    },
+    {
+      "document": "Group A/M048DJJM.010",
+      "result": "TRUE_STP",
+      "value": "49.72",
+      "why": "Claude and rapid agree on 49.72. Document Intelligence read 4972, the same digits without the cents column. That is no longer a veto."
+    },
+    {
+      "document": "Group A/M048DJJM.019",
+      "result": "TRUE_STP",
+      "value": "07/19/1980",
+      "why": "This pass had one calendar date from Claude. An earlier pass of the same crop read 04/05/1980, and Document Intelligence returned no date. Not a two-reader confirmation."
+    },
+    {
+      "document": "Group A/M048DJJM.020",
+      "result": "TRUE_STP",
+      "value": "FRANCAVILLA, THOMAS J",
+      "why": "Paddle and rapid both read FRANCAVILLA, THOMAS J on the re-run. A separate Claude and Document Intelligence read of the crop agreed on that spelling."
+    },
+    {
+      "document": "Group A/M048DJJM.034",
+      "result": "HITL",
+      "why": "Claude and Document Intelligence agree the box is 660.00. The service lines do not add to 660, so the total stays in review."
+    },
+    {
+      "document": "Group A/M048DJJM.035",
+      "result": "HITL",
+      "name": "CHANGUIANI, ANYA M",
+      "why": "Claude replaced the garbage local name. The charge stays in review: the service line is 165.00 and box 28 is 495.00."
+    }
+  ]
+}
