@@ -245,11 +245,12 @@ def semantic_accept(
     if name in {"insured_id_number", "member_id"} or datatype == "ALPHANUMERIC_ID":
         compact = text.upper().replace(" ", "")
         # Reject header-only crops that still contain ID NUMBER / PROGRAM boilerplate.
-        if re.search(r"INSUR|NUMBER|PROGRAM|ITEM", compact) and not _ID_SHAPE.fullmatch(
-            re.sub(r"[^A-Z0-9]", "", compact)
-        ):
+        alnum = re.sub(r"[^A-Z0-9]", "", compact)
+        if alnum.isdigit():
+            alnum = alnum.lstrip("0") or "0"
+        if re.search(r"INSUR|NUMBER|PROGRAM|ITEM", compact) and not _ID_SHAPE.fullmatch(alnum):
             return False, "ID_LABEL_CONTAMINATED"
-        if _ID_SHAPE.fullmatch(compact):
+        if _ID_SHAPE.fullmatch(alnum):
             return True, "ID_SHAPED"
         return False, "NOT_ID_SHAPED"
 

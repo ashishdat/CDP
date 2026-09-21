@@ -38,3 +38,29 @@ def test_evaluation_as_of_date_is_injectable_without_changing_runtime_default():
     frozen = DeterministicEvidenceService(as_of_date=date(2027, 12, 31))
     assert frozen.evaluate("service_date", "2027-12-25").passed
     assert not frozen.evaluate("service_date", "2028-01-01").passed
+
+
+def test_eight_digit_shells_are_not_calendar_dates():
+    service = DeterministicEvidenceService()
+    for shell in ("10101002", "10311199", "10041004"):
+        result = service.evaluate("patient_dob", shell)
+        assert not result.passed, shell
+        assert "INVALID_DATE" in result.failure_reasons
+    assert service.evaluate("patient_dob", "1990-01-01").passed
+    assert service.evaluate("patient_dob", "03/15/1980").passed
+    assert service.evaluate("patient_dob", "19800705").passed
+
+
+def test_padded_short_member_id_and_box_label_do_not_pass():
+    service = DeterministicEvidenceService()
+    padded = service.evaluate("insured_id_number", "0000007267")
+    assert not padded.passed
+    assert "INVALID_MEMBER_IDENTIFIER" in padded.failure_reasons
+    assert not service.evaluate("insured_id_number", "7267").passed
+    label = service.evaluate(
+        "insured_id_number",
+        "10.INSURED'SID.NUMBER For PrograminItem1",
+    )
+    assert not label.passed
+    assert "LABEL_CONTAMINATION" in label.failure_reasons
+    assert service.evaluate("insured_id_number", "4E80 VH6 HJ14").passed

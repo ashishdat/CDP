@@ -225,6 +225,9 @@ def _member_id_is_shaped(value: str) -> bool:
     """True for plausible member IDs; rejects short OCR soup like ``RQ4G0L``."""
     raw = str(value or "")
     compact = re.sub(r"[^A-Z0-9]", "", raw.upper())
+    # ``0000007267`` is padding around a 4-digit shell, not a 10-digit id.
+    if compact.isdigit():
+        compact = compact.lstrip("0") or "0"
     if not re.fullmatch(r"[A-Z0-9]{6,20}", compact):
         return False
     if re.search(r"INSUR|NUMBER|PROGRAM|ITEM|NAME", raw.upper()):

@@ -12,6 +12,54 @@ def write(path, value):
     Path(path).write_text(json.dumps(value, indent=2, allow_nan=False)+'\n', encoding='utf-8')
 
 
+_HEADER_CHROME = frozenset({"", "MM", "DD", "YY", "YYYY", "DOB", "DATE"})
+
+
+def _may_borrow_passing_alternative(winner_value: str) -> bool:
+    """True only for empty / header chrome, not a real failing value."""
+    text = (winner_value or "").strip().upper()
+    if text in _HEADER_CHROME:
+        return True
+    return bool(re.fullmatch(r"[A-Z]{1,2}", text))
+
+
+def _seal_accepted_value(decision, deterministic):
+    """Fail closed when an accepted value does not itself pass E4.
+
+    Field-level DATE_VALID / FORMAT_VALID can be computed on a normalized
+    sibling while the reconciler selects a different shell (``10/01/1966``
+    evidence on selected ``10041004``). That must not STP.
+    """
+    from packages.evidence_decision.contracts import FieldDisposition, NextAction
+
+    if decision.disposition not in {
+        FieldDisposition.AUTO_ACCEPTED,
+        FieldDisposition.REFERENCE_CONFIRMED,
+    }:
+        return decision
+    value = str(decision.selected_value or "").strip()
+    check = deterministic.evaluate(decision.field_name, value or None)
+    if check.passed:
+        return decision
+    stale = {
+        "HARD_VALIDATION_PASSED",
+        "DATE_VALID",
+        "FORMAT_VALID",
+        "DATE_UNIQUE_CALENDAR_CORROBORATED",
+        "DATE_CORROBORATED_THRESHOLD_RELIEF",
+    }
+    reasons = list(dict.fromkeys([
+        *check.failure_reasons,
+        "SELECTED_VALUE_FAILED_DETERMINISTIC",
+        *[code for code in (decision.reason_codes or []) if code not in stale],
+    ]))
+    return decision.model_copy(update={
+        "disposition": FieldDisposition.HUMAN_REVIEW_REQUIRED,
+        "reason_codes": reasons,
+        "next_action": NextAction.HUMAN_REVIEW,
+    })
+
+
 def _registration_confidence_from_document(document: dict) -> float | None:
     from packages.recovery.registration_recovery import evidence_grade_alignment_confidence
 
@@ -588,9 +636,10 @@ def decide(extraction, family):
         check_value = f['normalized_value'] or raw or derived or ''
         check = deterministic.evaluate(name, check_value, claim_values=values)
         # Ranking may crown header junk (e.g. DOB "MM") while a shaped alternative
-        # is calendar/format-valid. E4 must evaluate the validating candidate, not
-        # only the rank winner — otherwise reconciler ACCEPT still ESCALATEs.
-        if not check.passed:
+        # is calendar/format-valid. Borrow that E4 only for header chrome.
+        # A nonempty failing winner (box label, short id, junk digits) must not
+        # inherit another candidate's pass — that fail-opens STP on the wrong value.
+        if not check.passed and _may_borrow_passing_alternative(str(check_value)):
             for row in (f.get('alternatives') or []):
                 alt = (row.get('ocr_candidate') or {}).get('value') or ''
                 if not str(alt).strip():
@@ -624,7 +673,7 @@ def decide(extraction, family):
                 candidate['value'] = validation['normalized_value'] or candidate.get('value')
             # If winner normalized to junk but check_value is a shaped alternative, keep OCR value.
             if (
-                candidate.get('value') in (None, '', 'MM')
+                _may_borrow_passing_alternative(str(candidate.get('value') or ''))
                 and check.passed
                 and check_value
                 and (row.get('ocr_candidate') or {}).get('value') == check_value
@@ -1171,6 +1220,7 @@ def decide(extraction, family):
     except Exception:  # noqa: BLE001
         reference_authority_meta = []
 
+    decisions = [_seal_accepted_value(d, deterministic) for d in decisions]
     claim = services.claim_decision.decide(ClaimDecisionContext(
         claim_id=claim_id, document_family=family, field_decisions=decisions,
         claim_evidence=facts.evidence_items, contradictions=facts.contradictions,

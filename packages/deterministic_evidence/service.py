@@ -128,15 +128,24 @@ class DeterministicEvidenceService:
                 else failures.append("INVALID_TAX_IDENTIFIER")
             )
         elif any(token in name for token in ("member_id", "insured_id", "subscriber_id")):
-            # OCR often inserts spaces/dots/dashes between glyphs
-            # ("4E80 VH6 HJ14", "907.549 6.30 -00"). Validate the compact
-            # alphanumeric form — decoration is not an identity failure.
-            member_compact = re.sub(r"[^A-Za-z0-9]", "", raw)
-            (
-                evidence.add("FORMAT_VALID")
-                if re.fullmatch(r"[A-Za-z0-9]{5,24}", member_compact)
-                else failures.append("INVALID_MEMBER_IDENTIFIER")
-            )
+            # Box-1a header crops ("INSURED'S I.D. NUMBER (For Program in Item 1)")
+            # are labels, not subscriber ids.
+            if re.search(r"INSUR|PROGRAM|ITEM\s*1|ID\.?\s*NUMBER|NUMBER", raw, re.IGNORECASE):
+                failures.append("LABEL_CONTAMINATION")
+            else:
+                # OCR often inserts spaces/dots/dashes between glyphs
+                # ("4E80 VH6 HJ14", "907.549 6.30 -00"). Validate the compact
+                # alphanumeric form — decoration is not an identity failure.
+                # Leading-zero padding (``0000007267`` → ``7267``) must not pass
+                # the length gate and then strip down to a short accepted id.
+                member_compact = re.sub(r"[^A-Za-z0-9]", "", raw)
+                if member_compact.isdigit():
+                    member_compact = member_compact.lstrip("0") or "0"
+                (
+                    evidence.add("FORMAT_VALID")
+                    if re.fullmatch(r"[A-Za-z0-9]{5,24}", member_compact)
+                    else failures.append("INVALID_MEMBER_IDENTIFIER")
+                )
         elif name in {"provider_name", "billing_provider_name", "rendering_provider_name"}:
             words = re.findall(r"[A-Za-z][A-Za-z.'-]*", raw)
             if len(words) >= 2 and " " in raw:
@@ -245,20 +254,37 @@ def _digits(value: str) -> str:
     return re.sub(r"\D", "", value)
 
 
+# Birth / service dates before 1900 are OCR place-shift shells (``10101002`` →
+# year 1010), not calendar evidence. Ambiguous 8-digit layouts that both parse
+# to a plausible year stay invalid so one shell cannot authorize the other.
+_MIN_PLAUSIBLE_YEAR = 1900
+
+
 def _parse_date(value: str) -> date | None:
-    digits = _digits(value)
-    candidates = [value]
-    if len(digits) == 8:
-        candidates.extend(
-            [f"{digits[:4]}-{digits[4:6]}-{digits[6:]}", f"{digits[4:]}-{digits[:2]}-{digits[2:4]}"]
-        )
-    elif len(digits) == 6:
-        candidates.append(f"20{digits[4:]}-{digits[:2]}-{digits[2:4]}")
-    for candidate in candidates:
+    text = (value or "").strip()
+    digits = _digits(text)
+    found: list[date] = []
+
+    def _keep(candidate: str) -> None:
         try:
-            return date.fromisoformat(candidate)
+            parsed = date.fromisoformat(candidate)
         except ValueError:
-            continue
+            return
+        if parsed.year < _MIN_PLAUSIBLE_YEAR:
+            return
+        if parsed not in found:
+            found.append(parsed)
+
+    if re.search(r"[-/]", text):
+        _keep(text.replace("/", "-"))
+    if len(digits) == 8:
+        _keep(f"{digits[:4]}-{digits[4:6]}-{digits[6:]}")
+        _keep(f"{digits[4:]}-{digits[:2]}-{digits[2:4]}")
+    elif len(digits) == 6 and not re.search(r"[-/]", text):
+        _keep(f"20{digits[4:]}-{digits[:2]}-{digits[2:4]}")
+    # Two plausible layouts (or none) is not a unique calendar date.
+    if len(found) == 1:
+        return found[0]
     return None
 
 

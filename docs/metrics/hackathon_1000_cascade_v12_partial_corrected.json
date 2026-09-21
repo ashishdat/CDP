@@ -1,20 +1,20 @@
 {
   "run": "hackathon_1000_cascade_v12",
-  "run_status": "STOPPED_PARTIAL_REMEASURED",
+  "run_status": "STOPPED_PARTIAL_REMEASURED_SEALED",
   "n": 785,
   "completed": 733,
-  "true_stp": 506,
-  "field_ink_hitl": 227,
+  "true_stp": 503,
+  "field_ink_hitl": 230,
   "infra_failures": 52,
-  "true_stp_rate": 0.690314,
-  "hitl_rate": 0.309686,
-  "true_stp_rate_of_all": 0.644586,
-  "hitl_rate_of_all": 0.289172,
+  "true_stp_rate": 0.686221,
+  "hitl_rate": 0.313779,
+  "true_stp_rate_of_all": 0.640764,
+  "hitl_rate_of_all": 0.292994,
   "infra_failure_rate": 0.066242,
-  "misreported_hitl_as_n_minus_stp": 0.355414,
+  "misreported_hitl_as_n_minus_stp": 0.359236,
   "disposition_counts": {
-    "TRUE_STP": 506,
-    "HITL": 227,
+    "TRUE_STP": 503,
+    "HITL": 230,
     "REGISTRATION_FAILED": 50,
     "STAGE_FAILURE": 2
   },
@@ -54,5 +54,25 @@
     "infra_failures": "REGISTRATION_FAILED | STAGE_FAILURE | APP_FAILURE | SUMMARY_ERROR | WORKER_ERROR | OCR_MISSING | INCOMPLETE",
     "note": "Primary STP/HITL rates use the completed denominator. Infra failures are reported separately and must not be folded into HITL."
   },
-  "calc_note": "Primary STP=69.0% HITL=31.0% of completed=733. Misreported (n-stp)/n would be 35.5%."
+  "calc_note": "Primary STP=68.6% HITL=31.4% of completed=733. Sealed 3 fail-open STP (short padded id, implausible DOB). Misreported (n-stp)/n would be 35.9%.",
+  "fail_open_sealed": [
+    {
+      "claim_id": "Group A__M048EJG7.036",
+      "field": "insured_id_number",
+      "value": "7267",
+      "reason": "zero-padded short id passed FORMAT_VALID then stripped"
+    },
+    {
+      "claim_id": "Group A__M048EJI2.036",
+      "field": "patient_dob",
+      "value": "10041004",
+      "reason": "year-1004 shell inherited DATE_VALID from sibling 10/01/1966"
+    },
+    {
+      "claim_id": "Group A__M048JJH1.015",
+      "field": "patient_dob",
+      "value": "0196-01-04",
+      "reason": "year 0196 accepted as a calendar date"
+    }
+  ]
 }
