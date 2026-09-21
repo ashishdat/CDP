@@ -1691,6 +1691,9 @@ def recognize_service_lines(image, router, template):
     # avoids diagnosis-pointer bleed on many live CMS-1500 scans.
     fast = _ocr_fast_mode()
     charge_windows = charge_windows_for_mode(charge_col.x0, charge_col.x1, fast=fast)
+    # One Document Intelligence analyze per live charge gap. cdp43 is not the
+    # F0 one-per-minute tier; the interval env still applies inside the client.
+    di_budget = _azure_di_service_line_budget()
 
     def _currency_value(raw_text, candidates):
         return _currency_value_from_candidates(raw_text, candidates)
@@ -1915,6 +1918,46 @@ def recognize_service_lines(image, router, template):
                             ),
                             'observation': {'text': d_raw or d_value or ''},
                         }]
+                if di_budget > 0:
+                    di_gap = 'CHARGE_DIGIT_CONFLICT' if value else 'CHARGE_LOCAL_EXHAUSTED'
+                    di_value, di_raw, di_cands, di_reason = _maybe_azure_di_charge_crop(
+                        image, bbox, gap_class=di_gap
+                    )
+                    if di_reason != 'CHARGE_DI_DISABLED':
+                        di_budget -= 1
+                    if di_value:
+                        if value:
+                            preferred = prefer_currency_without_digit_drop(value, di_value)
+                            # Longer DI twin may recover a dropped digit. A
+                            # non-twin DI read must not replace the local amount.
+                            if preferred and preferred == di_value and preferred != value:
+                                value = preferred
+                                raw = di_raw or raw
+                                if di_cands:
+                                    candidates = list(candidates or []) + list(di_cands)
+                                reason = f'{reason}|{di_reason}|CHARGE_DI_DIGIT_DROP'
+                                attempts = list(attempts or []) + [{
+                                    'engine': 'azure_document_intelligence_read',
+                                    'reason': di_reason,
+                                    'observation': {'text': di_raw or di_value},
+                                }]
+                            elif di_cands:
+                                candidates = list(candidates or []) + list(di_cands)
+                                attempts = list(attempts or []) + [{
+                                    'engine': 'azure_document_intelligence_read',
+                                    'reason': di_reason or 'CHARGE_DI_KEPT_LOCAL',
+                                    'observation': {'text': di_raw or di_value},
+                                }]
+                        else:
+                            value = di_value
+                            raw = di_raw or raw
+                            candidates = list(candidates or []) + list(di_cands or [])
+                            reason = di_reason or 'CHARGE_AZURE_DI_CROP'
+                            attempts = list(attempts or []) + [{
+                                'engine': 'azure_document_intelligence_read',
+                                'reason': di_reason,
+                                'observation': {'text': di_raw or di_value},
+                            }]
             # Claude crop: empty cell, single local engine, or a digit-drop twin.
             # Paddle+rapid agreement on one line is NOT enough to skip — that
             # claim stays SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28 until Claude

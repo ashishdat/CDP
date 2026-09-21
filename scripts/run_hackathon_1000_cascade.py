@@ -397,14 +397,12 @@ def _stage_env() -> dict[str, str]:
     # Long-lived workers amortize cold start (override with =0 for subprocess-per-claim).
     env.setdefault("CDP_OCR_WORKER_POOL", "1")
     env.setdefault("CDP_APP_WORKER_POOL", "1")
-    # Latency bar: claim mean ≤30s. TrOCR DOB residual ON with process singleton
-    # + skip-if-local-shaped (only handwriting/ambiguous gaps fire). Prefer
-    # gpt-4o crop residuals over Azure DI (F0 is 1 analyze/min).
+    # TrOCR then Claude for DOB. Charge Document Intelligence is on (cdp43).
     env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
     env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "0")
-    env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "0")
-    env.setdefault("CDP_AZURE_DI_CHARGE_CORROBORATE", "0")
-    env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "0")
+    env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
+    env.setdefault("CDP_AZURE_DI_CHARGE_CORROBORATE", "1")
+    env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
     env.setdefault("CDP_GPT4O_CROP_RESIDUAL", "1")
     env.setdefault("CDP_GPT4O_CROP_ACCEPT", "1")
     # Cap empty-box-28 line vision recoveries — each line is a network round-trip.
@@ -425,8 +423,7 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_OCR_NAME_CONFIRM_MIN_CONF", "0.80")
     env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")
     env.setdefault("CDP_PIPELINE_RELEASE", "extraction-v3")
-    # Keep slot limiter available if DI is re-enabled; defaults do not call it.
-    env.setdefault("CDP_AZURE_DI_MIN_INTERVAL_SECONDS", "60")
+    env.setdefault("CDP_AZURE_DI_MIN_INTERVAL_SECONDS", "0")
     env.setdefault("CDP_AZURE_DI_SLOT_PATH", "/tmp/cdp-azure-di-slot")
     env.setdefault("CDP_AZURE_DI_SERVICE_LINE_BUDGET", "1")
     env.setdefault(
@@ -1126,13 +1123,14 @@ def main() -> int:
     _product = {
         "CDP_TROCR_DOB_RESIDUAL": "1",
         "CDP_LEARNED_MATCHER": "1",
-        # Prefer gpt-4o crop residuals; Azure DI F0 is 1 analyze/min.
+        # Document Intelligence charge crops on cdp43 (not the F0 1/min tier).
+        # DOB stays local TrOCR then Claude. Page-corner DI stays off.
         "CDP_AZURE_DI_DOB_RESIDUAL": "0",
-        "CDP_AZURE_DI_CHARGE_RESIDUAL": "0",
-        "CDP_AZURE_DI_CHARGE_CORROBORATE": "0",
-        "CDP_AZURE_DI_CHARGE_ACCEPT": "0",
+        "CDP_AZURE_DI_CHARGE_RESIDUAL": "1",
+        "CDP_AZURE_DI_CHARGE_CORROBORATE": "1",
+        "CDP_AZURE_DI_CHARGE_ACCEPT": "1",
         "CDP_AZURE_DI_PAGE_CORNERS": "0",
-        "CDP_AZURE_DI_MIN_INTERVAL_SECONDS": "60",
+        "CDP_AZURE_DI_MIN_INTERVAL_SECONDS": "0",
         "CDP_AZURE_DI_SLOT_PATH": "/tmp/cdp-azure-di-slot",
         "CDP_AZURE_DI_SERVICE_LINE_BUDGET": "1",
         "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",

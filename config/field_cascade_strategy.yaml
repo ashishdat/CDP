@@ -241,9 +241,11 @@ fields:
     completion: [LINE_TOTALS_RECONCILED]
     notes: >
       Box 28 is paddle/rapid, confirmed by digit-whitelist tesseract when it
-      matches a local amount. Claude crop confirms a local line or box-28
-      amount (SINGLE_LINE_GPT4O_LOCAL). Claude, tesseract, and Azure DI never
-      straight-through a charge alone. A disagreeing box 28 stays HITL.
+      matches a local amount. Azure DI prebuilt-read runs on an empty or
+      conflicting charge cell and may recover a dropped digit; a non-twin DI
+      read does not replace the local amount. Claude confirms a local line
+      (SINGLE_LINE_GPT4O_LOCAL). None of them straight-through a charge alone.
+      A disagreeing box 28 stays HITL.
   patient_name:
     crop_ladder: [name_value_band, primary]
     accept: NAME_SHAPED
