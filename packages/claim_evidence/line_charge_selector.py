@@ -1034,8 +1034,10 @@ def select_line_charge(
         if vision_fuller is not None:
             return vision_fuller
         digit_drop = _digit_drop_fuller_local(by_amount)
-        # Geometry-only ``200100`` → ``2001.00`` is a ruling tick, not the
-        # dropped-digit case that keeps Rapid ``1851.00`` over Claude ``185``.
+        # Geometry-only ``200100`` → ``2001.00`` is a ruling tick when a local
+        # peer already reads the smaller dollars (``200.00``). Do not clear the
+        # Blind-50 case where the only shorter rival is Claude ``185`` beside
+        # geometry ``1851`` — that is a dropped digit, not a ruling tick.
         if (
             digit_drop is not None
             and _geometry_only_rows(digit_drop, filtered)
@@ -1044,6 +1046,7 @@ def select_line_charge(
                 and (full_amt := parse_currency(digit_drop)) is not None
                 and full_amt > other_amt
                 and is_scale_shift(digit_drop, other)
+                and bool((by_amount.get(other) or set()) & _LOCAL_ENGINES)
                 for other in by_amount
                 if other != digit_drop
             )

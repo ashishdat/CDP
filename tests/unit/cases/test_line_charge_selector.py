@@ -853,11 +853,12 @@ def test_geometry_scale_shift_does_not_outrank_dual_local_dollars():
 
 
 def test_geometry_ruling_tick_is_not_digit_drop_fuller():
-    """``200100`` → ``2001.00`` must not beat a shorter ``200.00`` read."""
+    """``200100`` → ``2001.00`` must not beat a local ``200.00`` dollars read."""
     line = {
         "charges": "2001.00",
         "canonical_region": list(_CHARGE_BBOX),
         "candidates": [
+            _cand("paddleocr", "200.00", "200.00", _CHARGE_BBOX),
             _cand("anthropic_claude_crop", "200.00", "200.00", _CHARGE_BBOX),
             _cand("rapidocr", "2001.00", "200100", _CHARGE_BBOX),
         ],
@@ -868,5 +869,25 @@ def test_geometry_ruling_tick_is_not_digit_drop_fuller():
     assert result.amount != "2001.00"
     out = apply_line_charge_selector([line])
     assert out[0]["charges"] != "2001.00"
+
+
+def test_geometry_digit_drop_survives_claude_short_crop():
+    """HJDF.022: geometry ``185100`` → ``1851`` must beat Claude ``185``."""
+    line = {
+        "charges": None,
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "185.00", "185.00", _CHARGE_BBOX),
+            _cand("paddleocr", "18500.00", "18500", _CHARGE_BBOX),
+            _cand("rapidocr", "1851.00", "185100", _CHARGE_BBOX),
+        ],
+    }
+    line["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "1851.00"
+    assert result.reason == "DIGIT_DROP_FULLER_LOCAL"
+    out = apply_line_charge_selector([line])
+    assert out[0]["charges"] == "1851.00"
 
 
