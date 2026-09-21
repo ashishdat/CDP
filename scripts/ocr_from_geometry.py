@@ -2194,9 +2194,9 @@ def recognize_service_lines(image, router, template):
             # Probe saw date/CPT but charge empty: still end once we are past a live block.
             continue
         lines.append(best)
-        # STP E6 only needs observed line charges; 3 live rows is enough evidence.
-        if fast and len(lines) >= 3:
-            break
+        # CMS-1500 has six charge rows. Stopping after three drops the rest of
+        # the block (six $200 lines were read as $600 against Box 28 $1200).
+        # A later blank row still ends the scan.
     # Fast digit path sometimes misses typed amounts (wrong x-window). One
     # paddle/rapid pass across charge-column windows recovers E6 without full thrash.
     # Do NOT call Azure DI here: under F0 (1 analyze/min) blank forms previously
@@ -2323,8 +2323,6 @@ def recognize_service_lines(image, router, template):
                 'bbox': list(bbox),
                 'row_id': str(row_index + 1),
             })
-            if len(lines) >= 3:
-                break
     # EMPTY_FINANCIAL_INK residual: local found no line charges — gpt-4o sweep
     # of the first N charge cells (faint ink / wrong x-window misses), then
     # optional local corroboration for SINGLE_LINE_GPT4O_LOCAL.
