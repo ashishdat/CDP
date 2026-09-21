@@ -1257,6 +1257,49 @@ def _maybe_gpt4o_charge_crop(image, bbox, *, prior_candidates=None):
     )
 
 
+def _dual_local_engines_agree_on_charge(value, candidates) -> bool:
+    """True when paddle+rapid agree with ``value`` within $1.
+
+    Dual-local agreement already unlocks LINE_TOTALS AUTO — calling Claude/gpt-4o
+    on every agreeing cell was adding ~2–8s × N lines with no STP gain.
+    """
+    if not value or not candidates:
+        return False
+    try:
+        from decimal import Decimal
+
+        from packages.claim_evidence.line_sum_authority import (
+            amounts_within_tolerance,
+            format_currency,
+            parse_currency,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    target = parse_currency(value)
+    if target is None:
+        return False
+    target_txt = format_currency(target)
+    local_fams: set[str] = set()
+    for cand in candidates:
+        if not isinstance(cand, dict):
+            continue
+        eng = str(cand.get("engine") or cand.get("producing_engine") or "").casefold()
+        if "paddle" in eng:
+            fam = "paddle"
+        elif "rapid" in eng:
+            fam = "rapid"
+        else:
+            continue
+        seed = (cand.get("value") or cand.get("raw_value") or "").strip()
+        if not seed:
+            continue
+        if amounts_within_tolerance(
+            target_txt, seed, absolute=Decimal("1.00"), relative=Decimal(0)
+        ):
+            local_fams.add(fam)
+    return len(local_fams) >= 2
+
+
 def _merge_gpt4o_line_charge(
     image,
     bbox,
@@ -1841,10 +1884,19 @@ def recognize_service_lines(image, router, template):
             # or digit-drop twins (hard-15 charge hole). Empty box-28 E6 depends
             # on this corroboration — pass local priors so the crop confirms ink
             # instead of abstaining on a sparse cell.
+            # Skip when paddle+rapid already agree on the selected amount —
+            # dual-local is enough for LINE_TOTALS and avoids ~2–8s Claude RTT.
             need_gpt4o = False
             gpt4o_on = (os.environ.get('CDP_GPT4O_CROP_RESIDUAL') or '1').strip().casefold()
             if gpt4o_on not in {'0', 'false', 'no', 'off'}:
-                if (not value and not probe_empty) or (value and len(unique_vals) < 2) or need_gpt4o_twin:
+                dual_local = _dual_local_engines_agree_on_charge(value, candidates)
+                if dual_local and not need_gpt4o_twin:
+                    need_gpt4o = False
+                    attempts = list(attempts or []) + [{
+                        'engine': 'azure_gpt4o_crop',
+                        'reason': 'CHARGE_GPT4O_SKIPPED_DUAL_LOCAL',
+                    }]
+                elif (not value and not probe_empty) or (value and len(unique_vals) < 2) or need_gpt4o_twin:
                     need_gpt4o = True
                 elif need_di and not any(
                     'document_intelligence' in str(c.get('engine') or '').casefold()
@@ -2143,23 +2195,30 @@ def recognize_service_lines(image, router, template):
                 pass
             # Single-engine fallback lines still need gpt-4o corroboration for
             # empty-box-28 LINE_TOTALS AUTO (SINGLE_LINE_GPT4O_LOCAL).
+            # Dual-local agreement skips the cloud crop (same as primary path).
             gpt4o_on = (os.environ.get('CDP_GPT4O_CROP_RESIDUAL') or '1').strip().casefold()
             if gpt4o_on not in {'0', 'false', 'no', 'off'} and bbox is not None:
-                shaped_engines = {
-                    str(c.get('engine') or '')
-                    for c in (candidates or [])
-                    if isinstance(c, dict) and (c.get('value') or '').strip()
-                }
-                if len(shaped_engines) < 2:
-                    value, raw, candidates, attempts, reason = _merge_gpt4o_line_charge(
-                        image,
-                        bbox,
-                        value=value,
-                        raw=raw,
-                        candidates=candidates,
-                        attempts=attempts,
-                        reason=reason,
-                    )
+                if _dual_local_engines_agree_on_charge(value, candidates):
+                    attempts = list(attempts or []) + [{
+                        'engine': 'azure_gpt4o_crop',
+                        'reason': 'CHARGE_GPT4O_SKIPPED_DUAL_LOCAL',
+                    }]
+                else:
+                    shaped_engines = {
+                        str(c.get('engine') or '')
+                        for c in (candidates or [])
+                        if isinstance(c, dict) and (c.get('value') or '').strip()
+                    }
+                    if len(shaped_engines) < 2:
+                        value, raw, candidates, attempts, reason = _merge_gpt4o_line_charge(
+                            image,
+                            bbox,
+                            value=value,
+                            raw=raw,
+                            candidates=candidates,
+                            attempts=attempts,
+                            reason=reason,
+                        )
             lines.append({
                 'line_number': row_index + 1,
                 'charges': value,
