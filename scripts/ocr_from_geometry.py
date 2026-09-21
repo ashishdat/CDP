@@ -38,11 +38,14 @@ from packages.templates.registry import TemplateRegistry
 
 
 def _maybe_attach_dob_handwriting_residuals(rows, image):
-    """Crop-scoped TrOCR → Azure DI → gpt-4o for DOB; gpt-4o for weak/chrome ID;
-    Azure DI then gpt-4o currency crop for empty/unshaped box-28 totals.
+    """Per-field residual after local OCR.
+
+    DOB: TrOCR, then Claude crop. Names: Claude may replace garbage ink.
+    Member ID and charges: Claude confirms a local read and may not supersede.
+    Azure DI is not on this path (default off).
     """
     trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "1").strip().casefold()
-    azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "1").strip().casefold()
+    azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "0").strip().casefold()
     gpt4o_on = (os.environ.get("CDP_GPT4O_CROP_RESIDUAL") or "1").strip().casefold()
     charge_on = (os.environ.get("CDP_AZURE_DI_CHARGE_RESIDUAL") or "0").strip().casefold()
     if (
@@ -1309,6 +1312,7 @@ def _merge_gpt4o_line_charge(
     candidates,
     attempts,
     reason,
+    lock_local=False,
 ):
     """Attach gpt-4o crop residual to a service-line charge cell.
 
@@ -1333,6 +1337,27 @@ def _merge_gpt4o_line_charge(
         'reason': g_reason or 'CHARGE_GPT4O_ATTEMPTED',
         'observation': {'text': (g_raw or g_value or '')},
     }]
+    if lock_local:
+        # Dual-local already chose the amount. Claude may confirm it (exact / $1)
+        # so a single line can AUTO. It may not replace that amount.
+        from decimal import Decimal
+
+        from packages.claim_evidence.line_sum_authority import amounts_within_tolerance
+
+        agrees = bool(
+            g_value
+            and value
+            and amounts_within_tolerance(
+                value, g_value, absolute=Decimal('1'), relative=Decimal('0')
+            )
+        )
+        if agrees and g_cands:
+            candidates = list(candidates or []) + list(g_cands)
+        tag = 'CHARGE_CLAUDE_CONFIRMS_LOCAL' if agrees else 'CHARGE_CLAUDE_SUPERSEDE_BLOCKED'
+        if not g_value:
+            tag = 'CHARGE_CLAUDE_ABSTAIN'
+        reason = f'{reason}|{g_reason}|{tag}' if reason else f'{g_reason}|{tag}'
+        return value, raw, candidates, attempts, reason
     if not g_value:
         return value, raw, candidates, attempts, reason
 
@@ -1666,8 +1691,6 @@ def recognize_service_lines(image, router, template):
     # avoids diagnosis-pointer bleed on many live CMS-1500 scans.
     fast = _ocr_fast_mode()
     charge_windows = charge_windows_for_mode(charge_col.x0, charge_col.x1, fast=fast)
-    # F0: at most N DI analyzes for service-line cells this document.
-    di_budget = _azure_di_service_line_budget()
 
     def _currency_value(raw_text, candidates):
         return _currency_value_from_candidates(raw_text, candidates)
@@ -1777,7 +1800,6 @@ def recognize_service_lines(image, router, template):
             # because an amount is short — that billed every $25–$999 cell on
             # Independent-300 and cratered throughput.
             need_di = False
-            di_gap = 'CHARGE_LOCAL_EXHAUSTED'
             need_gpt4o_twin = False
             engine_vals = []
             for c in candidates or []:
@@ -1835,57 +1857,69 @@ def recognize_service_lines(image, router, template):
                     unique_vals = list(dict.fromkeys(engine_vals))
             if not value and not probe_empty:
                 need_di = True
-                di_gap = 'CHARGE_LOCAL_EXHAUSTED'
             elif len(unique_vals) >= 2:
                 a, b = unique_vals[0], unique_vals[1]
                 if prefer_currency_without_digit_drop(a, b) is None and a != b:
                     need_di = True
-                    di_gap = 'CHARGE_DIGIT_CONFLICT'
                 else:
                     # Digit-drop twins (13 vs 131): still ask gpt-4o to pick ink.
                     need_gpt4o_twin = True
-            if need_di and di_budget > 0:
-                di_value, di_raw, di_cands, di_reason = _maybe_azure_di_charge_crop(
-                    image, bbox, gap_class=di_gap
+            if need_di:
+                # Local replacement for the removed Azure DI crop: digit-whitelist
+                # Tesseract may confirm a paddle or rapid amount. It may not
+                # become the only reader of the charge.
+                from decimal import Decimal
+
+                from packages.claim_evidence.line_sum_authority import (
+                    amounts_within_tolerance,
                 )
-                di_budget -= 1
-                if di_value:
-                    if value:
-                        preferred = prefer_currency_without_digit_drop(value, di_value)
-                        # Only accept DI when it recovers dropped digits (longer
-                        # twin). Non-twin DI must not override local paddle.
-                        if preferred and preferred == di_value and preferred != value:
-                            value = preferred
-                            raw = di_raw or raw
-                            if di_cands:
-                                candidates = list(candidates or []) + list(di_cands)
-                            reason = f'{reason}|{di_reason}|CHARGE_DI_DIGIT_DROP'
-                            attempts = list(attempts or []) + [{
-                                'engine': 'azure_document_intelligence_read',
-                                'reason': di_reason,
-                                'observation': {'text': di_raw or di_value},
-                            }]
+
+                already_tess = any(
+                    'tesseract' in str((c or {}).get('engine') or '').casefold()
+                    for c in (candidates or [])
+                )
+                if not already_tess:
+                    d_cands, d_attempts, d_reason = _recognize_charge_digits_only(
+                        image, bbox
+                    )
+                    attempts = list(attempts or []) + list(d_attempts or [])
+                    d_raw = d_cands[0].get('raw_value') if d_cands else ''
+                    d_value = _currency_value(d_raw, d_cands) if d_cands else None
+                    locals_match = False
+                    if d_value:
+                        for cand in candidates or []:
+                            eng = str((cand or {}).get('engine') or '').casefold()
+                            if 'paddle' not in eng and 'rapid' not in eng:
+                                continue
+                            seed = (cand or {}).get('value') or (cand or {}).get('raw_value')
+                            if seed and amounts_within_tolerance(
+                                d_value, seed, absolute=Decimal('1'), relative=Decimal('0')
+                            ):
+                                locals_match = True
+                                break
+                    if d_value and locals_match:
+                        candidates = list(candidates or []) + list(d_cands or [])
+                        if value and not amounts_within_tolerance(
+                            value, d_value, absolute=Decimal('1'), relative=Decimal('0')
+                        ):
+                            value = d_value
+                            raw = d_raw or raw
+                        reason = f'{reason}|{d_reason}|CHARGE_TESS_CONFIRMS_LOCAL'
                     else:
-                        value = di_value
-                        raw = di_raw or raw
-                        candidates = list(candidates or []) + list(di_cands or [])
-                        reason = di_reason or 'CHARGE_AZURE_DI_CROP'
                         attempts = list(attempts or []) + [{
-                            'engine': 'azure_document_intelligence_read',
-                            'reason': di_reason,
-                            'observation': {'text': di_raw or di_value},
+                            'engine': 'tesseract_digits',
+                            'reason': (
+                                'CHARGE_TESS_NOT_SOLE_AUTHORITY'
+                                if d_value
+                                else 'CHARGE_TESS_NO_LOCAL_MATCH'
+                            ),
+                            'observation': {'text': d_raw or d_value or ''},
                         }]
-            elif need_di and di_budget <= 0:
-                attempts = list(attempts or []) + [{
-                    'engine': 'azure_document_intelligence_read',
-                    'reason': 'CHARGE_DI_SERVICE_LINE_BUDGET_EXHAUSTED',
-                }]
-            # gpt-4o line-charge residual: empty after DI, single-engine local,
-            # or digit-drop twins (hard-15 charge hole). Empty box-28 E6 depends
-            # on this corroboration — pass local priors so the crop confirms ink
-            # instead of abstaining on a sparse cell.
-            # Skip when paddle+rapid already agree on the selected amount —
-            # dual-local is enough for LINE_TOTALS and avoids ~2–8s Claude RTT.
+            # Claude crop: empty cell, single local engine, or a digit-drop twin.
+            # Paddle+rapid agreement on one line is NOT enough to skip — that
+            # claim stays SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28 until Claude
+            # confirms the amount. Multi-line dual-local still skips here and
+            # is confirmed later only when the claim has a single charge line.
             need_gpt4o = False
             gpt4o_on = (os.environ.get('CDP_GPT4O_CROP_RESIDUAL') or '1').strip().casefold()
             if gpt4o_on not in {'0', 'false', 'no', 'off'}:
@@ -2282,7 +2316,57 @@ def recognize_service_lines(image, router, template):
                 lines.append(row)
     from packages.ocr_portfolio.monetary_recognizer import apply_charge_line_resolution
 
-    return apply_charge_line_resolution(lines)
+    lines = apply_charge_line_resolution(lines)
+    return _confirm_sole_charge_line_with_claude(image, lines)
+
+
+def _confirm_sole_charge_line_with_claude(image, lines):
+    """Ask Claude to confirm the only charge line when dual-local skipped it.
+
+    Multi-line paddle+rapid agreement already straight-throughs. One line does
+    not. Claude must match that local amount within $1. A different read is
+    recorded and does not replace the local amount.
+    """
+    from packages.claim_evidence.line_sum_authority import parse_currency
+    from packages.extraction_recovery.field_reader_policy import model_may_supersede
+
+    if model_may_supersede("charges"):
+        return lines
+    observed = [
+        line
+        for line in lines or []
+        if isinstance(line, dict)
+        and parse_currency(line.get("charges") or line.get("charge_amount")) is not None
+    ]
+    if len(observed) != 1:
+        return lines
+    line = observed[0]
+    attempts = [a for a in (line.get("attempts") or []) if isinstance(a, dict)]
+    if not any(a.get("reason") == "CHARGE_GPT4O_SKIPPED_DUAL_LOCAL" for a in attempts):
+        return lines
+    gpt4o_on = (os.environ.get("CDP_GPT4O_CROP_RESIDUAL") or "1").strip().casefold()
+    if gpt4o_on in {"0", "false", "no", "off"}:
+        return lines
+    bbox = line.get("canonical_region") or line.get("bbox")
+    if not bbox or len(tuple(bbox)) != 4:
+        return lines
+    value, raw, candidates, attempts, reason = _merge_gpt4o_line_charge(
+        image,
+        tuple(bbox),
+        value=line.get("charges"),
+        raw=line.get("raw_charges"),
+        candidates=line.get("candidates"),
+        attempts=attempts,
+        reason=line.get("router_reason") or "",
+        lock_local=True,
+    )
+    line["charges"] = value
+    line["charge_amount"] = value
+    line["raw_charges"] = raw
+    line["candidates"] = candidates
+    line["attempts"] = attempts
+    line["router_reason"] = reason
+    return lines
 
 
 

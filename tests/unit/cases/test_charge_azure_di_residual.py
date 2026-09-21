@@ -198,7 +198,7 @@ def test_attach_corroborates_accepted_local_charge(monkeypatch):
     assert updated["cascade"].get("value") == "315.00"
 
 
-def test_attach_promotes_di_when_it_twins_local(monkeypatch):
+def test_attach_does_not_let_di_supersede_a_shorter_local(monkeypatch):
     monkeypatch.setenv("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
     monkeypatch.setenv("CDP_AZURE_DI_CHARGE_CORROBORATE", "1")
     monkeypatch.setenv("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
@@ -218,7 +218,9 @@ def test_attach_promotes_di_when_it_twins_local(monkeypatch):
         corroborate=True,
     )
     assert updated["cascade"]["accepted"] is True
-    assert updated["cascade"]["value"] == "1571.00"
+    # A longer DI read is not a local digit-drop confirm. 157 stays 157.
+    assert updated["cascade"]["value"] == "157.00"
+    assert "LOCAL_CONFLICT_REVIEW" in updated["azure_di_residual"]["reason"]
 
 
 def test_attach_promotes_currency_shaped_on_miss(monkeypatch):

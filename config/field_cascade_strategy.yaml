@@ -223,9 +223,9 @@ fields:
     post_miss: [dob_cells]
     prefer: cells_first
     notes: >
-      v10 cells-FIRST with inset MM/DD/YY (avoid dashed-rule "1"); trailing-1
-      MM/DD peel in reconciler; header-safe compact; MMDDYYY century repair;
-      dob_cells attributed to producing route engine; prefer paddle∩rapid agree.
+      Cells-first MM/DD/YY with digit-whitelist tesseract, then paddle/rapid.
+      Handwriting residual is local TrOCR. Claude crop only after both miss,
+      and only a date-shaped read. Azure DI is not on this path.
   insured_dob:
     crop_ladder: [primary, dob_digit_band, dob_loose, dob_year_wide]
     accept: DATE_SHAPED
@@ -240,9 +240,10 @@ fields:
     reject: [CURRENCY_LEADING_MINUS, CURRENCY_SUSPICIOUS_TINY, EMPTY]
     completion: [LINE_TOTALS_RECONCILED]
     notes: >
-      Box 28 value-only primary + tight right band. Accept only when Box 28
-      corroborates line sum (DIRECT_TOTAL / BOX28_OR_DI). Dual-engine line
-      consensus alone is not AUTO. gpt-4o never sole monetary authority.
+      Box 28 is paddle/rapid, confirmed by digit-whitelist tesseract when it
+      matches a local amount. Claude crop confirms a local line or box-28
+      amount (SINGLE_LINE_GPT4O_LOCAL). Claude, tesseract, and Azure DI never
+      straight-through a charge alone. A disagreeing box 28 stays HITL.
   patient_name:
     crop_ladder: [name_value_band, primary]
     accept: NAME_SHAPED
@@ -250,7 +251,7 @@ fields:
       v11: value-band FIRST (below printed Last/First header). Reject
       label-contaminated spans; relieve CONFLICT when one engine is header
       bleed and the other is clean ink, or when tokens are a strict prefix.
-      gpt-4o crop is the conflict arbitrator (v12 stack).
+      gpt-4o crop is the conflict arbitrator and may replace garbage ink.
   insured_name:
     crop_ladder: [name_value_band, primary]
     accept: NAME_SHAPED
@@ -261,8 +262,8 @@ fields:
     crop_ladder: [id_value_band, primary]
     accept: ID_SHAPED
     notes: >
-      Value-band FIRST; prefer shaped ID over header-only crop; multi-engine
-      agreement + HARD_VALIDATION → C3 floor 0.95 corroboration.
+      Value-band FIRST. Claude may break a same-length local digit conflict
+      only when it matches one local read. It may not invent the ID.
   charges:
     crop_ladder: [charges_primary, charges_mid, charges_right, charges_far_right]
     accept: CURRENCY_SHAPED
