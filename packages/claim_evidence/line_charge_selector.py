@@ -529,6 +529,64 @@ def _is_dollar_truncation(short: str, longer: str) -> bool:
     return False
 
 
+def _raw_fraction_digits(raw: object) -> str:
+    text = str(raw or "")
+    if "." not in text:
+        return ""
+    return re.sub(r"\D", "", text.split(".", 1)[1])
+
+
+def _same_stem_ruling_jitter_amount(
+    by_amount: dict[str, set[str]],
+    filtered: list[tuple],
+) -> str | None:
+    """Whole dollars when the other local read is the same stem plus a trailing zero.
+
+    ``200.00`` (paddle raw ``200..00``) beside rapid raw ``200.100`` is the
+    cents ruling, not a printed ``200.10``. A clean two-decimal ``200.10``
+    stays unresolved so real dimes are not stripped.
+    """
+    amounts = list(by_amount)
+    if len(amounts) < 2:
+        return None
+    anchor = amounts[0]
+    if not all(
+        amount == anchor or _is_same_stem_cents_twin(anchor, amount) for amount in amounts
+    ):
+        return None
+    engines: set[str] = set()
+    for families in by_amount.values():
+        engines |= set(families) & _LOCAL_ENGINES
+    if len(engines) < 2:
+        return None
+    whole = [amount for amount in amounts if str(amount).endswith(".00")]
+    if len(whole) != 1:
+        return None
+    chosen = whole[0]
+    others = [amount for amount in amounts if amount != chosen]
+    if not others:
+        return None
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None:
+        return None
+    if any(
+        (other_amt := parse_currency(amount)) is None
+        or abs(chosen_amt - other_amt) > Decimal("0.10")
+        for amount in others
+    ):
+        return None
+    noisy = False
+    for amount, _family, cand, _quality in filtered:
+        if amount == chosen:
+            continue
+        if len(_raw_fraction_digits(cand.get("raw_value"))) > 2:
+            noisy = True
+            break
+    if not noisy:
+        return None
+    return chosen
+
+
 def _is_same_stem_cents_twin(left: str, right: str) -> bool:
     """True when amounts share dollars and differ by ≤ $1.00 (OCR twin noise).
 
@@ -980,6 +1038,22 @@ def select_line_charge(
                 "SINGLE_LOCAL_ENGINE_ONLY",
                 supporting_engines=tuple(sorted(by_amount[amount])),
                 rejected=tuple(rejected[:12]),
+            )
+        jitter = _same_stem_ruling_jitter_amount(by_amount, filtered)
+        if jitter is not None:
+            return LineChargeSelection(
+                "SELECTED_LOCAL_CHARGE",
+                jitter,
+                "SAME_STEM_CENTS_RULING_JITTER",
+                supporting_engines=tuple(
+                    sorted(set().union(*(by_amount[amount] for amount in by_amount)))
+                ),
+                rejected=tuple(rejected[:12])
+                + tuple(
+                    (amount, "CENTS_RULING_JITTER")
+                    for amount in by_amount
+                    if amount != jitter
+                ),
             )
         return LineChargeSelection(
             "AMBIGUOUS_LINE_CHARGE",

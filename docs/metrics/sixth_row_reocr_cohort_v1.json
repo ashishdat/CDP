@@ -1,0 +1,43 @@
+{
+  "title": "Sixth-row re-OCR of four EJGE claims, plus cents-ruling jitter on the first line",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "frozen_ocr_decision_only": {
+    "out": "evaluation_results/hackathon_150_cents_jitter_decide",
+    "completed": 89,
+    "true_stp": 58,
+    "true_stp_rate_of_completed": 0.651685,
+    "field_ink_hitl": 31,
+    "flipped_vs_dual_local": 0,
+    "note": "The cents-ruling jitter selector does not change any frozen-OCR disposition."
+  },
+  "reocr": {
+    "claims": [
+      "M048EJGE.006 TRUE_STP 1200.00",
+      "M048EJGE.007 TRUE_STP 1200.00",
+      "M048EJGE.008 TRUE_STP 1200.00",
+      "M048EJGE.009 TRUE_STP 1200.00"
+    ],
+    "page": "Each page prints six $200.00 lines and Box 28 $1200.00.",
+    "note": "M048EJGE.009 first row was paddle 200.00 beside rapid raw 200.100. That trailing zero is ruling noise, not a printed dime. A clean two-decimal 200.10 is not stripped."
+  },
+  "combined_with_reocr_overlay": {
+    "completed": 89,
+    "true_stp": 62,
+    "true_stp_rate_of_completed": 0.696629,
+    "field_ink_hitl": 27,
+    "false_accepts": 51,
+    "accepted_fields_scored": 226,
+    "accepted_field_precision": 0.774336,
+    "note": "False accepts fell from 52 to 51 because M048EJGE.009 patient_dob changed from auto-accepted 2021-07-29 to the labeled 2006-07-25. M048DJKH.047 total_charge 222.22 versus label 222.00 remains a false accept. The page prints 222.22; cents were not stripped."
+  },
+  "note": "Not a full 89 re-OCR. Golden Pack was not mutated. Gates still fail."
+}

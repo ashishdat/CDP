@@ -761,6 +761,39 @@ def test_ambiguous_clears_scale_shifted_geometry_shell():
     assert out[0]["charges"] is None
 
 
+def test_trailing_third_decimal_does_not_drop_a_whole_dollar_line():
+    """Rapid ``200.100`` is a ruling zero, not a printed ``200.10``."""
+    line = {
+        "charges": "200.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "200.00", "200..00", _CHARGE_BBOX),
+            _cand("rapidocr", "200.10", "200.100", _CHARGE_BBOX),
+            _cand("paddleocr", "2000.00", "2000", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "200.00"
+    assert result.reason == "SAME_STEM_CENTS_RULING_JITTER"
+    out = apply_line_charge_selector([line])
+    assert out[0]["charges"] == "200.00"
+
+
+def test_clean_dime_read_is_not_stripped_to_whole_dollars():
+    line = {
+        "charges": "200.10",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "200.00", "200.00", _CHARGE_BBOX),
+            _cand("rapidocr", "200.10", "200.10", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.amount != "200.00" or result.disposition != "SELECTED_LOCAL_CHARGE"
+    assert result.reason != "SAME_STEM_CENTS_RULING_JITTER"
+
+
 def test_geometry_scale_shift_does_not_outrank_dual_local_dollars():
     """Raw ``157107`` → ``1571.07`` is a ruling tick, not a fuller charge."""
     dollars_bbox = (1050.0, 1458.0, 1165.0, 1513.0)
