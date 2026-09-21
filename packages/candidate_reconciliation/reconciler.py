@@ -2013,6 +2013,7 @@ class EvidenceReconciler:
             )
             if field_name in {"total_charge", "total_charges"} and charge_soup_authority:
                 from packages.claim_evidence.line_sum_authority import (
+                    is_currency_digit_drop_twin,
                     is_decimal_place_shift,
                     parse_currency,
                 )
@@ -2027,8 +2028,12 @@ class EvidenceReconciler:
                     # Same confirmed amount — not a conflict.
                     if other_amt == primary_amt and not is_decimal_place_shift(value, other):
                         continue
-                    # Place-shift / fragment of the confirmed total — drop.
-                    if is_decimal_place_shift(value, other):
+                    # ×100 cents-column and dropped-digit twins are real conflicts.
+                    # Line-sum authority must not swallow them as OCR soup.
+                    if is_decimal_place_shift(value, other) or is_currency_digit_drop_twin(
+                        value, other
+                    ):
+                        cleared.append(other)
                         continue
                     # When line Σ owns the selected total, deferred Box 28 OCR
                     # rivals are soup — not a second printed claim total.

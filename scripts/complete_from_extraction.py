@@ -436,14 +436,21 @@ def decide(extraction, family):
             (f for f in fields if f.get('field_name') == charge_field), {}
         ) or {}
         current_val = values.get(charge_field)
-        # Conflict agent already picked BOX28 or LINES. Keep that amount — do not
-        # wipe it with should_defer (200 vs 2001 digit-drop) or the OCR choice is
-        # discarded and LINE_TOTALS_UNCORROBORATED / hard-15 HITL returns.
+        # Conflict agent may keep Box 28 / lines only when a local OCR engine
+        # already read that amount and it is not a cents-column or digit-drop twin.
+        # Claude is never sole monetary authority.
         agent = values.get('_financial_conflict_agent')
+        agent_candidates = []
+        nested_ocr = field_payload.get('ocr') or {}
+        agent_candidates.extend(field_payload.get('candidates') or [])
+        agent_candidates.extend(nested_ocr.get('candidates') or [])
+        from packages.claim_evidence.line_sum_authority import (
+            llm_charge_pick_has_open_source_authority,
+        )
         if (
             isinstance(agent, dict)
             and str(agent.get('side') or '') in {'BOX28', 'LINES'}
-            and parse_currency(agent.get('value')) is not None
+            and llm_charge_pick_has_open_source_authority(agent.get('value'), agent_candidates)
         ):
             values[charge_field] = str(agent['value']).strip()
             continue

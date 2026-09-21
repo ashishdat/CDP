@@ -186,6 +186,11 @@ def main() -> int:
     )
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument(
+        "--dispositions",
+        default="HITL",
+        help="Comma-separated ledger dispositions to re-finish (default HITL).",
+    )
     args = parser.parse_args()
 
     src_run = args.src_run if args.src_run.is_absolute() else ROOT / args.src_run
@@ -202,10 +207,11 @@ def main() -> int:
         row = json.loads(line)
         prior_by_doc[row["document"]] = row
 
+    wanted = {part.strip() for part in str(args.dispositions or "HITL").split(",") if part.strip()}
     targets = sorted(
         doc
         for doc, row in prior_by_doc.items()
-        if row.get("disposition") == "HITL"
+        if row.get("disposition") in wanted
     )
     if args.limit and args.limit > 0:
         targets = targets[: args.limit]

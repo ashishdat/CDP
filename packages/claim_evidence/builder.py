@@ -688,6 +688,7 @@ class ClaimEvidenceBuilder:
             from packages.claim_evidence.line_sum_authority import (
                 amounts_corroborate,
                 line_sum_total,
+                llm_charge_pick_has_open_source_authority,
                 parse_currency,
                 should_defer_box28_to_line_sum,
             )
@@ -696,14 +697,19 @@ class ClaimEvidenceBuilder:
         # Skip when Box28↔line-sum already confirmed the same amount.
         if any(item.evidence_type == "BOX28_LINE_SUM_CORROBORATED" for item in evidence):
             return
-        # OCR conflict agent already chose BOX28 or LINES — mint E6 and clear the
-        # CLAIM_TOTAL_CONTRADICTION / FINANCIAL_CONFLICT_HITL that would otherwise
-        # keep the claim in field HITL after a successful agent pick.
+        # Agent BOX28/LINES is E6 only when open-source OCR already read that
+        # amount and no local rival is a ×100 or dropped-digit twin.
         agent = values.get("_financial_conflict_agent")
+        payload = values.get("_box28_field_payload")
+        agent_candidates: list = []
+        if isinstance(payload, dict):
+            nested = payload.get("ocr") if isinstance(payload.get("ocr"), dict) else {}
+            agent_candidates.extend(payload.get("candidates") or [])
+            agent_candidates.extend(nested.get("candidates") or [])
         if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
             chosen = str(agent.get("value") or "").strip()
             side = agent["side"]
-            if chosen and parse_currency(chosen) is not None:
+            if chosen and llm_charge_pick_has_open_source_authority(chosen, agent_candidates):
                 contradictions[:] = [
                     item
                     for item in contradictions

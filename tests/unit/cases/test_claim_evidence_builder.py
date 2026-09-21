@@ -94,11 +94,11 @@ def test_empty_box28_with_observed_line_charges_emits_line_totals_reconciled():
     assert item.metadata.get("provenance") == "DERIVED_FROM_OBSERVED_LINE_CHARGES"
 
 
-def test_conflict_agent_box28_clears_digit_drop_contradiction():
-    """Agent BOX28 (200) vs line Σ (2001) must mint E6 and drop CLAIM_TOTAL_CONTRADICTION.
+def test_conflict_agent_digit_drop_without_local_agreement_stays_conflict():
+    """Agent BOX28 on a digit-drop twin is not monetary authority.
 
-    Finish previously deferred 200→None, then LINE_TOTALS_UNCORROBORATED kept HITL
-    even after the OCR conflict agent had already chosen Box 28.
+    200 vs 2001 must not mint CLAIM_TOTAL_CONFIRMED unless open-source OCR
+    already agrees and the rival is not a dropped-digit twin.
     """
     result = ClaimEvidenceBuilder.load().build(
         claim_id="DJKN.001",
@@ -110,49 +110,83 @@ def test_conflict_agent_box28_clears_digit_drop_contradiction():
                 "value": "200.00",
                 "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
             },
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "paddleocr", "value": "200.00"},
+                    {"engine": "rapidocr", "value": "2001.00"},
+                ]
+            },
         },
         service_lines=[{"charges": "2001.00"}],
     )
     types = _types(result.evidence_items)
-    assert "CLAIM_TOTAL_CONFIRMED" in types
-    assert "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED" in types
-    assert "FINANCIAL_CONFLICT_HITL" not in types
-    assert "CLAIM_TOTAL_CONTRADICTION" not in _types(result.contradictions)
+    assert "CLAIM_TOTAL_CONFIRMED" not in {
+        item.evidence_type
+        for item in result.evidence_items
+        if (item.metadata or {}).get("reason") == "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+    }
+    assert "CLAIM_TOTAL_CONTRADICTION" in _types(result.contradictions) or "LINE_TOTALS_RECONCILED" in types
+
+
+def test_conflict_agent_confirms_when_both_locals_match():
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="locals-agree",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "400.00",
+            "_financial_conflict_agent": {
+                "side": "BOX28",
+                "value": "400.00",
+                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            },
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "paddleocr", "value": "400.00"},
+                    {"engine": "rapidocr", "value": "400.00"},
+                    {"engine": "anthropic_claude_crop", "value": "400.00"},
+                ]
+            },
+        },
+        service_lines=[{"charges": "280.00"}],
+    )
     assert (
         next(
             i.value
             for i in result.evidence_items
             if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+            and (i.metadata or {}).get("reason") == "CONFLICT_AGENT_FINANCIAL_RESOLVED"
         )
-        == "200.00"
+        == "400.00"
     )
 
 
-def test_conflict_agent_lines_side_confirms_line_sum():
+def test_conflict_agent_place_shift_does_not_confirm():
     result = ClaimEvidenceBuilder.load().build(
         claim_id="cents",
         document_family="CMS1500",
         claim_values={
-            "total_charge": "4972.00",
+            "total_charge": "49.77",
             "_financial_conflict_agent": {
                 "side": "LINES",
                 "value": "49.77",
                 "reason": "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
             },
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "rapidocr", "value": "49.77"},
+                    {"engine": "paddleocr", "value": "4972.00"},
+                ]
+            },
         },
         service_lines=[{"charges": "49.77"}],
     )
-    types = _types(result.evidence_items)
-    assert "CLAIM_TOTAL_CONFIRMED" in types
-    assert "CLAIM_TOTAL_CONTRADICTION" not in _types(result.contradictions)
-    assert (
-        next(
-            i.value
-            for i in result.evidence_items
-            if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
-        )
-        == "49.77"
-    )
+    agent_confirmed = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+        and (i.metadata or {}).get("reason") == "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+    ]
+    assert agent_confirmed == []
 
 
 def test_deferred_box28_contradictory_payload_does_not_mint_financial_conflict():

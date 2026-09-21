@@ -212,6 +212,57 @@ def is_decimal_place_shift(left: object, right: object) -> bool:
     return _decimal_place_conflict(left, right)
 
 
+# Open-source charge readers. Cloud DI and Claude/GPT are residual, never sole
+# monetary authority (redesign stack: local OCR primary).
+_OPEN_SOURCE_CHARGE_ENGINES = frozenset(
+    {"paddleocr", "rapidocr", "tesseract", "tesseract_digits"}
+)
+
+
+def _candidate_engine_and_value(cand: object) -> tuple[str, object]:
+    if not isinstance(cand, dict):
+        return "", None
+    shell = cand.get("ocr_candidate") if isinstance(cand.get("ocr_candidate"), dict) else cand
+    engine = str(shell.get("engine") or shell.get("engine_name") or "").casefold()
+    value = shell.get("value") or shell.get("raw_value")
+    return engine, value
+
+
+def open_source_charge_amounts(candidates: list | None) -> list:
+    """Currency amounts read by Paddle, Rapid, or Tesseract — not Claude/DI."""
+    found = []
+    for cand in candidates or []:
+        engine, value = _candidate_engine_and_value(cand)
+        if engine not in _OPEN_SOURCE_CHARGE_ENGINES:
+            continue
+        if parse_currency(value) is None:
+            continue
+        found.append(value)
+    return found
+
+
+def llm_charge_pick_has_open_source_authority(
+    chosen: object,
+    candidates: list | None,
+) -> bool:
+    """True only when a local OCR engine already read ``chosen`` and no local rival is a cents-column or digit-drop twin.
+
+    Claude/DI may arbitrate among locals. They must not mint a total the open-source
+    readers did not see, and they must not pick a side of an ambiguous ×100 / dropped-digit pair.
+    """
+    if parse_currency(chosen) is None:
+        return False
+    local = open_source_charge_amounts(candidates)
+    if not any(amounts_corroborate(chosen, amount) for amount in local):
+        return False
+    for amount in local:
+        if amounts_corroborate(chosen, amount):
+            continue
+        if is_decimal_place_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
+            return False
+    return True
+
+
 def amounts_corroborate(left: object, right: object) -> bool:
     """Corroboration requires exact monetary equality, not plausible repair."""
     a, b = parse_currency(left), parse_currency(right)
