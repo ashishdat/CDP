@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import StrEnum
 from typing import Any
 
-from packages.claim_evidence.line_sum_authority import parse_currency
+from packages.claim_evidence.line_sum_authority import format_currency, parse_currency
 from packages.image_evidence.analyzer import InkDisposition, analyze_roi
 
 
@@ -77,6 +79,84 @@ def _is_box28_label_contamination(text: object) -> bool:
         if digits in {"8", "2", "28", "800", "200", "2800"}:
             return True
     return False
+
+
+def _is_llm_box_engine(engine: object) -> bool:
+    name = str(engine or "").casefold()
+    return any(token in name for token in ("claude", "gpt", "openai", "anthropic"))
+
+
+def _raw_contains_distinct_charge(raw: object, amount: Decimal) -> bool:
+    """True when caption OCR also holds a different plausible charge.
+
+    ``TOTAL CHARGE 1200; 00 23`` still contains 1200, so the shaped ``23.00``
+    must not be discarded — a short line sum cannot ignore that box.
+    """
+    for run in re.findall(r"\d{3,}", str(raw or "")):
+        dollars = Decimal(run)
+        if dollars >= 100 and dollars != amount:
+            return True
+        if len(run) >= 3:
+            cents = Decimal(f"{run[:-2]}.{run[-2:]}")
+            if cents >= 100 and cents != amount:
+                return True
+    return False
+
+
+def is_caption_index_bleed(raw: object, value: object) -> bool:
+    """True when a shaped Box 28 amount is the caption or the next box index.
+
+    ``8. TOTAL CHARGE\\n29`` → ``29.00`` is box 29, not the printed total.
+    Amounts of $100 or more stay charges (``TOTAL CHARGE $ 175.00``).
+    A caption string that also contains a different ≥$100 run stays as well.
+    """
+    blob_raw = str(raw or "")
+    blob_val = str(value or "")
+    if not (
+        _is_box28_label_contamination(blob_raw)
+        or _is_box28_label_contamination(blob_val)
+    ):
+        return False
+    amount = parse_currency(blob_val)
+    if amount is None:
+        amount = parse_currency(blob_raw)
+    if amount is None:
+        return True
+    if amount >= Decimal("100"):
+        return False
+    return not _raw_contains_distinct_charge(blob_raw, amount)
+
+
+def caption_only_bleed_amounts(field_payload: dict | None) -> set[str]:
+    """Shaped amounts that exist only as caption/index bleed or an LLM echo of it.
+
+    A non-LLM read of the same amount whose raw is not caption bleed keeps the
+    amount (real Box 28 ink). ``17500`` with no caption is never in this set.
+    """
+    if not isinstance(field_payload, dict):
+        return set()
+    rows: list[dict] = []
+    if isinstance(field_payload.get("ranked_candidate"), dict):
+        rows.append(field_payload["ranked_candidate"])
+    rows.extend(row for row in (field_payload.get("alternatives") or []) if isinstance(row, dict))
+    rows.extend(row for row in (field_payload.get("candidates") or []) if isinstance(row, dict))
+    bleed: set[str] = set()
+    clean: set[str] = set()
+    for row in rows:
+        ocr = row.get("ocr_candidate") or row
+        if not isinstance(ocr, dict):
+            continue
+        amount = parse_currency(ocr.get("value"))
+        if amount is None:
+            continue
+        key = format_currency(amount)
+        if is_caption_index_bleed(ocr.get("raw_value"), ocr.get("value")):
+            bleed.add(key)
+            continue
+        if _is_llm_box_engine(ocr.get("engine")):
+            continue
+        clean.add(key)
+    return bleed - clean
 
 
 def _payload_is_label_only_or_empty(

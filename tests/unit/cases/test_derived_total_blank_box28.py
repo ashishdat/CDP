@@ -554,3 +554,72 @@ def test_financial_geometry_soft_integrity_when_exact_match():
     )
     assert decision.confirmed
     assert decision.amount == "34.25"
+
+
+def test_total_charge_caption_index_is_bleed_not_a_box_total():
+    """DJKN.022: ``8. TOTAL CHARGE`` + box 29 is not a $29 total."""
+    from packages.claim_evidence.box28_blankness import (
+        caption_only_bleed_amounts,
+        is_caption_index_bleed,
+    )
+
+    assert is_caption_index_bleed("8. TOTAL CHARGE\n29", "29.00")
+    assert is_caption_index_bleed("25\n8. TOTAL CHARGE", "25.00")
+    assert not is_caption_index_bleed("17500", "17500.00")
+    assert not is_caption_index_bleed("2 O.TOTAL CHARGE $ 175 1 00", "175.00")
+    assert not is_caption_index_bleed(". TOTAL CHARGE 1200; 00 23 $", "23.00")
+    assert not is_caption_index_bleed(". TOTAL CHARGE S 45000 2 S", "45000.00")
+
+    payload = {
+        "normalized_value": "29.00",
+        "ranked_candidate": {
+            "ocr_candidate": {
+                "engine": "anthropic_claude_crop",
+                "value": "29.00",
+                "raw_value": "29.00",
+                "preprocessing_variant": "conflict_agent_financial",
+            }
+        },
+        "alternatives": [
+            {
+                "ocr_candidate": {
+                    "engine": "paddleocr",
+                    "value": "29.00",
+                    "raw_value": "8. TOTAL CHARGE\n29",
+                }
+            },
+            {
+                "ocr_candidate": {
+                    "engine": "rapidocr",
+                    "value": "25.00",
+                    "raw_value": "25\n8. TOTAL CHARGE",
+                }
+            },
+        ],
+    }
+    assert caption_only_bleed_amounts(payload) == {"29.00", "25.00"}
+
+
+def test_clean_local_box_amount_is_not_caption_bleed():
+    """A real open-source $29 next to a caption read stays a corroborator."""
+    from packages.claim_evidence.box28_blankness import caption_only_bleed_amounts
+
+    payload = {
+        "ranked_candidate": {
+            "ocr_candidate": {
+                "engine": "paddleocr",
+                "value": "29.00",
+                "raw_value": "29.00",
+            }
+        },
+        "alternatives": [
+            {
+                "ocr_candidate": {
+                    "engine": "rapidocr",
+                    "value": "29.00",
+                    "raw_value": "8. TOTAL CHARGE\n29",
+                }
+            }
+        ],
+    }
+    assert caption_only_bleed_amounts(payload) == set()

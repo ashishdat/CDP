@@ -530,6 +530,21 @@ def decide(extraction, family):
         if should_defer_box28_to_line_sum(current_val, service_lines):
             values[charge_field] = None
 
+    # Caption/index OCR (``8. TOTAL CHARGE`` + box 29 → 29.00) is not Box 28 ink.
+    # Drop it before evidence build so it cannot veto a unanimous line sum.
+    # A real printed total in the same string, or $100+, is not in this set.
+    from packages.claim_evidence.box28_blankness import caption_only_bleed_amounts
+    from packages.claim_evidence.line_sum_authority import format_currency
+
+    for charge_field in ('total_charge', 'total_charges'):
+        field_payload = next(
+            (f for f in fields if f.get('field_name') == charge_field), {}
+        ) or {}
+        bleed = caption_only_bleed_amounts(field_payload)
+        current_amt = parse_currency(values.get(charge_field))
+        if current_amt is not None and format_currency(current_amt) in bleed:
+            values[charge_field] = None
+
     # Authoritative member join telemetry only here. Identity fills happen after
     # Field Value Authority so the join key must already be independently accepted.
     member_join_meta = None
@@ -582,18 +597,24 @@ def decide(extraction, family):
         """Currency-shaped box-28 / Azure DI / non-derived OCR amounts."""
         found: list[str] = []
         seen: set[str] = set()
+        bleed = caption_only_bleed_amounts(field_payload)
 
         def _add(raw: object) -> None:
             text = str(raw or '').strip()
             if not text or text in seen:
                 return
-            if parse_currency(text) is None:
+            parsed = parse_currency(text)
+            if parsed is None:
                 return
             from packages.claim_evidence.line_sum_authority import (
                 is_implausible_charge_total,
             )
 
             if is_implausible_charge_total(text):
+                return
+            # ``29.00`` parsed from ``8. TOTAL CHARGE\\n29`` is the next box
+            # number. Do not let it, or a Claude echo of it, conflict with Σ.
+            if format_currency(parsed) in bleed:
                 return
             seen.add(text)
             found.append(text)
@@ -929,6 +950,10 @@ def decide(extraction, family):
                         continue
                     if 'derived_from_verified_service' in variant:
                         continue
+                    # Caption-index amounts (box 29 beside TOTAL CHARGE) are not
+                    # a second total. Keep real rivals such as 17500 vs Σ 1031.
+                    if format_currency(parse_currency(text)) in caption_only_bleed_amounts(f):
+                        continue
                     retained.append(cand)
             candidates = [derived_candidate] + retained
             check = deterministic.evaluate(name, derived, claim_values=values)
@@ -950,6 +975,12 @@ def decide(extraction, family):
             else:
                 eligible, gate_reason = line_sum_gate.get(name, (False, 'UNSET'))
                 winner_val = f.get('normalized_value')
+                # Caption bleed is not a printed Box 28 winner (29 vs Σ 450).
+                if (
+                    parse_currency(winner_val) is not None
+                    and format_currency(parse_currency(winner_val)) in caption_only_bleed_amounts(f)
+                ):
+                    winner_val = None
                 winner_matches_lines = (
                     parse_currency(winner_val) is None
                     or parse_currency(derived) is None
