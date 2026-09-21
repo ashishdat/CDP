@@ -131,9 +131,9 @@ def test_cents_column_prefers_line_without_asking_claude(monkeypatch):
     ]
     lines = [
         {
-            "charges": "49.72",
+            "charges": "49.77",
             "candidates": [
-                {"engine": "rapidocr", "value": "49.72"},
+                {"engine": "rapidocr", "value": "49.77"},
                 {"engine": "anthropic_claude_crop", "value": "4972.00"},
             ],
         }
@@ -146,8 +146,9 @@ def test_cents_column_prefers_line_without_asking_claude(monkeypatch):
     )
     agent = out_fields[0]["financial_conflict_agent"]
     assert agent["side"] == "LINES"
-    assert agent["value"] == "49.72"
+    assert agent["value"] == "49.77"
     assert "CENTS_COLUMN" in agent["reason"]
+    assert out_fields[0]["candidates"][0]["model_version"] == "conflict-agent-v1"
 
 
 def test_financial_conflict_agent_abstain_keeps_hitl(monkeypatch):

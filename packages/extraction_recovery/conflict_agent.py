@@ -28,6 +28,56 @@ _NAME_FIELDS = frozenset({"patient_name", "insured_name"})
 _DOB_FIELDS = frozenset({"patient_dob", "date_of_birth", "insured_dob", "dob"})
 
 
+def _agent_candidate(
+    *,
+    value: str,
+    bbox: tuple[int, int, int, int],
+    image: Image.Image,
+    reason: str,
+    variant: str,
+) -> dict[str, Any]:
+    return {
+        "value": value,
+        "raw_value": value,
+        "engine": "anthropic_claude_crop",
+        "model_name": "conflict-agent",
+        "model_version": "conflict-agent-v1",
+        "preprocessing_variant": variant,
+        "preprocessing_version": "cascade-v12-conflict-agent",
+        "raw_confidence": 0.96,
+        "calibrated_confidence": 0.96,
+        "reason_code": reason,
+        "latency_ms": 0.0,
+        "bounding_box": {
+            "x0": float(bbox[0]),
+            "y0": float(bbox[1]),
+            "x1": float(bbox[2]),
+            "y1": float(bbox[3]),
+            "image_width": float(image.width),
+            "image_height": float(image.height),
+        },
+    }
+
+
+def _near_decimal_place_shift(left: object, right: object) -> bool:
+    """True for exact ×100 or within $1 of an exact ×100 twin (49.77 vs 4972)."""
+    from decimal import Decimal
+
+    from packages.claim_evidence.line_sum_authority import (
+        is_decimal_place_shift,
+        parse_currency,
+    )
+
+    if is_decimal_place_shift(left, right):
+        return True
+    a, b = parse_currency(left), parse_currency(right)
+    if a is None or b is None or a <= 0 or b <= 0:
+        return False
+    hi, lo = (a, b) if a > b else (b, a)
+    # 49.77 × 100 = 4977 vs OCR 4972 (ruling / digit noise) still counts.
+    return abs(hi - lo * 100) <= Decimal("10.00")
+
+
 @dataclass(frozen=True)
 class ConflictResolution:
     attempted: bool
@@ -453,37 +503,26 @@ def maybe_attach_conflict_agent_to_field_row(
             continue
         reordered.append(cand)
     if matched is None:
-        matched = {
-            "value": chosen,
-            "raw_value": chosen,
-            "engine": "conflict_agent_claude",
-            "reason_code": resolution.reason,
-            "raw_confidence": 0.95,
-            "calibrated_confidence": 0.95,
-        }
+        matched = _agent_candidate(
+            value=chosen,
+            bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+            image=image,
+            reason=resolution.reason,
+            variant="conflict_agent_resolve",
+        )
     else:
         matched = dict(matched)
         matched["reason_code"] = resolution.reason
+        matched.setdefault("model_version", "unknown")
+        matched.setdefault("model_name", matched.get("engine") or "unknown")
     # Agent vote sits with the chosen rival as a confirming engine.
-    agent_cand = {
-        "value": chosen,
-        "raw_value": chosen,
-        "engine": "anthropic_claude_crop",
-        "model_name": "conflict-agent",
-        "preprocessing_variant": "conflict_agent_resolve",
-        "raw_confidence": 0.95,
-        "calibrated_confidence": 0.95,
-        "reason_code": resolution.reason,
-        "latency_ms": 0.0,
-        "bounding_box": {
-            "x0": float(bbox[0]),
-            "y0": float(bbox[1]),
-            "x1": float(bbox[2]),
-            "y1": float(bbox[3]),
-            "image_width": float(image.width),
-            "image_height": float(image.height),
-        },
-    }
+    agent_cand = _agent_candidate(
+        value=chosen,
+        bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+        image=image,
+        reason=resolution.reason,
+        variant="conflict_agent_resolve",
+    )
     updated["candidates"] = [agent_cand, matched, *reordered]
     cascade = dict(updated.get("cascade") or {})
     cascade["accepted"] = True
@@ -543,11 +582,10 @@ def maybe_resolve_financial_conflict(
     # service line already has vision+local consensus on it. Claude/DI often
     # read the unplaced digits (4972) on a 49.72 cell.
     from packages.claim_evidence.line_sum_authority import (
-        is_decimal_place_shift,
         line_has_vision_and_local_on_selected,
     )
 
-    if is_decimal_place_shift(box28, line_total):
+    if _near_decimal_place_shift(box28, line_total):
         box_amt = parse_currency(box28)
         line_amt = parse_currency(line_total)
         local_supports_line = False
@@ -602,25 +640,13 @@ def maybe_resolve_financial_conflict(
                 current["cascade"] = cascade
                 current["value"] = line_total
                 if len(bbox) == 4:
-                    agent_cand = {
-                        "value": line_total,
-                        "raw_value": line_total,
-                        "engine": "anthropic_claude_crop",
-                        "model_name": "conflict-agent",
-                        "preprocessing_variant": "conflict_agent_cents_column",
-                        "raw_confidence": 0.96,
-                        "calibrated_confidence": 0.96,
-                        "reason_code": "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
-                        "latency_ms": 0.0,
-                        "bounding_box": {
-                            "x0": float(bbox[0]),
-                            "y0": float(bbox[1]),
-                            "x1": float(bbox[2]),
-                            "y1": float(bbox[3]),
-                            "image_width": float(image.width),
-                            "image_height": float(image.height),
-                        },
-                    }
+                    agent_cand = _agent_candidate(
+                        value=line_total,
+                        bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+                        image=image,
+                        reason="CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
+                        variant="conflict_agent_cents_column",
+                    )
                     current["candidates"] = [
                         agent_cand,
                         *list(current.get("candidates") or []),
@@ -667,25 +693,13 @@ def maybe_resolve_financial_conflict(
         }
         if resolution.resolved and resolution.chosen and resolution.financial_side:
             chosen = resolution.chosen
-            agent_cand = {
-                "value": chosen,
-                "raw_value": chosen,
-                "engine": "anthropic_claude_crop",
-                "model_name": "conflict-agent",
-                "preprocessing_variant": "conflict_agent_financial",
-                "raw_confidence": 0.96,
-                "calibrated_confidence": 0.96,
-                "reason_code": resolution.reason,
-                "latency_ms": 0.0,
-                "bounding_box": {
-                    "x0": float(bbox[0]),
-                    "y0": float(bbox[1]),
-                    "x1": float(bbox[2]),
-                    "y1": float(bbox[3]),
-                    "image_width": float(image.width),
-                    "image_height": float(image.height),
-                },
-            }
+            agent_cand = _agent_candidate(
+                value=chosen,
+                bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+                image=image,
+                reason=resolution.reason,
+                variant="conflict_agent_financial",
+            )
             cands = [agent_cand, *list(current.get("candidates") or [])]
             current["candidates"] = cands
             cascade = dict(current.get("cascade") or {})
