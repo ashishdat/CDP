@@ -506,15 +506,17 @@ def name_needs_gpt4o(
                 has_shaped = True
                 break
         return not has_shaped
-    # Cascade can accept one local name. That is still not E2.
-    local_engines: set[str] = set()
+    # Cascade can accept one shaped local name. A second engine that only
+    # emitted a fragment ("M") is not E2, so Claude still has to read the crop.
+    shaped_locals: set[str] = set()
     for cand in candidates or []:
         eng = str(cand.get("engine") or "").casefold()
         if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
             continue
-        if str(cand.get("value") or cand.get("text") or "").strip():
-            local_engines.add(eng)
-    if len(local_engines) < 2:
+        text = _normalize(str(cand.get("value") or cand.get("text") or ""))
+        if text and semantic_accept("patient_name", text)[0]:
+            shaped_locals.add(eng)
+    if len(shaped_locals) < 2:
         return True
     return False
 

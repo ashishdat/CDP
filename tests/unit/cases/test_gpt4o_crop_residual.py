@@ -472,6 +472,13 @@ def test_name_conflict_triggers_gpt4o_and_accepts_shaped(monkeypatch):
     assert name_needs_gpt4o(
         local_accepted=True,
         candidates=[
+            {"value": "CMOXXALUONI, ANUA Y", "engine": "rapidocr"},
+            {"value": "M", "engine": "paddleocr"},
+        ],
+    )
+    assert name_needs_gpt4o(
+        local_accepted=True,
+        candidates=[
             {"value": "KIVERALARAA", "engine": "paddleocr"},
             {"value": "RIVERA LARAA", "engine": "rapidocr"},
         ],
