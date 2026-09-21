@@ -200,6 +200,29 @@ def test_dob_genuine_month_day_conflict_stays_hitl():
     assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
 
 
+def test_unshaped_member_id_soup_stays_review_and_does_not_accept_short_shell():
+    """Group A__M048EJG7.036: tesseract letter soup must not AUTO, and the
+    padded ``0000007267`` shell must not be accepted as ``7267``.
+    """
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("0000007267", "anthropic_claude_crop", 0.99),
+            _candidate("eee ae | ONNNAAIVKRT", "tesseract", 0.55),
+            _candidate("0000007267", "paddleocr", 0.79),
+            _candidate("0000007267", "rapidocr", 0.77),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.REVIEW
+    assert "UNSHAPED_MEMBER_ID" in result.rationale_codes
+    assert result.selected_value not in {"7267", "0000007267"}
+
+
 def test_member_id_confusable_l_insertion():
     assert values_conflict_equivalent(
         "insured_id_number", "A00046372APU", "A00046372APLU"

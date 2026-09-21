@@ -2363,6 +2363,16 @@ class EvidenceReconciler:
                 reasons.append("GPT4O_ID_DIGIT_CONFLICT_TIEBREAK")
             if early_id_relief:
                 reasons.append("MEMBER_ID_CONFUSABLE_INSERTION_RELIEVED")
+        # Letter soup and zero-padded short shells (``0000007267`` → ``7267``)
+        # are not subscriber ids. Do not ACCEPT them, and do not invent the
+        # stripped short id as the authority value.
+        if (
+            is_id_field
+            and decision in {Decision.ACCEPT, Decision.REFERENCE_CONFIRMED}
+            and not _member_id_is_shaped(str(value or ""))
+        ):
+            decision = Decision.REVIEW
+            reasons.append("UNSHAPED_MEMBER_ID")
         versions = (
             [f"authoritative-reference:{authoritative_version or 'version-not-provided'}"]
             if reference_match
