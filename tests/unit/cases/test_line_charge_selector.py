@@ -761,3 +761,42 @@ def test_ambiguous_clears_scale_shifted_geometry_shell():
     assert out[0]["charges"] is None
 
 
+def test_geometry_scale_shift_does_not_outrank_dual_local_dollars():
+    """Raw ``157107`` → ``1571.07`` is a ruling tick, not a fuller charge."""
+    dollars_bbox = (1050.0, 1458.0, 1165.0, 1513.0)
+    line = {
+        "charges": "1571.07",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "157.00", "157", dollars_bbox),
+            _cand("rapidocr", "157.00", "157", dollars_bbox),
+            _cand("rapidocr", "1571.07", "157107", _CHARGE_BBOX),
+        ],
+    }
+    line["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
+    result = select_line_charge(line)
+    assert result.disposition == "AMBIGUOUS_LINE_CHARGE"
+    assert result.amount is None
+    assert result.reason == "GEOMETRY_SCALE_SHIFT_NOT_VISION_FULLER"
+    out = apply_line_charge_selector([line])
+    assert out[0]["charges"] is None
+
+
+def test_geometry_ruling_tick_is_not_digit_drop_fuller():
+    """``200100`` → ``2001.00`` must not beat a shorter ``200.00`` read."""
+    line = {
+        "charges": "2001.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "200.00", "200.00", _CHARGE_BBOX),
+            _cand("rapidocr", "2001.00", "200100", _CHARGE_BBOX),
+        ],
+    }
+    line["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
+    result = select_line_charge(line)
+    assert result.reason != "DIGIT_DROP_FULLER_LOCAL"
+    assert result.amount != "2001.00"
+    out = apply_line_charge_selector([line])
+    assert out[0]["charges"] != "2001.00"
+
+

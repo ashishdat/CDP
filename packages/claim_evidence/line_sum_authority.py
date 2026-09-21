@@ -252,6 +252,8 @@ def llm_charge_pick_has_open_source_authority(
     """
     if parse_currency(chosen) is None:
         return False
+    if agent_amount_is_inflated_scale(chosen, candidates):
+        return False
     local = open_source_charge_amounts(candidates)
     if not any(amounts_corroborate(chosen, amount) for amount in local):
         return False
@@ -261,6 +263,27 @@ def llm_charge_pick_has_open_source_authority(
         if is_scale_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
             return False
     return True
+
+
+def agent_amount_is_inflated_scale(chosen: object, candidates: list | None) -> bool:
+    """True when ``chosen`` is the larger ×10/×100 twin of another read.
+
+    Conflict-agent ``2004.00`` must not override a ranked ``200.00`` just because
+    a digit-whitelist paddle read also shaped ``200400`` as ``2004.00``. The
+    smaller amount stays eligible; the inflated side stays a conflict.
+    """
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None:
+        return False
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        amount = parse_currency(cand.get("value") or cand.get("raw_value"))
+        if amount is None or amount >= chosen_amt:
+            continue
+        if is_scale_shift(chosen_amt, amount):
+            return True
+    return False
 
 
 def charge_conflicts_with_plausible_line_sum(chosen: object, service_lines: list | None) -> bool:

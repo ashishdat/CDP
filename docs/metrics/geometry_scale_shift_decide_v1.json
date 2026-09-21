@@ -1,0 +1,42 @@
+{
+  "title": "Geometry ruling-tick scale shifts are no longer selected as the charge",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "prior_decision_only": {
+    "out": "evaluation_results/hackathon_150_same_name_decide",
+    "completed": 89,
+    "true_stp": 53,
+    "true_stp_rate_of_completed": 0.595506,
+    "field_ink_hitl": 36,
+    "false_accepts": 51,
+    "accepted_field_precision": 0.7713
+  },
+  "decision_only": {
+    "out": "evaluation_results/hackathon_150_geometry_scale_decide",
+    "completed": 89,
+    "true_stp": 57,
+    "true_stp_rate_of_completed": 0.640449,
+    "field_ink_hitl": 32,
+    "false_accepts": 51,
+    "accepted_fields_scored": 225,
+    "accepted_field_precision": 0.773333,
+    "true_stp_of_scored": 44,
+    "charge_exact": "19/52",
+    "flipped_to_true_stp": [
+      "M048DJKN.001 total_charge 200.00",
+      "M048DJKN.002 total_charge 200.00",
+      "M048DJKN.006 total_charge 200.00",
+      "M048EJG7.028 total_charge 90.00"
+    ],
+    "held_in_review": "M048DJKN.004 stays HITL at 200.00. The page is $200.00. Conflict-agent 2004.00 (paddle raw 200400) is not honored."
+  },
+  "note": "Not a full re-OCR. Frozen OCR from the same-name decision run. Golden Pack was not mutated."
+}

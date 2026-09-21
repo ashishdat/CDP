@@ -40,6 +40,21 @@ def test_implausible_box28_digit_soup():
     assert not ok and reason == "CURRENCY_IMPLAUSIBLE_TOTAL"
 
 
+def test_inflated_conflict_agent_amount_is_not_open_source_authority():
+    """Paddle ``200400`` must not let a conflict agent override ``200.00``."""
+    from packages.claim_evidence.line_sum_authority import (
+        llm_charge_pick_has_open_source_authority,
+    )
+
+    candidates = [
+        {"engine": "anthropic_claude_crop", "value": "200.00", "raw_value": "200.00"},
+        {"engine": "anthropic_claude_crop", "value": "2004.00", "raw_value": "2004.00"},
+        {"engine": "paddleocr", "value": "2004.00", "raw_value": "200400"},
+    ]
+    assert not llm_charge_pick_has_open_source_authority("2004.00", candidates)
+    assert not llm_charge_pick_has_open_source_authority("200.00", candidates)
+
+
 def test_form_ruling_noise_charge_ignored_not_auto():
     """Form-ruling digit soup (208408) must not AUTO via junk corroboration."""
     lines = [

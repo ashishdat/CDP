@@ -214,6 +214,45 @@ def _scale_shifted_from_dual_local(current: Decimal, candidates: list | None) ->
     return False
 
 
+def _geometry_only_rows(amount: str, filtered: list[tuple]) -> bool:
+    """True when every surviving row for ``amount`` is a GEOMETRY_CENTS read."""
+    rows = [row for row in filtered if row[0] == amount]
+    if not rows:
+        return False
+    for row in rows:
+        cand = row[2] if len(row) > 2 else {}
+        prep = str(
+            (cand or {}).get("preprocessing_variant")
+            or (cand or {}).get("evidence_reference")
+            or ""
+        )
+        if "GEOMETRY_CENTS" not in prep:
+            return False
+    return True
+
+
+def _inflated_geometry_vs_peer(current: Decimal, candidates: list | None) -> bool:
+    """True when ``current`` is the larger ×10/×100 twin of a non-geometry read.
+
+    ``200100`` shaped as ``2001.00`` is the cents ruling read as a digit.
+    A normal Rapid ``1851.00`` is not geometry and must not be cleared.
+    """
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        prep = str(
+            cand.get("preprocessing_variant") or cand.get("evidence_reference") or ""
+        )
+        if "GEOMETRY_CENTS" in prep:
+            continue
+        amount = parse_currency(cand.get("value"))
+        if amount is None or amount >= current:
+            continue
+        if is_scale_shift(current, amount):
+            return True
+    return False
+
+
 def _looks_like_place_shift(amount: str, peers: set[str]) -> bool:
     """Reject ``4972.00`` when ``49.72`` is an observed peer."""
     if _is_concat_place_shift_shell(amount, peers):
@@ -890,6 +929,21 @@ def select_line_charge(
         if vision_fuller is not None:
             return vision_fuller
         digit_drop = _digit_drop_fuller_local(by_amount)
+        # Geometry-only ``200100`` → ``2001.00`` is a ruling tick, not the
+        # dropped-digit case that keeps Rapid ``1851.00`` over Claude ``185``.
+        if (
+            digit_drop is not None
+            and _geometry_only_rows(digit_drop, filtered)
+            and any(
+                (other_amt := parse_currency(other)) is not None
+                and (full_amt := parse_currency(digit_drop)) is not None
+                and full_amt > other_amt
+                and is_scale_shift(digit_drop, other)
+                for other in by_amount
+                if other != digit_drop
+            )
+        ):
+            digit_drop = None
         if digit_drop is not None:
             return LineChargeSelection(
                 "SELECTED_LOCAL_CHARGE",
@@ -1095,6 +1149,24 @@ def select_line_charge(
                 geo_conflict = True
                 break
         if local_stem_ok and vision_or_geometry and not geo_conflict:
+            # Dual-local ``157.00`` plus GEOMETRY_CENTS ``1571.07`` (raw
+            # ``157107``) is a ×10 ruling tick, not a vision fuller read.
+            # Selecting it made the line sum the inflated amount. A real
+            # gpt-4o/Claude fuller amount still selects above.
+            fuller_has_vision = "azure_gpt4o_crop" in by_amount.get(fuller_best, set())
+            if (
+                not fuller_has_vision
+                and _geometry_only_rows(fuller_best, filtered)
+                and is_scale_shift(fuller_best, amount)
+                and parse_currency(fuller_best) > parse_currency(amount)
+            ):
+                return LineChargeSelection(
+                    "AMBIGUOUS_LINE_CHARGE",
+                    None,
+                    "GEOMETRY_SCALE_SHIFT_NOT_VISION_FULLER",
+                    rejected=tuple(rejected[:12])
+                    + ((amount, "DOLLARS_TRUNCATION"), (fuller_best, "GEOMETRY_SCALE_SHIFT")),
+                )
             return LineChargeSelection(
                 "SELECTED_LOCAL_CHARGE",
                 fuller_best,
@@ -1202,8 +1274,15 @@ def apply_line_charge_selector(lines: list[dict] | None) -> list[dict]:
                             or _raw_has_observed_decimal(cand.get("raw_value"))
                         ):
                             # A lone ×10/×100 geometry shell is not support when
-                            # paddle and rapid already agree on the other scale.
+                            # paddle and rapid already agree on the other scale,
+                            # or when any non-geometry reader has the smaller twin
+                            # (``2001.00`` from raw ``200100`` vs Claude ``200.00``).
                             if _scale_shifted_from_dual_local(current, updated.get("candidates")):
+                                continue
+                            if (
+                                "GEOMETRY_CENTS" in prep
+                                and _inflated_geometry_vs_peer(current, updated.get("candidates"))
+                            ):
                                 continue
                             supported = True
                             break
