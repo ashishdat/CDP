@@ -1,0 +1,40 @@
+{
+  "title": "Box 28 caption-index amounts are not a second total",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "page_check": "M048DJKN.022 service line prints 450 00 and Box 28 prints spaced 45000, both $450.00. Paddle raw '8. TOTAL CHARGE\\n29' and rapid raw '25\\n8. TOTAL CHARGE' are the caption and the next box number. Claude's 29.00 echoed that caption. The line is paddle, rapid, geometry, and Claude at 450.00. Authority is LINE_TOTALS_CORROBORATED, not Claude alone.",
+  "decision_only": {
+    "out": "evaluation_results/hackathon_150_caption_bleed_decide",
+    "src": "evaluation_results/hackathon_150_ruling_split_decide",
+    "completed": 89,
+    "true_stp": 60,
+    "true_stp_rate_of_completed": 0.674157,
+    "field_ink_hitl": 29,
+    "flipped_to_true_stp": ["M048DJKN.022 total_charge 450.00"],
+    "lost_stp": [],
+    "false_accepts": 53,
+    "accepted_fields_scored": 227,
+    "accepted_field_precision": 0.76652,
+    "new_false_accept": null
+  },
+  "combined_with_ejge_reocr_overlay": {
+    "completed": 89,
+    "true_stp": 64,
+    "true_stp_rate_of_completed": 0.719101,
+    "field_ink_hitl": 25,
+    "false_accepts": 52,
+    "accepted_fields_scored": 227,
+    "accepted_field_precision": 0.770925,
+    "overlay": "EJGE.006/.008/.009 from hackathon_ejge_row6_decide and EJGE.007 from hackathon_ejge007_row6, all TRUE_STP 1200.00. Overlay removed EJGE.009 patient_dob false accept 2021-07-29 vs label 2006-07-25."
+  },
+  "still_closed": "94% of 89 completed claims needs about 84 true STP. This cohort is 64. Hard-15, 17500 vs line 1031, inflated geometry (1291.15, 2004, 1571.07), and identity HITL on EJG7.019 and EJG7.036 stay review. Page-correct cents that disagree with truncated labels (222.22, 25.43) remain false accepts against those labels.",
+  "note": "Decision-only on frozen OCR plus the four EJGE re-OCR claims already measured. Not a new full-cohort OCR. Golden Pack was not mutated. Gates still fail."
+}
