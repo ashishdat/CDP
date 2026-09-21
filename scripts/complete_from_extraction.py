@@ -436,6 +436,17 @@ def decide(extraction, family):
             (f for f in fields if f.get('field_name') == charge_field), {}
         ) or {}
         current_val = values.get(charge_field)
+        # Conflict agent already picked BOX28 or LINES. Keep that amount — do not
+        # wipe it with should_defer (200 vs 2001 digit-drop) or the OCR choice is
+        # discarded and LINE_TOTALS_UNCORROBORATED / hard-15 HITL returns.
+        agent = values.get('_financial_conflict_agent')
+        if (
+            isinstance(agent, dict)
+            and str(agent.get('side') or '') in {'BOX28', 'LINES'}
+            and parse_currency(agent.get('value')) is not None
+        ):
+            values[charge_field] = str(agent['value']).strip()
+            continue
         # Defer band always wins over vision preserve. A gpt-4o/Claude Box28 that
         # is a place-shift / digit-soup twin of Σ must not veto should_defer —
         # that re-arms FINANCIAL_CONFLICT after we cleared the contradictory shell.

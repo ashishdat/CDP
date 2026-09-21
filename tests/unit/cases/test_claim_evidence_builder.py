@@ -94,6 +94,67 @@ def test_empty_box28_with_observed_line_charges_emits_line_totals_reconciled():
     assert item.metadata.get("provenance") == "DERIVED_FROM_OBSERVED_LINE_CHARGES"
 
 
+def test_conflict_agent_box28_clears_digit_drop_contradiction():
+    """Agent BOX28 (200) vs line Σ (2001) must mint E6 and drop CLAIM_TOTAL_CONTRADICTION.
+
+    Finish previously deferred 200→None, then LINE_TOTALS_UNCORROBORATED kept HITL
+    even after the OCR conflict agent had already chosen Box 28.
+    """
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="DJKN.001",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "200.00",
+            "_financial_conflict_agent": {
+                "side": "BOX28",
+                "value": "200.00",
+                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            },
+        },
+        service_lines=[{"charges": "2001.00"}],
+    )
+    types = _types(result.evidence_items)
+    assert "CLAIM_TOTAL_CONFIRMED" in types
+    assert "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED" in types
+    assert "FINANCIAL_CONFLICT_HITL" not in types
+    assert "CLAIM_TOTAL_CONTRADICTION" not in _types(result.contradictions)
+    assert (
+        next(
+            i.value
+            for i in result.evidence_items
+            if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+        )
+        == "200.00"
+    )
+
+
+def test_conflict_agent_lines_side_confirms_line_sum():
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="cents",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "4972.00",
+            "_financial_conflict_agent": {
+                "side": "LINES",
+                "value": "49.77",
+                "reason": "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
+            },
+        },
+        service_lines=[{"charges": "49.77"}],
+    )
+    types = _types(result.evidence_items)
+    assert "CLAIM_TOTAL_CONFIRMED" in types
+    assert "CLAIM_TOTAL_CONTRADICTION" not in _types(result.contradictions)
+    assert (
+        next(
+            i.value
+            for i in result.evidence_items
+            if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+        )
+        == "49.77"
+    )
+
+
 def test_deferred_box28_contradictory_payload_does_not_mint_financial_conflict():
     """OCR Box 28 soup (825) deferred vs line Σ 450 must not restore → CONFLICT.
 

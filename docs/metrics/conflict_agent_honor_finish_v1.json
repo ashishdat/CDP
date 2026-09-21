@@ -1,0 +1,20 @@
+{
+  "title": "Honor conflict-agent BOX28/LINES through finish",
+  "problem": "Conflict agent resolved OCR rivals, then should_defer_box28_to_line_sum wiped Box 28 and LINE_TOTALS_UNCORROBORATED / hard-15 kept field HITL.",
+  "fix": [
+    "complete_from_extraction: skip defer when _financial_conflict_agent side is BOX28 or LINES; bind agent value",
+    "ClaimEvidenceBuilder: mint CLAIM_TOTAL_CONFIRMED + FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED from agent before deferred early-return"
+  ],
+  "decision_only_reprocess": {
+    "src_run": "evaluation_results/hackathon_250_v12_conflict_agent",
+    "out_dir": "evaluation_results/hackathon_250_hitl_agent_honor_decide",
+    "hitl_in": 12,
+    "flipped_to_true_stp": 10,
+    "still_hitl": 2,
+    "still_hitl_reasons": {
+      "Group A__M048DJKH.045": "CONFLICT_AGENT_ABSTAIN; SINGLE_LINE_REQUIRES_DI (hard-15)",
+      "Group A__M048EJG7.007": "no financial agent; patient_dob + total_charge EVIDENCE_POLICY_GAP / MISSING_E4"
+    }
+  },
+  "hard_15": "unchanged — abstain and sole-line DI gates still HITL"
+}

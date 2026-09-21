@@ -696,6 +696,45 @@ class ClaimEvidenceBuilder:
         # Skip when Box28↔line-sum already confirmed the same amount.
         if any(item.evidence_type == "BOX28_LINE_SUM_CORROBORATED" for item in evidence):
             return
+        # OCR conflict agent already chose BOX28 or LINES — mint E6 and clear the
+        # CLAIM_TOTAL_CONTRADICTION / FINANCIAL_CONFLICT_HITL that would otherwise
+        # keep the claim in field HITL after a successful agent pick.
+        agent = values.get("_financial_conflict_agent")
+        if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
+            chosen = str(agent.get("value") or "").strip()
+            side = agent["side"]
+            if chosen and parse_currency(chosen) is not None:
+                contradictions[:] = [
+                    item
+                    for item in contradictions
+                    if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                ]
+                evidence[:] = [
+                    item
+                    for item in evidence
+                    if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                ]
+                meta = {
+                    "supported_fields": ["total_charge", "total_charges"],
+                    "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+                    "financial_side": side,
+                    "hitl_route": None,
+                }
+                evidence.append(
+                    self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", chosen, meta)
+                )
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                        chosen,
+                        meta,
+                    )
+                )
+                for key in ("total_charge", "total_charges", "claim_total"):
+                    if key in values or key == "total_charge":
+                        values[key] = chosen
+                return
         box28_amount = values.get("total_charge") or values.get("total_charges")
         deferred = box28_amount in (None, "")
         # When Box 28 was deferred (OCR soup cleared from values), only restore a
