@@ -1,0 +1,39 @@
+{
+  "title": "Decision-only re-finish after SAME and box-rule digit name fixes",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only": {
+    "src": "evaluation_results/hackathon_150_v12_agent_honor",
+    "out": "evaluation_results/hackathon_150_same_name_decide",
+    "completed": 89,
+    "true_stp": 53,
+    "true_stp_rate_of_completed": 0.595506,
+    "field_ink_hitl": 36,
+    "infra_failures": 0
+  },
+  "agent_gt_score": {
+    "claims_scored": 68,
+    "accepted_fields_scored": 223,
+    "false_accepts": 51,
+    "accepted_field_precision": 0.7713,
+    "true_stp_of_scored": 42,
+    "patient_name_exact": "44/54",
+    "insured_name_exact": "48/58",
+    "prior_false_accepts": 54,
+    "prior_accepted_field_precision": 0.757848,
+    "fixed_false_accepts": [
+      "Group A__M048EJG7.010 insured_name SAME",
+      "Group A__M048EJG7.022 insured_name SAME",
+      "Group A__M048DJKN.020 patient_name CARTIER, EMILY"
+    ],
+    "new_false_accepts": 0
+  }
+}
