@@ -414,6 +414,7 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_VLM_CROP_TIMEOUT_SECONDS", "35")
     # Prefer Claude Sonnet for crop residual when configured (override via env).
     env.setdefault("CDP_CROP_VLM_PROVIDER", "claude")
+    env.setdefault("CDP_CONFLICT_AGENT", "1")
     env.setdefault("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED", "1")
     # SuperPoint+LightGlue for catastrophic REG — process-lifetime singleton
     # amortizes cold load; trail-aware near-miss recovers most STP regressions
@@ -1147,6 +1148,8 @@ def main() -> int:
         "CDP_VLM_CROP_LOCK_PATH": "/tmp/cdp_vlm_crop.lock",
         "CDP_VLM_CROP_TIMEOUT_SECONDS": "35",
         "CDP_CROP_VLM_PROVIDER": "claude",
+        # When two OCR/models disagree, Claude picks the ink and clears field HITL.
+        "CDP_CONFLICT_AGENT": "1",
         # OpenOCR / Monkey / PaddleOCR-VL failed for charge recovery — keep off.
         "CDP_OPENOCR_SVTR": "0",
         "CDP_MONKEYOCR": "0",

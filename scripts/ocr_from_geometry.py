@@ -3279,6 +3279,30 @@ def run(directory, output):
                 report['fields'] = _maybe_attach_dob_handwriting_residuals(
                     report['fields'], canonical
                 )
+                # OCR/model conflicts → Claude picks one rival. Box 28 ≠ Σ → BOX28/LINES.
+                from packages.extraction_recovery.conflict_agent import (
+                    field_needs_conflict_agent,
+                    maybe_attach_conflict_agent_to_field_row,
+                    maybe_resolve_financial_conflict,
+                )
+
+                resolved_fields = []
+                for row in report["fields"]:
+                    name = str(row.get("field") or "")
+                    if field_needs_conflict_agent(name, row.get("candidates")):
+                        resolved_fields.append(
+                            maybe_attach_conflict_agent_to_field_row(
+                                row, image=canonical
+                            )
+                        )
+                    else:
+                        resolved_fields.append(row)
+                report["fields"] = resolved_fields
+                report["fields"], report["service_lines"] = maybe_resolve_financial_conflict(
+                    image=canonical,
+                    fields=report["fields"],
+                    service_lines=report["service_lines"],
+                )
             # Field authority + financial reconciliation telemetry on totals.
             with tel.track(
                 "field_authority",

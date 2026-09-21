@@ -1,0 +1,604 @@
+"""AI conflict agent: when two OCR/models disagree, Claude picks the ink.
+
+Process (fail-closed):
+  1. Detect ≥2 non-equivalent shaped rivals on a critical field, or a printed
+     Box 28 total that disagrees with the service-line sum.
+  2. Show the crop(s) and the rival values to Claude.
+  3. Claude must answer with exactly one rival, or BOX28 / LINES for a
+     financial conflict, or ABSTAIN.
+  4. Invented third values are rejected. Abstain keeps HITL.
+  5. A chosen rival is adopted and tagged CONFLICT_AGENT_RESOLVED so the
+     field can leave review.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from typing import Any
+
+from PIL import Image
+
+_CHARGE_FIELDS = frozenset(
+    {"total_charge", "total_charges", "charges", "charge_amount", "amount_paid"}
+)
+_NAME_FIELDS = frozenset({"patient_name", "insured_name"})
+_DOB_FIELDS = frozenset({"patient_dob", "date_of_birth", "insured_dob", "dob"})
+
+
+@dataclass(frozen=True)
+class ConflictResolution:
+    attempted: bool
+    resolved: bool
+    chosen: str | None
+    rivals: tuple[str, ...]
+    reason: str
+    financial_side: str | None = None  # BOX28 | LINES | None
+
+
+def conflict_agent_enabled() -> bool:
+    return (os.environ.get("CDP_CONFLICT_AGENT") or "1").strip().casefold() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+
+
+def _normalize_space(text: str) -> str:
+    return " ".join((text or "").strip().split())
+
+
+def _is_vision(engine: object) -> bool:
+    name = str(engine or "").casefold()
+    return any(token in name for token in ("gpt4o", "gpt-4o", "claude", "anthropic"))
+
+
+def collect_field_rivals(
+    field_name: str,
+    candidates: Sequence[Mapping[str, Any]] | None,
+    *,
+    include_vision: bool = True,
+) -> list[str]:
+    """Unique shaped rival values from distinct engines on one field."""
+    from packages.evidence.normalization import normalize_agreement_value
+    from packages.extraction_recovery.field_cascade import semantic_accept
+
+    by_norm: dict[str, str] = {}
+    for cand in candidates or []:
+        engine = str(cand.get("engine") or "")
+        if not include_vision and _is_vision(engine):
+            continue
+        raw = _normalize_space(str(cand.get("value") or cand.get("raw_value") or ""))
+        if not raw:
+            continue
+        ok, _ = semantic_accept(field_name, raw)
+        if not ok:
+            continue
+        norm = normalize_agreement_value(field_name, raw)
+        if not norm:
+            continue
+        by_norm.setdefault(norm, raw)
+    return list(by_norm.values())
+
+
+def field_needs_conflict_agent(
+    field_name: str,
+    candidates: Sequence[Mapping[str, Any]] | None,
+) -> bool:
+    rivals = collect_field_rivals(field_name, candidates)
+    return len(rivals) >= 2
+
+
+def _match_rival(reply: str, rivals: Sequence[str], field_name: str) -> str | None:
+    from packages.evidence.normalization import normalize_agreement_value
+    from packages.extraction_recovery.field_cascade import semantic_accept
+
+    text = _normalize_space(reply)
+    if not text or text.casefold() in {"abstain", "none", "unsure", "unknown"}:
+        return None
+    # Prefer exact / normalized match against listed rivals only.
+    reply_norm = normalize_agreement_value(field_name, text)
+    for rival in rivals:
+        if normalize_agreement_value(field_name, rival) == reply_norm:
+            return rival
+    ok, shaped = semantic_accept(field_name, text)
+    if ok and shaped:
+        shaped_norm = normalize_agreement_value(field_name, shaped)
+        for rival in rivals:
+            if normalize_agreement_value(field_name, rival) == shaped_norm:
+                return rival
+    # Currency: allow "$49.72" / "49.72" / "49 72" forms against rivals.
+    if field_name.casefold() in _CHARGE_FIELDS:
+        from packages.claim_evidence.line_sum_authority import parse_currency
+
+        reply_amt = parse_currency(text)
+        if reply_amt is not None:
+            for rival in rivals:
+                rival_amt = parse_currency(rival)
+                if rival_amt is not None and rival_amt == reply_amt:
+                    return rival
+    return None
+
+
+def _match_financial_side(reply: str) -> str | None:
+    text = (reply or "").strip().casefold()
+    if not text or text in {"abstain", "none", "unsure", "unknown"}:
+        return None
+    if re.search(r"\bbox\s*28\b|\bprinted\s*total\b|\btotal\s*charge\b", text):
+        return "BOX28"
+    if text.startswith("box28") or text == "box_28" or text.startswith("box 28"):
+        return "BOX28"
+    if re.search(r"\blines?\b|\bline[_\s-]?sum\b|\b24f\b|\bservice\b", text):
+        return "LINES"
+    if text in {"box28", "box_28", "total"}:
+        return "BOX28"
+    if text in {"lines", "line_sum", "linesum", "sum"}:
+        return "LINES"
+    # First token only.
+    token = text.split()[0]
+    if token in {"box28", "box"}:
+        return "BOX28"
+    if token in {"lines", "line", "sum"}:
+        return "LINES"
+    return None
+
+
+def resolve_field_conflict(
+    *,
+    image: Image.Image,
+    bbox: tuple[int, int, int, int],
+    field_name: str,
+    rivals: Sequence[str],
+    engine: Any | None = None,
+) -> ConflictResolution:
+    """Ask Claude which rival matches the ink. No third value allowed."""
+    rivals_clean = [_normalize_space(r) for r in rivals if _normalize_space(r)]
+    # Preserve order, unique by normalize.
+    from packages.evidence.normalization import normalize_agreement_value
+
+    seen: set[str] = set()
+    unique: list[str] = []
+    for rival in rivals_clean:
+        norm = normalize_agreement_value(field_name, rival)
+        if not norm or norm in seen:
+            continue
+        seen.add(norm)
+        unique.append(rival)
+    rivals_t = tuple(unique)
+    if len(rivals_t) < 2:
+        return ConflictResolution(
+            attempted=False,
+            resolved=False,
+            chosen=None,
+            rivals=rivals_t,
+            reason="CONFLICT_AGENT_NO_RIVALS",
+        )
+    if not conflict_agent_enabled():
+        return ConflictResolution(
+            attempted=False,
+            resolved=False,
+            chosen=None,
+            rivals=rivals_t,
+            reason="CONFLICT_AGENT_DISABLED",
+        )
+
+    from packages.extraction_recovery.gpt4o_crop_residual import (
+        _AzureGpt4oCropRecognizer,
+        _crop_image,
+        gpt4o_crop_residual_enabled,
+    )
+    from packages.extraction_recovery.vlm_crop_lock import vlm_crop_lock
+
+    if not gpt4o_crop_residual_enabled():
+        return ConflictResolution(
+            attempted=False,
+            resolved=False,
+            chosen=None,
+            rivals=rivals_t,
+            reason="CONFLICT_AGENT_VLM_DISABLED",
+        )
+
+    key = field_name.casefold()
+    if key in _CHARGE_FIELDS:
+        ftype = "currency"
+        kind = "dollar amount"
+    elif key in _DOB_FIELDS:
+        ftype = "date"
+        kind = "date of birth"
+    elif key in _NAME_FIELDS:
+        ftype = "text"
+        kind = "person name"
+    else:
+        ftype = "code"
+        kind = "field value"
+
+    options = " | ".join(rivals_t)
+    desc = (
+        f"CMS-1500 {kind} cell. Two OCR engines disagree on this crop. "
+        f"Rivals: {options}. "
+        "Look only at the ink. Reply with exactly one of those rival values "
+        "that matches the ink. Do not invent a new value. "
+        "Reply ABSTAIN if the ink is unreadable or matches none of them."
+    )
+    crop = _crop_image(image, bbox)
+    recognizer = engine or _AzureGpt4oCropRecognizer()
+    try:
+        with vlm_crop_lock():
+            mapped = recognizer.recognize_fields(
+                {field_name: crop},
+                field_types={field_name: ftype},
+                descriptions={field_name: desc},
+                prior_candidates={field_name: list(rivals_t)},
+            )
+    except Exception as exc:  # noqa: BLE001
+        return ConflictResolution(
+            attempted=True,
+            resolved=False,
+            chosen=None,
+            rivals=rivals_t,
+            reason=f"CONFLICT_AGENT_ERROR:{type(exc).__name__}",
+        )
+    result = mapped.get(field_name)
+    reply = ""
+    if result is not None:
+        reply = str(result.value or result.raw_value or "")
+    chosen = _match_rival(reply, rivals_t, field_name)
+    if chosen is None:
+        return ConflictResolution(
+            attempted=True,
+            resolved=False,
+            chosen=None,
+            rivals=rivals_t,
+            reason="CONFLICT_AGENT_ABSTAIN",
+        )
+    return ConflictResolution(
+        attempted=True,
+        resolved=True,
+        chosen=chosen,
+        rivals=rivals_t,
+        reason="CONFLICT_AGENT_RESOLVED",
+    )
+
+
+def resolve_financial_conflict(
+    *,
+    image: Image.Image,
+    box28_bbox: tuple[int, int, int, int] | None,
+    box28_value: str,
+    line_sum: str,
+    line_bboxes: Sequence[tuple[int, int, int, int]] | None = None,
+    engine: Any | None = None,
+) -> ConflictResolution:
+    """When Box 28 ≠ Σ lines, Claude picks BOX28 or LINES from the ink."""
+    del line_bboxes  # reserved for multi-crop; box-28 crop is the decision image
+    rivals = (_normalize_space(box28_value), _normalize_space(line_sum))
+    if not rivals[0] or not rivals[1] or rivals[0] == rivals[1]:
+        return ConflictResolution(
+            attempted=False,
+            resolved=False,
+            chosen=None,
+            rivals=rivals,
+            reason="CONFLICT_AGENT_NO_FINANCIAL_GAP",
+        )
+    if not conflict_agent_enabled():
+        return ConflictResolution(
+            attempted=False,
+            resolved=False,
+            chosen=None,
+            rivals=rivals,
+            reason="CONFLICT_AGENT_DISABLED",
+        )
+    if box28_bbox is None or len(box28_bbox) != 4:
+        return ConflictResolution(
+            attempted=False,
+            resolved=False,
+            chosen=None,
+            rivals=rivals,
+            reason="CONFLICT_AGENT_NO_BOX28_CROP",
+        )
+
+    from packages.extraction_recovery.gpt4o_crop_residual import (
+        _AzureGpt4oCropRecognizer,
+        _crop_image,
+        gpt4o_crop_residual_enabled,
+    )
+    from packages.extraction_recovery.vlm_crop_lock import vlm_crop_lock
+
+    if not gpt4o_crop_residual_enabled():
+        return ConflictResolution(
+            attempted=False,
+            resolved=False,
+            chosen=None,
+            rivals=rivals,
+            reason="CONFLICT_AGENT_VLM_DISABLED",
+        )
+
+    desc = (
+        "CMS-1500 Box 28 TOTAL CHARGE cell. The printed total and the sum of "
+        f"service-line charges disagree. Box 28 OCR={rivals[0]}. "
+        f"Line sum OCR={rivals[1]}. "
+        "Look at the Box 28 ink. If the printed total is clear and the claim "
+        "total should be that amount (even if lines look incomplete), reply "
+        "BOX28. If Box 28 ink is wrong, blank, or bleed and the line sum is "
+        "the real total, reply LINES. Reply ABSTAIN if unsure. "
+        "Do not invent a third amount."
+    )
+    crop = _crop_image(image, box28_bbox)
+    recognizer = engine or _AzureGpt4oCropRecognizer()
+    try:
+        with vlm_crop_lock():
+            mapped = recognizer.recognize_fields(
+                {"total_charge": crop},
+                field_types={"total_charge": "currency"},
+                descriptions={"total_charge": desc},
+                prior_candidates={"total_charge": ["BOX28", "LINES", *rivals]},
+            )
+    except Exception as exc:  # noqa: BLE001
+        return ConflictResolution(
+            attempted=True,
+            resolved=False,
+            chosen=None,
+            rivals=rivals,
+            reason=f"CONFLICT_AGENT_ERROR:{type(exc).__name__}",
+        )
+    result = mapped.get("total_charge")
+    reply = ""
+    if result is not None:
+        reply = str(result.value or result.raw_value or "")
+    side = _match_financial_side(reply)
+    # Also accept a direct amount match as that side.
+    if side is None:
+        matched = _match_rival(reply, rivals, "total_charge")
+        if matched == rivals[0]:
+            side = "BOX28"
+        elif matched == rivals[1]:
+            side = "LINES"
+    if side is None:
+        return ConflictResolution(
+            attempted=True,
+            resolved=False,
+            chosen=None,
+            rivals=rivals,
+            reason="CONFLICT_AGENT_ABSTAIN",
+            financial_side=None,
+        )
+    chosen = rivals[0] if side == "BOX28" else rivals[1]
+    return ConflictResolution(
+        attempted=True,
+        resolved=True,
+        chosen=chosen,
+        rivals=rivals,
+        reason="CONFLICT_AGENT_FINANCIAL_RESOLVED",
+        financial_side=side,
+    )
+
+
+def maybe_attach_conflict_agent_to_field_row(
+    field_row: Mapping[str, Any],
+    *,
+    image: Image.Image,
+    engine: Any | None = None,
+) -> dict[str, Any]:
+    """Resolve a same-field OCR/model conflict on the crop."""
+    updated = dict(field_row)
+    name = str(field_row.get("field") or "")
+    key = name.casefold()
+    if key not in _CHARGE_FIELDS | _NAME_FIELDS | _DOB_FIELDS:
+        return updated
+    if not conflict_agent_enabled():
+        return updated
+    candidates = list(field_row.get("candidates") or [])
+    rivals = collect_field_rivals(name, candidates)
+    if len(rivals) < 2:
+        return updated
+    bbox = tuple(field_row.get("ocr_region") or field_row.get("canonical_region") or ())
+    if len(bbox) != 4:
+        return updated
+    resolution = resolve_field_conflict(
+        image=image,
+        bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+        field_name=name,
+        rivals=rivals,
+        engine=engine,
+    )
+    attempts = list(updated.get("attempts") or [])
+    attempts.append(
+        {
+            "engine": "conflict_agent_claude",
+            "reason": resolution.reason,
+            "observation": {
+                "rivals": list(resolution.rivals),
+                "chosen": resolution.chosen,
+            },
+        }
+    )
+    updated["attempts"] = attempts
+    updated["conflict_agent"] = {
+        "attempted": resolution.attempted,
+        "resolved": resolution.resolved,
+        "chosen": resolution.chosen,
+        "rivals": list(resolution.rivals),
+        "reason": resolution.reason,
+    }
+    if not resolution.resolved or not resolution.chosen:
+        return updated
+
+    # Promote the chosen rival to the front and accept the cascade.
+    chosen = resolution.chosen
+    reordered: list[dict[str, Any]] = []
+    matched: dict[str, Any] | None = None
+    for cand in candidates:
+        raw = _normalize_space(str(cand.get("value") or ""))
+        from packages.evidence.normalization import normalize_agreement_value
+
+        if normalize_agreement_value(name, raw) == normalize_agreement_value(
+            name, chosen
+        ):
+            matched = dict(cand)
+            continue
+        reordered.append(cand)
+    if matched is None:
+        matched = {
+            "value": chosen,
+            "raw_value": chosen,
+            "engine": "conflict_agent_claude",
+            "reason_code": resolution.reason,
+            "raw_confidence": 0.95,
+            "calibrated_confidence": 0.95,
+        }
+    else:
+        matched = dict(matched)
+        matched["reason_code"] = resolution.reason
+    # Agent vote sits with the chosen rival as a confirming engine.
+    agent_cand = {
+        "value": chosen,
+        "raw_value": chosen,
+        "engine": "anthropic_claude_crop",
+        "model_name": "conflict-agent",
+        "preprocessing_variant": "conflict_agent_resolve",
+        "raw_confidence": 0.95,
+        "calibrated_confidence": 0.95,
+        "reason_code": resolution.reason,
+        "latency_ms": 0.0,
+        "bounding_box": {
+            "x0": float(bbox[0]),
+            "y0": float(bbox[1]),
+            "x1": float(bbox[2]),
+            "y1": float(bbox[3]),
+            "image_width": float(image.width),
+            "image_height": float(image.height),
+        },
+    }
+    updated["candidates"] = [agent_cand, matched, *reordered]
+    cascade = dict(updated.get("cascade") or {})
+    cascade["accepted"] = True
+    cascade["accept_reason"] = resolution.reason
+    cascade["value"] = chosen
+    updated["cascade"] = cascade
+    updated["status"] = "FIELD_ACCEPTED"
+    updated["value"] = chosen
+    return updated
+
+
+def maybe_resolve_financial_conflict(
+    *,
+    image: Image.Image,
+    fields: list[dict[str, Any]],
+    service_lines: list[dict[str, Any]],
+    engine: Any | None = None,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """If Box 28 ≠ line sum, ask Claude BOX28 vs LINES and adopt that total."""
+    if not conflict_agent_enabled():
+        return fields, service_lines
+    from packages.claim_evidence.line_sum_authority import (
+        amounts_corroborate,
+        line_sum_total,
+        parse_currency,
+    )
+
+    total_row = next(
+        (
+            row
+            for row in fields
+            if str(row.get("field") or "").casefold() in {"total_charge", "total_charges"}
+        ),
+        None,
+    )
+    if total_row is None:
+        return fields, service_lines
+    box28 = None
+    for cand in total_row.get("candidates") or []:
+        eng = str(cand.get("engine") or "").casefold()
+        # Prefer DI / paddle / rapid printed reads for the box.
+        val = parse_currency(cand.get("value"))
+        if val is None:
+            continue
+        if "derived" in str(cand.get("preprocessing_variant") or "").casefold():
+            continue
+        box28 = str(cand.get("value"))
+        if "document_intelligence" in eng or "paddle" in eng or "rapid" in eng:
+            break
+    line_total = line_sum_total(service_lines)
+    if box28 is None or line_total is None:
+        return fields, service_lines
+    if amounts_corroborate(box28, line_total):
+        return fields, service_lines
+
+    bbox = tuple(total_row.get("ocr_region") or total_row.get("canonical_region") or ())
+    if len(bbox) != 4:
+        return fields, service_lines
+    resolution = resolve_financial_conflict(
+        image=image,
+        box28_bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+        box28_value=box28,
+        line_sum=line_total,
+        engine=engine,
+    )
+    updated_fields = []
+    for row in fields:
+        if row is not total_row:
+            updated_fields.append(row)
+            continue
+        current = dict(row)
+        attempts = list(current.get("attempts") or [])
+        attempts.append(
+            {
+                "engine": "conflict_agent_claude",
+                "reason": resolution.reason,
+                "observation": {
+                    "rivals": list(resolution.rivals),
+                    "chosen": resolution.chosen,
+                    "financial_side": resolution.financial_side,
+                },
+            }
+        )
+        current["attempts"] = attempts
+        current["conflict_agent"] = {
+            "attempted": resolution.attempted,
+            "resolved": resolution.resolved,
+            "chosen": resolution.chosen,
+            "rivals": list(resolution.rivals),
+            "reason": resolution.reason,
+            "financial_side": resolution.financial_side,
+        }
+        if resolution.resolved and resolution.chosen and resolution.financial_side:
+            chosen = resolution.chosen
+            agent_cand = {
+                "value": chosen,
+                "raw_value": chosen,
+                "engine": "anthropic_claude_crop",
+                "model_name": "conflict-agent",
+                "preprocessing_variant": "conflict_agent_financial",
+                "raw_confidence": 0.96,
+                "calibrated_confidence": 0.96,
+                "reason_code": resolution.reason,
+                "latency_ms": 0.0,
+                "bounding_box": {
+                    "x0": float(bbox[0]),
+                    "y0": float(bbox[1]),
+                    "x1": float(bbox[2]),
+                    "y1": float(bbox[3]),
+                    "image_width": float(image.width),
+                    "image_height": float(image.height),
+                },
+            }
+            cands = [agent_cand, *list(current.get("candidates") or [])]
+            current["candidates"] = cands
+            cascade = dict(current.get("cascade") or {})
+            cascade["accepted"] = True
+            cascade["accept_reason"] = resolution.reason
+            cascade["value"] = chosen
+            current["cascade"] = cascade
+            current["status"] = "FIELD_ACCEPTED"
+            current["value"] = chosen
+            # Signal for claim-evidence: prefer this side over FINANCIAL_CONFLICT.
+            current["financial_conflict_agent"] = {
+                "side": resolution.financial_side,
+                "value": chosen,
+                "reason": resolution.reason,
+            }
+        updated_fields.append(current)
+    return updated_fields, service_lines

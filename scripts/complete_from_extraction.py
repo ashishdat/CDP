@@ -243,8 +243,13 @@ def decide(extraction, family):
         if not field_payload:
             continue
         values['_box28_field_payload'] = field_payload
-        obs = None
         ocr_block = field_payload.get('ocr') or {}
+        agent = ocr_block.get('financial_conflict_agent') or field_payload.get(
+            'financial_conflict_agent'
+        )
+        if isinstance(agent, dict) and agent.get('side') and agent.get('value'):
+            values['_financial_conflict_agent'] = dict(agent)
+        obs = None
         for attempt in ocr_block.get('attempts') or []:
             reason = str(attempt.get('reason') or '')
             if (

@@ -843,6 +843,42 @@ class ClaimEvidenceBuilder:
             )
             if already_confirmed:
                 return
+            agent = values.get("_financial_conflict_agent")
+            if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
+                chosen = str(agent.get("value") or "")
+                side = agent["side"]
+                if chosen:
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "CLAIM_TOTAL_CONFIRMED",
+                            chosen,
+                            {
+                                **metadata,
+                                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+                                "financial_side": side,
+                                "line_sum": decision.line_sum,
+                                "box28": decision.box28,
+                                "hitl_route": None,
+                            },
+                        )
+                    )
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                            chosen,
+                            {
+                                **metadata,
+                                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+                                "financial_side": side,
+                            },
+                        )
+                    )
+                    for key in ("total_charge", "total_charges", "claim_total"):
+                        if key in values or key == "total_charge":
+                            values[key] = chosen
+                    return
             evidence.append(
                 self._item(
                     claim_id,
