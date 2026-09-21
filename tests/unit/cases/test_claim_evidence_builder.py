@@ -128,6 +128,38 @@ def test_conflict_agent_digit_drop_without_local_agreement_stays_conflict():
     assert "CLAIM_TOTAL_CONTRADICTION" in _types(result.contradictions) or "LINE_TOTALS_RECONCILED" in types
 
 
+def test_conflict_agent_does_not_confirm_when_line_sum_disagrees():
+    """17500 box ink vs line Σ 1031 stays a financial conflict, not agent STP."""
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="EJG7.004",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "17500.00",
+            "_financial_conflict_agent": {
+                "side": "BOX28",
+                "value": "17500.00",
+                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            },
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "paddleocr", "value": "17500.00"},
+                    {"engine": "rapidocr", "value": "17500.00"},
+                ]
+            },
+        },
+        service_lines=[{"charges": "951.00"}, {"charges": "80.00"}],
+    )
+    agent_confirmed = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+        and (i.metadata or {}).get("reason") == "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+    ]
+    assert agent_confirmed == []
+    types = _types(result.evidence_items) | _types(result.contradictions)
+    assert "FINANCIAL_CONFLICT_HITL" in types or "CLAIM_TOTAL_CONTRADICTION" in types
+
+
 def test_conflict_agent_confirms_when_both_locals_match():
     result = ClaimEvidenceBuilder.load().build(
         claim_id="locals-agree",
@@ -147,7 +179,7 @@ def test_conflict_agent_confirms_when_both_locals_match():
                 ]
             },
         },
-        service_lines=[{"charges": "280.00"}],
+        service_lines=[{"charges": "400.00"}],
     )
     assert (
         next(

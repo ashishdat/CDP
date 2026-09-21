@@ -2015,6 +2015,7 @@ class EvidenceReconciler:
                 from packages.claim_evidence.line_sum_authority import (
                     is_currency_digit_drop_twin,
                     is_decimal_place_shift,
+                    is_scale_shift,
                     parse_currency,
                 )
 
@@ -2030,9 +2031,7 @@ class EvidenceReconciler:
                         continue
                     # ×100 cents-column and dropped-digit twins are real conflicts.
                     # Line-sum authority must not swallow them as OCR soup.
-                    if is_decimal_place_shift(value, other) or is_currency_digit_drop_twin(
-                        value, other
-                    ):
+                    if is_scale_shift(value, other) or is_currency_digit_drop_twin(value, other):
                         cleared.append(other)
                         continue
                     # When line Σ owns the selected total, deferred Box 28 OCR

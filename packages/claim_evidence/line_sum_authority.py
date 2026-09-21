@@ -258,9 +258,33 @@ def llm_charge_pick_has_open_source_authority(
     for amount in local:
         if amounts_corroborate(chosen, amount):
             continue
-        if is_decimal_place_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
+        if is_scale_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
             return False
     return True
+
+
+def charge_conflicts_with_plausible_line_sum(chosen: object, service_lines: list | None) -> bool:
+    """True when observed line Σ is a real different total, not cents noise or junk."""
+    total = line_sum_total(service_lines)
+    if total is None or parse_currency(chosen) is None:
+        return False
+    if is_implausible_charge_total(total):
+        return False
+    if amounts_corroborate(chosen, total) or amounts_same_stem_cents_twin(chosen, total):
+        return False
+    return True
+
+
+def is_scale_shift(left: object, right: object) -> bool:
+    """True when one amount is about ×10 or ×100 the other (cents column or a dropped scale)."""
+    if is_decimal_place_shift(left, right):
+        return True
+    a, b = parse_currency(left), parse_currency(right)
+    if a is None or b is None or a == 0 or b == 0:
+        return False
+    hi, lo = (a, b) if a > b else (b, a)
+    ratio = hi / lo
+    return abs(ratio - Decimal(10)) <= Decimal("0.25") or abs(ratio - Decimal(100)) <= Decimal("2")
 
 
 def amounts_corroborate(left: object, right: object) -> bool:

@@ -1,0 +1,35 @@
+{
+  "title": "Box 28 must match line sum or be a scale/digit-drop twin, else HITL",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced: agent E6 needs open-source support and no plausible line-sum conflict",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only": {
+    "src": "evaluation_results/hackathon_150_v12_agent_honor",
+    "out": "evaluation_results/hackathon_150_box_line_disagree_decide",
+    "cohort": "HITL and TRUE_STP rows present when the reprocess started",
+    "completed": 77,
+    "true_stp": 46,
+    "true_stp_rate_of_completed": 0.597403,
+    "field_ink_hitl": 31,
+    "infra_failures": 0,
+    "note": "Not the live cascade rate. The live 150 still runs the older honor path."
+  },
+  "agent_gt_score": {
+    "claims_scored": 60,
+    "accepted_fields_scored": 196,
+    "false_accepts": 50,
+    "accepted_field_precision": 0.744898,
+    "true_stp_of_scored": 38,
+    "total_charge_exact": "16/49",
+    "charge_false_accepts": 19,
+    "example_now_hitl": "Group A__M048EJG7.004 predicted 17500 vs line sum 1031 vs label 9641 is HUMAN_REVIEW_REQUIRED, not a false accept"
+  },
+  "remaining_charge_false_accepts": "cents-truncated labels (25.43 vs 25.00) and unanimous local totals with no rival (160 vs 608, 400 vs 71.40). Those are not fail-closed without a second signal."
+}

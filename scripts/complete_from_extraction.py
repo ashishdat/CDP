@@ -445,12 +445,14 @@ def decide(extraction, family):
         agent_candidates.extend(field_payload.get('candidates') or [])
         agent_candidates.extend(nested_ocr.get('candidates') or [])
         from packages.claim_evidence.line_sum_authority import (
+            charge_conflicts_with_plausible_line_sum,
             llm_charge_pick_has_open_source_authority,
         )
         if (
             isinstance(agent, dict)
             and str(agent.get('side') or '') in {'BOX28', 'LINES'}
             and llm_charge_pick_has_open_source_authority(agent.get('value'), agent_candidates)
+            and not charge_conflicts_with_plausible_line_sum(agent.get('value'), service_lines)
         ):
             values[charge_field] = str(agent['value']).strip()
             continue
@@ -943,6 +945,29 @@ def decide(extraction, family):
                 check.passed = True
             else:
                 eligible, gate_reason = line_sum_gate.get(name, (False, 'UNSET'))
+                winner_val = f.get('normalized_value')
+                winner_matches_lines = (
+                    parse_currency(winner_val) is None
+                    or parse_currency(derived) is None
+                    or parse_currency(winner_val) == parse_currency(derived)
+                )
+                # A plausible Box 28 that is not a ×10/×100 or digit-drop twin of Σ
+                # must not inherit line-sum AUTO (17500 vs Σ 1031).
+                from packages.claim_evidence.line_sum_authority import (
+                    is_currency_digit_drop_twin,
+                    is_scale_shift,
+                )
+                scale_twin = bool(
+                    winner_val
+                    and derived
+                    and (
+                        is_scale_shift(winner_val, derived)
+                        or is_currency_digit_drop_twin(winner_val, derived)
+                    )
+                )
+                if eligible and not winner_matches_lines and not scale_twin:
+                    eligible = False
+                    gate_reason = 'BOX28_OR_DI_CONFLICT'
                 if eligible:
                     # Financial E6 only when dual-engine / gpt4o+local or DI/box-28.
                     check.evidence = set(check.evidence) | {
