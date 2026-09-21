@@ -234,6 +234,41 @@ def amounts_corroborate_or_cents_twin(left: object, right: object) -> bool:
     return amounts_corroborate(left, right) or amounts_same_stem_cents_twin(left, right)
 
 
+def vision_local_decimal_column(total: object, corroborators: list[object]) -> bool:
+    """True when box-28 / DI is only the ×100 unplaced twin of a placed line sum.
+
+    ``49.72`` with a vision+local consensus and a Document Intelligence read of
+    ``4972`` is the cents column, not a second total. Truncations of that same
+    digit string (``972``, ``72``) are not rivals. A different plausible amount
+    still conflicts. Digit-drop (``13`` vs ``131``) is not this rule.
+    """
+    parsed = parse_currency(total)
+    if parsed is None or parsed <= 0:
+        return False
+    shifted = None
+    for value in corroborators:
+        other = parse_currency(value)
+        if other is None or other <= parsed:
+            continue
+        if other == parsed * 100:
+            shifted = other
+            break
+    if shifted is None:
+        return False
+    shift_digits = _currency_digit_string(shifted)
+    for value in corroborators:
+        other = parse_currency(value)
+        if other is None or other == shifted or amounts_corroborate(total, value):
+            continue
+        digits = _currency_digit_string(other)
+        if digits and shift_digits and digits in shift_digits:
+            continue
+        if is_implausible_corroborator(value, total):
+            continue
+        return False
+    return True
+
+
 def is_vision_crop_engine(engine: object) -> bool:
     """True for Azure gpt-4o / Anthropic Claude crop residuals (same evidence family)."""
     name = str(engine or "").strip().casefold()
@@ -670,6 +705,11 @@ def line_sum_auto_eligible(
         if corroborators_pre and not any(
             amounts_corroborate_or_cents_twin(total, value) for value in corroborators_pre
         ):
+            # Vision + local already agree on the cents-placed amount. An exact
+            # ×100 Document Intelligence / box read is the same digits without
+            # the column, not a second total.
+            if vision_local_decimal_column(total, corroborators_pre):
+                return True, "DECIMAL_COLUMN_VISION_LOCAL"
             # Plausible currency-shaped box-28 / DI disagrees → HITL.
             return False, "BOX28_OR_DI_CONFLICT"
         if gpt_observed == 1:

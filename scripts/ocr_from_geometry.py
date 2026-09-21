@@ -115,17 +115,21 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
                 updated.append(row)
             continue
         if key in {"patient_name", "insured_name"}:
-            # gpt-4o is the handwriting / engine-conflict arbitrator for names.
+            # gpt-4o/Claude arbitrates names. One local engine is not E2, so
+            # Document Intelligence may confirm the Claude spelling.
             if gpt4o_on not in {"0", "false", "no", "off"}:
-                updated.append(
-                    maybe_attach_gpt4o_crop_to_field_row(
-                        row,
-                        image=image,
-                        gap_class="HANDWRITING_UNREADABLE",
-                    )
+                current = maybe_attach_gpt4o_crop_to_field_row(
+                    row,
+                    image=image,
+                    gap_class="HANDWRITING_UNREADABLE",
                 )
             else:
-                updated.append(row)
+                current = row
+            from packages.extraction_recovery.name_azure_di_confirm import (
+                maybe_confirm_name_with_azure_di,
+            )
+
+            updated.append(maybe_confirm_name_with_azure_di(current, image=image))
             continue
         if key not in {"patient_dob", "date_of_birth"}:
             updated.append(row)

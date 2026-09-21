@@ -453,6 +453,35 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     )
     assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
 
+    # Cents column: vision+local 49.72, DI digits 4972, truncations are not rivals.
+    placed = [
+        {
+            "charges": "49.72",
+            "producing_engine": "rapidocr",
+            "candidates": [
+                {"value": "49.72", "engine": "rapidocr", "source_crop_id": "c1"},
+                {"value": "49.72", "engine": "anthropic_claude_crop", "source_crop_id": "c2"},
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(
+        placed, corroborating_values=["4972.00", "972.00", "72.00"]
+    )
+    assert ok and reason == "DECIMAL_COLUMN_VISION_LOCAL"
+    # Digit-drop is not a cents column. 13 vs 131 stays closed.
+    short = [
+        {
+            "charges": "13.00",
+            "producing_engine": "paddleocr",
+            "candidates": [
+                {"value": "13.00", "engine": "paddleocr", "source_crop_id": "c1"},
+                {"value": "13.00", "engine": "anthropic_claude_crop", "source_crop_id": "c2"},
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(short, corroborating_values=["131.00"])
+    assert not ok and reason == "BOX28_OR_DI_CONFLICT"
+
     # Multi-line gpt-4o+local without Box 28 AUTOs.
     multi_gpt = [
         {

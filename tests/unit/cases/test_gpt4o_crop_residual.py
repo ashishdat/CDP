@@ -340,6 +340,15 @@ def test_charge_needs_gpt4o_and_shapes_currency():
     assert not charge_needs_gpt4o(
         local_accepted=False, azure_di_shaped=True, gap_class="CHARGE_LOCAL_EXHAUSTED"
     )
+    assert charge_needs_gpt4o(
+        local_accepted=True,
+        azure_di_shaped=True,
+        gap_class="CHARGE_LOCAL_EXHAUSTED",
+        candidates=[
+            {"engine": "azure_document_intelligence_read", "value": "660.00"},
+            {"engine": "paddleocr", "value": "50.00"},
+        ],
+    )
     # DIGITS_FIRST accepted but place-shift rivals → still need gpt-4o.
     assert charge_needs_gpt4o(
         local_accepted=True,
@@ -455,6 +464,10 @@ def test_name_conflict_triggers_gpt4o_and_accepts_shaped(monkeypatch):
             {"value": "THOMAS DARLENE", "engine": "paddleocr"},
             {"value": "THOMAS DARLENE", "engine": "rapidocr"},
         ],
+    )
+    assert name_needs_gpt4o(
+        local_accepted=True,
+        candidates=[{"value": "FRANCAVLLA, THOMAS J", "engine": "rapidocr"}],
     )
     assert name_needs_gpt4o(
         local_accepted=True,

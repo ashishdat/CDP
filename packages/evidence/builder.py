@@ -65,6 +65,114 @@ def _vision_vendor_id(engine: object) -> str | None:
     return None
 
 
+def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list[OCRCandidate]) -> bool:
+    """True when some other candidate is a ×10/×100 or digit-drop twin."""
+    from decimal import Decimal
+
+    from packages.claim_evidence.line_sum_authority import (
+        is_currency_digit_drop_twin,
+        is_decimal_place_shift,
+        parse_currency,
+    )
+
+    target = parse_currency(agreed)
+    if target is None:
+        return False
+    for cand in candidates:
+        raw = str(cand.value or "")
+        other = parse_currency(raw)
+        if other is None or other == target:
+            continue
+        if is_decimal_place_shift(agreed, raw) or is_currency_digit_drop_twin(agreed, raw):
+            return True
+        for factor in (Decimal(10), Decimal(100)):
+            if abs(target * factor - other) <= Decimal("2.00"):
+                return True
+            if abs(other * factor - target) <= Decimal("2.00"):
+                return True
+            if target > 0 and other > 0:
+                ratio = other / target if other > target else target / other
+                if abs(ratio - factor) / factor <= Decimal("0.02"):
+                    return True
+    return False
+
+
+def _append_di_partner_agreement(
+    bundle: FieldEvidenceBundle,
+    field_name: str,
+    candidates: list[OCRCandidate],
+) -> None:
+    """Mint E2 when Document Intelligence agrees with Claude or one local.
+
+    Names: Claude + DI may replace a single confusable local (FRANCAVLLA vs
+    FRANCAVILLA). Charges: DI + Rapid, or DI + Claude, but not when another
+    candidate is a cents-column or digit-drop twin (4972 vs 49.72, 13 vs 131).
+    """
+    name = (field_name or "").casefold()
+    by_norm: dict[str, dict[str, OCRCandidate]] = {}
+    for cand in candidates:
+        if not (cand.value or "").strip():
+            continue
+        group = independence_group(cand.engine)
+        norm = normalize_agreement_value(field_name, cand.value)
+        if not norm:
+            continue
+        by_norm.setdefault(norm, {})[group] = cand
+
+    if "name" in name:
+        for norm, groups in by_norm.items():
+            if "CLOUD_AI_FAMILY" not in groups or "AZURE_READ_FAMILY" not in groups:
+                continue
+            vision = groups["CLOUD_AI_FAMILY"]
+            di = groups["AZURE_READ_FAMILY"]
+            bundle.items.append(
+                EvidenceItem(
+                    evidence_class=EvidenceClass.E2,
+                    evidence_type="OCR_AGREEMENT_INDEPENDENT",
+                    evidence_family="INDEPENDENT_OCR_AGREEMENT",
+                    source="evidence_builder",
+                    value=str(vision.value or di.value),
+                    independent=True,
+                    metadata={
+                        "engines": [vision.engine, di.engine],
+                        "agreement_type": "NAME_DI_VISION_AGREEMENT",
+                        "dependency_relation": "INDEPENDENT",
+                        "normalized_value": norm,
+                    },
+                )
+            )
+            return
+
+    if "charge" not in name:
+        return
+    for norm, groups in by_norm.items():
+        if "AZURE_READ_FAMILY" not in groups:
+            continue
+        partner = groups.get("RAPIDOCR_FAMILY") or groups.get("CLOUD_AI_FAMILY")
+        if partner is None:
+            continue
+        agreed_value = str(groups["AZURE_READ_FAMILY"].value or partner.value)
+        if _charge_has_place_shift_rival(field_name, agreed_value, candidates):
+            continue
+        bundle.items.append(
+            EvidenceItem(
+                evidence_class=EvidenceClass.E2,
+                evidence_type="OCR_AGREEMENT_INDEPENDENT",
+                evidence_family="INDEPENDENT_OCR_AGREEMENT",
+                source="evidence_builder",
+                value=agreed_value,
+                independent=True,
+                metadata={
+                    "engines": [groups["AZURE_READ_FAMILY"].engine, partner.engine],
+                    "agreement_type": "CHARGE_DI_PARTNER_AGREEMENT",
+                    "dependency_relation": "INDEPENDENT",
+                    "normalized_value": norm,
+                },
+            )
+        )
+        return
+
+
 def _append_dual_vision_agreement(
     bundle: FieldEvidenceBundle,
     field_name: str,
@@ -380,6 +488,11 @@ def build_evidence_bundle(
             for item in bundle.items
         ):
             _append_ai_local_corroboration(bundle, field_name, populated)
+        if not any(
+            item.evidence_class == EvidenceClass.E2 and item.independent
+            for item in bundle.items
+        ):
+            _append_di_partner_agreement(bundle, field_name, populated)
     if structural_localization is not None:
         if structural_localization.confirmed and not wrong_crop_suspected:
             bundle.items.append(

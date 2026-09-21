@@ -1738,6 +1738,20 @@ class EvidenceReconciler:
             or accept_even_if_calibrated_confidence_below_threshold
             else min(1.0, calibrated + agreement_bonus)
         )
+        # DI + Rapid, or DI + Claude, on the same charge is a second reader.
+        # It does not clear a line-sum failure or a cents-column / digit-drop twin
+        # (those never mint this E2). 0.95 DI confidence was sitting under the
+        # C3 0.98 floor even when the amount was agreed.
+        charge_reader_relief = False
+        if (
+            field_name in {"total_charge", "total_charges"}
+            and has_independent_agreement
+            and "LINE_TOTALS_UNCORROBORATED" not in deterministic
+            and "FINANCIAL_CONFLICT_HITL" not in deterministic
+            and confidence < 0.98
+        ):
+            confidence = 0.98
+            charge_reader_relief = True
         evidence = [
             EvidenceReference(
                 evidence_type="OCR_CANDIDATE",
@@ -1782,6 +1796,8 @@ class EvidenceReconciler:
                 for candidate, _, _ in items
             )
         reasons = ["HARD_VALIDATION_PASSED"] if "HARD_VALIDATION_PASSED" in deterministic else []
+        if charge_reader_relief:
+            reasons.append("CHARGE_READER_AGREEMENT_THRESHOLD_RELIEF")
         if has_independent_agreement:
             reasons.append("MULTI_ENGINE_AGREEMENT")
         if reference_match:

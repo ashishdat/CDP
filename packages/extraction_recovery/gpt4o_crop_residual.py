@@ -237,7 +237,9 @@ def charge_needs_gpt4o(
     gets vision arbitration and CALIBRATION_HITL / place-shift fights persist.
     """
     if azure_di_shaped:
-        return False
+        # DI already read a currency, but a local amount that is not that
+        # currency still needs Claude (50.00 beside 660.00, 405 beside 495).
+        return _charge_local_disagrees_with_di(candidates)
     if local_accepted:
         if _charge_candidates_have_place_shift_rival(candidates):
             return True
@@ -290,6 +292,43 @@ def _charge_candidates_have_place_shift_rival(
                 if abs(right * factor - left) <= Decimal("2.00"):
                     return True
     return False
+
+
+def _charge_local_disagrees_with_di(
+    candidates: list[Mapping[str, Any]] | None,
+) -> bool:
+    """True when a local currency is not the Document Intelligence amount."""
+    if not candidates:
+        return False
+    try:
+        from packages.claim_evidence.line_sum_authority import (
+            amounts_corroborate,
+            parse_currency,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+
+    di_values: list[object] = []
+    local_values: list[object] = []
+    for cand in candidates:
+        engine = str(cand.get("engine") or "").casefold()
+        raw = cand.get("value") or cand.get("raw_value")
+        if parse_currency(raw) is None:
+            continue
+        if "gpt4o" in engine or "gpt-4o" in engine or "claude" in engine or "anthropic" in engine:
+            continue
+        if "document_intelligence" in engine or (
+            "azure" in engine and "gpt" not in engine
+        ):
+            di_values.append(raw)
+        else:
+            local_values.append(raw)
+    if not di_values or not local_values:
+        return False
+    return any(
+        not any(amounts_corroborate(local, di) for di in di_values)
+        for local in local_values
+    )
 
 
 def id_local_needs_gpt4o(value: str | None, *, accepted: bool) -> bool:
@@ -467,6 +506,16 @@ def name_needs_gpt4o(
                 has_shaped = True
                 break
         return not has_shaped
+    # Cascade can accept one local name. That is still not E2.
+    local_engines: set[str] = set()
+    for cand in candidates or []:
+        eng = str(cand.get("engine") or "").casefold()
+        if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
+            continue
+        if str(cand.get("value") or cand.get("text") or "").strip():
+            local_engines.add(eng)
+    if len(local_engines) < 2:
+        return True
     return False
 
 
