@@ -1,20 +1,20 @@
 {
   "run": "hackathon_1000_cascade_v12",
-  "run_status": "STOPPED_PARTIAL_REMEASURED_SEALED",
+  "run_status": "STOPPED_PARTIAL_DIGIT_DROP",
   "n": 785,
   "completed": 733,
-  "true_stp": 503,
-  "field_ink_hitl": 230,
+  "true_stp": 504,
+  "field_ink_hitl": 229,
   "infra_failures": 52,
-  "true_stp_rate": 0.686221,
-  "hitl_rate": 0.313779,
-  "true_stp_rate_of_all": 0.640764,
-  "hitl_rate_of_all": 0.292994,
+  "true_stp_rate": 0.687585,
+  "hitl_rate": 0.312415,
+  "true_stp_rate_of_all": 0.642038,
+  "hitl_rate_of_all": 0.29172,
   "infra_failure_rate": 0.066242,
-  "misreported_hitl_as_n_minus_stp": 0.359236,
+  "misreported_hitl_as_n_minus_stp": 0.357962,
   "disposition_counts": {
-    "TRUE_STP": 503,
-    "HITL": 230,
+    "TRUE_STP": 504,
+    "HITL": 229,
     "REGISTRATION_FAILED": 50,
     "STAGE_FAILURE": 2
   },
@@ -54,7 +54,7 @@
     "infra_failures": "REGISTRATION_FAILED | STAGE_FAILURE | APP_FAILURE | SUMMARY_ERROR | WORKER_ERROR | OCR_MISSING | INCOMPLETE",
     "note": "Primary STP/HITL rates use the completed denominator. Infra failures are reported separately and must not be folded into HITL."
   },
-  "calc_note": "Primary STP=68.6% HITL=31.4% of completed=733. Sealed 3 fail-open STP (short padded id, implausible DOB). Misreported (n-stp)/n would be 35.9%.",
+  "calc_note": "Primary STP=68.8% HITL=31.2% of completed=733 after digit-drop re-decide (21 prior HITL flipped) and 3 fail-open seals. Blind-50 slice is 38/50, not 47/50.",
   "fail_open_sealed": [
     {
       "claim_id": "Group A__M048EJG7.036",
@@ -74,5 +74,11 @@
       "value": "0196-01-04",
       "reason": "year 0196 accepted as a calendar date"
     }
-  ]
+  ],
+  "digit_drop_learning": {
+    "rule": "DIGIT_DROP_FULLER_LOCAL + MULTI_LINE_DIGIT_DROP_FULLER_LOCAL",
+    "why": "Blind-50 94% accepted fuller local line charges (1851+1551=3402). A later shorter vision crop vetoed them back to HITL.",
+    "blind50_slice_stp_after": "38/50",
+    "corpus_note": "94% was 47/50 on docs[350:400] with DI charge reads, not the 1000-claim corpus. This rule restores that regression class only. Single-line 13 vs 131 stays fail-closed."
+  }
 }

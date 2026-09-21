@@ -129,6 +129,47 @@ def _is_selection_noise(amount: str) -> bool:
     return False
 
 
+def _digit_drop_fuller_local(by_amount: dict[str, set[str]]) -> str | None:
+    """Local fuller amount whose only rivals are one-digit-shorter non-local reads.
+
+    Blind-50 STP accepted ``1851`` + ``1551`` (sum ``3402``). A later Claude crop
+    of ``185`` / ``155`` marked those lines ``NO_DUAL_LOCAL_AGREEMENT`` and the
+    same sample went back to HITL. The short read is a dropped digit, not a
+    second charge. Two local engines that disagree stay ambiguous. Single-line
+    sums still fail closed in ``line_sum_auto_eligible`` (13 vs 131).
+    """
+    local_amounts = [
+        amount for amount, families in by_amount.items() if families & _LOCAL_ENGINES
+    ]
+    if len(local_amounts) != 1:
+        return None
+    fuller = local_amounts[0]
+    fuller_dollars = _dollars_digits(fuller)
+    if len(fuller_dollars) < 3:
+        return None
+    others = [amount for amount in by_amount if amount != fuller]
+    if not others:
+        return None
+    saw_drop = False
+    for other in others:
+        if by_amount[other] & _LOCAL_ENGINES:
+            return None
+        other_dollars = _dollars_digits(other)
+        is_drop = (
+            bool(other_dollars)
+            and fuller_dollars.startswith(other_dollars)
+            and len(fuller_dollars) - len(other_dollars) == 1
+        )
+        if is_drop:
+            saw_drop = True
+            continue
+        # Tesseract whitelist soup (``500`` beside ``1551``) is not a second charge.
+        if by_amount[other] <= {"tesseract"}:
+            continue
+        return None
+    return fuller if saw_drop else None
+
+
 def _dollars_digits(amount: str) -> str:
     parsed = parse_currency(amount)
     if parsed is None:
@@ -744,8 +785,18 @@ def select_line_charge(
     soup_amounts: set[str] = set()
     for amount, family, cand in usable:
         if _looks_like_units_concat(amount, peer_amounts):
-            rejected.append((amount, "UNITS_CONCAT_BLEED"))
-            continue
+            # ``6401`` beside local ``640`` is units bleed. ``1851`` beside a
+            # vision-only ``185`` is the dropped digit that regressed blind-50
+            # STP — keep the fuller local amount for digit-drop resolution.
+            stem = _dollars_digits(amount)[:-1]
+            stem_amount = f"{int(stem)}.00" if stem.isdigit() else ""
+            stem_is_local = any(
+                peer == stem_amount and fam in _LOCAL_ENGINES
+                for peer, fam, _ in usable
+            )
+            if stem_is_local or family not in _LOCAL_ENGINES:
+                rejected.append((amount, "UNITS_CONCAT_BLEED"))
+                continue
         if _looks_like_place_shift(amount, peer_amounts):
             # Concat shells (4972.00 vs 49.72) always reject. ×10/×100 under-reads
             # (paddle 1.75 vs rapid+Claude 175.00) keep the vision+local fuller
@@ -811,6 +862,16 @@ def select_line_charge(
         )
         if vision_fuller is not None:
             return vision_fuller
+        digit_drop = _digit_drop_fuller_local(by_amount)
+        if digit_drop is not None:
+            return LineChargeSelection(
+                "SELECTED_LOCAL_CHARGE",
+                digit_drop,
+                "DIGIT_DROP_FULLER_LOCAL",
+                supporting_engines=tuple(sorted(by_amount[digit_drop])),
+                rejected=tuple(rejected[:12])
+                + tuple((amount, "DIGIT_DROP_SHORTER_READ") for amount in by_amount if amount != digit_drop),
+            )
         # Single local engine only — ambiguous without a second reader.
         singles = sorted(by_amount.keys())
         if len(singles) == 1 and len(by_amount[singles[0]] & _LOCAL_ENGINES) >= 1:

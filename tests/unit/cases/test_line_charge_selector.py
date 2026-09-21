@@ -687,3 +687,36 @@ def test_djjf002_style_lines_sum_confirms_same_stem_box28():
     assert decision.confirmed
     assert decision.line_sum == "1160.00"
     assert decision.amount == "1160.40"
+
+
+def test_digit_drop_vision_does_not_veto_fuller_local():
+    """Blind-50 1851 must survive a Claude 185 crop (one dropped digit)."""
+    line = {
+        "charges": "185.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "185.00", "185.00", _CHARGE_BBOX),
+            _cand("rapidocr", "1851.00", "1851.00", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "1851.00"
+    assert result.reason == "DIGIT_DROP_FULLER_LOCAL"
+
+
+def test_two_locals_on_digit_drop_keep_the_shorter_local():
+    """A local ``185`` makes ``1851`` units-concat, not a vision digit-drop."""
+    line = {
+        "charges": "185.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "185.00", "185.00", _CHARGE_BBOX),
+            _cand("rapidocr", "1851.00", "1851.00", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "185.00"
+    assert result.reason != "DIGIT_DROP_FULLER_LOCAL"
+

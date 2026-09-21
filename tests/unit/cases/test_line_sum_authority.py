@@ -659,3 +659,44 @@ def test_same_stem_cents_twin_box28_corroborates_line_sum():
     # True near-miss dollars still CONFLICT.
     ok, reason = line_sum_auto_eligible(lines, box28_value="222.00")
     assert not ok and reason == "BOX28_OR_DI_CONFLICT"
+
+
+def test_blind50_multiline_digit_drop_restores_stp_single_line_stays_closed():
+    from packages.claim_evidence.line_charge_selector import apply_line_charge_selector
+
+    lines = apply_line_charge_selector(
+        [
+            {
+                "charges": "185.00",
+                "candidates": [
+                    {"value": "185.00", "engine": "anthropic_claude_crop"},
+                    {"value": "1851.00", "engine": "rapidocr"},
+                ],
+            },
+            {
+                "charges": "155.00",
+                "candidates": [
+                    {"value": "155.00", "engine": "anthropic_claude_crop"},
+                    {"value": "1551.00", "engine": "rapidocr"},
+                ],
+            },
+        ]
+    )
+    ok, reason = line_sum_auto_eligible(lines)
+    assert ok and reason == "MULTI_LINE_DIGIT_DROP_FULLER_LOCAL"
+    assert line_sum_total(lines) == "3402.00"
+
+    single = apply_line_charge_selector(
+        [
+            {
+                "charges": "13.00",
+                "candidates": [
+                    {"value": "13.00", "engine": "anthropic_claude_crop"},
+                    {"value": "131.00", "engine": "rapidocr"},
+                ],
+            }
+        ]
+    )
+    ok, reason = line_sum_auto_eligible(single)
+    assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
+

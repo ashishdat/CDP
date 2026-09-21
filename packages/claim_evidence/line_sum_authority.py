@@ -700,4 +700,28 @@ def line_sum_auto_eligible(
         return False, "SINGLE_LINE_REQUIRES_DI"
     if agreed >= observed >= 2:
         return True, "DUAL_ENGINE_LINE_AGREEMENT"
+    # Blind-50 multi-line STP (1851+1551=3402) regressed when a shorter vision
+    # crop vetoed each fuller local read. Digit-drop resolution is not the
+    # single-line 13↔131 false-accept: that path already returned above.
+    if observed >= 2 and _multi_line_digit_drop_resolved(service_lines):
+        return True, "MULTI_LINE_DIGIT_DROP_FULLER_LOCAL"
     return False, "MULTI_LINE_UNCORROBORATED"
+
+
+def _multi_line_digit_drop_resolved(service_lines: list[dict] | None) -> bool:
+    """True when every charge line kept the fuller local read over a short vision rival."""
+    saw_drop = False
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        if not any(parse_currency(line.get(k)) is not None for k in _CHARGE_FIELDS):
+            continue
+        selection = line.get("line_charge_selection") or {}
+        if selection.get("disposition") != "SELECTED_LOCAL_CHARGE":
+            return False
+        if selection.get("reason") == "DIGIT_DROP_FULLER_LOCAL":
+            saw_drop = True
+            continue
+        if not line_has_dual_engine_agreement(line):
+            return False
+    return saw_drop
