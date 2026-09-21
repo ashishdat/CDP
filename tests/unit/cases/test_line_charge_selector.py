@@ -794,6 +794,42 @@ def test_clean_dime_read_is_not_stripped_to_whole_dollars():
     assert result.reason != "SAME_STEM_CENTS_RULING_JITTER"
 
 
+def test_di_corroborated_ruling_split_beats_geometry_scale():
+    """``25/43`` and DI ``25 |43`` are $25.43. Geometry ``25143`` is the ruling tick."""
+    line = {
+        "charges": "251.43",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "43.00", "25/43", _CHARGE_BBOX),
+            _cand("rapidocr", "1.25", "1\n25", _CHARGE_BBOX),
+            _cand("azure_document_intelligence_read", "43.00", "25 |43", _CHARGE_BBOX),
+            _cand("rapidocr", "251.43", "25143", _CHARGE_BBOX),
+        ],
+    }
+    line["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "25.43"
+    assert result.reason == "RULING_SPLIT_DI_CORROBORATED"
+    out = apply_line_charge_selector([line])
+    assert out[0]["charges"] == "25.43"
+
+
+def test_ruling_split_without_di_stays_unresolved():
+    line = {
+        "charges": "251.43",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "43.00", "25/43", _CHARGE_BBOX),
+            _cand("rapidocr", "251.43", "25143", _CHARGE_BBOX),
+        ],
+    }
+    line["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
+    result = select_line_charge(line)
+    assert result.reason != "RULING_SPLIT_DI_CORROBORATED"
+    assert result.amount != "25.43"
+
+
 def test_geometry_scale_shift_does_not_outrank_dual_local_dollars():
     """Raw ``157107`` → ``1571.07`` is a ruling tick, not a fuller charge."""
     dollars_bbox = (1050.0, 1458.0, 1165.0, 1513.0)

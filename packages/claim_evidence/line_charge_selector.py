@@ -587,6 +587,53 @@ def _same_stem_ruling_jitter_amount(
     return chosen
 
 
+def _di_corroborated_ruling_split(line: dict, by_amount: dict[str, set[str]]) -> str | None:
+    """Local dollars|cents split that Document Intelligence reads the same way.
+
+    ``25/43`` → ``25.43`` beside DI ``25 |43`` is the printed charge. Geometry
+    raw ``25143`` → ``251.43`` counted the cents ruling as a digit. A second
+    local split that DI does not confirm (units ``1\\n25`` → ``1.25``) does
+    not veto. Claude is not a reader here.
+    """
+    local: set[str] = set()
+    di: set[str] = set()
+    geometry: list[str] = []
+    for cand in line.get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        ruled = _ruling_split_amount(cand.get("raw_value"))
+        family = _engine_family(cand.get("engine"))
+        prep = str(cand.get("preprocessing_variant") or cand.get("evidence_reference") or "")
+        if "GEOMETRY_CENTS" in prep:
+            shaped = _shaped_amount(cand)
+            if shaped:
+                geometry.append(shaped)
+            continue
+        if ruled is None:
+            continue
+        if family in _LOCAL_ENGINES:
+            local.add(ruled)
+        elif "document_intelligence" in family:
+            di.add(ruled)
+    agreed = local & di
+    if len(agreed) != 1:
+        return None
+    chosen = next(iter(agreed))
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None:
+        return None
+    if not any(
+        (geo_amt := parse_currency(amount)) is not None
+        and geo_amt > chosen_amt
+        and is_scale_shift(amount, chosen)
+        for amount in geometry
+    ):
+        return None
+    if chosen not in by_amount:
+        return None
+    return chosen
+
+
 def _is_same_stem_cents_twin(left: str, right: str) -> bool:
     """True when amounts share dollars and differ by ≤ $1.00 (OCR twin noise).
 
@@ -1053,6 +1100,20 @@ def select_line_charge(
                     (amount, "CENTS_RULING_JITTER")
                     for amount in by_amount
                     if amount != jitter
+                ),
+            )
+        ruled = _di_corroborated_ruling_split(line, by_amount)
+        if ruled is not None:
+            return LineChargeSelection(
+                "SELECTED_LOCAL_CHARGE",
+                ruled,
+                "RULING_SPLIT_DI_CORROBORATED",
+                supporting_engines=tuple(sorted(by_amount.get(ruled) or ())),
+                rejected=tuple(rejected[:12])
+                + tuple(
+                    (amount, "GEOMETRY_SCALE_SHIFT")
+                    for amount in by_amount
+                    if amount != ruled
                 ),
             )
         return LineChargeSelection(

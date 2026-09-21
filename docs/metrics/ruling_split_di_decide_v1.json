@@ -1,0 +1,34 @@
+{
+  "title": "Document Intelligence corroborates a local dollars|cents ruling split",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "page_check": "M048DJKH.050 service line and Box 28 both print 25|43. Geometry raw 25143 shaped 251.43 counted the cents ruling as a digit. Paddle raw 25/43 and Document Intelligence raw 25 |43 both reconstruct 25.43. Claude was not the authority.",
+  "decision_only": {
+    "out": "evaluation_results/hackathon_150_ruling_split_decide",
+    "completed": 89,
+    "true_stp": 59,
+    "true_stp_rate_of_completed": 0.662921,
+    "field_ink_hitl": 30,
+    "flipped_to_true_stp": ["M048DJKH.050 total_charge 25.43"],
+    "lost_stp": []
+  },
+  "combined_with_ejge_reocr_overlay": {
+    "completed": 89,
+    "true_stp": 63,
+    "true_stp_rate_of_completed": 0.707865,
+    "field_ink_hitl": 26,
+    "false_accepts": 52,
+    "accepted_fields_scored": 227,
+    "accepted_field_precision": 0.770925,
+    "new_false_accept": "M048DJKH.050 total_charge AUTO 25.43 vs agent label 25.00. The label drops the printed cents. Cents were not stripped."
+  },
+  "note": "Frozen OCR plus the four EJGE re-OCR claims already measured. Not a new full-cohort OCR. Golden Pack was not mutated. Gates still fail."
+}
