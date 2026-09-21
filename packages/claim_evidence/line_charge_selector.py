@@ -18,8 +18,10 @@ from typing import Any
 from decimal import Decimal
 
 from packages.claim_evidence.line_sum_authority import (
+    amounts_same_stem_cents_twin,
     format_currency,
     is_decimal_place_shift,
+    is_scale_shift,
     parse_currency,
 )
 from packages.geometry_authority.cms1500_regions import (
@@ -188,6 +190,27 @@ def _looks_like_units_concat(amount: str, peers: set[str]) -> bool:
     stem_amount = f"{int(stem)}.00" if stem.isdigit() else None
     if stem_amount and stem_amount in peers:
         return True
+    return False
+
+
+def _scale_shifted_from_dual_local(current: Decimal, candidates: list | None) -> bool:
+    """True when ``current`` is a ×10/×100 twin of a paddle+rapid amount."""
+    dual: dict[str, set[str]] = {}
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        engine = str(cand.get("engine") or "").casefold()
+        if engine not in _LOCAL_ENGINES:
+            continue
+        amount = parse_currency(cand.get("value"))
+        if amount is None:
+            continue
+        dual.setdefault(format_currency(amount), set()).add(engine)
+    for amount, engines in dual.items():
+        if len(engines) < 2:
+            continue
+        if is_scale_shift(current, amount):
+            return True
     return False
 
 
@@ -458,6 +481,10 @@ def _is_dollar_truncation(short: str, longer: str) -> bool:
         # (116.00 vs 1165.00); cents-vs-whole-dollar inflation (116.50 vs
         # 1165.00) is also not a dollars-ruling truncation.
         if long_txt.endswith(".00"):
+            return False
+        # ``457.60`` vs ``4571.60`` already has cents; that is a scale twin,
+        # not a dollars-ruling truncation of ``457.00``.
+        if not short_txt.endswith(".00"):
             return False
         return True
     return False
@@ -979,6 +1006,37 @@ def select_line_charge(
                         rejected.append((amount, "GEOMETRY_OR_WEAK_PEER_OUTRANKED"))
                 top = preferred
     if len(set(top)) > 1:
+        anchor = top[0]
+        if all(amount == anchor or amounts_same_stem_cents_twin(anchor, amount) for amount in top):
+            decimal_amounts = {
+                amount
+                for amount, _family, cand, _quality in filtered
+                if amount in top
+                and _raw_has_observed_decimal(cand.get("raw_value") or cand.get("value"))
+            }
+
+            def _twin_rank(amount: str) -> tuple[int, int, int, int, int]:
+                families = by_amount.get(amount, set())
+                parsed = parse_currency(amount)
+                nonzero_cents = int(
+                    parsed is not None and parsed != parsed.to_integral_value()
+                )
+                return (
+                    1 if "azure_gpt4o_crop" in families else 0,
+                    nonzero_cents,
+                    1 if amount in decimal_amounts else 0,
+                    len(families),
+                    quality_by_amount.get(amount, 0),
+                )
+
+            best = max(_twin_rank(amount) for amount in top)
+            chosen = [amount for amount in top if _twin_rank(amount) == best]
+            if len(chosen) == 1:
+                for amount in top:
+                    if amount != chosen[0]:
+                        rejected.append((amount, "SAME_STEM_CENTS_TWIN"))
+                top = chosen
+    if len(set(top)) > 1:
         return LineChargeSelection(
             "AMBIGUOUS_LINE_CHARGE",
             None,
@@ -1143,6 +1201,10 @@ def apply_line_charge_selector(lines: list[dict] | None) -> list[dict]:
                             or "GEOMETRY_CENTS" in prep
                             or _raw_has_observed_decimal(cand.get("raw_value"))
                         ):
+                            # A lone ×10/×100 geometry shell is not support when
+                            # paddle and rapid already agree on the other scale.
+                            if _scale_shifted_from_dual_local(current, updated.get("candidates")):
+                                continue
                             supported = True
                             break
                         if _candidate_evidence_quality(cand, target) >= 3:

@@ -720,3 +720,44 @@ def test_two_locals_on_digit_drop_keep_the_shorter_local():
     assert result.amount == "185.00"
     assert result.reason != "DIGIT_DROP_FULLER_LOCAL"
 
+
+def test_cents_twin_dual_local_prefers_observed_decimal():
+    """457.60 and 457.00 are one amount, not a line conflict."""
+    line = {
+        "charges": "4571.60",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "457.60", "457.60", _CHARGE_BBOX),
+            _cand("rapidocr", "457.60", "457.60", _CHARGE_BBOX),
+            _cand("paddleocr", "457.00", "457.00", _CHARGE_BBOX),
+            _cand("rapidocr", "457.00", "457.00", _CHARGE_BBOX),
+            _cand("rapidocr", "4571.60", "4571.60", _CHARGE_BBOX),
+        ],
+    }
+    line["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "457.60"
+    out = apply_line_charge_selector([line])
+    assert out[0]["charges"] == "457.60"
+
+
+def test_ambiguous_clears_scale_shifted_geometry_shell():
+    """A lone 4571.60 geometry read must not survive beside dual-local 457.60."""
+    line = {
+        "charges": "4571.60",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("paddleocr", "457.60", "457.60", _CHARGE_BBOX),
+            _cand("rapidocr", "457.60", "457.60", _CHARGE_BBOX),
+            _cand("paddleocr", "100.00", "100.00", _CHARGE_BBOX),
+            _cand("rapidocr", "100.00", "100.00", _CHARGE_BBOX),
+            _cand("rapidocr", "4571.60", "4571.60", _CHARGE_BBOX),
+        ],
+    }
+    line["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
+    out = apply_line_charge_selector([line])
+    assert out[0]["line_charge_selection"]["disposition"] == "AMBIGUOUS_LINE_CHARGE"
+    assert out[0]["charges"] is None
+
+
