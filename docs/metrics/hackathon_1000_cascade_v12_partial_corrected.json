@@ -1,0 +1,33 @@
+{
+  "run": "hackathon_1000_cascade_v12",
+  "run_status": "STOPPED_PARTIAL",
+  "n": 785,
+  "completed": 733,
+  "true_stp": 486,
+  "field_ink_hitl": 247,
+  "infra_failures": 52,
+  "true_stp_rate": 0.663029,
+  "hitl_rate": 0.336971,
+  "true_stp_rate_of_all": 0.619108,
+  "hitl_rate_of_all": 0.31465,
+  "infra_failure_rate": 0.066242,
+  "misreported_hitl_as_n_minus_stp": 0.380892,
+  "disposition_counts": {
+    "TRUE_STP": 486,
+    "HITL": 247,
+    "REGISTRATION_FAILED": 50,
+    "STAGE_FAILURE": 2
+  },
+  "critical_blockers": {
+    "total_charge": 209,
+    "patient_dob": 23,
+    "patient_name": 37,
+    "insured_id_number": 17
+  },
+  "metric_definitions": {
+    "true_stp_rate": "true_stp / completed (registration_ok CMS-geometry claims)",
+    "hitl_rate": "field_ink_hitl / completed \u2014 never (n - true_stp) / n",
+    "infra_failures": "REGISTRATION_FAILED | STAGE_FAILURE | APP_FAILURE | SUMMARY_ERROR | WORKER_ERROR | OCR_MISSING | INCOMPLETE",
+    "note": "Primary STP/HITL rates use the completed denominator. Infra failures are reported separately and must not be folded into HITL."
+  }
+}

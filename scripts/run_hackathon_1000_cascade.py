@@ -660,10 +660,9 @@ def _process_one(
                         "agent_used": fb.agent_used,
                         "fields": dict(fb.fields),
                     }
-                    # Extraction is not acceptance. This fallback has not run
-                    # ClaimDecision or field evidence gates, even if all keys exist.
-                    if fb.fields:
-                        disposition = "HITL"
+                    # Extraction is not acceptance. Keep REGISTRATION_FAILED —
+                    # unstructured DI text has not passed ClaimDecision gates and
+                    # must not inflate completed / field-ink HITL rates.
                     with contextlib.suppress(OSError, AttributeError, ValueError):
                         page_image.close()
         row = {
@@ -673,20 +672,13 @@ def _process_one(
             "bundle_id": _bundle_id(document),
             "group_id": _group_id(document),
             "registration_ok": False,
-            "completed": disposition in {"TRUE_STP", "HITL"},
-            "true_stp": disposition == "TRUE_STP",
+            # Infra / registration failures are never "completed" field outcomes.
+            "completed": False,
+            "true_stp": False,
             "disposition": disposition,
             "registration_reason": reason,
-            "hitl_track": "UNSTRUCTURED_DI" if unstructured_meta and disposition == "HITL" else None,
-            "critical_blockers": (
-                [
-                    f
-                    for f in ("patient_name", "patient_dob", "insured_id_number", "total_charge")
-                    if f not in (unstructured_meta or {}).get("fields", {})
-                ]
-                if disposition == "HITL" and unstructured_meta
-                else None
-            ),
+            "hitl_track": None,
+            "critical_blockers": None,
             "unstructured_reg_fallback": unstructured_meta,
             "app_returncode": rc,
             "error": tail if disposition == "APP_FAILURE" else None,
@@ -796,6 +788,18 @@ def _process_one(
         _write_json(claim_out / "result.json", row)
         return row
 
+    if summary["true_stp"]:
+        disposition = "TRUE_STP"
+        hitl_track = None
+    elif summary["completed"]:
+        # Field-ink HITL only when extraction completed and still needs review.
+        disposition = "HITL"
+        hitl_track = "FIELD_INK"
+    else:
+        # Completed=false must not be labeled HITL (that conflates incomplete
+        # stages with field-ink review in rollups that key off disposition).
+        disposition = "INCOMPLETE"
+        hitl_track = None
     row = {
         "finished": True,
         "claim_id": claim_id,
@@ -806,8 +810,8 @@ def _process_one(
         "completed": summary["completed"],
         "true_stp": summary["true_stp"],
         "review_required": summary["review_required"],
-        "disposition": "TRUE_STP" if summary["true_stp"] else "HITL",
-        "hitl_track": None if summary["true_stp"] else "FIELD_INK",
+        "disposition": disposition,
+        "hitl_track": hitl_track,
         "critical_blockers": summary["critical_blockers"],
         "fields": summary["fields"],
         "gap_classes": summary["gap_classes"],
@@ -826,13 +830,55 @@ def _process_one(
 
 
 def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Operational STP / HITL rollup.
+
+    Definitions (fail-closed, mutually exclusive dispositions):
+      - TRUE_STP: registration_ok ∧ completed ∧ ¬review_required
+      - HITL (field-ink): registration_ok ∧ completed ∧ review_required
+      - REGISTRATION_FAILED / STAGE_FAILURE / …: infra — NOT field HITL
+
+    Primary rates use the completed denominator:
+      true_stp_rate = true_stp / completed
+      hitl_rate     = field_ink_hitl / completed
+
+    Never compute HITL as ``n - true_stp`` — that conflates registration and
+    stage failures into review rate and understates STP vs completed claims.
+    """
     n = len(rows)
     reg_ok = sum(1 for r in rows if r.get("registration_ok"))
-    completed = sum(1 for r in rows if r.get("completed"))
-    true_stp = sum(1 for r in rows if r.get("true_stp"))
-    hitl = sum(1 for r in rows if r.get("disposition") == "HITL")
+    completed = sum(1 for r in rows if r.get("completed") and r.get("registration_ok"))
+    true_stp = sum(
+        1
+        for r in rows
+        if r.get("true_stp") and r.get("completed") and r.get("registration_ok")
+    )
+    # Field-ink HITL only — requires completed CMS-geometry extraction.
+    # disposition==HITL alone is not enough (legacy unstructured-reg rows).
+    field_hitl = sum(
+        1
+        for r in rows
+        if r.get("disposition") == "HITL"
+        and r.get("completed")
+        and r.get("registration_ok")
+        and r.get("hitl_track") != "UNSTRUCTURED_DI"
+    )
+    hitl = field_hitl
     reg_hitl = sum(1 for r in rows if r.get("disposition") == "REGISTRATION_FAILED")
-    field_hitl = sum(1 for r in rows if r.get("disposition") == "HITL" and r.get("completed"))
+    infra_fail = sum(
+        1
+        for r in rows
+        if r.get("disposition")
+        in {
+            "REGISTRATION_FAILED",
+            "STAGE_FAILURE",
+            "APP_FAILURE",
+            "SUMMARY_ERROR",
+            "WORKER_ERROR",
+            "OCR_MISSING",
+            "INCOMPLETE",
+        }
+    )
+    # Invariant: among completed rows, STP + field HITL == completed.
     return {
         "n": n,
         "registration_ok": reg_ok,
@@ -840,16 +886,25 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "completed": completed,
         "completion_rate": round(completed / n, 6) if n else 0.0,
         "true_stp": true_stp,
-        "true_stp_rate_of_all": round(true_stp / n, 6) if n else 0.0,
+        # Primary operational STP: share of completed claims that auto-accept.
+        "true_stp_rate": round(true_stp / completed, 6) if completed else 0.0,
         "true_stp_rate_of_completed": round(true_stp / completed, 6) if completed else 0.0,
+        "true_stp_rate_of_all": round(true_stp / n, 6) if n else 0.0,
         "hitl": hitl,
-        "hitl_rate_of_all": round(hitl / n, 6) if n else 0.0,
-        "registration_hitl": reg_hitl,
-        "registration_hitl_rate": round(reg_hitl / n, 6) if n else 0.0,
         "field_ink_hitl": field_hitl,
+        # Primary operational HITL: field-ink review share of completed claims.
+        "hitl_rate": round(field_hitl / completed, 6) if completed else 0.0,
+        "hitl_rate_of_completed": round(field_hitl / completed, 6) if completed else 0.0,
+        # Of-all HITL is field-ink only — never (n - true_stp) / n.
+        "hitl_rate_of_all": round(field_hitl / n, 6) if n else 0.0,
         "field_ink_hitl_rate_of_completed": (
             round(field_hitl / completed, 6) if completed else 0.0
         ),
+        "registration_hitl": reg_hitl,
+        "registration_hitl_rate": round(reg_hitl / n, 6) if n else 0.0,
+        "infra_failures": infra_fail,
+        "infra_failure_rate": round(infra_fail / n, 6) if n else 0.0,
+        "misreported_hitl_as_n_minus_stp": round((n - true_stp) / n, 6) if n else 0.0,
     }
 
 
@@ -868,7 +923,6 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
     tesseract_claims = 0
     by_bundle: dict[str, list[dict[str, Any]]] = {}
     by_group: dict[str, list[dict[str, Any]]] = {}
-    completed = sum(1 for r in rows if r.get("completed"))
     for row in rows:
         for b in row.get("critical_blockers") or []:
             blockers[str(b)] += 1
@@ -901,6 +955,7 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
         by_group.setdefault(group, []).append(row)
 
     overall = _rollup_scope(rows)
+    completed = int(overall["completed"])
     return {
         "dataset": "DEVELOPMENT_DATASET_V1 / Hackathon - 1000 Claims.zip",
         "document_count_requested": limit,
@@ -953,12 +1008,25 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
             )
         },
         "bundle_count": len(by_bundle),
+        "metric_definitions": {
+            "true_stp_rate": "true_stp / completed (registration_ok CMS-geometry claims)",
+            "hitl_rate": "field_ink_hitl / completed — never (n - true_stp) / n",
+            "infra_failures": (
+                "REGISTRATION_FAILED | STAGE_FAILURE | APP_FAILURE | "
+                "SUMMARY_ERROR | WORKER_ERROR | OCR_MISSING | INCOMPLETE"
+            ),
+            "note": (
+                "Primary STP/HITL rates use the completed denominator. "
+                "Infra failures are reported separately and must not be folded into HITL."
+            ),
+        },
         "note": (
             "Operational metrics under field-cascade-v12 with paddle+rapid confirmation "
             "cascade, name/ID value-band-first, and label-contamination relief. No "
             "field-level GT on Hackathon corpus — accuracy marked unavailable."
         ),
         "generated_at": _utc_now(),
+        "run_status": "PARTIAL" if n < limit else "COMPLETE",
     }
 
 
@@ -1215,11 +1283,16 @@ def main() -> int:
                 _append_ledger(ledger, row, lock)
                 rows_new.append(row)
                 if i % 5 == 0 or i == len(futures):
-                    stp = sum(1 for r in rows_new if r.get("true_stp"))
-                    reg = sum(1 for r in rows_new if r.get("registration_ok"))
+                    roll = _rollup_scope(rows_new)
                     msg = (
                         f"progress {i}/{len(futures)} newest={row.get('claim_id')} "
-                        f"batch_reg={reg}/{len(rows_new)} batch_true_stp={stp}/{len(rows_new)} "
+                        f"batch_reg={roll['registration_ok']}/{roll['n']} "
+                        f"batch_completed={roll['completed']}/{roll['n']} "
+                        f"batch_true_stp={roll['true_stp']}/{roll['completed']} "
+                        f"({roll['true_stp_rate']:.1%} of completed) "
+                        f"batch_field_hitl={roll['field_ink_hitl']}/{roll['completed']} "
+                        f"({roll['hitl_rate']:.1%} of completed) "
+                        f"batch_infra={roll['infra_failures']}/{roll['n']} "
                         f"disp={row.get('disposition')}"
                     )
                     # Always land progress on disk (survives stdout pipe stalls).
