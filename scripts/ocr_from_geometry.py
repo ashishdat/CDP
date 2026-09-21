@@ -90,10 +90,19 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
                     corroborate=True,
                 )
                 di_meta = current.get("azure_di_residual") or {}
-                if (
+                from packages.extraction_recovery.gpt4o_crop_residual import (
+                    _charge_local_disagrees_with_di,
+                )
+
+                di_ready = (
                     di_meta.get("currency_shaped")
                     and not di_meta.get("review_only")
                     and di_meta.get("value")
+                )
+                # A local that already matches DI does not need another model.
+                # DI alone, or a local that read a different amount, still does.
+                if di_ready and not _charge_local_disagrees_with_di(
+                    current.get("candidates")
                 ):
                     updated.append(current)
                     continue

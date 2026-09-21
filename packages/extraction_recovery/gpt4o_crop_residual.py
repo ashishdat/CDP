@@ -323,11 +323,11 @@ def _charge_local_disagrees_with_di(
             di_values.append(raw)
         else:
             local_values.append(raw)
-    if not di_values or not local_values:
+    if not di_values:
         return False
-    return any(
-        not any(amounts_corroborate(local, di) for di in di_values)
-        for local in local_values
+    # No local currency, or every local currency misses the DI amount.
+    return not any(
+        any(amounts_corroborate(local, di) for di in di_values) for local in local_values
     )
 
 

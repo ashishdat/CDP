@@ -481,6 +481,22 @@ def test_line_sum_auto_requires_dual_engine_or_di():
     ]
     ok, reason = line_sum_auto_eligible(short, corroborating_values=["131.00"])
     assert not ok and reason == "BOX28_OR_DI_CONFLICT"
+    # Paddle's unplaced 4972 must not cancel rapid+Claude on the placed amount.
+    mixed = [
+        {
+            "charges": "49.72",
+            "producing_engine": "rapidocr",
+            "candidates": [
+                {"value": "4972.00", "engine": "paddleocr", "source_crop_id": "c1"},
+                {"value": "49.72", "engine": "rapidocr", "source_crop_id": "c2"},
+                {"value": "49.72", "engine": "anthropic_claude_crop", "source_crop_id": "c3"},
+            ],
+        }
+    ]
+    ok, reason = line_sum_auto_eligible(
+        mixed, corroborating_values=["4972.00", "972.00", "72.00"]
+    )
+    assert ok and reason == "DECIMAL_COLUMN_VISION_LOCAL"
 
     # Multi-line gpt-4o+local without Box 28 AUTOs.
     multi_gpt = [

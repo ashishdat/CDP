@@ -170,6 +170,20 @@ def _append_di_partner_agreement(
                 },
             )
         )
+        bundle.items.append(
+            EvidenceItem(
+                evidence_class=EvidenceClass.E4,
+                evidence_type="STRONG_DETERMINISTIC:CHARGE_DI_LOCAL_CONFIRMED",
+                evidence_family="DETERMINISTIC:STRONG:CHARGE_DI_LOCAL_CONFIRMED",
+                source="evidence_builder",
+                deterministic=True,
+                metadata={
+                    "validation_result": "PASS",
+                    "strength": "STRONG",
+                    "fact": "CHARGE_DI_LOCAL_CONFIRMED",
+                },
+            )
+        )
         return
 
 

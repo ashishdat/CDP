@@ -278,6 +278,41 @@ def is_vision_crop_engine(engine: object) -> bool:
     )
 
 
+def line_has_vision_and_local_on_selected(
+    service_lines: list[dict] | None,
+    total: object,
+) -> bool:
+    """True when the selected line amount is on both a vision crop and one local."""
+    target = parse_currency(total)
+    if target is None:
+        return False
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        selected = None
+        for key in _CHARGE_FIELDS:
+            selected = parse_currency(line.get(key))
+            if selected is not None:
+                break
+        if selected != target:
+            continue
+        saw_vision = False
+        saw_local = False
+        for cand in line.get("candidates") or []:
+            if not isinstance(cand, dict):
+                continue
+            if parse_currency(cand.get("value")) != target:
+                continue
+            engine = cand.get("engine")
+            if is_vision_crop_engine(engine):
+                saw_vision = True
+            elif _engine_family(engine) in {"rapidocr", "paddleocr"}:
+                saw_local = True
+        if saw_vision and saw_local:
+            return True
+    return False
+
+
 def _engine_family(engine: object) -> str:
     name = str(engine or "").strip().casefold()
     # Vision crop residuals (gpt-4o / Claude) are not independent OCR engines for
@@ -727,6 +762,10 @@ def line_sum_auto_eligible(
     if corroborators:
         if any(amounts_corroborate_or_cents_twin(total, value) for value in corroborators):
             return True, "BOX28_OR_DI_CORROBORATED"
+        if line_has_vision_and_local_on_selected(
+            service_lines, total
+        ) and vision_local_decimal_column(total, corroborators):
+            return True, "DECIMAL_COLUMN_VISION_LOCAL"
         # Plausible currency-shaped box-28 / DI disagrees → HITL, not false STP.
         return False, "BOX28_OR_DI_CONFLICT"
 

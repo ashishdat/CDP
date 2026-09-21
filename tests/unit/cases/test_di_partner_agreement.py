@@ -83,6 +83,10 @@ def test_charge_di_rapid_mints_e2_but_place_shift_does_not():
         if item.evidence_class.value == "E2" and item.independent
     ]
     assert e2 and e2[0].metadata.get("agreement_type") == "CHARGE_DI_PARTNER_AGREEMENT"
+    assert any(
+        item.evidence_class.value == "E4" and (item.metadata or {}).get("strength") == "STRONG"
+        for item in agreed.items
+    )
 
     shifted = build_evidence_bundle(
         field_name="total_charge",
