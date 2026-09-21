@@ -848,6 +848,16 @@ class ClaimEvidenceBuilder:
                 chosen = str(agent.get("value") or "")
                 side = agent["side"]
                 if chosen:
+                    contradictions[:] = [
+                        item
+                        for item in contradictions
+                        if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                    ]
+                    evidence[:] = [
+                        item
+                        for item in evidence
+                        if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                    ]
                     evidence.append(
                         self._item(
                             claim_id,
