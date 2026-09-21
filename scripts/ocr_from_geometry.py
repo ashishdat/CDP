@@ -1688,6 +1688,26 @@ def _currency_value_from_candidates(raw_text, candidates) -> str | None:
             best = preferred
     return best
 
+def service_line_row_bounds(table, row_index: int) -> tuple[int, int] | None:
+    """Y window for one CMS-1500 charge row, including the header-offset tail.
+
+    Data rows start below the printed header rule. ``table_y1`` is that printed
+    grid bottom, so clipping the last row there drops its charge: on 02-12 the
+    sixth $200 sits at y 1772–1787 while the clip at 1770 keeps only the rule.
+    Extending by the same header offset keeps the full row and still stops
+    before the Box 28 label.
+    """
+    header_offset = max(8, int(table.row_height_px) // 3)
+    y0 = int(table.table_y0) + header_offset + row_index * int(table.row_height_px)
+    limit = int(table.table_y1) + header_offset
+    if y0 >= limit:
+        return None
+    y1 = min(y0 + int(table.row_height_px), limit)
+    if y1 <= y0:
+        return None
+    return y0, y1
+
+
 def recognize_service_lines(image, router, template):
     """OCR CMS-1500 service-line charge cells for claim-total E6 confirmation."""
     table = getattr(template, 'service_line_region', None) if template is not None else None
@@ -1698,8 +1718,6 @@ def recognize_service_lines(image, router, template):
     if charge_col is None:
         return []
     lines = []
-    # Prefer data rows: start one half-row below the printed header rule.
-    header_offset = max(8, table.row_height_px // 3)
     # Alternate x-windows: primary template column plus a right-shifted band that
     # avoids diagnosis-pointer bleed on many live CMS-1500 scans.
     fast = _ocr_fast_mode()
@@ -1712,10 +1730,10 @@ def recognize_service_lines(image, router, template):
         return _currency_value_from_candidates(raw_text, candidates)
 
     for row_index in range(table.max_rows):
-        y0 = table.table_y0 + header_offset + row_index * table.row_height_px
-        y1 = min(y0 + table.row_height_px, table.table_y1)
-        if y0 >= table.table_y1:
+        bounds = service_line_row_bounds(table, row_index)
+        if bounds is None:
             break
+        y0, y1 = bounds
         probe_empty = True
         import re as _re_probe
         if not fast:
@@ -2205,10 +2223,10 @@ def recognize_service_lines(image, router, template):
     if fast and not lines and router is not None:
         fallback_windows = charge_windows or [(charge_col.x0, charge_col.x1)]
         for row_index in range(table.max_rows):
-            y0 = table.table_y0 + header_offset + row_index * table.row_height_px
-            y1 = min(y0 + table.row_height_px, table.table_y1)
-            if y0 >= table.table_y1:
+            bounds = service_line_row_bounds(table, row_index)
+            if bounds is None:
                 break
+            y0, y1 = bounds
             value = None
             raw = ''
             candidates = []
@@ -2341,10 +2359,10 @@ def recognize_service_lines(image, router, template):
             max_n = empty_financial_ink_max_lines()
             bboxes = []
             for row_index in range(min(table.max_rows, max_n)):
-                y0 = table.table_y0 + header_offset + row_index * table.row_height_px
-                y1 = min(y0 + table.row_height_px, table.table_y1)
-                if y0 >= table.table_y1:
+                bounds = service_line_row_bounds(table, row_index)
+                if bounds is None:
                     break
+                y0, y1 = bounds
                 bboxes.append(
                     _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
                 )

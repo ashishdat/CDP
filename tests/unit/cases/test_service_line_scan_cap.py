@@ -64,3 +64,9 @@ def test_fast_service_line_scan_reads_all_six_live_rows(monkeypatch):
     lines = ocr.recognize_service_lines(image, router=None, template=template)
     assert len(lines) == 6
     assert [line["charges"] for line in lines] == ["200.00"] * 6
+    # Header offset used to clip row 6 at table_y1 (1733–1770 is only the rule).
+    # The sixth $200 on 02-12 sits in the full 55px window ending at 1788.
+    last = lines[-1]["canonical_region"]
+    assert last[1] == 1733
+    assert last[3] == 1788
+    assert last[3] - last[1] == template.service_line_region.row_height_px
