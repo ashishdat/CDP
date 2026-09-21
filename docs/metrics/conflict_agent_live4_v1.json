@@ -1,0 +1,39 @@
+{
+  "process": "docs/metrics/conflict_agent_process_v1.md",
+  "flag": "CDP_CONFLICT_AGENT=1",
+  "live4": {
+    "out_dir": "evaluation_results/hackathon_conflict_agent_live3",
+    "decide_dir": "evaluation_results/hackathon_conflict_agent_decide",
+    "results": [
+      {
+        "document": "Group A/M048DJJF.004",
+        "agent": "BOX28",
+        "value": "783.00",
+        "result": "TRUE_STP",
+        "note": "Printed total confirmed over incomplete line sum 522."
+      },
+      {
+        "document": "Group A/M048DJJM.008",
+        "agent": "LINES",
+        "value": "49.77",
+        "result": "TRUE_STP",
+        "note": "Cents-column twin: Box OCR 4972 preferred placed line 49.77."
+      },
+      {
+        "document": "Group A/M048DJJM.034",
+        "agent": "CONFLICT_AGENT_RESOLVED",
+        "value": "660.00",
+        "result": "TRUE_STP",
+        "note": "Claude picked 660 over local 50 on the Box 28 crop."
+      },
+      {
+        "document": "Group A/M048DJJM.035",
+        "agent": "prior_stack",
+        "value": "495.00",
+        "result": "TRUE_STP",
+        "note": "Straight-through on this pass after name+charge stack."
+      }
+    ],
+    "true_stp": "4/4 after decision-only with contradiction clear"
+  }
+}
