@@ -1,0 +1,38 @@
+{
+  "title": "Decision-only re-finish after unshaped member-id review",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only": {
+    "src": "evaluation_results/hackathon_150_v12_agent_honor",
+    "out": "evaluation_results/hackathon_150_unshaped_id_decide",
+    "completed": 89,
+    "true_stp": 53,
+    "true_stp_rate_of_completed": 0.595506,
+    "field_ink_hitl": 36,
+    "infra_failures": 0,
+    "flipped_to_true_stp": 2,
+    "critical_blockers": {
+      "total_charge": 33,
+      "patient_dob": 2,
+      "insured_id_number": 2
+    },
+    "note": "Group A__M048EJG7.036 insured id is REVIEW (eee ae | ONNNAAIVKRT), not AUTO and not 7267. Claim was already HITL on insured_name, so true STP is unchanged."
+  },
+  "agent_gt_score": {
+    "claims_scored": 68,
+    "accepted_fields_scored": 223,
+    "false_accepts": 54,
+    "accepted_field_precision": 0.757848,
+    "true_stp_of_scored": 42,
+    "prior_false_accepts": 55,
+    "prior_accepted_field_precision": 0.754464
+  }
+}
