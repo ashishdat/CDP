@@ -66,6 +66,7 @@ def collect_field_rivals(
     from packages.evidence.normalization import normalize_agreement_value
     from packages.extraction_recovery.field_cascade import semantic_accept
 
+    key = field_name.casefold()
     by_norm: dict[str, str] = {}
     for cand in candidates or []:
         engine = str(cand.get("engine") or "")
@@ -76,7 +77,14 @@ def collect_field_rivals(
             continue
         ok, _ = semantic_accept(field_name, raw)
         if not ok:
-            continue
+            # Charge conflicts still need the POS-like / short local (50 vs 660).
+            if key in _CHARGE_FIELDS:
+                from packages.claim_evidence.line_sum_authority import parse_currency
+
+                if parse_currency(raw) is None:
+                    continue
+            else:
+                continue
         norm = normalize_agreement_value(field_name, raw)
         if not norm:
             continue
@@ -124,24 +132,21 @@ def _match_rival(reply: str, rivals: Sequence[str], field_name: str) -> str | No
 
 
 def _match_financial_side(reply: str) -> str | None:
-    text = (reply or "").strip().casefold()
-    if not text or text in {"abstain", "none", "unsure", "unknown"}:
+    text = (reply or "").strip()
+    if not text:
         return None
-    if re.search(r"\bbox\s*28\b|\bprinted\s*total\b|\btotal\s*charge\b", text):
+    folded = text.casefold()
+    if folded in {"abstain", "none", "unsure", "unknown"}:
+        return None
+    # Exact single-token answers first.
+    token = folded.split()[0].strip(".,:;!")
+    if token in {"box28", "box_28", "box"}:
         return "BOX28"
-    if text.startswith("box28") or text == "box_28" or text.startswith("box 28"):
-        return "BOX28"
-    if re.search(r"\blines?\b|\bline[_\s-]?sum\b|\b24f\b|\bservice\b", text):
+    if token in {"lines", "line", "line_sum", "linesum", "sum"}:
         return "LINES"
-    if text in {"box28", "box_28", "total"}:
+    if re.search(r"\bbox\s*28\b|\bprinted\s*total\b", folded):
         return "BOX28"
-    if text in {"lines", "line_sum", "linesum", "sum"}:
-        return "LINES"
-    # First token only.
-    token = text.split()[0]
-    if token in {"box28", "box"}:
-        return "BOX28"
-    if token in {"lines", "line", "sum"}:
+    if re.search(r"\blines?\b|\bline[_\s-]?sum\b|\b24f\b", folded):
         return "LINES"
     return None
 
@@ -202,17 +207,16 @@ def resolve_field_conflict(
         )
 
     key = field_name.casefold()
+    # Use text so the model can return an exact rival token (including BOX28-style
+    # labels on other paths). Currency shaping would drop non-money replies.
+    ftype = "text"
     if key in _CHARGE_FIELDS:
-        ftype = "currency"
         kind = "dollar amount"
     elif key in _DOB_FIELDS:
-        ftype = "date"
         kind = "date of birth"
     elif key in _NAME_FIELDS:
-        ftype = "text"
         kind = "person name"
     else:
-        ftype = "code"
         kind = "field value"
 
     options = " | ".join(rivals_t)
@@ -322,9 +326,10 @@ def resolve_financial_conflict(
         f"Line sum OCR={rivals[1]}. "
         "Look at the Box 28 ink. If the printed total is clear and the claim "
         "total should be that amount (even if lines look incomplete), reply "
-        "BOX28. If Box 28 ink is wrong, blank, or bleed and the line sum is "
-        "the real total, reply LINES. Reply ABSTAIN if unsure. "
-        "Do not invent a third amount."
+        "exactly BOX28. If Box 28 ink is wrong, blank, or bleed and the line "
+        "sum is the real total, reply exactly LINES. Reply ABSTAIN if unsure. "
+        "Do not invent a third amount. Reply with only one token: BOX28, LINES, "
+        "or ABSTAIN."
     )
     crop = _crop_image(image, box28_bbox)
     recognizer = engine or _AzureGpt4oCropRecognizer()
@@ -332,7 +337,8 @@ def resolve_financial_conflict(
         with vlm_crop_lock():
             mapped = recognizer.recognize_fields(
                 {"total_charge": crop},
-                field_types={"total_charge": "currency"},
+                # text — not currency — so BOX28 / LINES are not stripped as unshaped money
+                field_types={"total_charge": "text"},
                 descriptions={"total_charge": desc},
                 prior_candidates={"total_charge": ["BOX28", "LINES", *rivals]},
             )
@@ -346,12 +352,18 @@ def resolve_financial_conflict(
         )
     result = mapped.get("total_charge")
     reply = ""
+    raw_reply = ""
     if result is not None:
-        reply = str(result.value or result.raw_value or "")
-    side = _match_financial_side(reply)
+        reply = str(result.value or "")
+        raw_reply = str(result.raw_value or result.value or "")
+        if not reply:
+            reply = raw_reply
+    side = _match_financial_side(reply) or _match_financial_side(raw_reply)
     # Also accept a direct amount match as that side.
     if side is None:
-        matched = _match_rival(reply, rivals, "total_charge")
+        matched = _match_rival(reply, rivals, "total_charge") or _match_rival(
+            raw_reply, rivals, "total_charge"
+        )
         if matched == rivals[0]:
             side = "BOX28"
         elif matched == rivals[1]:
@@ -526,6 +538,95 @@ def maybe_resolve_financial_conflict(
         return fields, service_lines
     if amounts_corroborate(box28, line_total):
         return fields, service_lines
+
+    # Exact ×100 cents-column twin: prefer the placed (smaller) amount when a
+    # service line already has vision+local consensus on it. Claude/DI often
+    # read the unplaced digits (4972) on a 49.72 cell.
+    from packages.claim_evidence.line_sum_authority import (
+        is_decimal_place_shift,
+        line_has_vision_and_local_on_selected,
+    )
+
+    if is_decimal_place_shift(box28, line_total):
+        box_amt = parse_currency(box28)
+        line_amt = parse_currency(line_total)
+        local_supports_line = False
+        for line in service_lines or []:
+            if not isinstance(line, dict):
+                continue
+            for cand in line.get("candidates") or []:
+                eng = str(cand.get("engine") or "").casefold()
+                if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
+                    continue
+                if "paddle" in eng or "rapid" in eng:
+                    if amounts_corroborate(cand.get("value"), line_total):
+                        local_supports_line = True
+                        break
+            if local_supports_line:
+                break
+        if (
+            box_amt is not None
+            and line_amt is not None
+            and line_amt < box_amt
+            and (
+                local_supports_line
+                or line_has_vision_and_local_on_selected(service_lines, line_total)
+            )
+        ):
+            bbox = tuple(
+                total_row.get("ocr_region") or total_row.get("canonical_region") or ()
+            )
+            updated_fields = []
+            for row in fields:
+                if row is not total_row:
+                    updated_fields.append(row)
+                    continue
+                current = dict(row)
+                current["financial_conflict_agent"] = {
+                    "side": "LINES",
+                    "value": line_total,
+                    "reason": "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
+                }
+                current["conflict_agent"] = {
+                    "attempted": True,
+                    "resolved": True,
+                    "chosen": line_total,
+                    "rivals": [box28, line_total],
+                    "reason": "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
+                    "financial_side": "LINES",
+                }
+                cascade = dict(current.get("cascade") or {})
+                cascade["accepted"] = True
+                cascade["accept_reason"] = "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES"
+                cascade["value"] = line_total
+                current["cascade"] = cascade
+                current["value"] = line_total
+                if len(bbox) == 4:
+                    agent_cand = {
+                        "value": line_total,
+                        "raw_value": line_total,
+                        "engine": "anthropic_claude_crop",
+                        "model_name": "conflict-agent",
+                        "preprocessing_variant": "conflict_agent_cents_column",
+                        "raw_confidence": 0.96,
+                        "calibrated_confidence": 0.96,
+                        "reason_code": "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
+                        "latency_ms": 0.0,
+                        "bounding_box": {
+                            "x0": float(bbox[0]),
+                            "y0": float(bbox[1]),
+                            "x1": float(bbox[2]),
+                            "y1": float(bbox[3]),
+                            "image_width": float(image.width),
+                            "image_height": float(image.height),
+                        },
+                    }
+                    current["candidates"] = [
+                        agent_cand,
+                        *list(current.get("candidates") or []),
+                    ]
+                updated_fields.append(current)
+            return updated_fields, service_lines
 
     bbox = tuple(total_row.get("ocr_region") or total_row.get("canonical_region") or ())
     if len(bbox) != 4:

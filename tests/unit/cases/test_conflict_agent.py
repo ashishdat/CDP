@@ -117,6 +117,39 @@ def test_financial_conflict_agent_prefers_box28(monkeypatch):
     assert agent["value"] == "783.00"
 
 
+def test_cents_column_prefers_line_without_asking_claude(monkeypatch):
+    monkeypatch.setenv("CDP_CONFLICT_AGENT", "1")
+    fields = [
+        {
+            "field": "total_charge",
+            "ocr_region": [10, 10, 80, 40],
+            "candidates": [
+                {"engine": "paddleocr", "value": "4972.00"},
+                {"engine": "azure_document_intelligence_read", "value": "4972.00"},
+            ],
+        }
+    ]
+    lines = [
+        {
+            "charges": "49.72",
+            "candidates": [
+                {"engine": "rapidocr", "value": "49.72"},
+                {"engine": "anthropic_claude_crop", "value": "4972.00"},
+            ],
+        }
+    ]
+    out_fields, _ = maybe_resolve_financial_conflict(
+        image=Image.new("RGB", (100, 50), "white"),
+        fields=fields,
+        service_lines=lines,
+        engine=_FakeEngine("BOX28"),  # would wrongly pick box if asked
+    )
+    agent = out_fields[0]["financial_conflict_agent"]
+    assert agent["side"] == "LINES"
+    assert agent["value"] == "49.72"
+    assert "CENTS_COLUMN" in agent["reason"]
+
+
 def test_financial_conflict_agent_abstain_keeps_hitl(monkeypatch):
     monkeypatch.setenv("CDP_CONFLICT_AGENT", "1")
     monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
