@@ -714,6 +714,7 @@ def decide(extraction, family):
         if name == 'insured_name':
             from packages.candidate_reconciliation.reconciler import (
                 _canonical_person_name,
+                _name_is_self_reference,
                 _name_is_short_fragment,
                 _name_is_strong_person,
                 _name_label_contaminated,
@@ -784,7 +785,10 @@ def decide(extraction, family):
                         or not _name_is_strong_person(top)
                     )
                     top_label = bool(top) and _name_label_contaminated(top)
-                    if (
+                    # Box 4 printed SAME. Copying Box 2 over it is a different
+                    # name, not fragment relief.
+                    box4_says_same = any(_name_is_self_reference(v) for v in insured_vals)
+                    if not box4_says_same and (
                         soft_twin
                         or fragment_pair
                         or all_weak

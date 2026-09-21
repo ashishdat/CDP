@@ -223,6 +223,63 @@ def test_unshaped_member_id_soup_stays_review_and_does_not_accept_short_shell():
     assert result.selected_value not in {"7267", "0000007267"}
 
 
+def test_same_self_reference_beats_single_token_soup():
+    """Box 4 ``SAME`` is the insured name. OCR soup must not replace it."""
+    result = EvidenceReconciler().reconcile(
+        "insured_name",
+        [
+            _candidate("SAME", "anthropic_claude_crop", 0.96),
+            _candidate("SAME", "anthropic_claude_crop", 0.95),
+            _candidate("pmmLainnm 2", "rapidocr", 0.77),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "SAME"
+
+
+def test_box_rule_digit_does_not_beat_clean_name_tokens():
+    """``EMILY, A 2 CARTIER`` is form-rule junk beside ``CARTIER, EMILY``."""
+    result = EvidenceReconciler().reconcile(
+        "insured_name",
+        [
+            _candidate("CARTIER, EMILY", "anthropic_claude_crop", 0.97),
+            _candidate("CARTIER, EMILY", "anthropic_claude_crop", 0.96),
+            _candidate("EMILY, A 2 CARTIER", "paddleocr", 0.985),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "CARTIER, EMILY"
+
+
+def test_trailing_middle_initial_still_preferred_without_a_digit():
+    """Do not drop a trailing initial when no box-rule digit is present."""
+    result = EvidenceReconciler().reconcile(
+        "patient_name",
+        [
+            _candidate("GAVIN. ROBERT, M", "anthropic_claude_crop", 0.96),
+            _candidate("GAVIN. ROBERT, M", "paddleocr", 0.968),
+            _candidate("GAVIN, ROBERT", "anthropic_claude_crop", 0.97),
+            _candidate("GAVIN, ROBERT", "rapidocr", 0.998),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.selected_value == "GAVIN. ROBERT, M"
+
+
 def test_member_id_confusable_l_insertion():
     assert values_conflict_equivalent(
         "insured_id_number", "A00046372APU", "A00046372APLU"

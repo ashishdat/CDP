@@ -878,6 +878,64 @@ def prefer_name_without_ocr_ghost_middle_initial(
     return None
 
 
+def _name_is_self_reference(value: str) -> bool:
+    """True for CMS Box 4 ``SAME`` (optional box-rule digit), not a person name."""
+    compact = _canonical_person_name(value)
+    if compact == "SAME":
+        return True
+    return bool(re.fullmatch(r"SAME\d{1,2}", compact))
+
+
+def prefer_cms_self_reference(primary: str, competitors: list[str]) -> str | None:
+    """Keep literal ``SAME`` unless another engine read a real multi-token person.
+
+    A single OCR soup token (``pmmLainnm``) is not that person. Do not replace
+    Box 4 ``SAME`` with Box 2.
+    """
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    sames = [v for v in observed if _name_is_self_reference(v)]
+    if not sames:
+        return None
+    for other in observed:
+        if _name_is_self_reference(other):
+            continue
+        cores = _core_name_tokens(_name_tokens(other))
+        if len(cores) >= 2 and _name_is_strong_person(other):
+            return None
+    for display in sames:
+        if _canonical_person_name(display) == "SAME":
+            return display
+    return sames[0]
+
+
+def prefer_name_without_box_rule_digit(primary: str, competitors: list[str]) -> str | None:
+    """Prefer the clean name when a twin only adds a box-rule digit.
+
+    ``EMILY, A 2 CARTIER`` vs ``CARTIER, EMILY`` — the ``2`` is form ruling,
+    not part of the name. Does not drop a trailing initial that has no digit.
+    """
+    observed = [v for v in [primary, *competitors] if (v or "").strip()]
+    dirty = [v for v in observed if re.search(r"\b\d{1,2}\b", v)]
+    clean = [v for v in observed if not re.search(r"\b\d{1,2}\b", v)]
+    if not dirty or not clean:
+        return None
+
+    def _cores(display: str) -> tuple[str, ...]:
+        toks = [tok for tok in _name_tokens(display) if len(tok) > 1]
+        return tuple(sorted(toks))
+
+    clean_by_core: dict[tuple[str, ...], str] = {}
+    for display in clean:
+        core = _cores(display)
+        if core and core not in clean_by_core:
+            clean_by_core[core] = display
+    for display in dirty:
+        core = _cores(display)
+        if core and core in clean_by_core:
+            return clean_by_core[core]
+    return None
+
+
 def prefer_name_canonical_token_order(
     primary: str, competitors: list[str]
 ) -> str | None:
@@ -1370,8 +1428,35 @@ class EvidenceReconciler:
                 str(max(items, key=lambda row: row[1])[0].value)
                 for _, items in ranked[1:]
             ]
+            same_clean = prefer_cms_self_reference(str(value), competing)
+            digit_clean = (
+                None
+                if same_clean
+                else prefer_name_without_box_rule_digit(str(value), competing)
+            )
             label_clean = prefer_name_without_label_contamination(str(value), competing)
-            if label_clean:
+
+            def _supporting_for(display: str):
+                target = _canonical_person_name(display)
+                for _norm, items in ranked:
+                    for cand, _score, _ver in items:
+                        if _canonical_person_name(str(cand.value or "")) == target:
+                            return items
+                return None
+
+            if same_clean:
+                value = same_clean
+                matched = _supporting_for(same_clean)
+                if matched:
+                    supporting = matched
+                early_name_relief = True
+            elif digit_clean:
+                value = digit_clean
+                matched = _supporting_for(digit_clean)
+                if matched:
+                    supporting = matched
+                early_name_relief = True
+            elif label_clean:
                 value = label_clean
                 early_name_relief = True
             else:
