@@ -1,0 +1,36 @@
+{
+  "title": "CMS-1500 charge scan no longer stops after three live rows",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "cohort_decision_only_unchanged": {
+    "out": "evaluation_results/hackathon_150_same_name_decide",
+    "completed": 89,
+    "true_stp": 53,
+    "true_stp_rate_of_completed": 0.595506,
+    "note": "Frozen OCR still has the three-row cap. This rate does not include the re-OCR below."
+  },
+  "reocr_proof": {
+    "M048EJGE.007": {
+      "prior": "HITL line sum 600 vs box 1200",
+      "now": "TRUE_STP total_charge 1200.00",
+      "lines_read": 5,
+      "note": "Printed total is 1200.00. A sixth 200.00 still sits on the Box 28 rule and was not a separate row."
+    },
+    "five_other_three_line_charge_reviews": {
+      "out": "evaluation_results/hackathon_six_row_reocr",
+      "true_stp": ["M048EJGE.008", "M048EJGE.009"],
+      "still_hitl": ["M048EJGE.006", "M048EJG7.016", "M048EJG7.017"],
+      "accepted_charge_1200": ["M048EJGE.006", "M048EJGE.008", "M048EJGE.009"],
+      "M048EJGE.006": "charge 1200.00 auto, claim stays HITL on UNRESOLVED_CLAIM_CONTRADICTION",
+      "M048EJGE.009_dob": "still a false accept (predicted 2000-02-20, label 2006-07-25); charge is no longer the blocker"
+    }
+  }
+}
