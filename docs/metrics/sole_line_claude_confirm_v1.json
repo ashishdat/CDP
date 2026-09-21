@@ -1,0 +1,43 @@
+{
+  "test": "sole charge line, paddle+rapid agreed, Claude was skipped",
+  "n": 4,
+  "flipped_to_true_stp": 4,
+  "claims": [
+    {
+      "claim_id": "Group B__M048HJHK.001",
+      "prior": "HITL",
+      "disposition": "TRUE_STP",
+      "true_stp": true,
+      "critical_blockers": [],
+      "failed_stage": null,
+      "error": ""
+    },
+    {
+      "claim_id": "Group B__M048HJHK.004",
+      "prior": "HITL",
+      "disposition": "TRUE_STP",
+      "true_stp": true,
+      "critical_blockers": [],
+      "failed_stage": null,
+      "error": ""
+    },
+    {
+      "claim_id": "Group B__M048IJIB.002",
+      "prior": "HITL",
+      "disposition": "TRUE_STP",
+      "true_stp": true,
+      "critical_blockers": [],
+      "failed_stage": null,
+      "error": ""
+    },
+    {
+      "claim_id": "Group B__M048IJLK.001",
+      "prior": "HITL",
+      "disposition": "TRUE_STP",
+      "true_stp": true,
+      "critical_blockers": [],
+      "failed_stage": null,
+      "error": ""
+    }
+  ]
+}
