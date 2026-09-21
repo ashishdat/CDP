@@ -1,0 +1,42 @@
+{
+  "title": "Re-OCR of six frozen-OCR claims whose line sum disagreed with the accepted charge",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "cohort_decision_only_unchanged": {
+    "out": "evaluation_results/hackathon_150_same_name_decide",
+    "completed": 89,
+    "true_stp": 53,
+    "true_stp_rate_of_completed": 0.595506,
+    "note": "This re-OCR is not folded into the 89-claim rate."
+  },
+  "reocr": {
+    "out": "evaluation_results/hackathon_line_mismatch_reocr",
+    "workers": 2,
+    "completed": 6,
+    "true_stp": 5,
+    "field_ink_hitl": 1,
+    "claims": {
+      "M048DJKN.012": "TRUE_STP 597.00; lines 597.00, empty, 52.00 (sum 649). Stays STP because the line sum fails integrity.",
+      "M048EJG7.001": "TRUE_STP 955.00; lines 510+120+205=835. Box integrity passed, line-sum integrity failed.",
+      "M048EJG7.003": "TRUE_STP 1825.00; lines 150+1050+175+450=1825. Fourth line was missing under the three-row cap.",
+      "M048EJG7.006": "HITL total_charge 120.00; lines 120.00 then empty. Was STP at 240 on frozen OCR.",
+      "M048EJG7.020": "TRUE_STP 350.00; lines 175+175. The extra 67.24 from the capped scan is gone.",
+      "M048EJG7.034": "TRUE_STP 900.00; four empty charge rows. Box-only accept."
+    },
+    "gt_on_two_labeled_claims": {
+      "claims_scored": 2,
+      "false_accepts": 1,
+      "accepted_precision": 0.833333,
+      "true_stp_of_scored": 2,
+      "note": "Only DJKN.012 and EJG7.001 are in the agent-label set. The false accept is the extra middle initial on DJKN.012, not the charge."
+    }
+  }
+}
