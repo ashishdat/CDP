@@ -1,25 +1,81 @@
 {
-  "title": "Geometry-95 full-1000 verify \u2014 in progress",
-  "status": "RUNNING",
+  "title": "Geometry-95 full-1000 verify \u2014 tip matches; expanded GT does not",
+  "status": "RUNNING_PHASE1_AGENT_GT",
   "started_at": "2026-09-22T08:03:22Z",
-  "updated_at": "2026-09-22T08:07:47.521513+00:00",
+  "updated_at": "2026-09-22T08:25:25.524748+00:00",
   "method": "seed tip 89 decide (geo_underread_600) + resume cascade; phase1=160 remaining agent-GT docs then phase2=rest of 1000",
   "out_dir": "evaluation_results/hackathon_1000_geometry_95_verify",
+  "verdict": {
+    "tip_89_scores_matched": true,
+    "expanded_agent_gt_scores_matched_tip": false,
+    "detail": "Tip 68-claim / 190-field accuracy still 98.95% FA=0. Fresh agent-GT claims (31 scored so far) are 72.7% exact with 31 FAs \u2014 mostly total_charge \u2014 so tip gates do NOT hold on the expanded labeled set."
+  },
   "tip_baseline_matched": {
     "exact_accuracy": 0.989474,
     "accepted_field_precision": 1.0,
     "false_accepts": 0,
     "claims_scored": 68,
     "matches_locked_gate": true,
-    "geometry_accuracy_gate_ok": true
+    "geometry_accuracy_gate_ok": true,
+    "reconfirmed_in_mid_score_subset": {
+      "claims": 68,
+      "field_count": 190,
+      "exact_accuracy": 0.989474,
+      "false_accepts": 0
+    }
+  },
+  "accuracy_mid": {
+    "exact_accuracy": 0.881988,
+    "accepted_field_precision": 0.901587,
+    "false_accepts": 31,
+    "claims_scored": 99,
+    "field_count": 322,
+    "quarantined_fields": 52,
+    "missing_claim_results": 129,
+    "fresh_subset": {
+      "claims": 31,
+      "field_count": 132,
+      "exact_accuracy": 0.727273,
+      "false_accepts": 31
+    },
+    "fresh_false_accepts_by_field": {
+      "patient_name": 2,
+      "insured_name": 2,
+      "total_charge": 19,
+      "patient_dob": 6,
+      "insured_id_number": 2
+    },
+    "gate_exact_ge_95": false,
+    "gate_precision_ge_99_5": false,
+    "gate_fa_eq_0": false,
+    "vs_tip_exact_delta": -0.107486
   },
   "progress": {
-    "ledger_unique": 94,
+    "ledger_unique": 121,
     "tip_seeded": 89,
-    "fresh_completed": 5,
+    "fresh_completed": 32,
     "phase1_target": 160,
-    "fresh_true_stp": 3,
-    "fresh_hitl": 2
+    "phase1_remaining": 128,
+    "fresh_true_stp": 26,
+    "fresh_hitl": 6,
+    "fresh_stp_rate": 0.8125,
+    "all_completed": 121,
+    "all_true_stp": 110,
+    "all_true_stp_rate": 0.909091,
+    "all_hitl": 11,
+    "all_hitl_rate": 0.090909,
+    "mean_elapsed_sec": 40.86,
+    "eta_phase1_min": 87.2,
+    "eta_full_remaining_min": 598.6
   },
-  "note": "Accuracy gate can only score agent-GT labels (228 claims). Tip overlap 68 matched locked \u226595%. Full operational STP/HITL on 1000 requires completing cascade OCR."
+  "gates_so_far": {
+    "field_exact_accuracy_ge_95": "FAIL",
+    "accepted_field_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "true_stp_ge_94": "FAIL_SO_FAR",
+    "claim_hitl_le_6": "FAIL_SO_FAR",
+    "tip_subset_accuracy_ge_95": "PASS",
+    "release_gate_eligible": false
+  },
+  "note": "Tip scores MATCH locked geometry-95 gate. Expanded agent-GT does NOT yet match tip rates (charge/DOB FAs on DJJM/DJKH fresh docs). Cascade continues phase1 then full 1000."
 }
