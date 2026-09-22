@@ -1,6 +1,6 @@
 {
   "title": "STP recovery after stop-1000 learnings",
-  "updated_at": "2026-09-22T12:04:36.504717+00:00",
+  "updated_at": "2026-09-22T12:14:35.590092+00:00",
   "cascade_stopped": true,
   "baseline_before_recovery": {
     "completed": 318,
@@ -9,10 +9,10 @@
   },
   "after_recovery": {
     "completed": 318,
-    "true_stp": 260,
-    "rate": 0.8176,
-    "hitl": 58,
-    "hitl_rate": 0.1824
+    "true_stp": 278,
+    "rate": 0.8742,
+    "hitl": 40,
+    "hitl_rate": 0.1258
   },
   "lift_pp": 6.3,
   "flipped_final_pass": 5,
@@ -34,5 +34,38 @@
     "FINANCIAL_CONFLICT_HITL",
     "MISSING_E3_REGISTRATION_EVIDENCE"
   ],
-  "bleed_true_stp_auto": 0
+  "bleed_true_stp_auto": 0,
+  "remain44_pass": {
+    "title": "STP recovery remain-44 pass (multi-line / scale / E3 plumbing)",
+    "updated_at": "2026-09-22T12:14:35.590092+00:00",
+    "before_this_pass": {
+      "completed": 318,
+      "true_stp": 260,
+      "rate": 0.8176
+    },
+    "after_this_pass": {
+      "completed": 318,
+      "true_stp": 278,
+      "rate": 0.8742,
+      "hitl": 40,
+      "hitl_rate": 0.1258
+    },
+    "flipped": 18,
+    "charge_hitl_remaining": 25,
+    "charge_only_hitl": 24,
+    "remaining_buckets": {
+      "MULTI_LINE": 4,
+      "SINGLE_LINE": 5,
+      "OTHER": 7,
+      "BLEED": 4,
+      "MARGIN": 3,
+      "BOX28_CONFLICT": 2
+    },
+    "learnings_applied": [
+      "prefer_derived + pre-builder defer when strong line reopen",
+      "MULTI_LINE_MIXED_LOCAL_VISION + SCALE_TWIN_BOX28_DEFERRED",
+      "E3 plumbing restore from historical geometry sha256",
+      "bleed WITHIN_TOLERANCE \u2192 whole-dollar sibling CONFIRMED"
+    ]
+  }
 }

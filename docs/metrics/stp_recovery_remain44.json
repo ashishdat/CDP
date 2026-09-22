@@ -1,0 +1,33 @@
+{
+  "title": "STP recovery remain-44 pass (multi-line / scale / E3 plumbing)",
+  "updated_at": "2026-09-22T12:14:35.590092+00:00",
+  "before_this_pass": {
+    "completed": 318,
+    "true_stp": 260,
+    "rate": 0.8176
+  },
+  "after_this_pass": {
+    "completed": 318,
+    "true_stp": 278,
+    "rate": 0.8742,
+    "hitl": 40,
+    "hitl_rate": 0.1258
+  },
+  "flipped": 18,
+  "charge_hitl_remaining": 25,
+  "charge_only_hitl": 24,
+  "remaining_buckets": {
+    "MULTI_LINE": 4,
+    "SINGLE_LINE": 5,
+    "OTHER": 7,
+    "BLEED": 4,
+    "MARGIN": 3,
+    "BOX28_CONFLICT": 2
+  },
+  "learnings_applied": [
+    "prefer_derived + pre-builder defer when strong line reopen",
+    "MULTI_LINE_MIXED_LOCAL_VISION + SCALE_TWIN_BOX28_DEFERRED",
+    "E3 plumbing restore from historical geometry sha256",
+    "bleed WITHIN_TOLERANCE \u2192 whole-dollar sibling CONFIRMED"
+  ]
+}
