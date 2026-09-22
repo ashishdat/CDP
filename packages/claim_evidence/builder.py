@@ -171,40 +171,42 @@ class ClaimEvidenceBuilder:
 
         mint_amount = amount
         mint_reason = reason
+        _bleed_relief = {
+            "BLEED_CENTS_TO_WHOLE_DOLLAR",
+            "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+            "CASH_RULING_PRINTED_CENTS",
+        }
         if is_units_bleed_cents(amount):
-            repaired, repair_reason = repair_bleed_to_whole_dollar(
-                amount,
-                field_payload=values.get("_box28_field_payload")
-                if isinstance(values.get("_box28_field_payload"), dict)
-                else None,
-                service_lines=None,
-            )
-            # Also try with service lines from metadata if present later — builder
-            # callers pass values only; line Σ repair needs lines on values.
-            lines = values.get("_service_lines_for_charge_repair")
-            if (
-                repaired is None
-                or repair_reason
-                not in {
-                    "BLEED_CENTS_TO_WHOLE_DOLLAR",
-                    "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
-                }
-            ) and isinstance(lines, list):
+            # Caller already verified cash ruling-split printed cents — mint as-is.
+            if reason == "CASH_RULING_PRINTED_CENTS":
+                mint_amount = amount
+                mint_reason = reason
+            else:
                 repaired, repair_reason = repair_bleed_to_whole_dollar(
                     amount,
                     field_payload=values.get("_box28_field_payload")
                     if isinstance(values.get("_box28_field_payload"), dict)
                     else None,
-                    service_lines=lines,
+                    service_lines=None,
                 )
-            if repair_reason in {
-                "BLEED_CENTS_TO_WHOLE_DOLLAR",
-                "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
-            } and repaired:
-                mint_amount = repaired
-                mint_reason = repair_reason
-            else:
-                return False
+                # Also try with service lines from metadata if present later — builder
+                # callers pass values only; line Σ repair needs lines on values.
+                lines = values.get("_service_lines_for_charge_repair")
+                if (
+                    repaired is None or repair_reason not in _bleed_relief
+                ) and isinstance(lines, list):
+                    repaired, repair_reason = repair_bleed_to_whole_dollar(
+                        amount,
+                        field_payload=values.get("_box28_field_payload")
+                        if isinstance(values.get("_box28_field_payload"), dict)
+                        else None,
+                        service_lines=lines,
+                    )
+                if repair_reason in _bleed_relief and repaired:
+                    mint_amount = repaired
+                    mint_reason = repair_reason
+                else:
+                    return False
 
         auth = self._charge_authority(values)
         ok, detail = auth.try_confirm(mint_amount, mint_reason)
@@ -862,12 +864,53 @@ class ClaimEvidenceBuilder:
         }
         if decision.disposition == "AUTO_ACCEPTED" and decision.amount:
             from packages.claim_evidence.charge_total_authority import (
+                cash_ruling_confirms_amount,
                 is_units_bleed_cents,
             )
 
-            if is_units_bleed_cents(decision.amount) or is_units_bleed_cents(
+            box28_payload = (
+                field_payload if isinstance(field_payload, dict) else None
+            )
+            amount_bleed = is_units_bleed_cents(decision.amount) or is_units_bleed_cents(
                 decision.line_sum_amount
-            ):
+            )
+            cash_ruling_ok = amount_bleed and (
+                cash_ruling_confirms_amount(decision.amount, box28_payload)
+                or cash_ruling_confirms_amount(decision.line_sum_amount, box28_payload)
+            )
+            if cash_ruling_ok:
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "BOX28_LINE_SUM_CORROBORATED",
+                        decision.amount,
+                        {
+                            **metadata,
+                            "cash_ruling_printed_cents": True,
+                        },
+                    )
+                )
+                if self._mint_claim_total_confirmed(
+                    claim_id=claim_id,
+                    values=values,
+                    evidence=evidence,
+                    amount=decision.amount,
+                    reason="CASH_RULING_PRINTED_CENTS",
+                    metadata={
+                        **metadata,
+                        "service_line_total": decision.line_sum_amount,
+                        "cash_ruling_printed_cents": True,
+                    },
+                ):
+                    contradictions[:] = [
+                        item
+                        for item in contradictions
+                        if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                    ]
+                    for key in ("total_charge", "total_charges", "claim_total"):
+                        if key in values or key == "total_charge":
+                            values[key] = decision.amount
+            elif amount_bleed:
                 # Dual-reader bleed corroboration is not monetary AUTO authority.
                 evidence.append(
                     self._item(
@@ -1315,6 +1358,7 @@ class ClaimEvidenceBuilder:
         if decision.confirmed and decision.amount:
             from packages.claim_evidence.charge_total_authority import (
                 _dollars_part,
+                cash_ruling_confirms_amount,
                 is_units_bleed_cents,
             )
             from packages.claim_evidence.line_sum_authority import (
@@ -1324,6 +1368,11 @@ class ClaimEvidenceBuilder:
 
             amount_bleed = is_units_bleed_cents(decision.amount)
             line_bleed = is_units_bleed_cents(decision.line_sum)
+            box28_payload = (
+                values.get("_box28_field_payload")
+                if isinstance(values.get("_box28_field_payload"), dict)
+                else None
+            )
             # Whole-dollar Box 28 / OCR sibling beside same-stem bleed line Σ
             # (.22/.43) is safe — mint the .00 amount, do not contradict.
             whole_vs_bleed_stem = (
@@ -1332,9 +1381,69 @@ class ClaimEvidenceBuilder:
                 and str(decision.amount).endswith(".00")
                 and _dollars_part(decision.amount) == _dollars_part(decision.line_sum)
             )
+            cash_ruling_ok = amount_bleed and cash_ruling_confirms_amount(
+                decision.amount, box28_payload
+            )
+            # Cash ruling-split printed cents (``$ 157 :07``) are not units bleed —
+            # mint CONFIRMED instead of BLEED_CENTS_GEOMETRY_BLOCKED (same-Box28 HITL).
+            if cash_ruling_ok:
+                if self._mint_claim_total_confirmed(
+                    claim_id=claim_id,
+                    values=values,
+                    evidence=evidence,
+                    amount=decision.amount,
+                    reason="CASH_RULING_PRINTED_CENTS",
+                    metadata={
+                        **metadata,
+                        "service_line_total": decision.line_sum,
+                        "cash_ruling_printed_cents": True,
+                    },
+                ):
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                            decision.amount,
+                            {
+                                **metadata,
+                                "cash_ruling_printed_cents": True,
+                            },
+                        )
+                    )
+                    contradictions[:] = [
+                        item
+                        for item in contradictions
+                        if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                    ]
+                    evidence[:] = [
+                        item
+                        for item in evidence
+                        if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                    ]
+                    for key in ("total_charge", "total_charges", "claim_total"):
+                        if key in values or key == "total_charge":
+                            values[key] = decision.amount
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "CLAIM_TOTAL_WITHIN_TOLERANCE",
+                            decision.amount,
+                            {
+                                "supported_fields": [
+                                    "total_charge",
+                                    "total_charges",
+                                    "charges",
+                                    "charge_amount",
+                                ],
+                                "claim_total": decision.amount,
+                                "service_line_total": decision.line_sum,
+                                "reason": "CASH_RULING_PRINTED_CENTS",
+                            },
+                        )
+                    )
             # Same-stem corroboration of bleed cents (.07/.22/.44) is still not
             # AUTO authority when the selected amount itself is bleed.
-            if amount_bleed or (line_bleed and not whole_vs_bleed_stem):
+            elif amount_bleed or (line_bleed and not whole_vs_bleed_stem):
                 contradictions.append(
                     self._item(
                         claim_id,

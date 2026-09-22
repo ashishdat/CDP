@@ -797,6 +797,14 @@ def decide(extraction, family):
             for row in (field_payload.get("candidates") or [])
             if isinstance(row, dict)
         )
+        ocr_block = (
+            field_payload.get("ocr") if isinstance(field_payload.get("ocr"), dict) else {}
+        )
+        rows.extend(
+            row
+            for row in (ocr_block.get("candidates") or [])
+            if isinstance(row, dict)
+        )
         for row in rows:
             ocr = row.get("ocr_candidate") or row
             if not isinstance(ocr, dict):
@@ -1601,17 +1609,22 @@ def decide(extraction, family):
                             service_lines=service_lines,
                         )
                         break
-            if repair_reason == "BLEED_CENTS_TO_WHOLE_DOLLAR" and repaired:
+            if repair_reason in {
+                "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                "CASH_RULING_PRINTED_CENTS",
+            } and repaired:
                 check.evidence = set(check.evidence) | {
                     "CLAIM_TOTAL_CONFIRMED",
                     "CHARGE_TOTAL_AUTHORITY",
                     "HARD_VALIDATION_PASSED",
                     "FORMAT_VALID",
                     f"BLEED_REPAIR:{repair_reason}",
+                    repair_reason,
                 }
                 check.cross_field_evidence = set(check.cross_field_evidence) | {
                     "CLAIM_TOTAL_CONFIRMED",
                     "CHARGE_TOTAL_AUTHORITY",
+                    repair_reason,
                 }
                 check.passed = True
                 values[name] = repaired
@@ -1624,20 +1637,46 @@ def decide(extraction, family):
                         x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
                     )
                 )
+                cash_raw = next(
+                    (
+                        str(c.raw_value)
+                        for c in candidates
+                        if c.raw_value
+                        and "$" in str(c.raw_value)
+                        and any(m in str(c.raw_value) for m in ":|/")
+                    ),
+                    repaired,
+                )
                 candidates = [
                     OCRCandidate(
                         value=repaired,
-                        raw_value=repaired,
-                        engine="rapidocr",
+                        raw_value=(
+                            cash_raw
+                            if repair_reason == "CASH_RULING_PRINTED_CENTS"
+                            else repaired
+                        ),
+                        engine=(
+                            "azure_document_intelligence_read"
+                            if repair_reason == "CASH_RULING_PRINTED_CENTS"
+                            else "rapidocr"
+                        ),
                         model_name="claim_evidence",
-                        model_version="bleed-to-whole-dollar",
-                        preprocessing_variant="BLEED_CENTS_TO_WHOLE_DOLLAR",
+                        model_version=(
+                            "cash-ruling-printed-cents"
+                            if repair_reason == "CASH_RULING_PRINTED_CENTS"
+                            else "bleed-to-whole-dollar"
+                        ),
+                        preprocessing_variant=repair_reason,
                         raw_confidence=1.0,
                         calibrated_confidence=1.0,
                         bounding_box=base_box,
                         latency_ms=0.0,
                         evidence_reference="CLAIM_TOTAL_CONFIRMED",
-                        preprocessing_version="bleed-to-whole-dollar",
+                        preprocessing_version=(
+                            "cash-ruling-printed-cents"
+                            if repair_reason == "CASH_RULING_PRINTED_CENTS"
+                            else "bleed-to-whole-dollar"
+                        ),
                     )
                 ] + [
                     c
@@ -1661,11 +1700,20 @@ def decide(extraction, family):
             )
 
             confirmed = None
+            confirmed_cash_ruling = False
             for item in facts.evidence_items:
                 if item.evidence_type == 'CLAIM_TOTAL_CONFIRMED' and item.value:
-                    # Bleed-at-mint should already have blocked these, but refuse
-                    # to bind a bleed amount into candidate shells.
+                    meta = item.metadata or {}
+                    # Cash ruling-split printed cents are intentional CONFIRMED
+                    # amounts (``$ 157 :07`` → 157.07) — bind them. Other bleed
+                    # at mint must not enter candidate shells.
                     if is_units_bleed_cents(item.value):
+                        if meta.get("reason") == "CASH_RULING_PRINTED_CENTS" or meta.get(
+                            "cash_ruling_printed_cents"
+                        ):
+                            confirmed = str(item.value)
+                            confirmed_cash_ruling = True
+                            break
                         continue
                     confirmed = str(item.value)
                     break
@@ -1673,8 +1721,13 @@ def decide(extraction, family):
             # always minting a builder evidence_item — still filter rivals to Σ.
             if confirmed is None and "CLAIM_TOTAL_CONFIRMED" in set(check.evidence or []):
                 bound = values.get(name)
-                if bound and not is_units_bleed_cents(bound):
+                if bound and (
+                    not is_units_bleed_cents(bound)
+                    or "CASH_RULING_PRINTED_CENTS" in set(check.evidence or [])
+                ):
                     confirmed = str(bound)
+                    if is_units_bleed_cents(bound):
+                        confirmed_cash_ruling = True
             filtered = []
             exact_confirmed = []
             for cand in candidates:
@@ -1750,6 +1803,72 @@ def decide(extraction, family):
                     evidence_reference='CLAIM_TOTAL_CONFIRMED',
                     preprocessing_version='confirmed-total-bind',
                 )]
+            # Cash ruling CONFIRMED needs a ``$ NNN :CC`` raw on a candidate so
+            # reconciler does not BLEED_CENTS_FAIL_CLOSED the printed cents.
+            if confirmed is not None and confirmed_cash_ruling:
+                from packages.claim_evidence.line_charge_selector import (
+                    _ruling_split_amount,
+                )
+                from packages.domain.common import BoundingBox
+
+                has_ruling_raw = any(
+                    _ruling_split_amount(getattr(c, "raw_value", None)) == format_currency(
+                        parse_currency(confirmed)
+                    )
+                    for c in candidates
+                )
+                if not has_ruling_raw:
+                    cash_raw = None
+                    rows = []
+                    if isinstance(f.get("ranked_candidate"), dict):
+                        rows.append(f["ranked_candidate"])
+                    rows.extend(
+                        row
+                        for row in (f.get("alternatives") or [])
+                        if isinstance(row, dict)
+                    )
+                    ocr_block = f.get("ocr") if isinstance(f.get("ocr"), dict) else {}
+                    rows.extend(
+                        row
+                        for row in (
+                            f.get("candidates") or ocr_block.get("candidates") or []
+                        )
+                        if isinstance(row, dict)
+                    )
+                    for row in rows:
+                        ocr = row.get("ocr_candidate") or row
+                        if not isinstance(ocr, dict):
+                            continue
+                        raw_text = str(ocr.get("raw_value") or ocr.get("value") or "")
+                        if _ruling_split_amount(raw_text) == format_currency(
+                            parse_currency(confirmed)
+                        ):
+                            cash_raw = raw_text
+                            break
+                    if cash_raw:
+                        base_box = (
+                            candidates[0].bounding_box
+                            if candidates
+                            else BoundingBox(
+                                x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
+                            )
+                        )
+                        candidates = [
+                            OCRCandidate(
+                                value=confirmed,
+                                raw_value=cash_raw,
+                                engine="azure_document_intelligence_read",
+                                model_name="claim_evidence",
+                                model_version="cash-ruling-printed-cents",
+                                preprocessing_variant="CASH_RULING_PRINTED_CENTS",
+                                raw_confidence=1.0,
+                                calibrated_confidence=1.0,
+                                bounding_box=base_box,
+                                latency_ms=0.0,
+                                evidence_reference="CLAIM_TOTAL_CONFIRMED",
+                                preprocessing_version="cash-ruling-printed-cents",
+                            )
+                        ] + list(candidates)
             # FG / confirmed-total bind is arithmetic authority — mint E4/E6 facts.
             if confirmed is not None and any(
                 item.evidence_type
@@ -1763,8 +1882,16 @@ def decide(extraction, family):
                 check = deterministic.evaluate(name, confirmed, claim_values=values)
                 check.evidence = set(check.evidence) | {
                     'CLAIM_TOTAL_CONFIRMED',
+                    'CHARGE_TOTAL_AUTHORITY',
                     'HARD_VALIDATION_PASSED',
                 }
+                if confirmed_cash_ruling:
+                    check.evidence.add('CASH_RULING_PRINTED_CENTS')
+                    check.cross_field_evidence = set(check.cross_field_evidence) | {
+                        'CASH_RULING_PRINTED_CENTS',
+                        'CLAIM_TOTAL_CONFIRMED',
+                        'CHARGE_TOTAL_AUTHORITY',
+                    }
                 if any(
                     item.evidence_type == 'FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED'
                     for item in facts.evidence_items
@@ -1775,6 +1902,7 @@ def decide(extraction, family):
                         'CLAIM_TOTAL_CONFIRMED',
                     }
                 check.passed = True
+                values[name] = confirmed
                 checks[name] = check.model_dump(mode='json')
         decisions.append(services.evidence_decision.decide(DecisionContext(
             field_name=name, document_family=family, criticality=policy.criticality,

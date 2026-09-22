@@ -225,6 +225,118 @@ def test_conflict_agent_bleed_without_whole_sibling_stays_hitl():
     assert "CLAIM_TOTAL_CONTRADICTION" in types or "FINANCIAL_CONFLICT_HITL" in types
 
 
+def test_cash_ruling_printed_cents_clears_geometry_bleed_block():
+    """DJKH.008: ``$ 157 :07`` cash ruling mints CONFIRMED; no GEOMETRY_BLOCKED."""
+    box28_bbox = (1045.0, 1825.0, 1248.0, 1875.0)
+    charge_bbox = (1050.0, 1458.0, 1180.0, 1513.0)
+
+    def _cand(engine: str, value: str, bbox, *, raw: str | None = None) -> dict:
+        return {
+            "engine": engine,
+            "value": value,
+            "raw_value": raw if raw is not None else value,
+            "bounding_box": list(bbox),
+            "canonical_region": list(bbox),
+        }
+
+    payload = {
+        "ranked_candidate": {
+            "ocr_candidate": _cand(
+                "azure_document_intelligence_read",
+                "157.00",
+                box28_bbox,
+                raw="$ 157 :07",
+            ),
+        },
+        "candidates": [
+            _cand("anthropic_claude_crop", "157.07", box28_bbox),
+            _cand(
+                "azure_document_intelligence_read",
+                "157.00",
+                box28_bbox,
+                raw="$ 157 :07",
+            ),
+            _cand("paddleocr", "1571.07", box28_bbox, raw="157107"),
+        ],
+    }
+    lines = [
+        {
+            "charges": "157.07",
+            "canonical_region": list(charge_bbox),
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "157.07",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+            },
+            "candidates": [
+                _cand("paddleocr", "157.07", charge_bbox),
+                _cand("rapidocr", "157.07", charge_bbox),
+            ],
+        }
+    ]
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="DJKH.008",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "157.07",
+            "_box28_field_payload": payload,
+            "_box28_region": list(box28_bbox),
+            "_box28_geometry_observation": {
+                "text": "157.07",
+                "raw_digit_sequence": "15707",
+                "canonical_monetary_value": "157.07",
+                "adopted": True,
+            },
+        },
+        service_lines=lines,
+    )
+    confirmed = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+    ]
+    assert confirmed
+    assert str(confirmed[0].value) == "157.07"
+    assert (confirmed[0].metadata or {}).get("reason") == "CASH_RULING_PRINTED_CENTS"
+    blocked = {
+        (i.metadata or {}).get("reason") for i in result.contradictions
+    }
+    assert "BLEED_CENTS_GEOMETRY_BLOCKED" not in blocked
+    assert "BLEED_CENTS_LINE_SUM_BLOCKED" not in blocked
+    assert "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED" not in blocked
+
+
+def test_mint_accepts_cash_ruling_bleed_amount():
+    """``_mint_claim_total_confirmed`` must lock CASH_RULING printed cents."""
+    builder = ClaimEvidenceBuilder.load()
+    values = {
+        "total_charge": "157.07",
+        "_box28_field_payload": {
+            "candidates": [
+                {
+                    "engine": "azure_document_intelligence_read",
+                    "value": "157.00",
+                    "raw_value": "$ 157 :07",
+                }
+            ]
+        },
+    }
+    evidence: list = []
+    ok = builder._mint_claim_total_confirmed(
+        claim_id="DJKH.008",
+        values=values,
+        evidence=evidence,
+        amount="157.07",
+        reason="CASH_RULING_PRINTED_CENTS",
+    )
+    assert ok is True
+    assert any(i.evidence_type == "CLAIM_TOTAL_CONFIRMED" for i in evidence)
+    auth = values["_charge_total_authority"]
+    assert auth.locked is True
+    assert auth.amount == "157.07"
+    assert auth.reason == "CASH_RULING_PRINTED_CENTS"
+
+
 def test_financial_geometry_bleed_cents_do_not_confirm():
     """Bleed cents (tolerance / line-sum / FG) must not mint CLAIM_TOTAL_CONFIRMED."""
     charge_bbox = (1050.0, 1458.0, 1180.0, 1513.0)
@@ -293,6 +405,7 @@ def test_financial_geometry_bleed_cents_do_not_confirm():
         "BLEED_CENTS_GEOMETRY_BLOCKED",
         "BLEED_CENTS_LINE_SUM_BLOCKED",
     }
+
 
 def test_ejge006_inflated_box28_vs_incomplete_grid_stays_hitl():
     """EJGE.006: agent+paddle 4200 must not AUTO; prefer grid-backed DI 1200."""

@@ -100,6 +100,10 @@ def cash_ruling_confirms_amount(
     rows.extend(
         row for row in (field_payload.get("candidates") or []) if isinstance(row, dict)
     )
+    ocr_block = field_payload.get("ocr") if isinstance(field_payload.get("ocr"), dict) else {}
+    rows.extend(
+        row for row in (ocr_block.get("candidates") or []) if isinstance(row, dict)
+    )
     residual = field_payload.get("azure_di_residual") or {}
     if isinstance(residual, dict):
         rows.append(residual)
