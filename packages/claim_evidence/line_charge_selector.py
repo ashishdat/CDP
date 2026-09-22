@@ -983,7 +983,13 @@ def select_line_charge(
                 stem_trusted = stem_has_vision or len(stem_local_families) >= 2
             else:
                 stem_trusted = bool(stem_local_families)
-            if stem_trusted or family not in _LOCAL_ENGINES:
+            if len(dollars) == 3:
+                # Only veto when the stem is trusted (Claude and/or dual-local).
+                # A lone rapid ``17`` under-read must not strip Claude ``175``.
+                if stem_trusted:
+                    rejected.append((amount, "UNITS_CONCAT_BLEED"))
+                    continue
+            elif stem_trusted or family not in _LOCAL_ENGINES:
                 rejected.append((amount, "UNITS_CONCAT_BLEED"))
                 continue
         if _looks_like_place_shift(amount, peer_amounts):
