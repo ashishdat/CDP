@@ -2106,6 +2106,26 @@ class EvidenceReconciler:
 
                 primary_amt = parse_currency(value)
                 line_totals_owns = "LINE_TOTALS_RECONCILED" in deterministic
+                # Deterministic LINE_TOTALS can be present while ranking still
+                # crowns truncated Box OCR (340 beside Σ 3402). Soup relief
+                # applies only when the selected shell is the derived line sum.
+                line_totals_owns_selected = line_totals_owns and any(
+                    "derived_from_observed_line"
+                    in str(cand.preprocessing_variant or "").casefold()
+                    or "derived_from_verified"
+                    in str(cand.preprocessing_variant or "").casefold()
+                    or "phase2-line-sum"
+                    in str(cand.preprocessing_variant or "").casefold()
+                    or "claim_total_confirmed"
+                    in str(cand.preprocessing_variant or "").casefold()
+                    or str(cand.evidence_reference or "")
+                    in {
+                        "LINE_TOTALS_RECONCILED",
+                        "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+                        "CLAIM_TOTAL_CONFIRMED",
+                    }
+                    for cand, _, _ in supporting
+                )
                 cleared: list[str] = []
                 for other in genuine:
                     other_amt = parse_currency(other)
@@ -2117,21 +2137,31 @@ class EvidenceReconciler:
                     # ×10/×100 and dropped-digit twins are real conflicts when the
                     # selected amount is the inflated Box 28. Once line Σ owns the
                     # smaller amount (250 vs Box 28 25000), the twin is the same
-                    # ink at the wrong scale and must not veto AUTO.
+                    # ink at the wrong scale and must not veto AUTO. Once line Σ
+                    # owns the fuller digit-drop amount (3402 vs Box OCR 340),
+                    # the short rival is truncated ink and must not veto either.
                     if is_scale_shift(value, other) or is_currency_digit_drop_twin(value, other):
                         line_sum_is_smaller_scale = (
-                            line_totals_owns
+                            line_totals_owns_selected
                             and is_scale_shift(value, other)
                             and primary_amt is not None
                             and other_amt is not None
                             and primary_amt < other_amt
                         )
-                        if not line_sum_is_smaller_scale:
-                            cleared.append(other)
+                        line_sum_is_fuller_digit_drop = (
+                            line_totals_owns_selected
+                            and is_currency_digit_drop_twin(value, other)
+                            and primary_amt is not None
+                            and other_amt is not None
+                            and primary_amt > other_amt
+                        )
+                        if line_sum_is_smaller_scale or line_sum_is_fuller_digit_drop:
+                            continue
+                        cleared.append(other)
                         continue
                     # When line Σ owns the selected total, deferred Box 28 OCR
                     # rivals are soup — not a second printed claim total.
-                    if line_totals_owns and other_amt != primary_amt:
+                    if line_totals_owns_selected and other_amt != primary_amt:
                         continue
                     if primary_amt != other_amt:
                         # Competing non-equal amounts stay only when they are

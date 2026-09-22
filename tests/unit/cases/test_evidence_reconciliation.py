@@ -5,18 +5,26 @@ from packages.domain.common import BoundingBox
 from packages.ocr.contracts import OCRCandidate
 
 
-def _candidate(value: str, engine: str, confidence: float = 0.999) -> OCRCandidate:
+def _candidate(
+    value: str,
+    engine: str,
+    confidence: float = 0.999,
+    *,
+    preprocessing_variant: str = "original",
+    evidence_reference: str | None = None,
+) -> OCRCandidate:
     return OCRCandidate(
         value=value,
         raw_value=value,
         engine=engine,
         model_name=engine,
         model_version="1",
-        preprocessing_variant="original",
+        preprocessing_variant=preprocessing_variant,
         raw_confidence=confidence,
         calibrated_confidence=None,
         bounding_box=BoundingBox(x0=0, y0=0, x1=10, y1=10, image_width=100, image_height=100),
         latency_ms=1,
+        evidence_reference=evidence_reference,
     )
 
 
@@ -156,7 +164,13 @@ def test_line_sum_scale_twin_does_not_veto_the_smaller_total():
     result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
         "total_charge",
         [
-            _candidate("250.00", "rapidocr", 0.99),
+            _candidate(
+                "250.00",
+                "rapidocr",
+                0.99,
+                preprocessing_variant="DERIVED_FROM_OBSERVED_LINE_CHARGES",
+                evidence_reference="LINE_TOTALS_RECONCILED",
+            ),
             _candidate("25000.00", "paddleocr", 0.98),
         ],
         CriticalityLevel.C3,
@@ -180,7 +194,13 @@ def test_inflated_box28_scale_twin_stays_in_review():
         "total_charge",
         [
             _candidate("25000.00", "paddleocr", 0.99),
-            _candidate("250.00", "rapidocr", 0.98),
+            _candidate(
+                "250.00",
+                "rapidocr",
+                0.98,
+                preprocessing_variant="DERIVED_FROM_OBSERVED_LINE_CHARGES",
+                evidence_reference="LINE_TOTALS_RECONCILED",
+            ),
         ],
         CriticalityLevel.C3,
         deterministic_evidence={
@@ -193,6 +213,70 @@ def test_inflated_box28_scale_twin_stays_in_review():
         enforce_legacy_evidence_policy=False,
     )
     assert result.selected_value == "25000.00"
+    assert result.decision != Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
+
+
+def test_line_sum_fuller_digit_drop_does_not_veto_stp():
+    """HJDF.022: line Σ 3402 must AUTO beside truncated Box OCR 340."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate(
+                "3402.00",
+                "rapidocr",
+                1.0,
+                preprocessing_variant="DERIVED_FROM_OBSERVED_LINE_CHARGES",
+                evidence_reference="LINE_TOTALS_RECONCILED",
+            ),
+            _candidate("340.00", "azure_document_intelligence_read", 0.97),
+            _candidate("340.00", "anthropic_claude_crop", 0.96),
+            _candidate("34000.00", "paddleocr", 0.90),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_CORROBORATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        # Field decision passes E2-qualified values; truncated Box 340 is not E2.
+        independent_agreement_values=set(),
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "3402.00"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_truncated_box_does_not_inherit_line_sum_soup_relief():
+    """DI/Claude 340 must not AUTO when LINE_TOTALS evidence belongs to Σ 3402."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate("340.00", "azure_document_intelligence_read", 0.99),
+            _candidate("340.00", "anthropic_claude_crop", 0.98),
+            _candidate(
+                "3402.00",
+                "rapidocr",
+                1.0,
+                preprocessing_variant="DERIVED_FROM_OBSERVED_LINE_CHARGES",
+                evidence_reference="LINE_TOTALS_RECONCILED",
+            ),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_CORROBORATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"340"},
+    )
+    assert result.selected_value == "340.00"
     assert result.decision != Decision.ACCEPT
     assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
 
