@@ -692,6 +692,7 @@ class ClaimEvidenceBuilder:
                 llm_charge_pick_has_open_source_authority,
                 parse_currency,
                 prefer_incomplete_grid_box28,
+                prefer_open_source_digit_drop_fuller_box28,
                 should_defer_box28_to_line_sum,
             )
         except Exception:  # noqa: BLE001
@@ -708,6 +709,14 @@ class ClaimEvidenceBuilder:
             nested = payload.get("ocr") if isinstance(payload.get("ocr"), dict) else {}
             agent_candidates.extend(payload.get("candidates") or [])
             agent_candidates.extend(nested.get("candidates") or [])
+            for row in (
+                [payload.get("ranked_candidate")]
+                if payload.get("ranked_candidate")
+                else []
+            ) + list(payload.get("alternatives") or []):
+                if not row:
+                    continue
+                agent_candidates.append(row.get("ocr_candidate") or row)
         if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
             chosen = str(agent.get("value") or "").strip()
             side = agent["side"]
@@ -716,6 +725,11 @@ class ClaimEvidenceBuilder:
             grid_alt = prefer_incomplete_grid_box28(chosen, agent_candidates, lines)
             if grid_alt:
                 chosen = grid_alt
+            digit_alt = prefer_open_source_digit_drop_fuller_box28(
+                chosen, agent_candidates
+            )
+            if digit_alt:
+                chosen = digit_alt
             if chosen and llm_charge_pick_has_open_source_authority(chosen, agent_candidates, lines) and not charge_conflicts_with_plausible_line_sum(chosen, lines, agent_candidates):
                 contradictions[:] = [
                     item
@@ -732,12 +746,16 @@ class ClaimEvidenceBuilder:
                     "reason": (
                         "INCOMPLETE_UNIFORM_GRID_BOX28"
                         if grid_alt
-                        else "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+                        else (
+                            "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
+                            if digit_alt
+                            else "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+                        )
                     ),
                     "financial_side": side,
                     "hitl_route": None,
                 }
-                if grid_alt:
+                if grid_alt or digit_alt:
                     meta["agent_value_rejected"] = str(agent.get("value") or "")
                 evidence.append(
                     self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", chosen, meta)
@@ -754,6 +772,52 @@ class ClaimEvidenceBuilder:
                     if key in values or key == "total_charge":
                         values[key] = chosen
                 return
+        # DJKN.005: no conflict-agent side, but DI/Claude Box 28 under-reads a
+        # unique open-source fuller twin (paddle 2001). Prefer that fuller for E6.
+        box28_seed = values.get("total_charge") or values.get("total_charges")
+        digit_alt = prefer_open_source_digit_drop_fuller_box28(
+            box28_seed, agent_candidates
+        )
+        if (
+            digit_alt
+            and llm_charge_pick_has_open_source_authority(
+                digit_alt, agent_candidates, lines
+            )
+            and not charge_conflicts_with_plausible_line_sum(
+                digit_alt, lines, agent_candidates
+            )
+        ):
+            contradictions[:] = [
+                item
+                for item in contradictions
+                if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+            ]
+            evidence[:] = [
+                item
+                for item in evidence
+                if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+            ]
+            meta = {
+                "supported_fields": ["total_charge", "total_charges"],
+                "reason": "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28",
+                "agent_value_rejected": str(box28_seed or ""),
+                "hitl_route": None,
+            }
+            evidence.append(
+                self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", digit_alt, meta)
+            )
+            evidence.append(
+                self._item(
+                    claim_id,
+                    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                    digit_alt,
+                    meta,
+                )
+            )
+            for key in ("total_charge", "total_charges", "claim_total"):
+                if key in values or key == "total_charge":
+                    values[key] = digit_alt
+            return
         box28_amount = values.get("total_charge") or values.get("total_charges")
         deferred = box28_amount in (None, "")
         # When Box 28 was deferred (OCR soup cleared from values), only restore a
@@ -908,6 +972,7 @@ class ClaimEvidenceBuilder:
                 chosen_exceeds_cms_uniform_line_grid,
                 is_implausible_corroborator,
                 prefer_incomplete_grid_box28,
+                prefer_open_source_digit_drop_fuller_box28,
             )
 
             agent = values.get("_financial_conflict_agent")
@@ -917,12 +982,25 @@ class ClaimEvidenceBuilder:
                 nested = payload.get("ocr") if isinstance(payload.get("ocr"), dict) else {}
                 agent_candidates.extend(payload.get("candidates") or [])
                 agent_candidates.extend(nested.get("candidates") or [])
+                for row in (
+                    [payload.get("ranked_candidate")]
+                    if payload.get("ranked_candidate")
+                    else []
+                ) + list(payload.get("alternatives") or []):
+                    if not row:
+                        continue
+                    agent_candidates.append(row.get("ocr_candidate") or row)
             if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
                 chosen = str(agent.get("value") or "").strip()
                 side = agent["side"]
                 grid_alt = prefer_incomplete_grid_box28(chosen, agent_candidates, lines)
                 if grid_alt:
                     chosen = grid_alt
+                digit_alt = prefer_open_source_digit_drop_fuller_box28(
+                    chosen, agent_candidates
+                )
+                if digit_alt:
+                    chosen = digit_alt
                 # Locals-agree Box 28 may disagree with a partial line Σ (EJG7.001
                 # 955 vs 835). Still block wild soup (EJG7.004 17500 vs 1031) and
                 # beyond-grid shells (EJGE.006 4200).
@@ -947,7 +1025,11 @@ class ClaimEvidenceBuilder:
                     reason = (
                         "INCOMPLETE_UNIFORM_GRID_BOX28"
                         if grid_alt
-                        else "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+                        else (
+                            "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
+                            if digit_alt
+                            else "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+                        )
                     )
                     meta_extra = {
                         "reason": reason,
@@ -956,7 +1038,7 @@ class ClaimEvidenceBuilder:
                         "box28": decision.box28,
                         "hitl_route": None,
                     }
-                    if grid_alt:
+                    if grid_alt or digit_alt:
                         meta_extra["agent_value_rejected"] = str(agent.get("value") or "")
                     evidence.append(
                         self._item(

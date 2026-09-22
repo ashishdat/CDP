@@ -521,10 +521,34 @@ def decide(extraction, family):
         nested_ocr = field_payload.get('ocr') or {}
         agent_candidates.extend(field_payload.get('candidates') or [])
         agent_candidates.extend(nested_ocr.get('candidates') or [])
+        for row in (
+            [field_payload.get('ranked_candidate')]
+            if field_payload.get('ranked_candidate')
+            else []
+        ) + list(field_payload.get('alternatives') or []):
+            if not row:
+                continue
+            agent_candidates.append(row.get('ocr_candidate') or row)
         from packages.claim_evidence.line_sum_authority import (
             charge_conflicts_with_plausible_line_sum,
             llm_charge_pick_has_open_source_authority,
+            prefer_open_source_digit_drop_fuller_box28,
         )
+        # DJKN.005: prefer unique open-source fuller twin over DI/Claude under-read.
+        digit_alt = prefer_open_source_digit_drop_fuller_box28(
+            current_val, agent_candidates
+        )
+        if (
+            digit_alt
+            and llm_charge_pick_has_open_source_authority(
+                digit_alt, agent_candidates, service_lines
+            )
+            and not charge_conflicts_with_plausible_line_sum(
+                digit_alt, service_lines, agent_candidates
+            )
+        ):
+            values[charge_field] = digit_alt
+            continue
         if (
             isinstance(agent, dict)
             and str(agent.get('side') or '') in {'BOX28', 'LINES'}

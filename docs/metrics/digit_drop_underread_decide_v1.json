@@ -36,9 +36,23 @@
     "lost_stp": [],
     "djkn004": {"value": "2001.00", "disposition": "AUTO_ACCEPTED"},
     "djkn007": {"value": "2001.00", "disposition": "AUTO_ACCEPTED"},
-    "djkh037": {"value": "1291.15", "disposition": "AUTO_ACCEPTED"}
+    "djkh037": {"value": "1291.15", "disposition": "AUTO_ACCEPTED"},
+    "false_accepts": 59,
+    "accepted_fields_scored": 236,
+    "accepted_field_precision": 0.75,
+    "critical_false_accepts": 59,
+    "false_accepts_by_field": {
+      "total_charge": 29,
+      "patient_dob": 10,
+      "patient_name": 10,
+      "insured_name": 9,
+      "insured_id_number": 1
+    },
+    "gt_score_out": "evaluation_results/hackathon_gt_accuracy_digit_drop_underread",
+    "claims_scored_vs_agent_gt": 68
   },
   "page_check": "DJKN.004/007: restore extract DIGIT_DROP_FULLER 2001 only when open-source Box 28 does not corroborate truncated 200 (paddle 2004 stem extension). DJKN.001/002/006 keep printed 200 when paddle whitelist agrees with DI/Claude (silver GT 200). DJKH.037: line GEOMETRY_CENTS 1291.15 supports Claude Box 28 over dollars truncation 129. DJKN.005 stays HITL (line UNREADABLE; GT 2001).",
   "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 80. Remaining ~9 HITL: DJKN.005 place-shift, hard-15/E4 gaps, handwriting identity, empty/invalid ink.",
+  "false_accept_note": "59 AUTO≠agent-GT on scored critical fields (precision 75%). Many are silver-GT cents truncation (25.43↔25.00) or name punctuation — not independent adjudicated truth. Gates FAIL; release_gate_eligible false.",
   "note": "Decision-only on frozen OCR/extract. Golden Pack not mutated. Gates still fail."
 }

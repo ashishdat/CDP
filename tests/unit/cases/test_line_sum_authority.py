@@ -1080,3 +1080,54 @@ def test_geometry_cents_line_supports_box28_over_dollars_truncation():
     assert not llm_charge_pick_has_open_source_authority(
         "1291.15", cands, [{"charges": "129.00", "candidates": cands}]
     )
+
+
+def test_prefer_open_source_digit_drop_fuller_box28():
+    """DJKN.005 prefers paddle 2001; DJKN.001 keeps 200 when paddle agrees."""
+    from packages.claim_evidence.line_sum_authority import (
+        agent_amount_is_inflated_scale,
+        llm_charge_pick_has_open_source_authority,
+        prefer_open_source_digit_drop_fuller_box28,
+    )
+
+    djkn005 = [
+        {"engine": "azure_document_intelligence_read", "value": "200.00"},
+        {"engine": "anthropic_claude_crop", "value": "200.00"},
+        {
+            "engine": "paddleocr",
+            "value": "2001.00",
+            "raw_value": "200100",
+            "preprocessing_variant": "charge_digit_whitelist_fast:full",
+        },
+    ]
+    assert prefer_open_source_digit_drop_fuller_box28("200.00", djkn005) == "2001.00"
+    # 2001/200 ≈ ×10 trips inflated-scale, but unique OS digit-drop fuller wins.
+    assert agent_amount_is_inflated_scale("2001.00", djkn005)
+    assert llm_charge_pick_has_open_source_authority("2001.00", djkn005)
+    # Short DI/Claude under-read stays unauthorized (no exact OS 200).
+    assert not llm_charge_pick_has_open_source_authority("200.00", djkn005)
+    # DJKN.001: local also reads 200 — do not override.
+    djkn001 = [
+        {"engine": "azure_document_intelligence_read", "value": "200.00"},
+        {
+            "engine": "paddleocr",
+            "value": "200.00",
+            "preprocessing_variant": "charge_digit_whitelist_fast:full",
+        },
+        {
+            "engine": "rapidocr",
+            "value": "2001.00",
+            "preprocessing_variant": "GEOMETRY_CENTS",
+        },
+    ]
+    assert prefer_open_source_digit_drop_fuller_box28("200.00", djkn001) is None
+    # Real DJKN.001: paddle whitelist agrees with DI — no OS fuller rival.
+    djkn001_auth = [
+        {"engine": "azure_document_intelligence_read", "value": "200.00"},
+        {
+            "engine": "paddleocr",
+            "value": "200.00",
+            "preprocessing_variant": "charge_digit_whitelist_fast:full",
+        },
+    ]
+    assert llm_charge_pick_has_open_source_authority("200.00", djkn001_auth)

@@ -569,7 +569,12 @@ def llm_charge_pick_has_open_source_authority(
     if agent_amount_is_inflated_scale(chosen, candidates):
         # DJKH.037: GEOMETRY_CENTS line ``1291.15`` is open-source authority for
         # the fuller stem; dollars-ruling ``129`` must not veto as inflated soup.
-        if not _geometry_cents_line_supports_box28(chosen, candidates, service_lines):
+        # DJKN.005: paddle ``2001`` vs DI/Claude ``200`` — unique OS digit-drop
+        # fuller is authorized even though 2001/200 ≈ ×10 trips inflated-scale.
+        if not (
+            _geometry_cents_line_supports_box28(chosen, candidates, service_lines)
+            or _chosen_is_open_source_digit_drop_fuller(chosen, candidates)
+        ):
             return False
     # Open-source digit soup that implies >6 equal CMS rows is not authority
     # (EJGE.006 paddle 4200 vs 3×$200). Prefer the grid-backed alternate.
@@ -609,6 +614,86 @@ def llm_charge_pick_has_open_source_authority(
             continue
         return False
     return True
+
+
+def prefer_open_source_digit_drop_fuller_box28(
+    chosen: object, candidates: list | None
+) -> str | None:
+    """When Box 28 under-reads a unique open-source fuller twin, return that fuller.
+
+    DJKN.005: DI/Claude ``200`` beside paddle ``2001`` — prefer ``2001`` (GT).
+    DJKN.001: paddle whitelist also reads ``200`` — short read is corroborated;
+    return None so printed ``200`` stays (GT).
+    """
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None:
+        return None
+    local = open_source_charge_amounts(candidates)
+    if not local:
+        return None
+    # Open-source already corroborates the short read — do not override
+    # (DJKN.001 paddle 200 + DI 200).
+    if any(amounts_corroborate(chosen, amount) for amount in local):
+        return None
+    fullers: list[str] = []
+    for amount in local:
+        amt = parse_currency(amount)
+        if amt is None or amt <= chosen_amt:
+            continue
+        if is_currency_digit_drop_twin(chosen, amount):
+            fullers.append(format_currency(amt))
+    unique = sorted(set(fullers))
+    if len(unique) != 1:
+        return None
+    return unique[0]
+
+
+def _chosen_is_open_source_digit_drop_fuller(
+    chosen: object, candidates: list | None
+) -> bool:
+    """True when ``chosen`` is the unique OS fuller prefer_* would pick from a short.
+
+    Lets ``llm_charge_pick_has_open_source_authority`` accept paddle ``2001`` on
+    DJKN.005 even though DI/Claude ``200`` makes ``agent_amount_is_inflated_scale``
+    trip (ratio ≈ ×10). Requires exact open-source corroboration of the fuller
+    and rejects conflict-agent soup where Claude/DI already minted the fuller
+    (paddle ``200400`` → ``2004`` beside Claude ``2004``).
+    """
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None:
+        return False
+    chosen_fmt = format_currency(chosen_amt)
+    local = open_source_charge_amounts(candidates)
+    if not any(amounts_corroborate(chosen, amount) for amount in local):
+        return False
+    # Closed-source already reading the fuller = conflict-agent inflation, not
+    # an open-source-only digit-drop recovery.
+    for cand in candidates or []:
+        engine, value = _candidate_engine_and_value(cand)
+        if not engine or engine in _OPEN_SOURCE_CHARGE_ENGINES:
+            continue
+        if amounts_corroborate(chosen, value):
+            return False
+    seen: set[str] = set()
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        shell = (
+            cand.get("ocr_candidate")
+            if isinstance(cand.get("ocr_candidate"), dict)
+            else cand
+        )
+        short = shell.get("value") or shell.get("raw_value")
+        short_amt = parse_currency(short)
+        if short_amt is None or short_amt >= chosen_amt:
+            continue
+        key = format_currency(short_amt)
+        if key in seen:
+            continue
+        seen.add(key)
+        if prefer_open_source_digit_drop_fuller_box28(short, candidates) == chosen_fmt:
+            return True
+    return False
 
 
 def prefer_incomplete_grid_box28(
