@@ -1,0 +1,43 @@
+{
+  "title": "DI partner strong E4 still mints after dual-local E2 (EJGE.001/010/013)",
+  "commit": "41e376b",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_di_strong_e4_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_di_strong_e4_decide",
+    "src": "evaluation_results/hackathon_150_dob_sep_peel_decide",
+    "completed": 89,
+    "true_stp": 70,
+    "true_stp_rate_of_completed": 0.786517,
+    "field_ink_hitl": 19,
+    "prior_dob_sep_peel": 67,
+    "flipped_to_true_stp": [
+      "M048EJGE.001 total_charge 125.00",
+      "M048EJGE.010 total_charge 9800.00",
+      "M048EJGE.013 total_charge 200.00"
+    ],
+    "lost_stp": [],
+    "false_accepts": 57,
+    "accepted_fields_scored": 233,
+    "accepted_field_precision": 0.755365
+  },
+  "page_check": "Paddle+rapid E2 short-circuited _append_di_partner_agreement, so DI-confirmed Box 28 amounts never got STRONG CHARGE_DI_LOCAL_CONFIRMED E4 and stayed MISSING_E4. Always run DI partner; allow paddle as DI charge partner. Place-shift rivals still block (DJKN.005/007).",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 70. Remaining: LINE_SUM_UNCORROBORATED (11), EVIDENCE_POLICY_GAP (5), identity HITL, hard-15, empty ink.",
+  "note": "Decision-only on frozen OCR. Golden Pack not mutated. Gates still fail."
+}
