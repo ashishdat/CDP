@@ -1818,13 +1818,23 @@ def recognize_service_lines(image, router, template):
                 # Agent-GT retest: tess CHARGE_DIGITS_FAST truncates (1571→157)
                 # even when paddle agrees on the truncated form — so paddle/rapid
                 # is primary under STP fast; tess digits only fill empty cells.
+                # Latency: single-engine paddle on line cells unless explicitly
+                # dual (CDP_OCR_SERVICE_LINE_DUAL=1). Dual was ~2× wall on blanks.
+                _dual = (
+                    os.environ.get("CDP_OCR_SERVICE_LINE_DUAL") or "0"
+                ).strip().casefold()
+                _line_order = (
+                    ("paddleocr", "rapidocr")
+                    if _dual in {"1", "true", "yes", "on"}
+                    else ("paddleocr",)
+                )
                 candidates, attempts, reason = _recognize_one(
                     image,
                     'charges',
                     bbox,
                     router,
                     charge_col.field_type,
-                    engine_order=('paddleocr', 'rapidocr'),
+                    engine_order=_line_order,
                 )
                 raw = candidates[0].get('raw_value') if candidates else ''
                 value = _currency_value(raw, candidates)
@@ -2289,9 +2299,17 @@ def recognize_service_lines(image, router, template):
             bbox = None
             for x0, x1 in fallback_windows:
                 bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
+                _dual = (
+                    os.environ.get("CDP_OCR_SERVICE_LINE_DUAL") or "0"
+                ).strip().casefold()
+                _line_order = (
+                    ("paddleocr", "rapidocr")
+                    if _dual in {"1", "true", "yes", "on"}
+                    else ("paddleocr",)
+                )
                 candidates, attempts, reason = _recognize_one(
                     image, 'charges', bbox, router, charge_col.field_type,
-                    engine_order=('paddleocr', 'rapidocr'),
+                    engine_order=_line_order,
                 )
                 raw = candidates[0].get('raw_value') if candidates else ''
                 value = _currency_value(raw, candidates)
