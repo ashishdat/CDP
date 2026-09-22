@@ -661,28 +661,62 @@ class ClaimEvidenceBuilder:
             "predicates": [p.to_dict() for p in decision.predicates],
         }
         if decision.disposition == "AUTO_ACCEPTED" and decision.amount:
-            evidence.append(
-                self._item(
-                    claim_id,
-                    "BOX28_LINE_SUM_CORROBORATED",
-                    decision.amount,
-                    metadata,
-                )
+            from packages.claim_evidence.charge_total_authority import (
+                is_units_bleed_cents,
             )
-            # Bind the confirmed total so CLAIM_TOTAL paths stay consistent.
-            evidence.append(
-                self._item(
-                    claim_id,
-                    "CLAIM_TOTAL_CONFIRMED",
-                    decision.amount,
-                    {
-                        **metadata,
-                        "reason": "BOX28_LINE_SUM_CORROBORATED",
-                        "claim_total": decision.amount,
-                        "service_line_total": decision.line_sum_amount,
-                    },
+
+            if is_units_bleed_cents(decision.amount) or is_units_bleed_cents(
+                decision.line_sum_amount
+            ):
+                # Dual-reader bleed corroboration is not monetary AUTO authority.
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "BOX28_LINE_SUM_EVALUATED",
+                        decision.amount,
+                        {
+                            **metadata,
+                            "hitl_reason": "BLEED_CENTS_LINE_SUM_BLOCKED",
+                        },
+                    )
                 )
-            )
+                contradictions.append(
+                    self._item(
+                        claim_id,
+                        "CLAIM_TOTAL_CONTRADICTION",
+                        decision.amount,
+                        {
+                            **metadata,
+                            "reason": "BLEED_CENTS_LINE_SUM_BLOCKED",
+                            "hitl_route": "FINANCIAL_CONFLICT",
+                            "claim_total": decision.amount,
+                            "service_line_total": decision.line_sum_amount,
+                        },
+                    )
+                )
+            else:
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "BOX28_LINE_SUM_CORROBORATED",
+                        decision.amount,
+                        metadata,
+                    )
+                )
+                # Bind the confirmed total so CLAIM_TOTAL paths stay consistent.
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "CLAIM_TOTAL_CONFIRMED",
+                        decision.amount,
+                        {
+                            **metadata,
+                            "reason": "BOX28_LINE_SUM_CORROBORATED",
+                            "claim_total": decision.amount,
+                            "service_line_total": decision.line_sum_amount,
+                        },
+                    )
+                )
         else:
             # Persist the evaluated HITL reason without creating a claim-level
             # contradiction — unresolved contradictions force CLAIM_REVIEW even
@@ -1055,62 +1089,86 @@ class ClaimEvidenceBuilder:
             "authority_reason": decision.reason,
         }
         if decision.confirmed and decision.amount:
-            evidence.append(
-                self._item(
-                    claim_id,
-                    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                    decision.amount,
-                    metadata,
-                )
+            from packages.claim_evidence.charge_total_authority import (
+                is_units_bleed_cents,
             )
-            evidence.append(
-                self._item(
-                    claim_id,
-                    "CLAIM_TOTAL_CONFIRMED",
-                    decision.amount,
-                    {
-                        **metadata,
-                        "reason": "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                        "claim_total": decision.amount,
-                        "service_line_total": decision.line_sum,
-                    },
+
+            # Same-stem corroboration of bleed cents (.07/.22/.44) is still not
+            # AUTO authority — both readers can share the ruling bleed.
+            if is_units_bleed_cents(decision.amount) or is_units_bleed_cents(
+                decision.line_sum
+            ):
+                contradictions.append(
+                    self._item(
+                        claim_id,
+                        "CLAIM_TOTAL_CONTRADICTION",
+                        decision.amount,
+                        {
+                            **metadata,
+                            "reason": "BLEED_CENTS_GEOMETRY_BLOCKED",
+                            "hitl_route": "FINANCIAL_CONFLICT",
+                            "claim_total": decision.amount,
+                            "service_line_total": decision.line_sum,
+                        },
+                    )
                 )
-            )
-            # FG may relieve OCR soup that previously failed Σ tolerance. Drop the
-            # stale CLAIM_TOTAL_CONTRADICTION and bind the confirmed amount.
-            contradictions[:] = [
-                item
-                for item in contradictions
-                if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
-            ]
-            # Stale FINANCIAL_CONFLICT from an earlier pass / rival soup must not
-            # survive confirmed arithmetic (CLAIM_TOTAL_CONFIRMED + CONFLICT HITL).
-            evidence[:] = [
-                item
-                for item in evidence
-                if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
-            ]
-            for key in ("total_charge", "total_charges", "claim_total"):
-                if key in values or key == "total_charge":
-                    values[key] = decision.amount
-            evidence.append(
-                self._item(
-                    claim_id,
-                    "CLAIM_TOTAL_WITHIN_TOLERANCE",
-                    decision.amount,
-                    {
-                        "supported_fields": [
-                            "total_charge",
-                            "total_charges",
-                            "charges",
-                            "charge_amount",
-                        ],
-                        "claim_total": decision.amount,
-                        "service_line_total": decision.line_sum,
-                        "reason": "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                    },
+            else:
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                        decision.amount,
+                        metadata,
+                    )
                 )
-            )
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "CLAIM_TOTAL_CONFIRMED",
+                        decision.amount,
+                        {
+                            **metadata,
+                            "reason": "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                            "claim_total": decision.amount,
+                            "service_line_total": decision.line_sum,
+                        },
+                    )
+                )
+                # FG may relieve OCR soup that previously failed Σ tolerance. Drop the
+                # stale CLAIM_TOTAL_CONTRADICTION and bind the confirmed amount.
+                contradictions[:] = [
+                    item
+                    for item in contradictions
+                    if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                ]
+                # Stale FINANCIAL_CONFLICT from an earlier pass / rival soup must not
+                # survive confirmed arithmetic (CLAIM_TOTAL_CONFIRMED + CONFLICT HITL).
+                evidence[:] = [
+                    item
+                    for item in evidence
+                    if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                ]
+                for key in ("total_charge", "total_charges", "claim_total"):
+                    if key in values or key == "total_charge":
+                        values[key] = decision.amount
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "CLAIM_TOTAL_WITHIN_TOLERANCE",
+                        decision.amount,
+                        {
+                            "supported_fields": [
+                                "total_charge",
+                                "total_charges",
+                                "charges",
+                                "charge_amount",
+                            ],
+                            "claim_total": decision.amount,
+                            "service_line_total": decision.line_sum,
+                            "reason": "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                        },
+                    )
+                )
         elif decision.reason in {
             "ARITHMETIC_MISMATCH",
             "DECIMAL_SHIFT_CONFLICT",
