@@ -161,7 +161,11 @@ def test_conflict_agent_does_not_confirm_when_line_sum_disagrees():
 
 
 def test_conflict_agent_single_engine_bleed_stays_hitl():
-    """DJKH leak: conflict-agent 1571.07 / single paddle must not mint STP AUTO."""
+    """DJKH leak: conflict-agent 1571.07 must not AUTO the bleed amount.
+
+    When line Σ is the same-stem whole dollar (1571.00), ChargeTotalAuthority
+    may repair bleed→.00 — that is intentional STP recovery, not the leak.
+    """
     result = ClaimEvidenceBuilder.load().build(
         claim_id="DJKH.002",
         document_family="CMS1500",
@@ -181,21 +185,41 @@ def test_conflict_agent_single_engine_bleed_stays_hitl():
         },
         service_lines=[{"charges": "1571.00"}],
     )
-    agent_confirmed = [
-        i
-        for i in result.evidence_items
-        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
-        and (i.metadata or {}).get("reason")
-        in {
-            "CONFLICT_AGENT_FINANCIAL_RESOLVED",
-            "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
-            "BLEED_CENTS_TO_WHOLE_DOLLAR",
-        }
-    ]
     # Must not AUTO the bleed amount via conflict-agent / tolerance.
     assert not any(
         i.evidence_type == "CLAIM_TOTAL_CONFIRMED" and str(i.value) == "1571.07"
         for i in result.evidence_items
+    )
+    # Same-stem whole-dollar line Σ may mint CONFIRMED on 1571.00 (bleed repair).
+    confirmed = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+    ]
+    if confirmed:
+        assert all(str(i.value) == "1571.00" for i in confirmed)
+    else:
+        types = _types(result.evidence_items) | _types(result.contradictions)
+        assert "CLAIM_TOTAL_CONTRADICTION" in types or "FINANCIAL_CONFLICT_HITL" in types
+
+
+def test_conflict_agent_bleed_without_whole_sibling_stays_hitl():
+    """Bleed with no .00 OCR/line sibling must remain HITL."""
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="DJKH.bleed-no-sibling",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "1571.07",
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "paddleocr", "value": "1571.07"},
+                ]
+            },
+        },
+        service_lines=[{"charges": "1571.07"}],
+    )
+    assert not any(
+        i.evidence_type == "CLAIM_TOTAL_CONFIRMED" for i in result.evidence_items
     )
     types = _types(result.evidence_items) | _types(result.contradictions)
     assert "CLAIM_TOTAL_CONTRADICTION" in types or "FINANCIAL_CONFLICT_HITL" in types

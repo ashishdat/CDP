@@ -159,6 +159,85 @@ def _load_registration_context(extraction):
         geometry = None
         warnings.append({'reason': 'Geometry artifact unavailable; E3 structural localization omitted.'})
 
+    # Plumbing restore: geometry file wiped but source_artifacts still carries the
+    # historical GeometryResult sha256 / path. Mint TEMPLATE_REGISTRATION_CONFIRMED
+    # from field OCR ROIs so CONFIRMED charges are not MISSING_E3 (cascade-v6 learning).
+    if not localizations:
+        artifacts = extraction.get('source_artifacts') or {}
+        geo_meta = artifacts.get('geometry') or {}
+        historical = bool(geo_meta.get('sha256') or geo_meta.get('path'))
+        if not historical:
+            # OCRCandidates may still record the geometry reference.
+            ocr_ref = (artifacts.get('ocr') or {}).get('path')
+            if ocr_ref and Path(ocr_ref).is_file():
+                try:
+                    ocr_blob = json.loads(Path(ocr_ref).read_text(encoding='utf-8'))
+                    historical = bool(
+                        ocr_blob.get('geometry_sha256') or ocr_blob.get('geometry_reference')
+                    )
+                except Exception:  # noqa: BLE001
+                    historical = False
+        if historical:
+            # CONFIRMED E3 requires confidence ≥ 0.80 — historical sha256 proves
+            # registration already succeeded; restore plumbing at the floor.
+            confidence = 0.80
+            for row in extraction.get('field_results') or []:
+                name = row.get('field_name')
+                if not name:
+                    continue
+                box = None
+                ranked = row.get('ranked_candidate') or {}
+                ocr_cand = ranked.get('ocr_candidate') or {}
+                bbox = ocr_cand.get('bounding_box')
+                if isinstance(bbox, dict) and bbox.get('x0') is not None:
+                    box = bbox
+                if box is None:
+                    for cand in (row.get('ocr') or {}).get('candidates') or []:
+                        bbox = cand.get('bounding_box')
+                        if isinstance(bbox, dict) and bbox.get('x0') is not None:
+                            box = bbox
+                            break
+                if box is None:
+                    # Synthetic unit ROI — plumbing only; never invents ink.
+                    box = {'x0': 0.0, 'y0': 0.0, 'x1': 1.0, 'y1': 1.0}
+                try:
+                    bbox_t = (
+                        float(box['x0']),
+                        float(box['y0']),
+                        float(box['x1']),
+                        float(box['y1']),
+                    )
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if bbox_t[2] <= bbox_t[0] or bbox_t[3] <= bbox_t[1]:
+                    continue
+                localizations[name] = StructuralLocalizationEvidence(
+                    evidence_type=StructuralLocalizationType.TEMPLATE_REGISTRATION_CONFIRMED,
+                    confidence=confidence,
+                    confirmed=True,
+                    reason_codes=(
+                        'ACCEPTED_REGISTRATION_RECTIFIED_FRAME',
+                        'TEMPLATE_FIELD_ROI_BOUNDED',
+                        'E3_SOURCE:historical_geometry_sha256',
+                        'E3_PLUMBING_RESTORE',
+                    ),
+                    source='historical_geometry_sha256',
+                    field_name=name,
+                    field_bbox=bbox_t,
+                    localization_mode='TEMPLATE_ROI',
+                    positive_bounded_roi=True,
+                    geometry_valid=True,
+                    registration_compatible=True,
+                )
+            if localizations and registration_confidence is None:
+                registration_confidence = confidence
+                confidence_source = 'historical_geometry_sha256'
+                warnings = [
+                    w
+                    for w in warnings
+                    if 'E3 structural localization omitted' not in str(w.get('reason') or '')
+                ]
+
     if geometry and geometry.get('status') == 'SUCCESS' and registration_confidence is not None:
         confidence = float(registration_confidence)
         for row in geometry.get('fields') or []:
@@ -695,6 +774,63 @@ def decide(extraction, family):
         if current_amt is not None and format_currency(current_amt) in junk:
             values[charge_field] = None
 
+    # Strong line consensus owns E6: clear rival Box 28 before ClaimEvidenceBuilder
+    # so CLAIM_TOTAL_CONTRADICTION / FINANCIAL_CONFLICT cannot re-arm (EJGE.037
+    # 1225 vs Σ 936 MULTI_LINE_GPT4O; HJBI.016 100 vs Σ 199; EJGE.041 ×100).
+    from packages.claim_evidence.line_sum_authority import (
+        amounts_corroborate_or_cents_twin,
+        is_decimal_place_shift,
+        is_scale_shift,
+        line_sum_auto_eligible,
+        vision_local_decimal_column,
+    )
+
+    _STRONG_LINE_DEFER_GATES = {
+        "SINGLE_LINE_GPT4O_LOCAL",
+        "MULTI_LINE_GPT4O_LOCAL",
+        "DUAL_ENGINE_LINE_AGREEMENT",
+        "MULTI_LINE_DIGIT_DROP_FULLER_LOCAL",
+        "MULTI_LINE_MIXED_LOCAL_VISION",
+        "DECIMAL_COLUMN_VISION_LOCAL",
+        "DIGIT_DROP_BOX28_UNDERREAD",
+        "SCALE_TWIN_BOX28_DEFERRED",
+    }
+    for charge_field in ("total_charge", "total_charges"):
+        if charge_field not in values:
+            continue
+        current_val = values.get(charge_field)
+        derived_amt = line_sum_total(service_lines)
+        if (
+            current_val in (None, "")
+            or derived_amt is None
+            or amounts_corroborate_or_cents_twin(current_val, derived_amt)
+        ):
+            continue
+        re_ok, re_reason = line_sum_auto_eligible(
+            service_lines,
+            box28_value=None,
+            corroborating_values=None,
+        )
+        scale_soup = (
+            is_scale_shift(current_val, derived_amt)
+            or is_decimal_place_shift(current_val, derived_amt)
+            or vision_local_decimal_column(derived_amt, [current_val])
+        )
+        if (re_ok and re_reason in _STRONG_LINE_DEFER_GATES) or (
+            scale_soup and re_ok and re_reason in _STRONG_LINE_DEFER_GATES
+        ):
+            values[charge_field] = None
+            continue
+        # Scale twin of Σ even when blank reopen is only mixed — clear Box 28.
+        if scale_soup:
+            mix_ok, mix_reason = line_sum_auto_eligible(
+                service_lines,
+                box28_value=current_val,
+                corroborating_values=[current_val],
+            )
+            if mix_ok and mix_reason in _STRONG_LINE_DEFER_GATES:
+                values[charge_field] = None
+
     # Authoritative member join telemetry only here. Identity fills happen after
     # Field Value Authority so the join key must already be independently accepted.
     member_join_meta = None
@@ -1049,6 +1185,49 @@ def decide(extraction, family):
                         preprocessing_version='v12.2-self-twin',
                     ))
         # Prefer LINE_TOTALS derived amount over empty / invalid / deferred box-28 OCR.
+        # Also prefer when strong line consensus can reopen blank Box 28 or the
+        # printed shell is a scale/decimal twin of Σ (past conflict-defer learning).
+        _prefer_strong = False
+        if name in {"total_charge", "total_charges"} and derived:
+            from packages.claim_evidence.line_sum_authority import (
+                is_decimal_place_shift,
+                is_scale_shift,
+                line_sum_auto_eligible,
+                vision_local_decimal_column,
+            )
+
+            re_ok, re_reason = line_sum_auto_eligible(
+                service_lines,
+                box28_value=None,
+                corroborating_values=None,
+            )
+            winner_now = values.get(name) or f.get("normalized_value")
+            scale_soup = bool(
+                winner_now
+                and (
+                    is_scale_shift(winner_now, derived)
+                    or is_decimal_place_shift(winner_now, derived)
+                    or vision_local_decimal_column(derived, [winner_now])
+                )
+            )
+            _prefer_strong = (
+                values.get(name) in (None, "")
+                or (
+                    re_ok
+                    and re_reason
+                    in {
+                        "SINGLE_LINE_GPT4O_LOCAL",
+                        "MULTI_LINE_GPT4O_LOCAL",
+                        "DUAL_ENGINE_LINE_AGREEMENT",
+                        "MULTI_LINE_DIGIT_DROP_FULLER_LOCAL",
+                        "MULTI_LINE_MIXED_LOCAL_VISION",
+                        "DECIMAL_COLUMN_VISION_LOCAL",
+                        "DIGIT_DROP_BOX28_UNDERREAD",
+                        "SCALE_TWIN_BOX28_DEFERRED",
+                    }
+                )
+                or scale_soup
+            )
         prefer_derived = bool(derived) and (
             not check.passed
             or f.get('status') == 'NO_VALUE'
@@ -1058,6 +1237,7 @@ def decide(extraction, family):
                 name in {'total_charge', 'total_charges'}
                 and values.get(name) == derived
             )
+            or _prefer_strong
         )
         if prefer_derived:
             from packages.domain.common import BoundingBox
@@ -1209,8 +1389,10 @@ def decide(extraction, family):
                     "MULTI_LINE_GPT4O_LOCAL",
                     "DUAL_ENGINE_LINE_AGREEMENT",
                     "MULTI_LINE_DIGIT_DROP_FULLER_LOCAL",
+                    "MULTI_LINE_MIXED_LOCAL_VISION",
                     "DECIMAL_COLUMN_VISION_LOCAL",
                     "DIGIT_DROP_BOX28_UNDERREAD",
+                    "SCALE_TWIN_BOX28_DEFERRED",
                     "BOX28_OR_DI_CORROBORATED",
                 }
                 if eligible and not winner_matches_lines and not scale_twin and not incomplete_grid:

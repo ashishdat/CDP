@@ -1563,6 +1563,12 @@ def line_sum_auto_eligible(
             # the column, not a second total.
             if vision_local_decimal_column(total, corroborators_pre):
                 return True, "DECIMAL_COLUMN_VISION_LOCAL"
+            # Scale twin (×10/×100) of a multi-line gpt/local Σ — same ink class.
+            if gpt_observed >= 2 and any(
+                is_scale_shift(total, value) or is_decimal_place_shift(total, value)
+                for value in corroborators_pre
+            ):
+                return True, "SCALE_TWIN_BOX28_DEFERRED"
             # Plausible currency-shaped box-28 / DI disagrees → HITL.
             return False, "BOX28_OR_DI_CONFLICT"
         if gpt_observed == 1:
@@ -1594,6 +1600,27 @@ def line_sum_auto_eligible(
             service_lines, total
         ) and vision_local_decimal_column(total, corroborators):
             return True, "DECIMAL_COLUMN_VISION_LOCAL"
+        # Multi-line dual / mixed local with Box 28 ×10/×100 of Σ (EJGE.041
+        # 250 vs 25000) — decimal-column / scale soup, not a second total.
+        agreed_pre, observed_pre = dual_engine_line_fraction(service_lines)
+        gpt_agreed_pre, gpt_observed_pre = gpt4o_local_line_fraction(service_lines)
+        mixed_ok = _multi_line_mixed_local_vision(service_lines)
+        if (
+            observed_pre >= 2
+            and (
+                agreed_pre >= 1
+                or mixed_ok
+                or gpt_agreed_pre >= 1
+            )
+            and (
+                vision_local_decimal_column(total, corroborators)
+                or any(
+                    is_scale_shift(total, value) or is_decimal_place_shift(total, value)
+                    for value in corroborators
+                )
+            )
+        ):
+            return True, "SCALE_TWIN_BOX28_DEFERRED"
         # DIGIT_DROP_FULLER_LOCAL Σ with Box 28 under-read (+ stem extensions).
         # DJKN.004/007: line 2001 vs Box 28 200; paddle whitelist 2004 is a
         # ×10/digit-drop extension of the truncated Box 28 stem, not of 2001.
@@ -1666,7 +1693,41 @@ def line_sum_auto_eligible(
     # single-line 13↔131 false-accept: that path already returned above.
     if observed >= 2 and _multi_line_digit_drop_resolved(service_lines):
         return True, "MULTI_LINE_DIGIT_DROP_FULLER_LOCAL"
+    # Mixed corroboration: every charge line has dual-local OR gpt-4o+local
+    # (EJGE.041 150 gpt+rapid + 100 paddle+rapid → Σ 250 vs Box 28 25000).
+    if observed >= 2 and _multi_line_mixed_local_vision(service_lines):
+        return True, "MULTI_LINE_MIXED_LOCAL_VISION"
     return False, "MULTI_LINE_UNCORROBORATED"
+
+
+def _multi_line_mixed_local_vision(service_lines: list[dict] | None) -> bool:
+    """True when every charge line has dual-local or gpt-4o+local on the selected amount.
+
+    Also accepts SELECTED_LOCAL_CHARGE rows whose ``supporting_engines`` already
+    record ≥2 families (selector trusted gpt-4o/paddle/rapid) even when a
+    pruned candidate list no longer shows every peer (EJGE.046).
+    """
+    saw = 0
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        if not any(parse_currency(line.get(k)) is not None for k in _CHARGE_FIELDS):
+            continue
+        saw += 1
+        if line_has_dual_engine_agreement(line) or line_has_gpt4o_local_consensus(line):
+            continue
+        selection = line.get("line_charge_selection") or {}
+        if selection.get("disposition") == "SELECTED_LOCAL_CHARGE":
+            engines = {
+                str(e or "").casefold()
+                for e in (selection.get("supporting_engines") or [])
+                if e
+            }
+            has_local = any("paddle" in e or "rapid" in e for e in engines)
+            if has_local and len(engines) >= 2:
+                continue
+        return False
+    return saw >= 2
 
 
 def _multi_line_digit_drop_resolved(service_lines: list[dict] | None) -> bool:

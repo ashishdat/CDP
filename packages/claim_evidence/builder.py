@@ -105,18 +105,27 @@ class ClaimEvidenceBuilder:
                 for item in evidence
                 if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
             ]
+            # Whole-dollar bleed repair mint clears the intentional bleed
+            # contradiction blocks — the authority amount is no longer bleed.
+            mint_reason = str(authority.reason or "")
+            bleed_relieved = mint_reason in {
+                "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+            }
+            keep_bleed_blocks = {
+                "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
+                "BLEED_CENTS_GEOMETRY_BLOCKED",
+                "BLEED_CENTS_LINE_SUM_BLOCKED",
+                "BLEED_CENTS_AT_MINT",
+            }
             contradictions[:] = [
                 item
                 for item in contradictions
                 if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
-                or (item.metadata or {}).get("reason")
-                in {
-                    # Keep bleed blocks — those are intentional fail-closed.
-                    "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
-                    "BLEED_CENTS_GEOMETRY_BLOCKED",
-                    "BLEED_CENTS_LINE_SUM_BLOCKED",
-                    "BLEED_CENTS_AT_MINT",
-                }
+                or (
+                    (item.metadata or {}).get("reason") in keep_bleed_blocks
+                    and not bleed_relieved
+                )
             ]
         # Propagate any amount bind back to caller-visible values.
         for key in ("total_charge", "total_charges", "claim_total"):
@@ -288,18 +297,52 @@ class ClaimEvidenceBuilder:
                 reported = format_currency(total)
                 computed = format_currency(observed)
                 if is_units_bleed_cents(reported) or is_units_bleed_cents(computed):
-                    contradictions.append(
-                        self._item(
-                            claim_id,
-                            "CLAIM_TOTAL_CONTRADICTION",
-                            reported,
-                            {
+                    from packages.claim_evidence.charge_total_authority import (
+                        repair_bleed_to_whole_dollar,
+                    )
+
+                    # Prefer OCR/.00 sibling over fail-closed when same-stem whole
+                    # dollar is independently observed (DJKH.033 25.43→25.00).
+                    repaired, repair_reason = repair_bleed_to_whole_dollar(
+                        reported if is_units_bleed_cents(reported) else computed,
+                        field_payload=values.get("_box28_field_payload")
+                        if isinstance(values.get("_box28_field_payload"), dict)
+                        else None,
+                        service_lines=lines,
+                    )
+                    if (
+                        repair_reason
+                        in {
+                            "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                            "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+                        }
+                        and repaired
+                    ):
+                        self._mint_claim_total_confirmed(
+                            claim_id=claim_id,
+                            values=values,
+                            evidence=evidence,
+                            amount=repaired,
+                            reason=repair_reason,
+                            metadata={
                                 **metadata,
-                                "reason": "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
-                                "hitl_route": "FINANCIAL_CONFLICT",
+                                "service_line_total": computed,
+                                "bleed_tolerance_repaired": True,
                             },
                         )
-                    )
+                    else:
+                        contradictions.append(
+                            self._item(
+                                claim_id,
+                                "CLAIM_TOTAL_CONTRADICTION",
+                                reported,
+                                {
+                                    **metadata,
+                                    "reason": "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
+                                    "hitl_route": "FINANCIAL_CONFLICT",
+                                },
+                            )
+                        )
                 else:
                     self._mint_claim_total_confirmed(
                         claim_id=claim_id,

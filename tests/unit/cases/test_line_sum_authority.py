@@ -1189,3 +1189,77 @@ def test_geometry_underread_whole_dollar_box28_djkn009():
     ]
     assert not charge_conflicts_with_plausible_line_sum("600.00", lines, cands)
     assert llm_charge_pick_has_open_source_authority("600.00", cands, lines)
+
+
+def test_multi_line_mixed_local_vision_unlocks_scale_twin_box28():
+    """EJGE.041: gpt+rapid 150 + paddle+rapid 100 → Σ 250 vs Box 28 25000."""
+    lines = [
+        {
+            "charges": "150.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "150.00",
+                "reason": "LOCAL_VISION_CHARGE_COLUMN",
+                "supporting_engines": ["azure_gpt4o_crop", "rapidocr"],
+            },
+            "candidates": [
+                {"engine": "azure_gpt4o_crop", "value": "150.00"},
+                {"engine": "rapidocr", "value": "150.00"},
+                {"engine": "anthropic_claude_crop", "value": "150.00"},
+            ],
+        },
+        {
+            "charges": "100.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "100.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                {"engine": "paddleocr", "value": "100.00"},
+                {"engine": "rapidocr", "value": "100.00"},
+            ],
+        },
+    ]
+    ok, reason = line_sum_auto_eligible(lines, box28_value=None)
+    assert ok and reason == "MULTI_LINE_MIXED_LOCAL_VISION"
+    ok, reason = line_sum_auto_eligible(
+        lines, box28_value="25000.00", corroborating_values=["25000.00"]
+    )
+    assert ok and reason == "SCALE_TWIN_BOX28_DEFERRED"
+
+
+def test_selector_supporting_engines_count_toward_mixed_corroboration():
+    """EJGE.046: pruned candidates still trusted via selector supporting_engines."""
+    lines = [
+        {
+            "charges": "150.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "150.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["azure_gpt4o_crop", "paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                {"engine": "paddleocr", "value": "150.00"},
+                {"engine": "rapidocr", "value": "100.00"},
+                {"engine": "anthropic_claude_crop", "value": "150.00"},
+            ],
+        },
+        {
+            "charges": "100.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "100.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+                "supporting_engines": ["paddleocr", "rapidocr"],
+            },
+            "candidates": [
+                {"engine": "paddleocr", "value": "100.00"},
+                {"engine": "rapidocr", "value": "100.00"},
+            ],
+        },
+    ]
+    ok, reason = line_sum_auto_eligible(lines)
+    assert ok and reason == "MULTI_LINE_MIXED_LOCAL_VISION"
