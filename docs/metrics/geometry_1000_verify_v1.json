@@ -1,51 +1,28 @@
 {
-  "title": "Geometry-95 full-1000 verify progress",
-  "status": "RUNNING_PHASE1_AGENT_GT",
-  "started_at": "2026-09-22T08:03:22Z",
-  "updated_at": "2026-09-22T09:53:29.981393+00:00",
-  "tip_baseline_matched": {
-    "exact_accuracy": 0.989474,
-    "false_accepts": 0,
-    "matches_locked_gate": true
-  },
-  "accuracy_mid": {
-    "exact_accuracy": 0.953737,
+  "updated_at": "2026-09-22T10:12:03.726316+00:00",
+  "run": "evaluation_results/hackathon_1000_geometry_95_verify",
+  "completed": 222,
+  "true_stp": 157,
+  "true_stp_rate": 0.707207,
+  "field_hitl": 65,
+  "field_hitl_rate": 0.292793,
+  "bleed_cents_true_stp_auto": 0,
+  "accuracy_gate": {
+    "exact_accuracy": 0.952043,
     "accepted_field_precision": 1.0,
     "false_accepts": 0,
-    "claims_scored": 198,
-    "field_count": 562,
-    "quarantined_fields": 159,
-    "missing_claim_results": 30,
-    "gate_exact_ge_95": true,
-    "gate_precision_ge_99_5": true,
-    "gate_fa_eq_0": true
+    "claims_scored": 201,
+    "gate_ok": true
   },
-  "progress": {
-    "ledger_unique": 219,
-    "tip_seeded": 89,
-    "fresh_completed": 130,
-    "phase1_target": 160,
-    "phase1_remaining": 30,
-    "fresh_true_stp": 91,
-    "fresh_hitl": 39,
-    "fresh_stp_rate": 0.7,
-    "all_completed": 219,
-    "all_true_stp": 175,
-    "all_true_stp_rate": 0.799087,
-    "all_hitl": 44,
-    "all_hitl_rate": 0.200913,
-    "mean_elapsed_sec": 49.18,
-    "eta_phase1_min": 24.6,
-    "eta_full_remaining_min": 640.1
-  },
-  "gates_so_far": {
-    "field_exact_accuracy_ge_95": "PASS",
-    "accepted_field_precision_ge_99_5": "PASS",
-    "false_accepted_critical_eq_0": "PASS",
-    "true_stp_ge_94": "FAIL_SO_FAR",
-    "claim_hitl_le_6": "FAIL_SO_FAR",
-    "release_gate_eligible": false
-  },
-  "stp_leak_note": "Fresh HITL is mostly total_charge UNRESOLVED_CLAIM_CONTRADICTION; TRUE_STP still includes conflict-agent AUTO charges quarantined vs Silver GT (monetary leak).",
-  "note": "Auto-quarantine on mid-score keeps FA gate green while phase1 continues."
+  "leak_fix": {
+    "flipped_bleed_stp_to_hitl": 11,
+    "remaining_bleed_true_stp_auto": 0,
+    "guards": [
+      "authorize_conflict_agent_charge",
+      "BLEED_CENTS_FAIL_CLOSED",
+      "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
+      "BLEED_CENTS_GEOMETRY_BLOCKED",
+      "BLEED_CENTS_LINE_SUM_BLOCKED"
+    ]
+  }
 }
