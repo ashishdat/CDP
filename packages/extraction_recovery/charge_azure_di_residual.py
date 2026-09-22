@@ -129,6 +129,21 @@ def _shape_charge_text(field_name: str, raw: str | None) -> tuple[str | None, bo
     text = _normalize_charge_text(raw)
     if not text:
         return None, False
+    # Ruling-split geometry first: ``7 $ 157 :07`` / ``$ 222 |22`` are dollars|cents
+    # ink. Bare ``\d{2,6}`` matches would otherwise invent ``157.00`` / ``222.00``
+    # and drop the cents column (DJKH.002/005/010 remain-25 charge HITL).
+    try:
+        from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+    except Exception:  # noqa: BLE001
+        _ruling_split_amount = None  # type: ignore[assignment]
+    if _ruling_split_amount is not None:
+        ruled = _ruling_split_amount(text)
+        if ruled:
+            shaped = bool(semantic_accept(field_name, ruled)[0]) or bool(
+                re.fullmatch(r"\d+\.\d{2}", ruled)
+            )
+            if shaped:
+                return ruled, True
     # Prefer explicit currency; fall back to digit spans from noisy DI lines.
     span = select_field_span(text, "CURRENCY", field_name)
     selected = _normalize_charge_text(span.selected_text) or text

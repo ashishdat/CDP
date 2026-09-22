@@ -314,11 +314,23 @@ _DOLLARS_CORRUPT_CENTS = re.compile(
     r"^\s*(\d{1,5})\s*[i:;.]\s*0{1,2}\s*$",
     re.IGNORECASE,
 )
+# Printed CMS-1500 dollars/cents with a dollar sign: ``$ 157 :07``, ``7 $ 157 :07``,
+# ``$ 222 |22``, ``J $ 228 |32``. Leading/trailing scrap digits are POS/units bleed.
+_CASH_RULED_CENTS = re.compile(
+    r"\$\s*(\d{1,5})\s*[:|/]\s*(\d{2})\b"
+)
 
 
 def _ruling_split_amount(raw: object) -> str | None:
     """Reconstruct dollars|cents ruling splits and dollars+units-bleed raws."""
     text = str(raw or "")
+    cash = _CASH_RULED_CENTS.search(text)
+    if cash:
+        dollars, cents = cash.group(1), cash.group(2)
+        try:
+            return format_currency(parse_currency(f"{int(dollars)}.{cents}"))
+        except (TypeError, ValueError):
+            return None
     match = _RULED_CENTS_RAW.match(text)
     if match:
         dollars, cents = match.group(1), match.group(2)

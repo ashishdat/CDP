@@ -321,6 +321,68 @@ def di_multi_token_rival_amounts(
     return rivals
 
 
+def ruling_split_junk_insert_amounts(
+    field_payload: dict | None,
+    *,
+    line_total: object = None,
+) -> set[str]:
+    """Digit-soup amounts that insert one junk digit into a ``$ dollars : cents`` read.
+
+    DJKH.002: DI raw ``7 $ 157 :07`` → ``157.07``; paddle ``1571.07`` from
+    ``157107`` is concat soup, not a second Box 28 total. Requires a cash
+    ruling-split (``$`` + ``:``/``|``) so bare DI ``200`` vs paddle ``2001``
+    (DJKN.005) stays a real place-shift conflict.
+    """
+    del line_total  # geometric confirmation comes from raw ruling-split only
+    if not isinstance(field_payload, dict):
+        return set()
+    from packages.claim_evidence.financial_geometry_authority import (
+        _digits_match_with_single_junk,
+    )
+    from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+
+    geometric: set[str] = set()
+    shaped_rows: list[str] = []
+
+    def _consume(value: object, raw: object) -> None:
+        raw_text = str(raw or "")
+        ruled = _ruling_split_amount(raw_text)
+        # Cash ruling only — ``$ 157 :07`` / ``$ 222 |22``, not bare ``34\\n25``.
+        if ruled and "$" in raw_text and re.search(r"[:|/]", raw_text):
+            geometric.add(ruled)
+        amount = parse_currency(value)
+        if amount is not None:
+            shaped_rows.append(format_currency(amount))
+
+    residual = field_payload.get("azure_di_residual") or {}
+    if isinstance(residual, dict):
+        _consume(residual.get("value"), residual.get("raw_value") or residual.get("value"))
+    rows: list[dict] = []
+    if isinstance(field_payload.get("ranked_candidate"), dict):
+        rows.append(field_payload["ranked_candidate"])
+    rows.extend(row for row in (field_payload.get("alternatives") or []) if isinstance(row, dict))
+    rows.extend(row for row in (field_payload.get("candidates") or []) if isinstance(row, dict))
+    for row in rows:
+        ocr = row.get("ocr_candidate") or row
+        if not isinstance(ocr, dict):
+            continue
+        _consume(ocr.get("value"), ocr.get("raw_value"))
+
+    rivals: set[str] = set()
+    for shaped in shaped_rows:
+        if shaped in geometric:
+            continue
+        riv_digits = re.sub(r"\D", "", shaped)
+        for geo in geometric:
+            conf_digits = re.sub(r"\D", "", geo)
+            if len(riv_digits) != len(conf_digits) + 1:
+                continue
+            if _digits_match_with_single_junk(conf_digits, riv_digits):
+                rivals.add(shaped)
+                break
+    return rivals
+
+
 def box28_junk_winner_amounts(
     field_payload: dict | None,
     *,
@@ -331,6 +393,7 @@ def box28_junk_winner_amounts(
         caption_only_bleed_amounts(field_payload)
         | cents_column_fragment_amounts(field_payload, line_total=line_total)
         | di_multi_token_rival_amounts(field_payload, line_total=line_total)
+        | ruling_split_junk_insert_amounts(field_payload, line_total=line_total)
     )
 
 

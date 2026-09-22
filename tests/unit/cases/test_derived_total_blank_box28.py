@@ -691,3 +691,48 @@ def test_di_multi_token_raw_rival_is_not_a_box_winner():
     assert di_multi_token_rival_amounts(payload, line_total="70.00") == {"100.00"}
     assert "100.00" in box28_junk_winner_amounts(payload, line_total="70.00")
     assert "70.00" not in box28_junk_winner_amounts(payload, line_total="70.00")
+
+
+def test_ruling_split_junk_insert_paddle_is_not_a_box_winner():
+    """DJKH.002: paddle ``1571.07`` beside cash ruling-split ``157.07`` is soup."""
+    from packages.claim_evidence.box28_blankness import (
+        box28_junk_winner_amounts,
+        ruling_split_junk_insert_amounts,
+    )
+    from packages.extraction_recovery.charge_azure_di_residual import _shape_charge_text
+
+    assert _shape_charge_text("total_charge", "7 $ 157 :07") == ("157.07", True)
+    payload = {
+        "candidates": [
+            {
+                "engine": "azure_document_intelligence_read",
+                "value": "157.00",
+                "raw_value": "7 $ 157 :07",
+            },
+            {
+                "engine": "anthropic_claude_crop",
+                "value": "157.07",
+                "raw_value": "157.07",
+            },
+            {
+                "engine": "paddleocr",
+                "value": "1571.07",
+                "raw_value": "157107",
+            },
+        ]
+    }
+    assert ruling_split_junk_insert_amounts(payload) == {"1571.07"}
+    assert "1571.07" in box28_junk_winner_amounts(payload)
+    assert "157.07" not in box28_junk_winner_amounts(payload)
+    # Bare DI 200 vs paddle 2001 stays a real place-shift (no cash ruling raw).
+    bare = {
+        "candidates": [
+            {
+                "engine": "azure_document_intelligence_read",
+                "value": "200.00",
+                "raw_value": "200",
+            },
+            {"engine": "paddleocr", "value": "2001.00", "raw_value": "2001"},
+        ]
+    }
+    assert ruling_split_junk_insert_amounts(bare) == set()

@@ -458,6 +458,16 @@ def test_ruling_split_raw_reconstructs_cents():
     assert result.amount == "34.25"
 
 
+def test_cash_ruling_split_colon_and_pipe_with_scrap():
+    """DJKH.002/005: ``7 $ 157 :07`` / ``$ 222 |22`` keep cents, not bare dollars."""
+    from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+
+    assert _ruling_split_amount("7 $ 157 :07") == "157.07"
+    assert _ruling_split_amount("$ 157 :07 1") == "157.07"
+    assert _ruling_split_amount("$ 222 |22") == "222.22"
+    assert _ruling_split_amount("J $ 228 |32") == "228.32"
+
+
 def test_units_bleed_tail_keeps_leading_dollars():
     """``212\\n100`` is dollars 212 with units bleed, not dual-local 100.00."""
     line = {

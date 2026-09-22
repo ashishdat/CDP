@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from hashlib import sha256
 from itertools import combinations
@@ -69,6 +70,10 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
     """True when some other candidate is a ×10/×100 or digit-drop twin."""
     from decimal import Decimal
 
+    from packages.claim_evidence.financial_geometry_authority import (
+        _digits_match_with_single_junk,
+    )
+    from packages.claim_evidence.line_charge_selector import _ruling_split_amount
     from packages.claim_evidence.line_sum_authority import (
         is_currency_digit_drop_twin,
         is_decimal_place_shift,
@@ -78,10 +83,35 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
     target = parse_currency(agreed)
     if target is None:
         return False
+    # Cash ruling-split raws (``$ 157 :07``) geometrically confirm ``agreed`` —
+    # a one-digit insert soup twin (``1571.07``) is not a real place-shift rival.
+    agreed_digits = re.sub(r"\D", "", agreed)
+    geometric_confirmed = False
+    for cand in candidates:
+        raw_text = str(cand.raw_value or "")
+        ruled = _ruling_split_amount(raw_text)
+        if (
+            ruled
+            and "$" in raw_text
+            and re.search(r"[:|/]", raw_text)
+            and parse_currency(ruled) is not None
+            and abs(parse_currency(ruled) - target) <= Decimal("0.01")
+        ):
+            geometric_confirmed = True
+            break
+
     for cand in candidates:
         raw = str(cand.value or "")
         other = parse_currency(raw)
         if other is None or other == target:
+            continue
+        other_digits = re.sub(r"\D", "", raw)
+        if (
+            geometric_confirmed
+            and agreed_digits
+            and len(other_digits) == len(agreed_digits) + 1
+            and _digits_match_with_single_junk(agreed_digits, other_digits)
+        ):
             continue
         if is_decimal_place_shift(agreed, raw) or is_currency_digit_drop_twin(agreed, raw):
             return True
@@ -149,6 +179,27 @@ def _append_di_partner_agreement(
 
     if "charge" not in name:
         return
+    # Rebuild with cash ruling-split preference (``7 $ 157 :07`` → 157.07).
+    by_norm = {}
+    for cand in candidates:
+        if not (cand.value or "").strip() and not (cand.raw_value or "").strip():
+            continue
+        group = independence_group(cand.engine)
+        charge_value = str(cand.value or "")
+        raw_text = str(cand.raw_value or "")
+        if "$" in raw_text and re.search(r"[:|/]", raw_text):
+            from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+
+            ruled = _ruling_split_amount(raw_text)
+            if ruled:
+                charge_value = ruled
+        if not charge_value.strip():
+            continue
+        norm = normalize_agreement_value(field_name, charge_value)
+        if not norm:
+            continue
+        by_norm.setdefault(norm, {})[group] = cand
+
     for norm, groups in by_norm.items():
         if "AZURE_READ_FAMILY" not in groups:
             continue
@@ -159,7 +210,15 @@ def _append_di_partner_agreement(
         )
         if partner is None:
             continue
-        agreed_value = str(groups["AZURE_READ_FAMILY"].value or partner.value)
+        di_cand = groups["AZURE_READ_FAMILY"]
+        agreed_value = str(di_cand.value or partner.value)
+        di_raw = str(di_cand.raw_value or "")
+        if "$" in di_raw and re.search(r"[:|/]", di_raw):
+            from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+
+            ruled = _ruling_split_amount(di_raw)
+            if ruled:
+                agreed_value = ruled
         if _charge_has_place_shift_rival(field_name, agreed_value, candidates):
             continue
         bundle.items.append(
@@ -171,7 +230,7 @@ def _append_di_partner_agreement(
                 value=agreed_value,
                 independent=True,
                 metadata={
-                    "engines": [groups["AZURE_READ_FAMILY"].engine, partner.engine],
+                    "engines": [di_cand.engine, partner.engine],
                     "agreement_type": "CHARGE_DI_PARTNER_AGREEMENT",
                     "dependency_relation": "INDEPENDENT",
                     "normalized_value": norm,
