@@ -22,7 +22,8 @@ from packages.claim_evidence.line_sum_authority import (
 
 # Cents that almost always come from Box 24G units / dashed-ruling bleed into
 # the cents column on typed CMS-1500 charges (whole-dollar claims dominate).
-_BLEED_CENTS = frozenset({"01", "07", "10", "22", "32", "40", "43"})
+# Includes echo pairs (.24/.44) seen on DJKH geometry crops.
+_BLEED_CENTS = frozenset({"01", "07", "10", "16", "22", "24", "32", "40", "43", "44"})
 _FULL_TAGS = frozenset({"full", "line_full", "geometry", "line_geometry", "primary"})
 _RULING_TAGS = frozenset({"ruling", "line_ruling"})
 
@@ -49,12 +50,28 @@ def _cents_part(amount: object) -> str:
     return text.split(".", 1)[1]
 
 
+def is_echo_cents(amount: object) -> bool:
+    """True when cents digits echo the dollars stem (222.22, 444.44)."""
+    dollars = _dollars_part(amount)
+    cents = _cents_part(amount)
+    if not dollars or not cents or cents == "00":
+        return False
+    if len(dollars) >= 2 and dollars == cents:
+        return True
+    # Short echo: dollars ``44`` / cents ``44``, or trailing two dollars digits.
+    if len(dollars) >= 2 and dollars[-2:] == cents:
+        return True
+    return False
+
+
 def is_units_bleed_cents(amount: object) -> bool:
     """True when cents look like units/ruling bleed rather than typed cents."""
     cents = _cents_part(amount)
     if not cents or cents == "00":
         return False
-    return cents in _BLEED_CENTS
+    if cents in _BLEED_CENTS:
+        return True
+    return is_echo_cents(amount)
 
 
 def is_ruling_tail_extension(shorter: object, longer: object) -> bool:

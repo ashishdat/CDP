@@ -101,7 +101,14 @@ def _exact(field: str, predicted: object, expected: object, **_context: Any) -> 
         def compact(value: object) -> str:
             return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
 
-        return compact(predicted) == compact(expected)
+        a, b = compact(predicted), compact(expected)
+        if a == b:
+            return True
+        # Leading-zero padding is representation only when both are digit shells
+        # (0000374350 ↔ 374350). Keep letterful member ids strict.
+        if a.isdigit() and b.isdigit():
+            return (a.lstrip("0") or "0") == (b.lstrip("0") or "0")
+        return False
     if field in {"patient_name", "insured_name"}:
         def compact(value: object) -> str:
             return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())

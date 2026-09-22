@@ -62,6 +62,9 @@ def test_units_bleed_cents_prefer_whole_dollar():
     assert is_units_bleed_cents("157.07")
     assert is_units_bleed_cents("228.32")
     assert is_units_bleed_cents("25.43")
+    assert is_units_bleed_cents("84.24")
+    assert is_units_bleed_cents("444.44")
+    assert is_units_bleed_cents("222.22")
     assert not is_units_bleed_cents("157.00")
     assert not is_units_bleed_cents("49.72")
     assert prefer_safe_charge_amount("157.07", "157.00") is None
@@ -81,6 +84,25 @@ def test_units_bleed_cents_prefer_whole_dollar():
         service_lines=[{"charges": "157.07"}],
     )
     assert safe == "157.00"
+    assert reason == "BLEED_CENTS_TO_WHOLE_DOLLAR"
+
+
+def test_echo_cents_444_to_whole_dollar_sibling():
+    safe, reason = resolve_safe_charge_total(
+        primary="444.44",
+        field_payload={
+            "ocr": {
+                "candidates": [
+                    {"value": "444.44", "preprocessing_variant": "GEOMETRY_CENTS"},
+                    {
+                        "value": "444.00",
+                        "preprocessing_variant": "charge_digit_whitelist_fast:full",
+                    },
+                ]
+            }
+        },
+    )
+    assert safe == "444.00"
     assert reason == "BLEED_CENTS_TO_WHOLE_DOLLAR"
 
 
