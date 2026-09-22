@@ -371,6 +371,43 @@ def evaluate_financial_geometry_arithmetic(
                     "line_sum": line_sum,
                 },
             )
+        # Cash ruling-split Box 28 (``$ 157 :07``) vs line Σ that is a single
+        # junk-digit insert (``1571.07`` from ``157107``) — confirm printed cents.
+        try:
+            from packages.claim_evidence.box28_blankness import (
+                ruling_split_junk_insert_amounts,
+            )
+            from packages.claim_evidence.charge_total_authority import (
+                cash_ruling_confirms_amount,
+            )
+        except Exception:  # noqa: BLE001
+            ruling_split_junk_insert_amounts = None  # type: ignore[assignment]
+            cash_ruling_confirms_amount = None  # type: ignore[assignment]
+        if (
+            cash_ruling_confirms_amount is not None
+            and ruling_split_junk_insert_amounts is not None
+            and cash_ruling_confirms_amount(box_txt, box28_field_payload)
+        ):
+            junk = ruling_split_junk_insert_amounts(box28_field_payload)
+            line_digits = re.sub(r"\D", "", line_sum)
+            box_digits = re.sub(r"\D", "", box_txt)
+            junk_line = line_sum in junk or (
+                len(line_digits) == len(box_digits) + 1
+                and _digits_match_with_single_junk(box_digits, line_digits)
+            )
+            if junk_line:
+                return FinancialGeometryDecision(
+                    True,
+                    box_txt,
+                    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                    line_sum=line_sum,
+                    box28=box_txt,
+                    details={
+                        "rows": details_rows,
+                        "cash_ruling_line_junk_insert_relieved": True,
+                        "ocr_line_sum": line_sum,
+                    },
+                )
         raw_texts = _collect_box28_raw_texts(
             box28_field_payload, box28_observation, box28_amount
         )

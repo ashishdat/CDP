@@ -200,6 +200,24 @@ class ClaimDecisionService:
     @staticmethod
     def _contradictions(context: ClaimDecisionContext) -> list[str]:
         descriptions = [item.evidence_type for item in context.contradictions]
+        # When total_charge is AUTO with ChargeTotalAuthority / cash ruling
+        # CONFIRMED, stale CLAIM_TOTAL_CONTRADICTION from earlier FG/tolerance
+        # soup must not force claim HITL (field FVA already locked the amount).
+        _MONETARY_AUTHORITY = {
+            "CLAIM_TOTAL_CONFIRMED",
+            "CHARGE_TOTAL_AUTHORITY",
+            "CASH_RULING_PRINTED_CENTS",
+        }
+        charge_auto_authority = any(
+            decision.field_name in {"total_charge", "total_charges"}
+            and decision.disposition in _ACCEPTED
+            and _MONETARY_AUTHORITY.intersection(decision.reason_codes or [])
+            for decision in context.field_decisions
+        )
+        if charge_auto_authority:
+            descriptions = [
+                item for item in descriptions if item != "CLAIM_TOTAL_CONTRADICTION"
+            ]
         for decision in context.field_decisions:
             # Accepted fields may still list OCR alternatives as conflicting_evidence
             # (fragments / separator twins / name confusables). Reconciler already

@@ -88,6 +88,32 @@ def test_claim_contradiction_requires_claim_review():
     assert decision.contradictions == ["CLAIM_TOTAL_CONTRADICTION"]
 
 
+def test_charge_auto_authority_waives_stale_claim_total_contradiction():
+    """AUTO total_charge with CONFIRMED must not stay HITL on stale E6 soup."""
+    service = ClaimDecisionService.load()
+    context = _context(service)
+    context.contradictions.append(EvidenceItem(
+        evidence_class=EvidenceClass.E6,
+        evidence_type="CLAIM_TOTAL_CONTRADICTION",
+        evidence_family="claim-cross-field",
+        source="test",
+    ))
+    tc = next(d for d in context.field_decisions if d.field_name == "total_charge")
+    tc.disposition = FieldDisposition.AUTO_ACCEPTED
+    tc.reason_codes = [
+        "CLAIM_TOTAL_CONFIRMED",
+        "CHARGE_TOTAL_AUTHORITY",
+        "CASH_RULING_PRINTED_CENTS",
+    ]
+    decision = service.decide(context)
+    assert "CLAIM_TOTAL_CONTRADICTION" not in decision.contradictions
+    assert decision.disposition in {
+        ClaimDisposition.STP_SAFE,
+        ClaimDisposition.STP_STANDARD,
+    }
+    assert decision.stp_eligible
+
+
 def test_relieved_field_conflict_does_not_force_claim_review():
     """AUTO_ACCEPTED fields may retain OCR alternatives; claim STP must proceed."""
     from packages.candidate_reconciliation.contracts import EvidenceReference

@@ -384,14 +384,80 @@ class ClaimEvidenceBuilder:
                         },
                     )
             else:
-                contradictions.append(
-                    self._item(
-                        claim_id,
-                        "CLAIM_TOTAL_CONTRADICTION",
-                        str(total),
-                        metadata,
-                    )
+                # Cash ruling printed Box 28 vs line Σ that is junk-digit insert of
+                # the same stem — mint CONFIRMED, do not emit OUTSIDE_TOLERANCE.
+                from packages.claim_evidence.charge_total_authority import (
+                    cash_ruling_confirms_amount,
+                    is_units_bleed_cents,
                 )
+                from packages.claim_evidence.line_sum_authority import format_currency
+                from packages.claim_evidence.financial_geometry_authority import (
+                    _digits_match_with_single_junk,
+                )
+                import re as _re
+
+                reported = format_currency(total)
+                computed = format_currency(observed)
+                box28_payload = (
+                    values.get("_box28_field_payload")
+                    if isinstance(values.get("_box28_field_payload"), dict)
+                    else None
+                )
+                cash_ok = cash_ruling_confirms_amount(reported, box28_payload)
+                junk_line = False
+                if cash_ok:
+                    rd = _re.sub(r"\D", "", reported)
+                    cd = _re.sub(r"\D", "", computed)
+                    junk_line = len(cd) == len(rd) + 1 and _digits_match_with_single_junk(
+                        rd, cd
+                    )
+                if cash_ok and (
+                    junk_line
+                    or (
+                        is_units_bleed_cents(reported)
+                        and abs(total - observed) > Decimal(0)
+                    )
+                ):
+                    # Prefer printed cash-ruled amount over junk/partial line Σ.
+                    if self._mint_claim_total_confirmed(
+                        claim_id=claim_id,
+                        values=values,
+                        evidence=evidence,
+                        amount=reported,
+                        reason="CASH_RULING_PRINTED_CENTS",
+                        metadata={
+                            **metadata,
+                            "service_line_total": computed,
+                            "cash_ruling_outside_tolerance_relieved": True,
+                            "cash_ruling_line_junk_insert": junk_line,
+                        },
+                    ):
+                        for key in ("total_charge", "total_charges", "claim_total"):
+                            if key in values or key == "total_charge":
+                                values[key] = reported
+                        contradictions[:] = [
+                            item
+                            for item in contradictions
+                            if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                        ]
+                    else:
+                        contradictions.append(
+                            self._item(
+                                claim_id,
+                                "CLAIM_TOTAL_CONTRADICTION",
+                                str(total),
+                                metadata,
+                            )
+                        )
+                else:
+                    contradictions.append(
+                        self._item(
+                            claim_id,
+                            "CLAIM_TOTAL_CONTRADICTION",
+                            str(total),
+                            metadata,
+                        )
+                    )
         elif total is None and charges:
             # Phase 2: empty box-28 with observed line charges → honest line-sum E6.
             # Never invent amounts; only sum currency-shaped OCR ink from service lines.
