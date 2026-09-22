@@ -18,7 +18,7 @@
   "stage_failures": 0,
   "elapsed_sec": 156.064,
   "run_status": "COMPLETE",
-  "note": "Source geometry_95_verify has 1000 docs listed; 744 unique registration-ok extracts available for complete-inplace. Metrics are unique claim_id (no ledger dups).",
+  "note": "NON-GATE latency-smoke recovery on residual-off OCR. Latency OCR commits reverted; stop ladder kept. See stp_latency_next_strategy_v1.md. Source geometry_95_verify has 1000 docs listed; 744 unique registration-ok extracts available for complete-inplace.",
   "flipped_ids": [
     "Group A__M048DJJM.025",
     "Group A__M048DJJM.027",
