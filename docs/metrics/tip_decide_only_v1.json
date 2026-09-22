@@ -1,6 +1,6 @@
 {
   "title": "Tip decide-only accuracy/STP \u2014 frozen OCR cohort",
-  "updated_at": "2026-09-22T11:28:07.651151+00:00",
+  "updated_at": "2026-09-22T21:42:15.099865+00:00",
   "corpus": {
     "zip": "data/Hackathon - 1000 Claims.zip",
     "documents_in_zip": 1000,

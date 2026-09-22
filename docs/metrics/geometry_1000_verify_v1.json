@@ -1,6 +1,6 @@
 {
   "title": "Geometry-1000 verify \u2014 see split metrics",
-  "updated_at": "2026-09-22T11:28:07.652045+00:00",
+  "updated_at": "2026-09-22T21:42:15.100838+00:00",
   "see": {
     "tip": "docs/metrics/tip_decide_only_v1.json",
     "ops": "docs/metrics/ops_fresh_ocr_stp_v1.json",
@@ -8,10 +8,10 @@
     "index": "docs/metrics/stp_metrics_index_v1.json"
   },
   "ops_snapshot": {
-    "completed": 305,
-    "true_stp_rate_of_completed": 0.737705,
-    "hitl_rate_of_completed": 0.262295,
-    "bleed_cents_true_stp_auto": 0,
+    "completed": 744,
+    "true_stp_rate_of_completed": 0.50672,
+    "hitl_rate_of_completed": 0.49328,
+    "bleed_cents_true_stp_auto": 24,
     "exact_accuracy": 0.949848,
     "false_accepts": 0
   },

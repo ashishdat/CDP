@@ -1,29 +1,21 @@
 {
   "title": "Fresh-OCR ops STP (cascade) \u2014 not tip decide-only",
-  "updated_at": "2026-09-22T11:28:07.650556+00:00",
-  "run_dir": "evaluation_results/hackathon_1000_geometry_95_verify",
-  "n_ledger": 308,
-  "completed": 305,
-  "true_stp": 225,
-  "true_stp_rate_of_completed": 0.737705,
-  "field_ink_hitl": 80,
-  "hitl_rate_of_completed": 0.262295,
+  "updated_at": "2026-09-22T21:42:15.097663+00:00",
+  "run_dir": "evaluation_results/hackathon_1000_stp_recovery_latest_arch",
+  "n_ledger": 744,
+  "completed": 744,
+  "true_stp": 377,
+  "true_stp_rate_of_completed": 0.50672,
+  "field_ink_hitl": 367,
+  "hitl_rate_of_completed": 0.49328,
   "disposition_counts": {
-    "HITL": 80,
-    "TRUE_STP": 225,
-    "STAGE_FAILURE": 1,
-    "REGISTRATION_FAILED": 2
+    "TRUE_STP": 377,
+    "HITL": 367
   },
   "hitl_gap_class_counts": {
-    "LINE_SUM_UNCORROBORATED": 47,
-    "EVIDENCE_POLICY_GAP": 24,
-    "NO_GAP_CLASS": 4,
-    "CALIBRATION_HITL": 3,
-    "HANDWRITING_UNREADABLE": 2,
-    "AMBIGUOUS_DIGIT_FRAGMENTS": 2,
-    "EMPTY_FINANCIAL_INK": 1
+    "NO_GAP_CLASS": 22
   },
-  "bleed_cents_true_stp_auto": 0,
+  "bleed_cents_true_stp_auto": 24,
   "accuracy_vs_agent_gt": {
     "exact_accuracy": 0.949848,
     "accepted_field_precision": 1.0,
@@ -62,7 +54,7 @@
   "gates_ops": {
     "true_stp_ge_94": "FAIL",
     "claim_hitl_le_6": "FAIL",
-    "bleed_cents_true_stp_auto_eq_0": "PASS",
+    "bleed_cents_true_stp_auto_eq_0": "FAIL",
     "note": "Ops STP is fresh OCR + full cascade. Do not compare to tip-89 decide-only STP as a regression signal."
   },
   "authority": {

@@ -1,6 +1,6 @@
 {
   "title": "Quarantined AUTO / label-source debt (not FA, not tip exact)",
-  "updated_at": "2026-09-22T11:28:07.651528+00:00",
+  "updated_at": "2026-09-22T21:42:15.100346+00:00",
   "ledger": "docs/gt/ground_truth_discrepancy_ledger.json",
   "record_count": 201,
   "by_kind": {
