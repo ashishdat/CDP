@@ -1,0 +1,271 @@
+{
+  "title": "Step 2 identity DOB/ID cohort after local-prefer + cloud-skip",
+  "cohort": [
+    "Group A__M048DJKH.022",
+    "Group A__M048EJI2.020",
+    "Group A__M048HJBI.014",
+    "Group A__M048HJCX.003",
+    "Group A__M048DJJM.046",
+    "Group A__M048EJG7.019",
+    "Group A__M048EJG7.036",
+    "Group A__M048EJH6.006"
+  ],
+  "completed": 8,
+  "true_stp": 4,
+  "flipped": 4,
+  "flipped_ids": [
+    "Group A__M048DJKH.022",
+    "Group A__M048HJCX.003",
+    "Group A__M048DJJM.046",
+    "Group A__M048EJH6.006"
+  ],
+  "still_hitl": 4,
+  "still_hitl_ids": [
+    "Group A__M048EJI2.020",
+    "Group A__M048HJBI.014",
+    "Group A__M048EJG7.036",
+    "Group A__M048EJG7.019"
+  ],
+  "per_claim": [
+    {
+      "claim_id": "Group A__M048EJI2.020",
+      "true_stp": false,
+      "prior": false,
+      "blockers": [
+        "patient_dob"
+      ],
+      "fields": {
+        "insured_id_number": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "992855948",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED"
+          ]
+        },
+        "patient_dob": {
+          "disp": "ESCALATE",
+          "value": "1",
+          "reasons": [
+            "INVALID_FORMAT",
+            "MISSING_E4_DETERMINISTIC_VALIDATION",
+            "ACQUIRE_E4",
+            "CHEAPEST_POLICY_COMPLETING_EVIDENCE"
+          ]
+        }
+      },
+      "elapsed": 0.766
+    },
+    {
+      "claim_id": "Group A__M048DJKH.022",
+      "true_stp": true,
+      "prior": false,
+      "blockers": [],
+      "fields": {
+        "insured_id_number": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "111146570",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED"
+          ]
+        },
+        "patient_dob": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "2011-11-01",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "DATE_VALID",
+            "FORMAT_VALID",
+            "DATE_UNIQUE_CALENDAR_CORROBORATED",
+            "EQUIVALENT_VALUE_CONFLICT_RELIEVED"
+          ]
+        }
+      },
+      "elapsed": 0.771
+    },
+    {
+      "claim_id": "Group A__M048HJCX.003",
+      "true_stp": true,
+      "prior": false,
+      "blockers": [],
+      "fields": {
+        "insured_id_number": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "CDW3532210",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID"
+          ]
+        },
+        "patient_dob": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "2002-06-20",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "DATE_VALID",
+            "FORMAT_VALID",
+            "DATE_UNIQUE_CALENDAR_CORROBORATED",
+            "EQUIVALENT_VALUE_CONFLICT_RELIEVED"
+          ]
+        }
+      },
+      "elapsed": 0.777
+    },
+    {
+      "claim_id": "Group A__M048HJBI.014",
+      "true_stp": false,
+      "prior": false,
+      "blockers": [
+        "patient_dob"
+      ],
+      "fields": {
+        "insured_id_number": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "127523766",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID"
+          ]
+        },
+        "patient_dob": {
+          "disp": "ESCALATE",
+          "value": "H07 30 1",
+          "reasons": [
+            "CONFLICT_MARGIN_TOO_SMALL",
+            "INVALID_FORMAT",
+            "MISSING_E4_DETERMINISTIC_VALIDATION",
+            "ACQUIRE_E4",
+            "CHEAPEST_POLICY_COMPLETING_EVIDENCE"
+          ]
+        }
+      },
+      "elapsed": 0.816
+    },
+    {
+      "claim_id": "Group A__M048DJJM.046",
+      "true_stp": true,
+      "prior": false,
+      "blockers": [],
+      "fields": {
+        "insured_id_number": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "981067892",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "UNIQUE_SHAPED_ID_CORROBORATED"
+          ]
+        },
+        "patient_dob": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "1977-12-23",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "DATE_VALID",
+            "FORMAT_VALID",
+            "DATE_UNIQUE_CALENDAR_CORROBORATED"
+          ]
+        }
+      },
+      "elapsed": 0.892
+    },
+    {
+      "claim_id": "Group A__M048EJG7.036",
+      "true_stp": false,
+      "prior": false,
+      "blockers": [],
+      "fields": {
+        "insured_id_number": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "0000007267",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "MULTI_ENGINE_AGREEMENT",
+            "FORMAT_VALID"
+          ]
+        },
+        "patient_dob": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "1963-02-12",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "DATE_VALID",
+            "FORMAT_VALID",
+            "DATE_UNIQUE_CALENDAR_CORROBORATED"
+          ]
+        }
+      },
+      "elapsed": 1.163
+    },
+    {
+      "claim_id": "Group A__M048EJH6.006",
+      "true_stp": true,
+      "prior": false,
+      "blockers": [],
+      "fields": {
+        "insured_id_number": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "JQL4PV01",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "MULTI_ENGINE_AGREEMENT",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED"
+          ]
+        },
+        "patient_dob": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "1996-12-31",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "DATE_VALID",
+            "FORMAT_VALID",
+            "DATE_UNIQUE_CALENDAR_CORROBORATED"
+          ]
+        }
+      },
+      "elapsed": 1.216
+    },
+    {
+      "claim_id": "Group A__M048EJG7.019",
+      "true_stp": false,
+      "prior": false,
+      "blockers": [
+        "insured_id_number"
+      ],
+      "fields": {
+        "insured_id_number": {
+          "disp": "HUMAN_REVIEW_REQUIRED",
+          "value": "tot Tiogiar m nen t",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+            "CALIBRATED_CONFIDENCE_BELOW_THRESHOLD",
+            "CALIBRATION_OR_AMBIGUITY_REQUIRES_REVIEW"
+          ]
+        },
+        "patient_dob": {
+          "disp": "AUTO_ACCEPTED",
+          "value": "1955-08-24",
+          "reasons": [
+            "HARD_VALIDATION_PASSED",
+            "DATE_VALID",
+            "FORMAT_VALID",
+            "DATE_UNIQUE_CALENDAR_CORROBORATED",
+            "EQUIVALENT_VALUE_CONFLICT_RELIEVED"
+          ]
+        }
+      },
+      "elapsed": 1.541
+    }
+  ],
+  "cloud_call_reduction": {
+    "skip_gpt4o_when_local_id_settled": true,
+    "skip_dob_residual_when_display_shaped_local": true,
+    "rationale": "Prefer local calendar/ID ink in reconcile so DI/Claude are not needed to fix ranking mistakes; gate skips vision when locals already corroborate."
+  }
+}

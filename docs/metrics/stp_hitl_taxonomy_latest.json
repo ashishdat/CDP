@@ -2,22 +2,22 @@
   "title": "E2E HITL taxonomy (full ops cohort)",
   "run": "evaluation_results/hackathon_1000_stp_recovery_latest_arch",
   "completed": 317,
-  "true_stp": 281,
-  "true_stp_rate": 0.886435,
-  "hitl": 36,
+  "true_stp": 286,
+  "true_stp_rate": 0.902208,
+  "hitl": 31,
   "buckets": {
-    "true_stp": 281,
-    "charge_conflict_margin": 7,
+    "true_stp": 286,
+    "charge_conflict_margin": 6,
     "charge_field_hitl": 16,
-    "identity_id": 4,
     "bleed_fail_closed": 2,
-    "identity_dob": 4,
+    "identity_id": 1,
+    "other_hitl": 1,
+    "identity_dob": 2,
     "true_box28_line_disagree": 3
   },
   "hitl_ids": {
     "charge_conflict_margin": [
       "Group A__M048DJJM.004",
-      "Group A__M048DJKH.029",
       "Group A__M048EJGE.001",
       "Group A__M048EJI2.036",
       "Group A__M048HJBI.005",
@@ -42,21 +42,19 @@
       "Group A__M048HJDF.009",
       "Group A__M048HJDF.017"
     ],
-    "identity_id": [
-      "Group A__M048DJJM.046",
-      "Group A__M048EJG7.019",
-      "Group A__M048EJG7.036",
-      "Group A__M048EJH6.006"
-    ],
     "bleed_fail_closed": [
       "Group A__M048DJJM.049",
       "Group A__M048EJGE.043"
     ],
+    "identity_id": [
+      "Group A__M048EJG7.019"
+    ],
+    "other_hitl": [
+      "Group A__M048EJG7.036"
+    ],
     "identity_dob": [
-      "Group A__M048DJKH.022",
       "Group A__M048EJI2.020",
-      "Group A__M048HJBI.014",
-      "Group A__M048HJCX.003"
+      "Group A__M048HJBI.014"
     ],
     "true_box28_line_disagree": [
       "Group A__M048EJI2.046",
