@@ -1,0 +1,44 @@
+{
+  "title": "DI-local charge STP ignores single-digit OCR scrap (EJG7.027)",
+  "commit": "2a98e65",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_digit_scrap_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_digit_scrap_decide",
+    "src": "evaluation_results/hackathon_150_inflated_stem_decide",
+    "method": "complete_only_geometry_rebuild_v1",
+    "note_method": "Upstream agent_honor GeometryResult pruned during disk cleanup; rebuilt SUCCESS geometry from OCR regions for E3 only. Frozen OCR/rank/extract reused.",
+    "completed": 89,
+    "true_stp": 74,
+    "true_stp_rate_of_completed": 0.831461,
+    "field_ink_hitl": 15,
+    "prior_inflated_stem": 73,
+    "flipped_to_true_stp": [
+      "Group A/M048EJG7.027"
+    ],
+    "lost_stp": [],
+    "false_accepts": 57,
+    "accepted_fields_scored": 234,
+    "accepted_field_precision": 0.75641
+  },
+  "page_check": "EJG7.027 Box 28 DI+Claude 105 with CHARGE_DI_LOCAL_CONFIRMED; paddle 03.00/3 single-digit scrap no longer CONFLICT_MARGIN_TOO_SMALL. Place-shift DJKN.005/007 stay HITL.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 74 (~83.1%). Remaining: LINE_SUM_UNCORROBORATED, EVIDENCE_POLICY_GAP place-shifts, identity HITL, empty ink.",
+  "cleanup": "evaluation_results pruned ~723M\u2192~160M (kept tip + caption_bleed + digit_scrap). Do not delete runs that still hold GeometryResult referenced by tip OCR.",
+  "note": "Decision-only on frozen OCR. Golden Pack not mutated. Gates still fail."
+}
