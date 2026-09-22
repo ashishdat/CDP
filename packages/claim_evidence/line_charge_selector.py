@@ -992,6 +992,26 @@ def select_line_charge(
             elif stem_trusted or family not in _LOCAL_ENGINES:
                 rejected.append((amount, "UNITS_CONCAT_BLEED"))
                 continue
+        # Local ×100 under-read (paddle ``1.50``) beside vision fuller (``150.00``).
+        # ``_looks_like_place_shift`` only flags the inflated side, so catch the
+        # under-read here before it wins GEOMETRY_CENTS_PLACE_SHIFT_RESOLVED.
+        # Do NOT treat GEOMETRY_CENTS ``49.72`` as an under-read of vision soup
+        # ``4972.00`` — those are concat shells where the smaller is correct.
+        if family in _LOCAL_ENGINES:
+            under_amt = parse_currency(amount)
+            if under_amt is not None and any(
+                peer != amount
+                and (peer_val := parse_currency(peer)) is not None
+                and peer_val > under_amt
+                and is_decimal_place_shift(amount, peer)
+                and not _is_concat_place_shift_shell(peer, peer_amounts)
+                and any(
+                    a == peer and fam == "azure_gpt4o_crop" for a, fam, _ in usable
+                )
+                for peer in peer_amounts
+            ):
+                rejected.append((amount, "PLACE_SHIFT_UNDER_READ"))
+                continue
         if _looks_like_place_shift(amount, peer_amounts):
             # Concat shells (4972.00 vs 49.72) always reject. ×10/×100 under-reads
             # (paddle 1.75 vs rapid+Claude 175.00) keep the vision+local fuller
@@ -1002,7 +1022,39 @@ def select_line_charge(
             vision_and_local = any(
                 a == amount and fam == "azure_gpt4o_crop" for a, fam, _ in usable
             ) and any(a == amount and fam in _LOCAL_ENGINES for a, fam, _ in usable)
-            if not vision_and_local:
+            amt_val = parse_currency(amount)
+            # EJGE.003 L2: Claude-only ``150.00`` vs paddle ``1.50`` — keep the
+            # vision fuller when every smaller place-shift peer is local-only.
+            vision_only_fuller = False
+            if (
+                not vision_and_local
+                and family == "azure_gpt4o_crop"
+                and amt_val is not None
+            ):
+                smaller_local_only: list[str] = []
+                for peer in peer_amounts:
+                    if peer == amount:
+                        continue
+                    peer_val = parse_currency(peer)
+                    if (
+                        peer_val is None
+                        or peer_val >= amt_val
+                        or not is_decimal_place_shift(amount, peer)
+                    ):
+                        continue
+                    peer_has_local = any(
+                        a == peer and fam in _LOCAL_ENGINES for a, fam, _ in usable
+                    )
+                    peer_has_vision = any(
+                        a == peer and fam == "azure_gpt4o_crop" for a, fam, _ in usable
+                    )
+                    if peer_has_local and not peer_has_vision:
+                        smaller_local_only.append(peer)
+                    else:
+                        smaller_local_only = []
+                        break
+                vision_only_fuller = bool(smaller_local_only)
+            if not vision_and_local and not vision_only_fuller:
                 rejected.append((amount, "PLACE_SHIFT_SOUP"))
                 continue
         quality = _candidate_evidence_quality(cand, amount)
@@ -1057,6 +1109,23 @@ def select_line_charge(
         )
         if vision_fuller is not None:
             return vision_fuller
+        # Claude-only whole-dollar fuller after local ×100 under-reads were
+        # stripped (EJGE.003: 150.00 vs paddle 1.50). vision_fuller skips .00.
+        if any(reason == "PLACE_SHIFT_UNDER_READ" for _, reason in rejected):
+            vision_only = [
+                amount
+                for amount, families in by_amount.items()
+                if "azure_gpt4o_crop" in families and not (families & _LOCAL_ENGINES)
+            ]
+            if len(vision_only) == 1:
+                amount = vision_only[0]
+                return LineChargeSelection(
+                    "SELECTED_LOCAL_CHARGE",
+                    amount,
+                    "VISION_FULLER_OVER_LOCAL_PLACE_SHIFT",
+                    supporting_engines=tuple(sorted(by_amount[amount])),
+                    rejected=tuple(rejected[:12]),
+                )
         digit_drop = _digit_drop_fuller_local(by_amount)
         # Geometry-only ``200100`` → ``2001.00`` is a ruling tick, not the
         # dropped-digit case that keeps Rapid ``1851.00`` over Claude ``185``.

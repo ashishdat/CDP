@@ -174,6 +174,30 @@ def test_vision_fuller_not_vetoed_by_local_underread_place_shift():
     assert result.amount != "1.75"
 
 
+def test_claude_only_fuller_beats_paddle_place_shift_under_read():
+    """EJGE.003 L2: Claude 150.00 must win over paddle 1.50 geometry under-read."""
+    line = {
+        "charges": "1.50",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "150.00", "150.00", _CHARGE_BBOX),
+            _cand("paddleocr", "1.50", "1.50", _CHARGE_BBOX),
+            _cand(
+                "paddleocr",
+                "1.50",
+                "1.5ni\nn",
+                _CHARGE_BBOX,
+            ),
+        ],
+    }
+    # Tag dollars_ruling-style geometry on the under-read.
+    line["candidates"][1]["preprocessing_variant"] = "CURRENCY_DECIMAL_V2|dollars_ruling"
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "150.00"
+    assert result.amount != "1.50"
+
+
 def test_bare_digit_soup_alone_is_ambiguous_not_selected():
     """4972 with no observed-decimal peer stays conflict/HITL, not SELECTED."""
     line = {
