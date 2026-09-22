@@ -1,24 +1,25 @@
 {
   "title": "Fresh-OCR ops STP (cascade) \u2014 not tip decide-only",
-  "updated_at": "2026-09-22T11:02:31.706659+00:00",
+  "updated_at": "2026-09-22T11:28:07.650556+00:00",
   "run_dir": "evaluation_results/hackathon_1000_geometry_95_verify",
-  "n_ledger": 284,
-  "completed": 284,
-  "true_stp": 211,
-  "true_stp_rate_of_completed": 0.742958,
-  "field_ink_hitl": 73,
-  "hitl_rate_of_completed": 0.257042,
+  "n_ledger": 308,
+  "completed": 305,
+  "true_stp": 225,
+  "true_stp_rate_of_completed": 0.737705,
+  "field_ink_hitl": 80,
+  "hitl_rate_of_completed": 0.262295,
   "disposition_counts": {
-    "FIELD_HITL": 7,
-    "TRUE_STP": 211,
-    "HITL": 66
+    "HITL": 80,
+    "TRUE_STP": 225,
+    "STAGE_FAILURE": 1,
+    "REGISTRATION_FAILED": 2
   },
   "hitl_gap_class_counts": {
-    "LINE_SUM_UNCORROBORATED": 45,
-    "EVIDENCE_POLICY_GAP": 20,
+    "LINE_SUM_UNCORROBORATED": 47,
+    "EVIDENCE_POLICY_GAP": 24,
     "NO_GAP_CLASS": 4,
+    "CALIBRATION_HITL": 3,
     "HANDWRITING_UNREADABLE": 2,
-    "CALIBRATION_HITL": 2,
     "AMBIGUOUS_DIGIT_FRAGMENTS": 2,
     "EMPTY_FINANCIAL_INK": 1
   },
