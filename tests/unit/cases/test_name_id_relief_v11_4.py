@@ -200,9 +200,9 @@ def test_dob_genuine_month_day_conflict_stays_hitl():
     assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
 
 
-def test_unshaped_member_id_soup_stays_review_and_does_not_accept_short_shell():
-    """Group A__M048EJG7.036: tesseract letter soup must not AUTO, and the
-    padded ``0000007267`` shell must not be accepted as ``7267``.
+def test_multi_engine_padded_member_id_accepts_over_letter_soup():
+    """Group A__M048EJG7.036: paddle+rapid (+vision) ``0000007267`` beats
+    tesseract letter soup. Lone padded shells still fail closed elsewhere.
     """
     result = EvidenceReconciler().reconcile(
         "insured_id_number",
@@ -218,9 +218,24 @@ def test_unshaped_member_id_soup_stays_review_and_does_not_accept_short_shell():
         document_family="CMS1500",
         enforce_legacy_evidence_policy=False,
     )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "0000007267"
+    assert "UNSHAPED_MEMBER_ID" not in result.rationale_codes
+
+
+def test_lone_padded_member_id_shell_stays_review():
+    """Single-engine zero-padded short shell must not AUTO as a subscriber id."""
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [_candidate("0000007267", "paddleocr", 0.90)],
+        CriticalityLevel.C3,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
     assert result.decision == Decision.REVIEW
     assert "UNSHAPED_MEMBER_ID" in result.rationale_codes
-    assert result.selected_value not in {"7267", "0000007267"}
 
 
 def test_same_self_reference_beats_single_token_soup():

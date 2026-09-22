@@ -784,6 +784,93 @@ def test_dob_prefers_calendar_valid_over_header_label():
     assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
 
 
+def test_dob_prefers_display_shaped_over_digit_glue_soup():
+    """DJKH.022: ``ib0 13! 197`` digit-glues to a fake YMD — prefer tesseract date."""
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("11/01/2011", "tesseract", 0.70),
+            _candidate("ib0 13! 197", "rapidocr", 0.90),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "11/01/2011"
+
+
+def test_dob_prefers_trocr_date_over_multi_engine_junk():
+    """HJCX.003: paddle+rapid ``06h3 2002`` must not beat TrOCR ``06/20/2002``."""
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("06/20/2002", "trocr", 0.70),
+            _candidate("06h3 2002", "paddleocr", 0.90),
+            _candidate("06 h3 2002", "rapidocr", 0.88),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "06/20/2002"
+
+
+def test_vision_id_unique_shaped_ignores_weak_local_fragment():
+    """DJJM.046: Claude ``981067892`` must not lose unique-shaped to ``890 000``."""
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("981067892", "anthropic_claude_crop", 0.72),
+            _candidate("890 000", "paddleocr", 0.60),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "981067892"
+    assert "UNIQUE_SHAPED_ID_CORROBORATED" in result.rationale_codes
+
+
+def test_alnum_cms_member_id_multi_engine_accepts():
+    """EJH6.006: multi-engine ``JQL4PV-01`` is a shaped CMS alnum id."""
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("JQL4PV-01", "anthropic_claude_crop", 0.97),
+            _candidate("JQL4PV-01", "paddleocr", 0.90),
+            _candidate("JQL4PV-01", "rapidocr", 0.88),
+            _candidate("JQL4PV-01", "tesseract", 0.70),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "MEMBER_RELATIONSHIP_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "JQL4PV01"
+    assert "UNSHAPED_MEMBER_ID" not in result.rationale_codes
+
+
 def test_name_ji_insertion_equivalent_josephine():
     result = EvidenceReconciler().reconcile(
         "patient_name",

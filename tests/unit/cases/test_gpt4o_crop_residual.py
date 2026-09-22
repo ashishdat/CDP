@@ -54,6 +54,26 @@ def test_dob_and_id_gate_helpers():
     assert not id_local_needs_gpt4o("949774145", accepted=True)
 
 
+def test_id_needs_gpt4o_skips_when_locals_already_settled():
+    """paddle+rapid agreement on a shaped ID must not spend Claude/DI."""
+    from packages.extraction_recovery.gpt4o_crop_residual import id_needs_gpt4o
+
+    settled = [
+        {"value": "0000007267", "engine": "paddleocr"},
+        {"value": "0000007267", "engine": "rapidocr"},
+        {"value": "eee ae | ONNNAAIVKRT", "engine": "tesseract"},
+    ]
+    assert not id_needs_gpt4o(
+        "0000007267", accepted=True, candidates=settled
+    )
+    # Digit twins still need vision.
+    conflict = [
+        {"value": "909295500", "engine": "paddleocr"},
+        {"value": "909293380", "engine": "rapidocr"},
+    ]
+    assert id_needs_gpt4o("909295500", accepted=True, candidates=conflict)
+
+
 def test_run_and_attach_dob_accepts_shaped(monkeypatch):
     monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
     monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")

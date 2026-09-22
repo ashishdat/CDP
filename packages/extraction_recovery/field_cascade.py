@@ -247,13 +247,17 @@ def semantic_accept(
         # Reject header-only crops that still contain ID NUMBER / PROGRAM boilerplate.
         alnum = re.sub(r"[^A-Z0-9]", "", compact)
         digit_mass = sum(ch.isdigit() for ch in alnum)
+        letter_mass = sum(ch.isalpha() for ch in alnum)
         # Letter soup (``eee ae | ONNNAAIVKRT``) must never outrank digit ink.
-        # Keep digit-mass aligned with reconciler ``_member_id_is_shaped``.
-        if digit_mass < 5:
+        # Keep digit-mass aligned with reconciler ``_member_id_is_shaped``, and
+        # allow mixed CMS alnum ids (``JQL4PV-01``) with ≥1 digit.
+        if digit_mass < 5 and not (
+            letter_mass >= 2 and digit_mass >= 1 and 6 <= len(alnum) <= 12
+        ):
             return False, "NOT_ID_SHAPED"
         # Shape-check the padded digit string before stripping zeros so
         # ``0000007267`` remains ID_SHAPED for cascade ranking (AUTO still
-        # fail-closed in reconciler for short stripped shells).
+        # fail-closed in reconciler for lone short stripped shells).
         shape_probe = alnum
         if alnum.isdigit() and len(alnum) >= 5:
             shape_probe = alnum

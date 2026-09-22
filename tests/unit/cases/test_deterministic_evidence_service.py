@@ -51,12 +51,19 @@ def test_eight_digit_shells_are_not_calendar_dates():
     assert service.evaluate("patient_dob", "19800705").passed
 
 
-def test_padded_short_member_id_and_box_label_do_not_pass():
+def test_padded_short_member_id_passes_format_when_pad_present():
+    """``0000007267`` is format-valid as pad+shell; reconciler still gates AUTO."""
     service = DeterministicEvidenceService()
     padded = service.evaluate("insured_id_number", "0000007267")
-    assert not padded.passed
-    assert "INVALID_MEMBER_IDENTIFIER" in padded.failure_reasons
-    assert not service.evaluate("insured_id_number", "7267").passed
+    assert padded.passed
+    assert "FORMAT_VALID" in padded.evidence
+
+
+def test_stripped_short_member_id_and_box_label_do_not_pass():
+    service = DeterministicEvidenceService()
+    stripped = service.evaluate("insured_id_number", "7267")
+    assert not stripped.passed
+    assert "INVALID_MEMBER_IDENTIFIER" in stripped.failure_reasons
     label = service.evaluate(
         "insured_id_number",
         "10.INSURED'SID.NUMBER For PrograminItem1",

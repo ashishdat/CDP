@@ -158,6 +158,18 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
             if semantic_accept(name, text)[0]:
                 local_date_shaped = True
                 break
+            # Also treat display-shaped calendar ink (MM/DD/YYYY) as settled so
+            # we do not spend TrOCR → DI → Claude on a field locals already read.
+            try:
+                from packages.candidate_reconciliation.reconciler import (
+                    _dob_is_display_shaped,
+                )
+
+                if _dob_is_display_shaped(text):
+                    local_date_shaped = True
+                    break
+            except Exception:  # noqa: BLE001
+                pass
         if skip_if_local_shaped and local_date_shaped:
             updated.append(row)
             continue

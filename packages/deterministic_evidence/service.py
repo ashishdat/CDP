@@ -136,16 +136,22 @@ class DeterministicEvidenceService:
                 # OCR often inserts spaces/dots/dashes between glyphs
                 # ("4E80 VH6 HJ14", "907.549 6.30 -00"). Validate the compact
                 # alphanumeric form — decoration is not an identity failure.
-                # Leading-zero padding (``0000007267`` → ``7267``) must not pass
-                # the length gate and then strip down to a short accepted id.
+                # Zero-padded shells (``0000007267``) keep FORMAT_VALID when the
+                # pad+core length is ≥8 and the stripped core has ≥4 digits;
+                # reconciler still requires multi-engine corroboration to AUTO.
                 member_compact = re.sub(r"[^A-Za-z0-9]", "", raw)
+                padded_shell_ok = False
+                if member_compact.isdigit() and len(member_compact) >= 8:
+                    core = member_compact.lstrip("0") or "0"
+                    padded_shell_ok = len(core) >= 4
                 if member_compact.isdigit():
                     member_compact = member_compact.lstrip("0") or "0"
-                (
+                if padded_shell_ok or re.fullmatch(
+                    r"[A-Za-z0-9]{5,24}", member_compact
+                ):
                     evidence.add("FORMAT_VALID")
-                    if re.fullmatch(r"[A-Za-z0-9]{5,24}", member_compact)
-                    else failures.append("INVALID_MEMBER_IDENTIFIER")
-                )
+                else:
+                    failures.append("INVALID_MEMBER_IDENTIFIER")
         elif name in {"provider_name", "billing_provider_name", "rendering_provider_name"}:
             words = re.findall(r"[A-Za-z][A-Za-z.'-]*", raw)
             if len(words) >= 2 and " " in raw:

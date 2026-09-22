@@ -119,6 +119,21 @@ def _dob_is_future(value: str) -> bool:
         return False
 
 
+def _dob_is_display_shaped(value: str) -> bool:
+    """True when DOB ink looks like a date — not letter/punct soup that digit-glues.
+
+    ``ib0 13! 197`` strips to ``013197`` → fake ``1997-01-31``. Ranking must
+    not treat that as calendar-valid over a real ``11/01/2011``.
+    """
+    text = str(value or "").strip()
+    if not text or _dob_ymd(text) is None or _dob_is_future(text):
+        return False
+    # Digits + common date separators / spaces only. Allow ``:`` / ``,`` for
+    # DI punct confusables (``7:30.77``) that normalize elsewhere.
+    noise = re.sub(r"[\d/\-.\s:,]", "", text)
+    return noise == ""
+
+
 def prefer_dob_without_separator_one(
     primary: str, competitors: list[str]
 ) -> str | None:
@@ -249,20 +264,42 @@ def _canonical_member_id(value: str) -> str:
     return compact
 
 
+def _member_id_is_short_padded_shell(value: str) -> bool:
+    """True for zero-padded digit ink whose stripped core is a short shell.
+
+    Example: ``0000007267`` → core ``7267``. Only pure digit strings qualify —
+    alphanumeric CMS ids like ``A00046372APU`` are not padded shells.
+    """
+    compact = re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+    if not compact.isdigit() or len(compact) < 8:
+        return False
+    core = compact.lstrip("0") or "0"
+    return 4 <= len(core) <= 6
+
+
 def _member_id_is_shaped(value: str) -> bool:
     """True for plausible member IDs; rejects short OCR soup like ``RQ4G0L``."""
     raw = str(value or "")
     compact = re.sub(r"[^A-Z0-9]", "", raw.upper())
-    # ``0000007267`` is padding around a 4-digit shell, not a 10-digit id.
+    if re.search(r"INSUR|NUMBER|PROGRAM|ITEM|NAME", raw.upper()):
+        return False
+    # Zero-padded digit ink (``0000007267``): shaped when pad+core length ≥ 8
+    # and core has ≥ 4 digits. Canonicalization still strips for the value.
+    if compact.isdigit() and len(compact) >= 8:
+        core = compact.lstrip("0") or "0"
+        if len(core) >= 4:
+            return True
     if compact.isdigit():
         compact = compact.lstrip("0") or "0"
     if not re.fullmatch(r"[A-Z0-9]{6,20}", compact):
         return False
-    if re.search(r"INSUR|NUMBER|PROGRAM|ITEM|NAME", raw.upper()):
-        return False
     digit_count = sum(ch.isdigit() for ch in compact)
-    # Require real digit mass so letter soup cannot outrank/shape-match.
-    return digit_count >= 5
+    # Digit-mass IDs (Medicare-style) — letter soup cannot pass.
+    if digit_count >= 5:
+        return True
+    letter_count = sum(ch.isalpha() for ch in compact)
+    # Mixed CMS subscriber ids (``JQL4PV-01``): letters + ≥1 digit, not alpha soup.
+    return letter_count >= 2 and digit_count >= 1 and len(compact) <= 12
 
 
 def _member_ids_differ_by_confusable_insertion(left: str, right: str) -> bool:
@@ -322,7 +359,8 @@ def _member_id_is_length_fragment(left: str, right: str) -> bool:
     """True when one shaped ID is a short fragment beside a much longer ID.
 
     Independent case: ``981366`` vs ``98126619000`` — six-digit crop fragment
-    must not block the full member number.
+    must not block the full member number. Letter soup must never count as the
+    longer authority over digit ink (``eee…`` vs ``0000007267``).
     """
     a, b = _canonical_member_id(left), _canonical_member_id(right)
     if not a or not b or a == b:
@@ -330,7 +368,14 @@ def _member_id_is_length_fragment(left: str, right: str) -> bool:
     short, long = (a, b) if len(a) < len(b) else (b, a)
     if len(short) >= 8 or len(long) < 10:
         return False
-    return not len(long) - len(short) < 3
+    if len(long) - len(short) < 3:
+        return False
+    # Both sides must be digit member ids — alpha soup is not a fuller ID.
+    if not short.isdigit() or not long.isdigit():
+        return False
+    if short in long or long.startswith(short):
+        return True
+    return _member_ids_share_digit_prefix(short, long, min_len=3)
 
 
 def _is_azure_gpt4o_crop_engine(engine: str) -> bool:
@@ -1355,12 +1400,12 @@ class EvidenceReconciler:
         } or "name" in (field_name or "").casefold()
 
         def _group_calendar_valid(items) -> bool:
-            # Prefer calendar-valid DOB groups over header labels / digit junk
-            # so paddle "MM" or "671161946" cannot outrank a shaped date.
-            # Future dates are calendar-shaped OCR junk — never prefer them.
+            # Prefer display-shaped calendar DOB groups over header labels /
+            # digit-glue junk so paddle "MM" or "ib0 13! 197" cannot outrank
+            # a real ``11/01/2011``. Future dates are never preferred.
             for candidate, _, _ in items:
                 raw = str(candidate.value or "")
-                if _dob_ymd(raw) is not None and not _dob_is_future(raw):
+                if _dob_is_display_shaped(raw):
                     return True
             return False
 
@@ -1387,8 +1432,10 @@ class EvidenceReconciler:
         ranked = sorted(
             groups.items(),
             key=lambda item: (
-                independent_agreement(item[0], item[1]),
+                # DOB: display-shaped calendar ink outranks multi-engine junk
+                # agreement (paddle+rapid ``06h3 2002`` vs TrOCR ``06/20/2002``).
                 _group_calendar_valid(item[1]) if is_dob_field else True,
+                independent_agreement(item[0], item[1]),
                 _group_name_strong(item[1]) if is_name_field else True,
                 _group_name_clean(item[1]) if is_name_field else True,
                 _group_id_shaped(item[1])
@@ -1475,6 +1522,15 @@ class EvidenceReconciler:
         # separator relief against ALL competing groups, not only when the
         # confidence margin is tiny — high-confidence separator-1 otherwise STP-wrong.
         if is_dob_field and len(ranked) > 1:
+            # Prefer display-shaped calendar ink over digit-glue / letter soup
+            # that accidentally assembles a YMD (DJKH.022, HJCX.003).
+            if not _dob_is_display_shaped(str(value or "")):
+                for _norm, items in ranked[1:]:
+                    cand_val = str(max(items, key=lambda row: row[1])[0].value)
+                    if _dob_is_display_shaped(cand_val):
+                        value = cand_val
+                        supporting = items
+                        break
             competing = [
                 str(max(items, key=lambda row: row[1])[0].value)
                 for _, items in ranked[1:]
@@ -1775,26 +1831,40 @@ class EvidenceReconciler:
                     early_gpt4o_digit_tiebreak = True
                     break
         # Always emit compact member IDs so spaced/punctuated OCR ("4E80 VH6 HJ14")
-        # matches FORMAT_VALID and downstream identity checks.
+        # matches FORMAT_VALID and downstream identity checks. Keep zero-padded
+        # short shells as printed (``0000007267``) so FORMAT_VALID sees the pad.
+        stripped_padded_shell = False
         if is_id_field and _member_id_is_shaped(str(value or "")):
-            compact_id = _canonical_member_id(str(value))
-            if compact_id:
-                value = compact_id
+            if _member_id_is_short_padded_shell(str(value or "")):
+                stripped_padded_shell = True
+                # Preserve pad form for deterministic FORMAT_VALID; do not emit
+                # the 4-digit core alone (that fails the length gate).
+            else:
+                compact_id = _canonical_member_id(str(value))
+                if compact_id:
+                    value = compact_id
 
         # Never auto-accept a future DOB — OCR year junk / box-rule misreads.
         future_dob_rejected = False
-        if is_dob_field and value and _dob_is_future(str(value)):
-            # Prefer any non-future calendar-valid competitor before failing closed.
+        if is_dob_field and value and (
+            _dob_is_future(str(value)) or not _dob_is_display_shaped(str(value))
+        ):
+            # Prefer any display-shaped non-future calendar competitor first.
             swapped = False
             for _norm, items in ranked:
                 cand_val = str(max(items, key=lambda row: row[1])[0].value)
-                if _dob_ymd(cand_val) is not None and not _dob_is_future(cand_val):
+                if _dob_is_display_shaped(cand_val):
                     value = cand_val
                     supporting = items
                     swapped = True
                     break
-            if not swapped:
+            if not swapped and value and _dob_is_future(str(value)):
                 future_dob_rejected = True
+            elif not swapped and value and not _dob_is_display_shaped(str(value)):
+                # No display-shaped rival — keep value but do not treat as future
+                # reject unless it actually is future-shaped.
+                if _dob_is_future(str(value)):
+                    future_dob_rejected = True
 
         has_independent_agreement = independent_agreement(
             normalize_agreement_value(field_name, str(value)), supporting
@@ -2042,15 +2112,18 @@ class EvidenceReconciler:
         unique_calendar_dob = False
         if date_corroborated:
             # Future-shaped OCR (year 5199 from digit glue) is junk — do not
-            # count it against unique-calendar corroboration.
+            # count it against unique-calendar corroboration. Letter/punct soup
+            # that digit-glues to a YMD is also junk for uniqueness.
             calendar_ymds = {
                 _dob_ymd(str(candidate.value or ""))
                 for candidate in candidates
-                if (candidate.value or "").strip()
-                and not _dob_is_future(str(candidate.value or ""))
+                if _dob_is_display_shaped(str(candidate.value or ""))
             }
             calendar_ymds.discard(None)
-            unique_calendar_dob = len(calendar_ymds) == 1 and _dob_ymd(str(value)) is not None and not _dob_is_future(str(value))
+            unique_calendar_dob = (
+                len(calendar_ymds) == 1
+                and _dob_is_display_shaped(str(value))
+            )
             # Uncalibrated fill engines (tesseract) often sit ~0.3 raw conf even when
             # the only calendar-valid shaped DOB passes DATE_VALID — treat unique
             # calendar corroboration like deterministic authority on confidence.
@@ -2070,6 +2143,10 @@ class EvidenceReconciler:
             for candidate in candidates:
                 raw = str(candidate.value or "")
                 if not _member_id_is_shaped(raw):
+                    continue
+                # Weak locals that trigger gpt-4o (``890 000``) must not break
+                # unique-shaped corroboration for a strong vision/local ID.
+                if _member_id_is_weak_for_gpt4o_gate(raw):
                     continue
                 canon = _canonical_member_id(raw)
                 # Ignore length fragments beside the selected authority ID.
@@ -2181,12 +2258,23 @@ class EvidenceReconciler:
             decision = Decision.REVIEW
             reasons.append("C3_INDEPENDENT_EVIDENCE_REQUIRED")
         elif len(ranked) > 1 and confidence - max(s for _, s, _ in ranked[1][1]) < 0.05:
-            competing_values = [str(other) for other, _ in ranked[1:]]
+            competing_values = [
+                str(max(items, key=lambda row: row[1])[0].value)
+                for _, items in ranked[1:]
+            ]
             genuine = [
                 other
                 for other in competing_values
                 if not values_conflict_equivalent(field_name, value, other)
             ]
+            # Display-shaped DOB vs digit-glue / letter soup is not a genuine
+            # calendar conflict (``11/01/2011`` vs ``ib0 13! 197``).
+            if is_dob_field and _dob_is_display_shaped(str(value or "")):
+                genuine = [
+                    other
+                    for other in genuine
+                    if _dob_is_display_shaped(other)
+                ]
             # Decimal-place / fragment charge OCR is not a genuine conflict when
             # Box 28 ↔ line-sum financial authority already confirmed the total,
             # or when LINE_TOTALS_RECONCILED owns the selected amount (soup rivals
@@ -2596,16 +2684,26 @@ class EvidenceReconciler:
                 reasons.append("GPT4O_ID_DIGIT_CONFLICT_TIEBREAK")
             if early_id_relief:
                 reasons.append("MEMBER_ID_CONFUSABLE_INSERTION_RELIEVED")
-        # Letter soup and zero-padded short shells (``0000007267`` → ``7267``)
-        # are not subscriber ids. Do not ACCEPT them, and do not invent the
-        # stripped short id as the authority value.
+        # Letter soup stays fail-closed. Zero-padded short shells that were
+        # already multi-engine shaped (``0000007267`` → ``7267``) keep ACCEPT;
+        # lone-engine pads still fail closed.
         if (
             is_id_field
             and decision in {Decision.ACCEPT, Decision.REFERENCE_CONFIRMED}
             and not _member_id_is_shaped(str(value or ""))
+            and not stripped_padded_shell
         ):
             decision = Decision.REVIEW
             reasons.append("UNSHAPED_MEMBER_ID")
+        elif (
+            is_id_field
+            and decision in {Decision.ACCEPT, Decision.REFERENCE_CONFIRMED}
+            and stripped_padded_shell
+            and not has_multi_engine_family
+        ):
+            decision = Decision.REVIEW
+            reasons.append("UNSHAPED_MEMBER_ID")
+            reasons.append("SHORT_PADDED_MEMBER_ID_NEEDS_CORROBORATION")
         versions = (
             [f"authoritative-reference:{authoritative_version or 'version-not-provided'}"]
             if reference_match

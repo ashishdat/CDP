@@ -382,13 +382,58 @@ def id_local_digit_conflict(candidates: list[Mapping[str, Any]] | None) -> bool:
     return False
 
 
+def id_local_already_settled(candidates: list[Mapping[str, Any]] | None) -> bool:
+    """True when ≥2 local engines already agree on one shaped ID — skip cloud.
+
+    Saves DI/Claude when paddle+rapid (etc.) already corroborate the subscriber
+    id. Digit conflicts and weak/chrome locals still need a vision read.
+    """
+    if not candidates:
+        return False
+    from packages.candidate_reconciliation.reconciler import (
+        _canonical_member_id,
+        _member_id_is_shaped,
+        _member_id_is_weak_for_gpt4o_gate,
+    )
+    from packages.ocr.independence import independence_group
+
+    by_canon: dict[str, set[str]] = {}
+    for cand in candidates:
+        engine = str(cand.get("engine") or "")
+        eng_cf = engine.casefold()
+        if any(
+            t in eng_cf
+            for t in ("gpt4o", "gpt-4o", "claude", "anthropic", "document_intelligence", "azure_di")
+        ):
+            continue
+        raw = str(cand.get("value") or cand.get("text") or "").strip()
+        if not raw or _member_id_is_weak_for_gpt4o_gate(raw):
+            continue
+        if not _member_id_is_shaped(raw):
+            continue
+        canon = _canonical_member_id(raw)
+        if not canon:
+            continue
+        by_canon.setdefault(canon, set()).add(independence_group(engine))
+    for groups in by_canon.values():
+        if len(groups) >= 2:
+            return True
+    return False
+
+
 def id_needs_gpt4o(
     value: str | None,
     *,
     accepted: bool,
     candidates: list[Mapping[str, Any]] | None = None,
 ) -> bool:
-    """Weak/chrome local OR same-length digit conflict between local engines."""
+    """Weak/chrome local OR same-length digit conflict between local engines.
+
+    Skip when locals already multi-engine agree on one shaped ID (no DI/Claude).
+    """
+    if id_local_already_settled(candidates):
+        # Settled locals still need vision when same-length digit twins conflict.
+        return id_local_digit_conflict(candidates)
     if id_local_needs_gpt4o(value, accepted=accepted):
         return True
     return id_local_digit_conflict(candidates)
