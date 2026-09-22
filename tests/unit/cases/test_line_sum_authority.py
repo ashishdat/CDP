@@ -153,9 +153,17 @@ def test_incomplete_uniform_line_grid_does_not_block_box28():
     ]
     assert incomplete_uniform_line_grid_explains_box28("1200.00", lines)
     assert not charge_conflicts_with_plausible_line_sum("1200.00", lines)
+    # Incomplete-grid Box 28 must not be deferred away for line-sum ownership.
+    assert not should_defer_box28_to_line_sum("1200.00", lines)
     # Inflated Claude/paddle 4200 implies 21 rows — beyond CMS-1500 grid.
     assert not incomplete_uniform_line_grid_explains_box28("4200.00", lines)
     assert charge_conflicts_with_plausible_line_sum("4200.00", lines)
+    from packages.claim_evidence.line_sum_authority import (
+        chosen_exceeds_cms_uniform_line_grid,
+    )
+
+    assert chosen_exceeds_cms_uniform_line_grid("4200.00", lines)
+    assert not chosen_exceeds_cms_uniform_line_grid("1200.00", lines)
     # Two equal lines alone are too weak (EJG7.016 2×150 vs Box 600).
     two_lines = lines[:2]
     assert not incomplete_uniform_line_grid_explains_box28("600.00", two_lines)

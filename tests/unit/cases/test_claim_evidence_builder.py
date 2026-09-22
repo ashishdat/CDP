@@ -160,6 +160,129 @@ def test_conflict_agent_does_not_confirm_when_line_sum_disagrees():
     assert "FINANCIAL_CONFLICT_HITL" in types or "CLAIM_TOTAL_CONTRADICTION" in types
 
 
+def test_ejge006_inflated_box28_vs_incomplete_grid_stays_hitl():
+    """EJGE.006: agent+paddle 4200 must not AUTO over 3×$200 (implies 21 rows).
+
+    ARITHMETIC_MISMATCH fail-open requires open-source authority but must still
+    reject shells that exceed the 6-row CMS uniform grid.
+    """
+    lines = [
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+            },
+        },
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+            },
+        },
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+            },
+        },
+    ]
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="EJGE.006",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "1200.00",
+            "_financial_conflict_agent": {
+                "side": "BOX28",
+                "value": "4200.00",
+                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            },
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "paddleocr", "value": "4200.00"},
+                    {"engine": "anthropic_claude_crop", "value": "1200.00"},
+                    {
+                        "engine": "azure_document_intelligence_read",
+                        "value": "23.00",
+                        "raw_value": ".TOTAL CHARGE 1200; 00 23 $",
+                    },
+                ]
+            },
+        },
+        service_lines=lines,
+    )
+    agent_confirmed = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+        and str(i.value or "").startswith("4200")
+    ]
+    assert agent_confirmed == []
+    assert "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED" not in {
+        i.evidence_type for i in result.evidence_items if str(i.value or "").startswith("4200")
+    }
+    types = _types(result.evidence_items) | _types(result.contradictions)
+    assert "FINANCIAL_CONFLICT_HITL" in types or "CLAIM_TOTAL_CONTRADICTION" in types
+
+
+def test_partial_line_ocr_agent_box28_with_local_agreement_confirms():
+    """EJG7.001: mixed lines Σ 835 vs Box 28 955 — locals agree on 955 → E6."""
+    lines = [
+        {
+            "charges": "510.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "510.00",
+            },
+        },
+        {
+            "charges": "120.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "120.00",
+            },
+        },
+        {
+            "charges": "205.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "205.00",
+            },
+        },
+    ]
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="EJG7.001",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "955.00",
+            "_financial_conflict_agent": {
+                "side": "BOX28",
+                "value": "955.00",
+                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            },
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "paddleocr", "value": "955.00"},
+                    {"engine": "rapidocr", "value": "955.00"},
+                    {"engine": "azure_document_intelligence_read", "value": "955.00"},
+                ]
+            },
+        },
+        service_lines=lines,
+    )
+    assert (
+        next(
+            i.value
+            for i in result.evidence_items
+            if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+            and (i.metadata or {}).get("reason") == "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+        )
+        == "955.00"
+    )
+
+
 def test_conflict_agent_confirms_when_both_locals_match():
     result = ClaimEvidenceBuilder.load().build(
         claim_id="locals-agree",

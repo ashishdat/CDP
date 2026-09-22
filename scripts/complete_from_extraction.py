@@ -724,6 +724,20 @@ def decide(extraction, family):
             validation = validations[row['candidate_id']]
             if row['is_winner']:
                 candidate['value'] = validation['normalized_value'] or candidate.get('value')
+            # Re-shape Azure DI Box 28 residuals from raw so ``TOTAL CHARGE 1200;
+            # 00 23`` promotes 1200 instead of trailing scrap 23 (EJGE.006).
+            if name in {'total_charge', 'total_charges'}:
+                engine = str(candidate.get('engine') or '').casefold()
+                if 'azure' in engine or 'document_intelligence' in engine:
+                    from packages.extraction_recovery.charge_azure_di_residual import (
+                        _shape_charge_text,
+                    )
+
+                    reshaped, ok = _shape_charge_text(
+                        name, candidate.get('raw_value') or candidate.get('value')
+                    )
+                    if ok and reshaped and reshaped != str(candidate.get('value') or ''):
+                        candidate['value'] = reshaped
             # If winner normalized to junk but check_value is a shaped alternative, keep OCR value.
             if (
                 _may_borrow_passing_alternative(str(candidate.get('value') or ''))
@@ -1003,6 +1017,7 @@ def decide(extraction, family):
                 # A plausible Box 28 that is not a ×10/×100 or digit-drop twin of Σ
                 # must not inherit line-sum AUTO (17500 vs Σ 1031).
                 from packages.claim_evidence.line_sum_authority import (
+                    incomplete_uniform_line_grid_explains_box28,
                     is_currency_digit_drop_twin,
                     is_scale_shift,
                 )
@@ -1014,7 +1029,13 @@ def decide(extraction, family):
                         or is_currency_digit_drop_twin(winner_val, derived)
                     )
                 )
-                if eligible and not winner_matches_lines and not scale_twin:
+                incomplete_grid = bool(
+                    winner_val
+                    and incomplete_uniform_line_grid_explains_box28(
+                        winner_val, service_lines
+                    )
+                )
+                if eligible and not winner_matches_lines and not scale_twin and not incomplete_grid:
                     eligible = False
                     gate_reason = 'BOX28_OR_DI_CONFLICT'
                 if eligible:

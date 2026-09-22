@@ -182,6 +182,10 @@ def should_defer_box28_to_line_sum(
         return True
     if is_suspicious_tiny_total(box) or is_implausible_charge_total(box):
         return True
+    # Truncated equal-line OCR (3×200 vs Box 28 1200) is not a contradiction —
+    # keep Box 28 so incomplete-grid authority can STP (EJGE.006/007/008).
+    if incomplete_uniform_line_grid_explains_box28(box28_value, service_lines):
+        return False
     observed = sum(charges, Decimal(0))
     if observed <= 0:
         return False
@@ -408,6 +412,46 @@ def incomplete_uniform_line_grid_explains_box28(
     if observed_rows < 3:
         return False
     return observed_rows < implied_rows <= 6
+
+
+def chosen_exceeds_cms_uniform_line_grid(
+    chosen: object, service_lines: list | None
+) -> bool:
+    """True when equal selected lines imply ``chosen`` needs more than 6 CMS rows.
+
+    EJGE.006: 3×$200 with agent/paddle ``4200`` implies 21 rows — beyond the
+    printed CMS-1500 service grid. That inflated shell must stay HITL even when
+    open-source OCR also shaped the same digits.
+    """
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None or chosen_amt <= 0:
+        return False
+    units: list[Decimal] = []
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        selection = line.get("line_charge_selection") or {}
+        disposition = str(selection.get("disposition") or "")
+        amount = None
+        if disposition.startswith("SELECTED"):
+            amount = parse_currency(selection.get("amount"))
+        if amount is None:
+            for key in _CHARGE_FIELDS:
+                amount = parse_currency(line.get(key))
+                if amount is not None:
+                    break
+        if amount is None or amount <= 0:
+            continue
+        units.append(amount)
+    if len(units) < 3:
+        return False
+    unit = units[0]
+    if unit <= 0 or any(value != unit for value in units):
+        return False
+    quotient = chosen_amt / unit
+    if quotient != quotient.to_integral_value():
+        return False
+    return int(quotient) > 6
 
 
 def charge_conflicts_with_plausible_line_sum(chosen: object, service_lines: list | None) -> bool:
@@ -987,6 +1031,16 @@ def line_sum_auto_eligible(
     if corroborators:
         if any(amounts_corroborate_or_cents_twin(total, value) for value in corroborators):
             return True, "BOX28_OR_DI_CORROBORATED"
+        # Truncated equal-line OCR vs fuller Box 28 (3×200 vs 1200) — Box 28
+        # is authority, not a conflicting second total.
+        if any(
+            incomplete_uniform_line_grid_explains_box28(value, service_lines)
+            for value in corroborators
+        ) or (
+            box28_value is not None
+            and incomplete_uniform_line_grid_explains_box28(box28_value, service_lines)
+        ):
+            return True, "INCOMPLETE_UNIFORM_GRID_BOX28"
         if line_has_vision_and_local_on_selected(
             service_lines, total
         ) and vision_local_decimal_column(total, corroborators):

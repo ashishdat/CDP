@@ -1,0 +1,59 @@
+{
+  "title": "Guard ARITHMETIC_MISMATCH agent fail-open: open-source + CMS grid cap (EJGE.006)",
+  "commit": "dc9163c",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_fa_guard_decide",
+    "src": "evaluation_results/hackathon_10_vision_line_place_decide",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_fa_guard_decide",
+    "src": "evaluation_results/hackathon_150_vision_line_place_decide",
+    "method": "complete_only_fa_guard_v2",
+    "completed": 89,
+    "true_stp": 74,
+    "true_stp_rate_of_completed": 0.831461,
+    "field_ink_hitl": 15,
+    "prior_vision_line_place": 75,
+    "flipped_to_true_stp": [],
+    "lost_stp": [
+      "Group A/M048EJG7.003"
+    ],
+    "ejge006": {
+      "disposition": "HITL",
+      "blockers": [
+        "total_charge"
+      ],
+      "fields_tc": {
+        "disp": "HUMAN_REVIEW_REQUIRED",
+        "value": "1200.00",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_EVALUATED",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "FINANCIAL_CONFLICT_HITL",
+          "FORMAT_VALID"
+        ]
+      }
+    }
+  },
+  "page_check": "ARITHMETIC_MISMATCH agent fail-open now requires open-source OCR authority and rejects chosen amounts that imply >6 equal CMS rows. EJGE.006 4200 stays HITL (selected 1200 via DI reshape); EJG7.001 locals-agree 955 STP; EJG7.003 paddle 4825 vs agent/DI 1825 stays HITL (no open-source authority).",
+  "cleanup": "Pruned phase7a/phase8 scratch (~16M tracked) + superseded vision_line_place tips; kept caption_bleed OCR source + fa_guard decide tip.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 74. Remaining ~15 HITL include EJGE.006 incomplete-grid 1200 without open-source 1200, EJG7.003 DI-only Box 28, place-shift locals, hard-15, identity sealed.",
+  "note": "Decision-only on frozen OCR/extract. Golden Pack not mutated. Gates still fail."
+}

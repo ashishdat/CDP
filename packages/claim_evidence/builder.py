@@ -889,11 +889,30 @@ class ClaimEvidenceBuilder:
             )
             if already_confirmed:
                 return
+            # Partial line OCR (Σ 835 vs Box 28 955) still allows agent E6 when
+            # open-source OCR already read the chosen amount — but never when the
+            # amount implies more than 6 equal CMS rows (EJGE.006 4200 vs 3×200).
+            from packages.claim_evidence.line_sum_authority import (
+                chosen_exceeds_cms_uniform_line_grid,
+            )
+
             agent = values.get("_financial_conflict_agent")
+            payload = values.get("_box28_field_payload")
+            agent_candidates: list = []
+            if isinstance(payload, dict):
+                nested = payload.get("ocr") if isinstance(payload.get("ocr"), dict) else {}
+                agent_candidates.extend(payload.get("candidates") or [])
+                agent_candidates.extend(nested.get("candidates") or [])
             if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
-                chosen = str(agent.get("value") or "")
+                chosen = str(agent.get("value") or "").strip()
                 side = agent["side"]
-                if chosen:
+                if (
+                    chosen
+                    and llm_charge_pick_has_open_source_authority(
+                        chosen, agent_candidates, lines
+                    )
+                    and not chosen_exceeds_cms_uniform_line_grid(chosen, lines)
+                ):
                     contradictions[:] = [
                         item
                         for item in contradictions

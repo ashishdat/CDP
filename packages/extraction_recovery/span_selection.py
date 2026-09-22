@@ -771,6 +771,24 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
             return _result(raw, "", "span-v1-currency-npi-bleed", [], 0.2, "NPI_LABEL_BLEED")
         if amounts:
             selected = amounts[-1].lstrip("$")
+            # Box 28 / claim totals: DI often reads ``TOTAL CHARGE 1200; 00 23``
+            # where trailing ``23`` is caption/index scrap. Prefer the largest
+            # ≥$100 amount when the last token is a tiny scrap under $100.
+            if field_name in {"total_charge", "total_charges"} and len(amounts) >= 2:
+                def _amt(token: str) -> float | None:
+                    try:
+                        return float(token.lstrip("$").replace(",", ""))
+                    except ValueError:
+                        return None
+
+                last_val = _amt(selected)
+                fuller = [
+                    token.lstrip("$")
+                    for token in amounts
+                    if (_amt(token) or 0) >= 100
+                ]
+                if last_val is not None and last_val < 100 and fuller:
+                    selected = max(fuller, key=lambda t: _amt(t) or 0)
             # Claim totals are never negative; a leading "-" is almost always a
             # printed rule / NPI-bleed artifact (e.g. "-2084P080").
             if field_name in {"total_charge", "total_charges"} and re.search(

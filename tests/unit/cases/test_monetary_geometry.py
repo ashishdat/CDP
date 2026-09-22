@@ -142,6 +142,18 @@ def test_overlapping_window_candidates_are_alternatives_not_concat():
     assert "RULING_TICK_DROPPED" in read.reasons
 
 
+def test_total_charge_span_prefers_fuller_over_trailing_scrap():
+    """EJGE.006: DI ``TOTAL CHARGE 1200; 00 23`` must select 1200, not 23."""
+    from packages.extraction_recovery.charge_azure_di_residual import _shape_charge_text
+    from packages.extraction_recovery.span_selection import select_field_span
+
+    raw = ".TOTAL CHARGE 1200; 00 23 $"
+    span = select_field_span(raw, "CURRENCY", "total_charge")
+    assert span.selected_text == "1200.00"
+    shaped, ok = _shape_charge_text("total_charge", raw)
+    assert ok and shaped == "1200.00"
+
+
 def test_three_digit_run_does_not_imply_cents():
     from packages.geometry_authority.monetary_geometry import align_cents_column
 
