@@ -654,6 +654,81 @@ def prefer_open_source_digit_drop_fuller_box28(
     return unique[0]
 
 
+def prefer_di_partner_fuller_over_local_underread(
+    chosen: object, candidates: list | None
+) -> str | None:
+    """When chosen is a ×10/×100 underread of DI+partner ink, return the fuller.
+
+    EJI2.036: paddle/rapid ``15.00`` beside DI+Claude ``150.00``.
+    HJBI.005: local ``34.00`` beside DI+Claude ``3400.00``.
+    Cash ruling-split DI raws are reshaped before agreement (``$ 97 |39`` → 97.39).
+    """
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None or not candidates:
+        return None
+    by_norm: dict[str, set[str]] = {}
+    for cand in candidates:
+        if isinstance(cand, dict):
+            shell = (
+                cand.get("ocr_candidate")
+                if isinstance(cand.get("ocr_candidate"), dict)
+                else cand
+            )
+            engine = str(shell.get("engine") or "")
+            value = str(shell.get("value") or "")
+            raw = str(shell.get("raw_value") or "")
+        else:
+            engine = str(getattr(cand, "engine", "") or "")
+            value = str(getattr(cand, "value", "") or "")
+            raw = str(getattr(cand, "raw_value", "") or "")
+        if not value.strip() and not raw.strip():
+            continue
+        charge_value = value
+        if "$" in raw and re.search(r"[:|/]", raw):
+            try:
+                from packages.claim_evidence.line_charge_selector import (
+                    _ruling_split_amount,
+                )
+
+                ruled = _ruling_split_amount(raw)
+                if ruled:
+                    charge_value = ruled
+            except Exception:  # noqa: BLE001
+                pass
+        amt = parse_currency(charge_value)
+        if amt is None:
+            continue
+        eng = engine.casefold()
+        family = (
+            "di"
+            if "document_intelligence" in eng or "azure_di" in eng or "azure_read" in eng
+            else "vision"
+            if "claude" in eng or "gpt4o" in eng or "anthropic" in eng
+            else "local"
+            if any(x in eng for x in ("paddle", "rapid", "tesseract"))
+            else None
+        )
+        if family is None:
+            continue
+        key = format_currency(amt)
+        by_norm.setdefault(key, set()).add(family)
+    fullers: list[str] = []
+    for amount, families in by_norm.items():
+        amt = parse_currency(amount)
+        if amt is None or amt <= chosen_amt:
+            continue
+        if "di" not in families:
+            continue
+        if not (families & {"vision", "local"}):
+            continue
+        if is_scale_shift(chosen, amount) or is_decimal_place_shift(chosen, amount):
+            fullers.append(amount)
+    unique = sorted(set(fullers))
+    if len(unique) != 1:
+        return None
+    return unique[0]
+
+
 def _chosen_is_open_source_digit_drop_fuller(
     chosen: object, candidates: list | None
 ) -> bool:

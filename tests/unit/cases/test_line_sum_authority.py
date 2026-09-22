@@ -1133,6 +1133,38 @@ def test_prefer_open_source_digit_drop_fuller_box28():
     assert llm_charge_pick_has_open_source_authority("200.00", djkn001_auth)
 
 
+def test_prefer_di_partner_fuller_over_local_underread():
+    """EJI2.036 / HJBI.005: DI+Claude fuller beats local ×10 truncation."""
+    from packages.claim_evidence.line_sum_authority import (
+        prefer_di_partner_fuller_over_local_underread,
+    )
+
+    eji2 = [
+        {"engine": "paddleocr", "value": "15.00", "raw_value": "1500"},
+        {"engine": "rapidocr", "value": "15.00", "raw_value": "1500"},
+        {
+            "engine": "azure_document_intelligence_read",
+            "value": "150.00",
+            "raw_value": "$ 150 ,00 1",
+        },
+        {"engine": "anthropic_claude_crop", "value": "150.00"},
+    ]
+    assert prefer_di_partner_fuller_over_local_underread("15.00", eji2) == "150.00"
+    hjbi = [
+        {"engine": "rapidocr", "value": "34.00", "raw_value": "3400"},
+        {"engine": "paddleocr", "value": "34.00", "raw_value": "3400."},
+        {
+            "engine": "azure_document_intelligence_read",
+            "value": "3400.00",
+            "raw_value": "J 3400 S",
+        },
+        {"engine": "anthropic_claude_crop", "value": "3400.00"},
+    ]
+    assert prefer_di_partner_fuller_over_local_underread("34.00", hjbi) == "3400.00"
+    # Already on the fuller — no change.
+    assert prefer_di_partner_fuller_over_local_underread("150.00", eji2) is None
+
+
 def test_geometry_underread_whole_dollar_box28_djkn009():
     """DJKN.009: UNDERREAD raw 600 → 600.00; soup line 1600 is not a rival."""
     from packages.claim_evidence.line_sum_authority import (

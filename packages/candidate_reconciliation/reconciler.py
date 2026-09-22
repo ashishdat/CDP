@@ -2251,6 +2251,11 @@ class EvidenceReconciler:
                     # Same confirmed amount — not a conflict.
                     if other_amt == primary_amt and not is_decimal_place_shift(value, other):
                         continue
+                    # Cash ruling-split printed ink owns the total — OCR soup
+                    # rivals (cents fragments, ruling-tail scrap) are not a
+                    # second Box 28 (DJKH.029: 97.39 vs 39 / 139).
+                    if cash_ruling_owns and other_amt != primary_amt:
+                        continue
                     # ×10/×100 and dropped-digit twins are real conflicts when the
                     # selected amount is inflated Box 28 OCR. Once line Σ owns the
                     # selected total, both directions are soup: larger (250 vs
@@ -2266,6 +2271,14 @@ class EvidenceReconciler:
                     if line_totals_owns_selected and other_amt != primary_amt:
                         continue
                     if primary_amt != other_amt:
+                        from packages.claim_evidence.line_sum_authority import (
+                            is_cents_column_fragment,
+                        )
+
+                        # DI residual cents column (``39.00`` from ``$ 97|39``)
+                        # beside confirmed ``97.39``.
+                        if is_cents_column_fragment(other, value):
+                            continue
                         # Competing non-equal amounts stay only when they are
                         # not digit-soup fragments of the confirmed total.
                         confirmed_digits = re.sub(r"\D", "", str(value))

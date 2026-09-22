@@ -612,6 +612,7 @@ def decide(extraction, family):
             box28_geometry_underread_whole_dollar,
             charge_conflicts_with_plausible_line_sum,
             llm_charge_pick_has_open_source_authority,
+            prefer_di_partner_fuller_over_local_underread,
             prefer_open_source_digit_drop_fuller_box28,
         )
         # DJKN.009: recover mis-partitioned GEOMETRY_CENTS_UNDERREAD raw ``600``.
@@ -635,6 +636,15 @@ def decide(extraction, family):
             ):
                 values[charge_field] = geo_whole
                 continue
+        # EJI2.036 / HJBI.005: local ×10 underread beside DI+Claude fuller.
+        di_fuller = prefer_di_partner_fuller_over_local_underread(
+            current_val, agent_candidates
+        )
+        if di_fuller and not charge_conflicts_with_plausible_line_sum(
+            di_fuller, service_lines, agent_candidates
+        ):
+            values[charge_field] = di_fuller
+            continue
         # DJKN.005: prefer unique open-source fuller twin over DI/Claude under-read.
         digit_alt = prefer_open_source_digit_drop_fuller_box28(
             current_val, agent_candidates

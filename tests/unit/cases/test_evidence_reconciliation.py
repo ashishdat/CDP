@@ -285,6 +285,44 @@ def test_cash_ruling_di_local_clears_junk_insert_margin():
     assert "BLEED_CENTS_FAIL_CLOSED" not in result.rationale_codes
 
 
+def test_cash_ruling_clears_cents_fragment_and_ruling_scrap_margin():
+    """DJKH.029: ``$ 97 |39`` owns 97.39; 39 cents scrap and 139 soup clear."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate(
+                "97.39",
+                "anthropic_claude_crop",
+                0.96,
+            ),
+            _candidate("97.39", "rapidocr", 0.91, raw_value="97139"),
+            _candidate(
+                "39.00",
+                "azure_document_intelligence_read",
+                0.85,
+                raw_value="J $ 97 |39",
+            ),
+            _candidate("39.00", "paddleocr", 0.9, raw_value="97\n|39\n$"),
+            _candidate("139.00", "rapidocr", 0.8),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+            "MULTI_ENGINE_AGREEMENT",
+            "BOX28_BLANKNESS_EVALUATED",
+            "BOX28_LINE_SUM_EVALUATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"97.39"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "97.39"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
 def test_line_sum_truncated_scale_twin_does_not_veto_stp():
     """EJI2.003: line Σ 660 must AUTO beside truncated 66 and inflated 66000."""
     result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
