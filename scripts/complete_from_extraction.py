@@ -1324,6 +1324,81 @@ def decide(extraction, family):
                     # Fail-closed: do not treat uncorroborated line-sum as hard-valid E6.
                     if name in {"total_charge", "total_charges"} and not retained:
                         check.passed = False
+
+            # Bleed→OCR whole-dollar: even when line-sum gate did not corroborate,
+            # an independent OCR .00 sibling of units-bleed cents is enough to mint
+            # ChargeTotalAuthority CONFIRMED (DJKH.038/041 222.22→222.00).
+            if (
+                name in {"total_charge", "total_charges"}
+                and "CLAIM_TOTAL_CONFIRMED" not in set(check.evidence or [])
+            ):
+                from packages.claim_evidence.charge_total_authority import (
+                    is_units_bleed_cents,
+                    repair_bleed_to_whole_dollar,
+                )
+
+                primary = values.get(name) or f.get("normalized_value")
+                if not primary:
+                    for cand in candidates:
+                        text = str(cand.value or "").strip()
+                        if text and is_units_bleed_cents(text):
+                            primary = text
+                            break
+                if primary and is_units_bleed_cents(primary):
+                    repaired, repair_reason = repair_bleed_to_whole_dollar(
+                        primary,
+                        field_payload=f if isinstance(f, dict) else None,
+                        service_lines=service_lines,
+                    )
+                    if (
+                        repair_reason == "BLEED_CENTS_TO_WHOLE_DOLLAR"
+                        and repaired
+                    ):
+                        check.evidence = set(check.evidence) | {
+                            "CLAIM_TOTAL_CONFIRMED",
+                            "CHARGE_TOTAL_AUTHORITY",
+                            "HARD_VALIDATION_PASSED",
+                            "FORMAT_VALID",
+                            f"BLEED_REPAIR:{repair_reason}",
+                        }
+                        check.cross_field_evidence = set(
+                            check.cross_field_evidence
+                        ) | {
+                            "CLAIM_TOTAL_CONFIRMED",
+                            "CHARGE_TOTAL_AUTHORITY",
+                        }
+                        check.passed = True
+                        values[name] = repaired
+                        from packages.domain.common import BoundingBox
+
+                        base_box = (
+                            candidates[0].bounding_box
+                            if candidates
+                            else BoundingBox(
+                                x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
+                            )
+                        )
+                        candidates = [
+                            OCRCandidate(
+                                value=repaired,
+                                raw_value=repaired,
+                                engine="rapidocr",
+                                model_name="claim_evidence",
+                                model_version="bleed-to-whole-dollar",
+                                preprocessing_variant="BLEED_CENTS_TO_WHOLE_DOLLAR",
+                                raw_confidence=1.0,
+                                calibrated_confidence=1.0,
+                                bounding_box=base_box,
+                                latency_ms=0.0,
+                                evidence_reference="CLAIM_TOTAL_CONFIRMED",
+                                preprocessing_version="bleed-to-whole-dollar",
+                            )
+                        ] + [
+                            c
+                            for c in candidates
+                            if parse_currency(c.value) == parse_currency(repaired)
+                        ]
+
             checks[name] = check.model_dump(mode='json')
         localization = localizations.get(name)
         if name in {'total_charge', 'total_charges'}:

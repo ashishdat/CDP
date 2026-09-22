@@ -1867,6 +1867,8 @@ class EvidenceReconciler:
                 "E6_COMPLETE_LINE_ARITHMETIC",
                 "BOX28_LINE_SUM_CORROBORATED",
                 "CLAIM_TOTAL_WITHIN_TOLERANCE",
+                "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
             }
         )
         # A verified reference is an independent E5 authority, not an OCR
