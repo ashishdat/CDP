@@ -1,0 +1,15 @@
+# Heavy eval / run artifacts — keep IDE indexing & search fast
+evaluation_results/
+runs/
+demo-output/
+logs/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/node_modules/
+.venv/
+venv/
+*.pyc
+*.pyo
+NOVA_CDP-deployment.zip
