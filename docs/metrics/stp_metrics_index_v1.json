@@ -9,6 +9,8 @@
   },
   "ops_true_stp_rate": 0.50672,
   "ops_hitl_rate": 0.49328,
+  "ops_metrics_status": "superseded_latency_smoke_non_gate",
+  "next_strategy": "stp_latency_next_strategy_v1.md",
   "accuracy_exact": 0.949848,
   "false_accepts": 0
 }
