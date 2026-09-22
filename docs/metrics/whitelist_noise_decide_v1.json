@@ -1,0 +1,54 @@
+{
+  "title": "DI vs non-twin digit-whitelist soup Box 28 (EJG7.003 → 1825 STP)",
+  "commit": "b69670e",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_whitelist_noise_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_whitelist_noise_decide",
+    "src": "evaluation_results/hackathon_150_di2grid_decide",
+    "method": "complete_only_whitelist_noise_v1",
+    "completed": 89,
+    "true_stp": 77,
+    "true_stp_rate_of_completed": 0.865169,
+    "field_ink_hitl": 12,
+    "prior_di2grid": 76,
+    "flipped_to_true_stp": [
+      "Group A/M048EJG7.003"
+    ],
+    "lost_stp": [],
+    "ejg7003": {
+      "value": "1825.00",
+      "disposition": "AUTO_ACCEPTED",
+      "reasons": [
+        "HARD_VALIDATION_PASSED",
+        "MULTI_ENGINE_AGREEMENT",
+        "BOX28_LINE_SUM_EVALUATED",
+        "CHARGE_DI_LOCAL_CONFIRMED",
+        "CLAIM_TOTAL_CONFIRMED",
+        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+        "FORMAT_VALID",
+        "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+      ]
+    }
+  },
+  "page_check": "EJG7.003: DI+Claude Box 28 1825 vs paddle charge_digit_whitelist_fast 4825 (not digit-drop/scale twin). _di_vs_digit_whitelist_noise_only grants llm open-source authority; ARITHMETIC_MISMATCH fail-open clears FINANCIAL_CONFLICT. DJKN.005 (200 vs whitelist 2001) and DJKN.007 (200 vs 2004) stay HITL as digit-drop twins.",
+  "cleanup": "Pruned evaluation_results from ~152M to tip-only trees (dropped superseded di2grid tip, stripped final/html/rank/validate from prior tips). Workspace I/O was dominated by regenerated FinalClaim/DecisionResult blobs.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 77. Remaining ~12 HITL: place-shift locals (DJKN.005/007), hard-15/E4 gaps, handwriting identity, empty/invalid ink.",
+  "note": "Decision-only on frozen OCR/extract. Golden Pack not mutated. Gates still fail."
+}
