@@ -1,0 +1,25 @@
+{
+  "title": "STP recovery after stop-1000 learnings",
+  "updated_at": "2026-09-22T11:59:35.621972+00:00",
+  "baseline_ops_stp_before_recovery": {
+    "completed": 318,
+    "true_stp": 240,
+    "rate": 0.755
+  },
+  "after_recovery": {
+    "completed": 318,
+    "true_stp": 255,
+    "rate": 0.8019
+  },
+  "flipped_this_pass": 0,
+  "charge_hitl_remaining": 51,
+  "charge_only_hitl": 42,
+  "bleed_true_stp_auto_guard": "BLEED_CENTS_FAIL_CLOSED still blocks unrepaired bleed; OCR .00 sibling repairs mint CONFIRMED",
+  "runs": [
+    "/workspace/evaluation_results/hackathon_1000_geometry_95_verify",
+    "/workspace/evaluation_results/hackathon_1000_stp_recovery_decision_only",
+    "/workspace/evaluation_results/hackathon_1000_stp_recovery_inplace",
+    "/workspace/evaluation_results/hackathon_1000_stp_recovery_inplace_v2",
+    "/workspace/evaluation_results/hackathon_1000_stp_recovery_inplace_v3"
+  ]
+}

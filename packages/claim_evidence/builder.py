@@ -1245,14 +1245,27 @@ class ClaimEvidenceBuilder:
         }
         if decision.confirmed and decision.amount:
             from packages.claim_evidence.charge_total_authority import (
+                _dollars_part,
                 is_units_bleed_cents,
             )
+            from packages.claim_evidence.line_sum_authority import (
+                format_currency,
+                parse_currency,
+            )
 
+            amount_bleed = is_units_bleed_cents(decision.amount)
+            line_bleed = is_units_bleed_cents(decision.line_sum)
+            # Whole-dollar Box 28 / OCR sibling beside same-stem bleed line Σ
+            # (.22/.43) is safe — mint the .00 amount, do not contradict.
+            whole_vs_bleed_stem = (
+                not amount_bleed
+                and line_bleed
+                and str(decision.amount).endswith(".00")
+                and _dollars_part(decision.amount) == _dollars_part(decision.line_sum)
+            )
             # Same-stem corroboration of bleed cents (.07/.22/.44) is still not
-            # AUTO authority — both readers can share the ruling bleed.
-            if is_units_bleed_cents(decision.amount) or is_units_bleed_cents(
-                decision.line_sum
-            ):
+            # AUTO authority when the selected amount itself is bleed.
+            if amount_bleed or (line_bleed and not whole_vs_bleed_stem):
                 contradictions.append(
                     self._item(
                         claim_id,
@@ -1268,22 +1281,33 @@ class ClaimEvidenceBuilder:
                     )
                 )
             else:
+                mint_amount = decision.amount
+                if whole_vs_bleed_stem:
+                    parsed = parse_currency(decision.amount)
+                    mint_amount = (
+                        format_currency(parsed) if parsed is not None else decision.amount
+                    )
                 if self._mint_claim_total_confirmed(
                     claim_id=claim_id,
                     values=values,
                     evidence=evidence,
-                    amount=decision.amount,
-                    reason="FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                    amount=mint_amount,
+                    reason=(
+                        "BLEED_CENTS_TO_WHOLE_DOLLAR"
+                        if whole_vs_bleed_stem
+                        else "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED"
+                    ),
                     metadata={
                         **metadata,
                         "service_line_total": decision.line_sum,
+                        "bleed_line_sum_stem_relieved": whole_vs_bleed_stem,
                     },
                 ):
                     evidence.append(
                         self._item(
                             claim_id,
                             "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                            decision.amount,
+                            mint_amount,
                             metadata,
                         )
                     )
