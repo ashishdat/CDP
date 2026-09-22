@@ -180,11 +180,17 @@ def _dollars_digits(amount: str) -> str:
 
 
 def _looks_like_units_concat(amount: str, peers: set[str]) -> bool:
-    """Reject ``6401.00`` / ``2601.00`` when a clean ``640.00`` / ``260.00`` peer exists."""
+    """Reject ``6401.00`` / ``701.00`` when a clean ``640.00`` / ``70.00`` peer exists.
+
+    Three-digit dollars ending in a units-column tick (``701`` beside local
+    ``70``) are the same bleed class as four-digit ``6401`` beside ``640``.
+    ``1851`` beside vision-only ``185`` stays selectable for digit-drop recovery
+    because the stem is not a local peer.
+    """
     if not amount.endswith(".00"):
         return False
     dollars = _dollars_digits(amount)
-    if len(dollars) < 4 or dollars[-1] not in _CONCAT_TAIL:
+    if len(dollars) < 3 or dollars[-1] not in _CONCAT_TAIL:
         return False
     stem = dollars[:-1]
     stem_amount = f"{int(stem)}.00" if stem.isdigit() else None
@@ -1454,8 +1460,24 @@ def apply_line_charge_selector(lines: list[dict] | None) -> list[dict]:
             # Keep row for review / later verification, but do not promote a
             # bleed shell. Prefer selector amount hint when present.
             if selection.amount:
-                updated["charges"] = selection.amount
-                updated["charge_amount"] = selection.amount
+                # Single-engine tiny ruling soup (``1.01`` from raw ``1\\n01``)
+                # must not enter the line Σ beside a real dual-local charge —
+                # that false 176.01 vetoes unanimous Box 28 ``175.00``.
+                from packages.claim_evidence.line_sum_authority import (
+                    is_suspicious_tiny_total,
+                )
+
+                tiny = parse_currency(selection.amount)
+                if (
+                    selection.reason == "SINGLE_LOCAL_ENGINE_ONLY"
+                    and tiny is not None
+                    and is_suspicious_tiny_total(tiny)
+                ):
+                    updated["charges"] = None
+                    updated["charge_amount"] = None
+                else:
+                    updated["charges"] = selection.amount
+                    updated["charge_amount"] = selection.amount
             else:
                 # Stale charges (e.g. geometry 49.77) with no selector amount
                 # invent a false line Σ and fight Box 28 / gpt-4o (4972).

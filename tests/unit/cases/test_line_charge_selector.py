@@ -51,6 +51,53 @@ def test_selects_dual_local_stem_over_units_concat():
     assert result.amount == "640.00"
 
 
+def test_three_digit_units_concat_loses_to_local_stem():
+    """DJKH.048: dollars-ruling ``701`` beside local ``70`` is units bleed."""
+    line = {
+        "charges": "701.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "70.00", "70.00", _CHARGE_BBOX),
+            _cand("paddleocr", "70.00", "70!00", _CHARGE_BBOX),
+            _cand("rapidocr", "7010.00", "7010(", _CHARGE_BBOX),
+            _cand("paddleocr", "701.00", "701C", _CHARGE_BBOX),
+            _cand("rapidocr", "701.00", "701C", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "70.00"
+    assert result.reason != "DUAL_LOCAL_CHARGE_COLUMN" or "701" not in (result.amount or "")
+    out = apply_line_charge_selector([line])
+    assert out[0]["charges"] == "70.00"
+
+
+def test_ambiguous_tiny_single_local_does_not_enter_line_sum():
+    """EJG7.017: ``1.01`` from ``1\\n01`` must not inflate Σ past Box 28 ``175``."""
+    lines = [
+        {
+            "charges": "175.00",
+            "canonical_region": list(_CHARGE_BBOX),
+            "candidates": [
+                _cand("paddleocr", "175.00", "175", _CHARGE_BBOX),
+                _cand("rapidocr", "175.00", "175", _CHARGE_BBOX),
+            ],
+        },
+        {
+            "charges": "1.01",
+            "canonical_region": list(_CHARGE_BBOX),
+            "candidates": [
+                _cand("paddleocr", "01.00", "0\n01", _CHARGE_BBOX),
+                _cand("rapidocr", "01.00", "1\n01", _CHARGE_BBOX),
+            ],
+        },
+    ]
+    out = apply_line_charge_selector(lines)
+    assert out[0]["charges"] == "175.00"
+    assert out[1].get("charges") in (None, "")
+    assert out[1].get("line_charge_ambiguous")
+
+
 def test_rejects_pos_shell_and_selects_real_charge():
     """Selected 1.00 junk loses to dual-local 270.00."""
     line = {
