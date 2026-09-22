@@ -1,0 +1,43 @@
+{
+  "title": "Incomplete uniform line grids do not rival conflict-agent Box 28 (EJGE.007/008)",
+  "commit": "9a19883",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_incomplete_grid_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_incomplete_grid_decide",
+    "src": "evaluation_results/hackathon_150_di_strong_e4_decide",
+    "completed": 89,
+    "true_stp": 72,
+    "true_stp_rate_of_completed": 0.808989,
+    "field_ink_hitl": 17,
+    "prior_di_strong_e4": 70,
+    "flipped_to_true_stp": [
+      "M048EJGE.007 total_charge 1200.00",
+      "M048EJGE.008 total_charge 1200.00"
+    ],
+    "lost_stp": [],
+    "held_hitl": ["M048EJG7.016 (2×150 vs Box 600 requires ≥3 equal lines)"],
+    "false_accepts": 57,
+    "accepted_fields_scored": 233,
+    "accepted_field_precision": 0.755365
+  },
+  "page_check": "Conflict agent already chose BOX28 1200 with open-source paddle authority, but charge_conflicts_with_plausible_line_sum treated 3×200=600 as a rival. Incomplete uniform prefixes (≥3 equal SELECTED lines, implied rows ≤6) no longer block CLAIM_TOTAL_CONFIRMED. EJGE.006 4200 (implies 21 rows) and EJG7.016 2-line pattern stay HITL.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 72. Remaining: LINE_SUM_UNCORROBORATED, EVIDENCE_POLICY_GAP with place-shift locals, identity HITL, hard-15, empty ink. EJGE.009 lacks open-source Box 28 1200.",
+  "note": "Decision-only on frozen OCR. Golden Pack not mutated. Gates still fail."
+}
