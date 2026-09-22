@@ -1,7 +1,7 @@
 {
-  "count": 129,
+  "count": 140,
   "by_kind": {
-    "LABEL_SOURCE_CONFLICT": 129
+    "LABEL_SOURCE_CONFLICT": 140
   },
   "records": [
     {
@@ -1293,8 +1293,118 @@
       "page_index": null,
       "detail": "Silver agent GT 315.00 conflicts with cascade AUTO 305.00 (multi-engine/DI path); quarantined pending independent adjudication.",
       "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.004",
+      "field_name": "patient_name",
+      "label_value": "MENENDEZ FELICITA",
+      "source_value": "MENENDEZ. FELICITAA",
+      "page_index": null,
+      "detail": "Silver agent GT name 'MENENDEZ FELICITA' conflicts with AUTO 'MENENDEZ. FELICITAA'; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.004",
+      "field_name": "insured_name",
+      "label_value": "MENENDEZ FELICITA",
+      "source_value": "MENENDEZ. FELICITAA",
+      "page_index": null,
+      "detail": "Silver agent GT name 'MENENDEZ FELICITA' conflicts with AUTO 'MENENDEZ. FELICITAA'; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.006",
+      "field_name": "total_charge",
+      "label_value": "2750.00",
+      "source_value": "275.00",
+      "page_index": null,
+      "detail": "Silver agent GT 2750.00 conflicts with cascade AUTO 275.00 (multi-engine/DI path); quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.008",
+      "field_name": "patient_dob",
+      "label_value": "2026-01-03",
+      "source_value": "1975-03-26",
+      "page_index": null,
+      "detail": "Silver agent GT DOB 2026-01-03 conflicts with AUTO 1975-03-26; quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.008",
+      "field_name": "insured_name",
+      "label_value": "MCT ARTY",
+      "source_value": "MCLARTY, MICHAEL",
+      "page_index": null,
+      "detail": "Silver agent GT name 'MCT ARTY' conflicts with AUTO 'MCLARTY, MICHAEL'; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.010",
+      "field_name": "insured_name",
+      "label_value": "KUMP COLLEEN",
+      "source_value": "KLUMP.COLLEEN",
+      "page_index": null,
+      "detail": "Silver agent GT name 'KUMP COLLEEN' conflicts with AUTO 'KLUMP.COLLEEN'; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.012",
+      "field_name": "patient_dob",
+      "label_value": "1971-10-01",
+      "source_value": "1971-09-19",
+      "page_index": null,
+      "detail": "Silver agent GT DOB 1971-10-01 conflicts with AUTO 1971-09-19; quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.012",
+      "field_name": "insured_name",
+      "label_value": "GRANT TASON",
+      "source_value": "GRANT. JASON",
+      "page_index": null,
+      "detail": "Silver agent GT name 'GRANT TASON' conflicts with AUTO 'GRANT. JASON'; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.015",
+      "field_name": "total_charge",
+      "label_value": "128.00",
+      "source_value": "125.00",
+      "page_index": null,
+      "detail": "Silver agent GT 128.00 conflicts with cascade AUTO 125.00 (multi-engine/DI path); quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.017",
+      "field_name": "patient_dob",
+      "label_value": "1976-10-13",
+      "source_value": "2011-03-06",
+      "page_index": null,
+      "detail": "Silver agent GT DOB 1976-10-13 conflicts with AUTO 2011-03-06; quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJI2.019",
+      "field_name": "total_charge",
+      "label_value": "80.00",
+      "source_value": "570.00",
+      "page_index": null,
+      "detail": "Silver agent GT 80.00 conflicts with cascade AUTO 570.00 (multi-engine/DI path); quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
     }
   ],
-  "updated_at": "2026-09-22T08:57:17.425576+00:00",
+  "updated_at": "2026-09-22T09:09:32.983822+00:00",
   "note_1000_geo95_fa": "Quarantined 31 fresh FAs from geometry-95 1000 verify mid-score (same LABEL_SOURCE_CONFLICT policy as tip 89)."
 }

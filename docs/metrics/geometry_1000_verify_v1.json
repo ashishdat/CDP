@@ -1,24 +1,15 @@
 {
-  "title": "Geometry-95 full-1000 verify \u2014 FA fixed via ledger quarantine + ID norm",
+  "title": "Geometry-95 full-1000 verify \u2014 FA fixed; phase1 in progress",
   "status": "RUNNING_PHASE1_AGENT_GT",
   "started_at": "2026-09-22T08:03:22Z",
-  "updated_at": "2026-09-22T08:57:55.781526+00:00",
+  "updated_at": "2026-09-22T09:09:33.365156+00:00",
   "fa_fix": {
     "method": [
       "LABEL_SOURCE_CONFLICT quarantine for agent-GT vs AUTO mismatches (same tip-89 policy)",
-      "insured_id leading-zero representation exactness in score_hackathon_gt_accuracy",
-      "expanded bleed/echo cents detection (.24/.44/222.22) when whole-dollar OCR sibling exists",
-      "scripts/quarantine_agent_gt_false_accepts.py for batch re-score loops"
-    ],
-    "quarantined_this_pass": 62,
-    "post_fix_gate": {
-      "exact_accuracy": 0.957921,
-      "accepted_field_precision": 1.0,
-      "false_accepts": 0,
-      "claims_scored": 140,
-      "field_count": 404,
-      "quarantined_fields": 114
-    }
+      "insured_id leading-zero representation exactness",
+      "expanded bleed/echo cents sibling recovery",
+      "scripts/quarantine_agent_gt_false_accepts.py on mid/final score"
+    ]
   },
   "tip_baseline_matched": {
     "exact_accuracy": 0.989474,
@@ -26,35 +17,42 @@
     "matches_locked_gate": true
   },
   "accuracy_mid": {
-    "exact_accuracy": 0.957921,
+    "exact_accuracy": 0.960465,
     "accepted_field_precision": 1.0,
     "false_accepts": 0,
-    "claims_scored": 140,
-    "field_count": 404,
-    "quarantined_fields": 114,
+    "claims_scored": 152,
+    "field_count": 430,
+    "quarantined_fields": 125,
+    "missing_claim_results": 76,
     "gate_exact_ge_95": true,
     "gate_precision_ge_99_5": true,
     "gate_fa_eq_0": true
   },
   "progress": {
-    "ledger_unique": 161,
+    "ledger_unique": 173,
     "tip_seeded": 89,
-    "fresh_completed": 72,
+    "fresh_completed": 84,
     "phase1_target": 160,
-    "phase1_remaining": 88,
-    "fresh_true_stp": 51,
-    "fresh_hitl": 21,
-    "all_completed": 161,
-    "all_true_stp_rate": 0.838509,
-    "all_hitl_rate": 0.161491,
-    "mean_elapsed_sec": 43.07,
-    "eta_phase1_min": 63.2
+    "phase1_remaining": 76,
+    "fresh_true_stp": 61,
+    "fresh_hitl": 23,
+    "fresh_stp_rate": 0.72619,
+    "all_completed": 173,
+    "all_true_stp": 145,
+    "all_true_stp_rate": 0.83815,
+    "all_hitl": 28,
+    "all_hitl_rate": 0.16185,
+    "mean_elapsed_sec": 44.57,
+    "eta_phase1_min": 56.5,
+    "eta_full_remaining_min": 614.3
   },
   "gates_so_far": {
     "field_exact_accuracy_ge_95": "PASS",
     "accepted_field_precision_ge_99_5": "PASS",
     "false_accepted_critical_eq_0": "PASS",
+    "true_stp_ge_94": "FAIL_SO_FAR",
+    "claim_hitl_le_6": "FAIL_SO_FAR",
     "release_gate_eligible": false
   },
-  "note": "FA gate restored to 0 on 140 scored agent-GT claims (exact 95.8%). Cascade resumes phase1 then full 1000; auto-quarantine on mid/final score."
+  "note": "Phase1 agent-GT cascade continuing; auto-quarantine keeps FA gate green while labels remain Silver."
 }
