@@ -2073,16 +2073,23 @@ class EvidenceReconciler:
             # Box 28 ↔ line-sum financial authority already confirmed the total,
             # or when LINE_TOTALS_RECONCILED owns the selected amount (soup rivals
             # like ``2605`` / ``5460.4`` beside a clean line Σ must not veto AUTO).
+            # DI+local confirmed Box 28 (CHARGE_DI_LOCAL_CONFIRMED) is enough
+            # authority to ignore embedded digit scrap (paddle ``3`` beside
+            # ``105.00``) — not enough to invent totals or clear place-shift.
             charge_soup_authority = financial_authority or (
                 field_name in {"total_charge", "total_charges"}
                 and "LINE_TOTALS_RECONCILED" in deterministic
                 and "LINE_TOTALS_CORROBORATED" in deterministic
                 and "LINE_TOTALS_UNCORROBORATED" not in deterministic
+            ) or (
+                field_name in {"total_charge", "total_charges"}
+                and "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
             )
             if field_name in {"total_charge", "total_charges"} and charge_soup_authority:
                 from packages.claim_evidence.line_sum_authority import (
                     is_currency_digit_drop_twin,
                     is_decimal_place_shift,
+                    is_embedded_charge_digit_fragment,
                     is_scale_shift,
                     parse_currency,
                 )
@@ -2159,6 +2166,9 @@ class EvidenceReconciler:
                                 or other_digits in confirmed_digits
                             )
                         ):
+                            continue
+                        # Embedded scrap (``3`` / ``03.00`` beside ``105.00``).
+                        if is_embedded_charge_digit_fragment(other, value):
                             continue
                         # Dollars-stem junk (``2605`` beside ``260.00``).
                         conf_dollars = str(value).split(".", 1)[0]

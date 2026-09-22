@@ -1,0 +1,53 @@
+{
+  "title": "Gated inflated-stem charge authority on incomplete uniform line-grid (EJGE.009)",
+  "commit": "74645f7",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_inflated_stem_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_inflated_stem_decide",
+    "src": "evaluation_results/hackathon_150_incomplete_grid_decide",
+    "completed": 89,
+    "true_stp": 73,
+    "true_stp_rate_of_completed": 0.820225,
+    "field_ink_hitl": 16,
+    "prior_incomplete_grid": 72,
+    "flipped_to_true_stp": [
+      "M048EJGE.009 total_charge 1200.00"
+    ],
+    "lost_stp": [],
+    "held_hitl": [
+      "M048DJKN.005/007 place-shift locals (200 vs 2001/2004) \u2014 keep HITL",
+      "M048EJGE.006 4200 implies >6 rows \u2014 keep HITL"
+    ],
+    "false_accepts": 57,
+    "accepted_fields_scored": 233,
+    "accepted_field_precision": 0.755365,
+    "remaining_hitl_gap_classes": {
+      "LINE_SUM_UNCORROBORATED": 8,
+      "EVIDENCE_POLICY_GAP": 5,
+      "HANDWRITING_UNREADABLE": 2,
+      "CALIBRATION_HITL": 1,
+      "EMPTY_FINANCIAL_INK": 1
+    }
+  },
+  "page_check": "Inflated local stem (paddle 1200 under DI 200) is open-source authority only when incomplete_uniform_line_grid_explains_box28 (\u22653 equal SELECTED lines). EJGE.009 six\u00d7$200\u2192$1200 STP; DJKN.005/007 without grid stay HITL.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 73. Next safe frozen-OCR: EJG7.027 CONFLICT_MARGIN_TOO_SMALL vs paddle fragment 3 beside DI-local 105.",
+  "cleanup": "Pruned superseded evaluation_results (blind_hard, agent_honor, incomplete_grid, phase scratch) ~723M\u2192~160M; kept tip decide + caption_bleed OCR source.",
+  "note": "Decision-only on frozen OCR. Golden Pack not mutated. Gates still fail."
+}

@@ -263,6 +263,12 @@ class EvidenceDecisionService:
         deterministic = set(context.deterministic_evidence) | set(context.cross_field_evidence)
         if context.hard_validation_passed:
             deterministic.add("HARD_VALIDATION_PASSED")
+        # Evidence builder mints CHARGE_DI_LOCAL_CONFIRMED as bundle E4; feed it
+        # into reconciler deterministic so embedded OCR scrap cannot veto STP.
+        for item in bundle.evidence_items:
+            fact = (item.metadata or {}).get("fact")
+            if fact == "CHARGE_DI_LOCAL_CONFIRMED":
+                deterministic.add("CHARGE_DI_LOCAL_CONFIRMED")
         result = self.reconciler.reconcile(
             context.field_name,
             candidates,

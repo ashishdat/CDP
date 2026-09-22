@@ -119,6 +119,27 @@ def is_cents_column_fragment(fragment: object, fuller: object) -> bool:
     return frag == Decimal(cents)
 
 
+def is_embedded_charge_digit_fragment(fragment: object, fuller: object) -> bool:
+    """True when ``fragment`` is trivial single-digit OCR scrap beside ``fuller``.
+
+    Paddle ``3`` / ``03.00`` beside DI+Claude ``105.00`` is ROI scrap, not a
+    second Box 28 total. Place-shift / digit-drop twins are excluded so
+    ``200`` vs ``2001`` stays a real conflict.
+    """
+    frag = parse_currency(fragment)
+    full = parse_currency(fuller)
+    if frag is None or full is None or frag <= 0 or full <= frag:
+        return False
+    if is_decimal_place_shift(fragment, fuller) or is_scale_shift(fragment, fuller):
+        return False
+    if is_currency_digit_drop_twin(fragment, fuller):
+        return False
+    frag_d = (_currency_digit_string(fragment) or "").lstrip("0") or "0"
+    full_d = (_currency_digit_string(fuller) or "").lstrip("0") or "0"
+    # One significant digit vs a multi-digit claim total (≥$100).
+    return len(frag_d) == 1 and len(full_d) >= 3 and full >= Decimal(100)
+
+
 def is_implausible_corroborator(value: object, line_total: object) -> bool:
     """Ignore box-28 junk that would force BOX28_OR_DI_CONFLICT vs real line-sum."""
     if is_implausible_charge_total(value):

@@ -672,3 +672,53 @@ def test_shaped_member_id_preferred_over_header_crop():
     )
     assert result.selected_value == "20143064268"
     assert "INSURED" not in (result.selected_value or "").upper()
+
+
+def test_di_local_confirmed_clears_embedded_paddle_digit_scrap():
+    """EJG7.027: DI+Claude 105 must AUTO beside paddle fragment 3/03.00."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate("105.00", "azure_document_intelligence_read", 0.99),
+            _candidate("105.00", "anthropic_claude_crop", 0.98),
+            _candidate("03.00", "paddleocr", 0.97),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "BOX28_BLANKNESS_EVALUATED",
+            "BOX28_LINE_SUM_EVALUATED",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"105", "105.00"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "105.00"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_di_local_confirmed_does_not_clear_place_shift_rival():
+    """DJKN.005: DI 200 must stay HITL beside paddle 2001 place-shift."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate("200.00", "azure_document_intelligence_read", 0.99),
+            _candidate("200.00", "anthropic_claude_crop", 0.98),
+            _candidate("2001.00", "paddleocr", 0.97),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"200", "200.00"},
+    )
+    assert result.selected_value == "200.00"
+    assert result.decision != Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes

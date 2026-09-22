@@ -5,6 +5,7 @@ from packages.claim_evidence.line_sum_authority import (
     candidate_independence_key,
     candidates_are_independent,
     is_decimal_place_shift,
+    is_embedded_charge_digit_fragment,
     is_implausible_charge_total,
     is_implausible_corroborator,
     is_suspicious_tiny_total,
@@ -21,6 +22,16 @@ def test_suspicious_tiny_matches_cascade_rule():
     assert is_suspicious_tiny_total(Decimal("2.22"))
     assert not is_suspicious_tiny_total(Decimal("22.00"))
     assert not is_suspicious_tiny_total(Decimal("1600.00"))
+
+
+def test_embedded_charge_digit_fragment():
+    assert is_embedded_charge_digit_fragment("3", "105.00")
+    assert is_embedded_charge_digit_fragment("03.00", "105.00")
+    assert not is_embedded_charge_digit_fragment("105.00", "105.00")
+    assert not is_embedded_charge_digit_fragment("2001.00", "200.00")
+    assert not is_embedded_charge_digit_fragment("200.00", "2001.00")
+    assert not is_embedded_charge_digit_fragment("15.00", "105.00")
+    assert not is_embedded_charge_digit_fragment("10", "105.00")
 
 
 def test_implausible_box28_digit_soup():
