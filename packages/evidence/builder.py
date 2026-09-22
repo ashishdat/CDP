@@ -90,11 +90,15 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
         other = parse_currency(raw)
         if other is None or other == target:
             continue
-        if is_decimal_place_shift(agreed, raw) or is_currency_digit_drop_twin(agreed, raw):
+        if is_decimal_place_shift(agreed, raw):
             return True
-        # Inflated ×10/×100 shell of the agreed amount — not a disqualifying rival.
+        # Inflated ×10/×100 shell of the agreed amount (2001 vs 200) — not a
+        # disqualifying rival. Check before digit-drop: ``200``→``2001`` looks
+        # like a one-digit extension but is units-concat noise.
         if other > target and is_scale_shift(agreed, raw):
             continue
+        if is_currency_digit_drop_twin(agreed, raw):
+            return True
         for factor in (Decimal(10), Decimal(100)):
             if abs(target * factor - other) <= Decimal("2.00"):
                 return True
