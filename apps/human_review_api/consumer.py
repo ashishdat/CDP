@@ -78,10 +78,12 @@ def main() -> None:
     from apps.human_review_api.db.session import make_session_factory
     from packages.events.bus import AIOKafkaEventBus
     from packages.observability import configure_logging
+    from packages.production_runtime import assert_production_ready
     from packages.settings import get_settings
 
     configure_logging("human-review-task-worker")
     settings = get_settings()
+    assert_production_ready(settings)
     worker = HumanReviewTaskWorker(
         AIOKafkaEventBus(settings.kafka_bootstrap_servers),
         make_session_factory(settings.database_url),

@@ -1,5 +1,6 @@
 .PHONY: setup test test-unit test-integration test-golden test-performance \
-	architecture lint quality run down logs clean clean-runtime-data evaluation
+	architecture lint quality run down logs clean clean-runtime-data evaluation \
+	prod-smoke prod-check prod-closeout-init
 
 setup:
 	@if [ ! -f .env ]; then cp .env.example .env; echo "created .env from .env.example"; fi
@@ -29,12 +30,16 @@ lint:
 
 quality: architecture lint test-unit
 
+# Local development only (Compose + default MinIO). Not a production deploy.
 run:
 	docker compose up -d --build --wait
 	@echo "Ingestion API:    http://localhost:8000/docs"
 	@echo "Human review UI:  http://localhost:8100/ui/review-tasks"
 	@echo "MinIO console:    http://localhost:9001  (minioadmin / minioadmin)"
 	@echo "Redpanda admin:   http://localhost:9644"
+	@echo ""
+	@echo "Production/staging: docs/PRODUCTION_OPERATOR_RUNBOOK.md (Helm + secrets)"
+	@echo "Fail-closed smoke:  make prod-smoke"
 
 down:
 	docker compose down
@@ -51,3 +56,16 @@ clean-runtime-data:
 
 evaluation:
 	python -m evaluation.runner --dataset dataset_raw --ground-truth evaluation_data/ground_truth.json --predictions evaluation_data/predictions.json --output evaluation_results
+
+# Production-hardened checks (local). Does NOT authorize PHI processing.
+prod-smoke:
+	python3 scripts/smoke_production_fail_closed.py
+
+prod-closeout-init:
+	python3 scripts/check_production_closeout.py --init
+
+prod-check: prod-smoke
+	@python3 scripts/check_production_closeout.py; status=$$?; \
+	echo "Status remains production-hardened until closeout PROMOTE_TO_PRODUCTION."; \
+	echo "See docs/PRODUCTION_READINESS.md and docs/PRODUCTION_OPERATOR_RUNBOOK.md"; \
+	exit $$status

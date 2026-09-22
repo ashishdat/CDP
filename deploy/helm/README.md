@@ -21,6 +21,10 @@ CDP_PIPELINE_RELEASE=extraction-v2
 CDP_RUNTIME_PROFILE=config/runtime_profiles/production_runtime_v1.yaml
 ```
 
+`cdp-worker-pools` NetworkPolicy egress allows Kafka (9092), **MySQL (3306)**,
+legacy Postgres (5432), Redis (6379), and MinIO (9000). Prefer MySQL as the
+platform DB (`deploy/mysql/`).
+
 API readiness probes use `/ready` (DB + object store initialized); liveness
 uses `/health`. See `docs/PRODUCTION_OPERATOR_RUNBOOK.md`.
 
@@ -29,6 +33,13 @@ Validated with a real `helm` binary:
 ```
 helm lint deploy/helm/<chart>
 helm template <release-name> deploy/helm/<chart>
+```
+
+Operator local checks:
+
+```
+make prod-smoke
+make prod-check
 ```
 
 Not validated: `helm install` against a live cluster, or KEDA ScaledObjects

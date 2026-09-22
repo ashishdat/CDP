@@ -29,9 +29,10 @@ spec:
         - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
       ports: [{protocol: UDP, port: 53}, {protocol: TCP, port: 53}]
     - to:
-        - podSelector: {matchExpressions: [{key: app.kubernetes.io/name, operator: In, values: [redpanda, postgresql, redis, minio]}]}
+        - podSelector: {matchExpressions: [{key: app.kubernetes.io/name, operator: In, values: [redpanda, mysql, postgresql, redis, minio]}]}
       ports:
         - {protocol: TCP, port: 9092}
+        - {protocol: TCP, port: 3306}
         - {protocol: TCP, port: 5432}
         - {protocol: TCP, port: 6379}
         - {protocol: TCP, port: 9000}

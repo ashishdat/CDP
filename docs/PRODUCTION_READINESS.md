@@ -78,13 +78,39 @@ A release record must contain:
 Until every blocker is closed or formally accepted by the accountable owner,
 the correct status is **production-hardened, not production-authorized**.
 
+## Measured eval tip (development labels — not release authority)
+
+Hackathon decide tip `evaluation_results/hackathon_150_geo_underread_600_decide`
+(see `docs/metrics/geo_underread_600_decide_v1.json`):
+
+| Gate | Result |
+|---|---|
+| True STP ≥94% | PASS (84/89) |
+| Claim HITL ≤6% | PASS (5.6%) |
+| Critical accepted precision ≥99.5% | PASS (100% on scored accepts) |
+| Zero critical false accepts | PASS (0) |
+| `release_gate_eligible` | **false** — agent-confirmed labels are not independent adjudicated truth |
+
+These numbers harden confidence in the cascade; they do **not** close holdout
+blocker #7 or authorize PHI.
+
+## Staging deploy hygiene (shipped)
+
+- Worker NetworkPolicy egress allows **MySQL 3306** (preferred) and legacy
+  Postgres 5432 (`deploy/helm/cdp-worker-pools/templates/platform.yaml`).
+- Human-review task worker calls `assert_production_ready` on startup
+  (`apps/human_review_api/consumer.py`), matching other Kafka consumers.
+- Operator shortcuts: `make prod-smoke`, `make prod-check` (local fail-closed
+  + closeout validator). `make run` remains **local Compose only**.
+
 ## How to close the remaining blockers
 
 Follow `docs/PRODUCTION_CLOSEOUT_CHECKLIST.md`. Scaffold and validate evidence:
 
 ```bash
-python3 scripts/check_production_closeout.py --init
-python3 scripts/check_production_closeout.py   # exit 0 only when authorized
+make prod-closeout-init
+make prod-smoke
+make prod-check   # exit 0 only when authorized
 ```
 
 Templates live under `docs/templates/`. The validator fails closed until holdout
