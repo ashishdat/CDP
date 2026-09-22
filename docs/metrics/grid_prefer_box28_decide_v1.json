@@ -1,0 +1,57 @@
+{
+  "title": "Prefer incomplete-grid DI Box 28 over beyond-CMS-grid agent (EJGE.006 \u2192 1200 STP)",
+  "commit": "9ae08d3",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_grid_prefer_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_grid_prefer_decide",
+    "src": "evaluation_results/hackathon_150_fa_guard_decide",
+    "method": "complete_only_grid_prefer_v1",
+    "completed": 89,
+    "true_stp": 75,
+    "true_stp_rate_of_completed": 0.842697,
+    "field_ink_hitl": 14,
+    "prior_fa_guard": 74,
+    "flipped_to_true_stp": [
+      "Group A/M048EJGE.006"
+    ],
+    "lost_stp": [],
+    "ejge006": {
+      "disposition": "TRUE_STP",
+      "blockers": [],
+      "tc": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "1200.00",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_LINE_SUM_EVALUATED",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CLAIM_TOTAL_CONFIRMED",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      }
+    }
+  },
+  "page_check": "Agent/paddle 4200 exceeds 6-row CMS uniform grid; DI raw TOTAL CHARGE 1200 shaped and confirmed via incomplete 3\u00d7$200 strip (INCOMPLETE_UNIFORM_GRID_BOX28). EJG7.003 DI-only 1825 vs paddle 4825 stays HITL (no open-source authority).",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 75. Remaining ~14 HITL: place-shift locals, DI-only Box28, hard-15/E4 gaps, handwriting, sealed identity.",
+  "note": "Decision-only on frozen OCR/extract. Golden Pack not mutated. Gates still fail."
+}
