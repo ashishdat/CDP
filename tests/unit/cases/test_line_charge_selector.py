@@ -52,7 +52,7 @@ def test_selects_dual_local_stem_over_units_concat():
 
 
 def test_three_digit_units_concat_loses_to_local_stem():
-    """DJKH.048: dollars-ruling ``701`` beside local ``70`` is units bleed."""
+    """DJKH.048: dollars-ruling ``701`` beside Claude+paddle ``70`` is units bleed."""
     line = {
         "charges": "701.00",
         "canonical_region": list(_CHARGE_BBOX),
@@ -67,9 +67,25 @@ def test_three_digit_units_concat_loses_to_local_stem():
     result = select_line_charge(line)
     assert result.disposition == "SELECTED_LOCAL_CHARGE"
     assert result.amount == "70.00"
-    assert result.reason != "DUAL_LOCAL_CHARGE_COLUMN" or "701" not in (result.amount or "")
     out = apply_line_charge_selector([line])
     assert out[0]["charges"] == "70.00"
+
+
+def test_whitelist_underread_does_not_units_concat_real_charge():
+    """EJG7.001: whitelist ``51`` from ``5100`` must not veto dual-local ``510``."""
+    line = {
+        "charges": "510.00",
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "510.00", "510.00", _CHARGE_BBOX),
+            _cand("paddleocr", "510.00", "510", _CHARGE_BBOX),
+            _cand("rapidocr", "510.00", "510", _CHARGE_BBOX),
+            _cand("paddleocr", "51.00", "5100", _CHARGE_BBOX),
+        ],
+    }
+    result = select_line_charge(line)
+    assert result.disposition == "SELECTED_LOCAL_CHARGE"
+    assert result.amount == "510.00"
 
 
 def test_ambiguous_tiny_single_local_does_not_enter_line_sum():

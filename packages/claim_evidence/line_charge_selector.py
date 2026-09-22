@@ -182,10 +182,10 @@ def _dollars_digits(amount: str) -> str:
 def _looks_like_units_concat(amount: str, peers: set[str]) -> bool:
     """Reject ``6401.00`` / ``701.00`` when a clean ``640.00`` / ``70.00`` peer exists.
 
-    Three-digit dollars ending in a units-column tick (``701`` beside local
-    ``70``) are the same bleed class as four-digit ``6401`` beside ``640``.
-    ``1851`` beside vision-only ``185`` stays selectable for digit-drop recovery
-    because the stem is not a local peer.
+    Three-digit dollars ending in a units-column tick (``701`` beside ``70``)
+    are the same bleed class as four-digit ``6401`` beside ``640``. Callers must
+    still require a trustworthy stem peer (vision or dual-local) so a lone
+    whitelist under-read (``51`` from ``5100``) cannot veto real ``510``.
     """
     if not amount.endswith(".00"):
         return False
@@ -965,13 +965,25 @@ def select_line_charge(
             # ``6401`` beside local ``640`` is units bleed. ``1851`` beside a
             # vision-only ``185`` is the dropped digit that regressed blind-50
             # STP — keep the fuller local amount for digit-drop resolution.
+            # Three-digit ``701`` beside Claude+paddle ``70`` is units bleed;
+            # ``510`` beside whitelist-only ``51`` (from ``5100``) is not.
             stem = _dollars_digits(amount)[:-1]
             stem_amount = f"{int(stem)}.00" if stem.isdigit() else ""
-            stem_is_local = any(
-                peer == stem_amount and fam in _LOCAL_ENGINES
+            stem_local_families = {
+                fam
+                for peer, fam, _ in usable
+                if peer == stem_amount and fam in _LOCAL_ENGINES
+            }
+            stem_has_vision = any(
+                peer == stem_amount and fam == "azure_gpt4o_crop"
                 for peer, fam, _ in usable
             )
-            if stem_is_local or family not in _LOCAL_ENGINES:
+            dollars = _dollars_digits(amount)
+            if len(dollars) == 3:
+                stem_trusted = stem_has_vision or len(stem_local_families) >= 2
+            else:
+                stem_trusted = bool(stem_local_families)
+            if stem_trusted or family not in _LOCAL_ENGINES:
                 rejected.append((amount, "UNITS_CONCAT_BLEED"))
                 continue
         if _looks_like_place_shift(amount, peer_amounts):
