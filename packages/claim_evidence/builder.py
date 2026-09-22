@@ -687,6 +687,7 @@ class ClaimEvidenceBuilder:
             )
             from packages.claim_evidence.line_sum_authority import (
                 amounts_corroborate,
+                box28_geometry_underread_whole_dollar,
                 line_sum_total,
                 charge_conflicts_with_plausible_line_sum,
                 llm_charge_pick_has_open_source_authority,
@@ -719,6 +720,61 @@ class ClaimEvidenceBuilder:
                 if not row:
                     continue
                 agent_candidates.append(row.get("ocr_candidate") or row)
+        # DJKN.009: recover GEOMETRY_CENTS_UNDERREAD whole dollar BEFORE conflict
+        # agent DI+whitelist-noise can mint CLAIM_TOTAL on the truncated read.
+        geo_whole = box28_geometry_underread_whole_dollar(
+            payload if isinstance(payload, dict) else None
+        )
+        if geo_whole:
+            agent_candidates.append(
+                {
+                    "engine": "rapidocr",
+                    "value": geo_whole,
+                    "raw_value": geo_whole,
+                    "preprocessing_variant": "GEOMETRY_CENTS",
+                }
+            )
+            if llm_charge_pick_has_open_source_authority(
+                geo_whole, agent_candidates, lines
+            ) and not charge_conflicts_with_plausible_line_sum(
+                geo_whole, lines, agent_candidates
+            ):
+                contradictions[:] = [
+                    item
+                    for item in contradictions
+                    if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                ]
+                evidence[:] = [
+                    item
+                    for item in evidence
+                    if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                ]
+                meta = {
+                    "supported_fields": ["total_charge", "total_charges"],
+                    "reason": "GEOMETRY_UNDERREAD_WHOLE_DOLLAR_BOX28",
+                    "agent_value_rejected": str(
+                        (agent or {}).get("value")
+                        if isinstance(agent, dict)
+                        else values.get("total_charge")
+                        or ""
+                    ),
+                    "hitl_route": None,
+                }
+                evidence.append(
+                    self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", geo_whole, meta)
+                )
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                        geo_whole,
+                        meta,
+                    )
+                )
+                for key in ("total_charge", "total_charges", "claim_total"):
+                    if key in values or key == "total_charge":
+                        values[key] = geo_whole
+                return
         if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
             chosen = str(agent.get("value") or "").strip()
             side = agent["side"]
@@ -784,6 +840,19 @@ class ClaimEvidenceBuilder:
         # complete_from_extraction may already have written the fuller into
         # values — prefer_* then returns None; still emit CLAIM_TOTAL when the
         # amount is the unique OS digit-drop fuller of short DI/Claude rivals.
+        # DJKN.009: GEOMETRY_CENTS_UNDERREAD raw ``600`` mis-shaped as ``6.00``.
+        geo_whole = box28_geometry_underread_whole_dollar(
+            payload if isinstance(payload, dict) else None
+        )
+        if geo_whole:
+            agent_candidates.append(
+                {
+                    "engine": "rapidocr",
+                    "value": geo_whole,
+                    "raw_value": geo_whole,
+                    "preprocessing_variant": "GEOMETRY_CENTS",
+                }
+            )
         box28_seed = values.get("total_charge") or values.get("total_charges")
         digit_alt = prefer_open_source_digit_drop_fuller_box28(
             box28_seed, agent_candidates
@@ -793,6 +862,8 @@ class ClaimEvidenceBuilder:
         ):
             amt = parse_currency(box28_seed)
             digit_alt = format_currency(amt) if amt is not None else None
+        if digit_alt is None and geo_whole:
+            digit_alt = geo_whole
         if (
             digit_alt
             and llm_charge_pick_has_open_source_authority(
@@ -814,7 +885,11 @@ class ClaimEvidenceBuilder:
             ]
             meta = {
                 "supported_fields": ["total_charge", "total_charges"],
-                "reason": "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28",
+                "reason": (
+                    "GEOMETRY_UNDERREAD_WHOLE_DOLLAR_BOX28"
+                    if digit_alt == geo_whole
+                    else "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
+                ),
                 "agent_value_rejected": str(box28_seed or ""),
                 "hitl_route": None,
             }

@@ -571,9 +571,11 @@ def llm_charge_pick_has_open_source_authority(
         # the fuller stem; dollars-ruling ``129`` must not veto as inflated soup.
         # DJKN.005: paddle ``2001`` vs DI/Claude ``200`` — unique OS digit-drop
         # fuller is authorized even though 2001/200 ≈ ×10 trips inflated-scale.
+        # DJKN.009: geometry ``600`` vs whitelist ``60`` — whitelist ×10 short only.
         if not (
             _geometry_cents_line_supports_box28(chosen, candidates, service_lines)
             or _chosen_is_open_source_digit_drop_fuller(chosen, candidates)
+            or _inflated_only_vs_whitelist_shorts(chosen, candidates)
         ):
             return False
     # Open-source digit soup that implies >6 equal CMS rows is not authority
@@ -586,6 +588,10 @@ def llm_charge_pick_has_open_source_authority(
             if amounts_corroborate(chosen, amount):
                 continue
             if is_scale_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
+                # Whitelist soup ×10/digit shorts are not independent rivals
+                # (DJKN.009 paddle ``60`` beside geometry ``600``).
+                if _local_amount_only_from_digit_whitelist(amount, candidates):
+                    continue
                 return False
         return True
     # No exact local hit — DI vs non-twin digit-whitelist soup (EJG7.003).
@@ -884,6 +890,10 @@ def charge_conflicts_with_plausible_line_sum(
     candidates: list | None = None,
 ) -> bool:
     """True when observed line Σ is a real different total, not cents noise or junk."""
+    # DJKN.009: AMBIGUOUS ``1600`` tagged ONLY_BLEED_OR_SOUP / BARE_DIGIT_SOUP is
+    # not a rival of geometry whole-dollar Box 28 ``600``.
+    if _service_line_sum_is_bleed_soup_only(service_lines):
+        return False
     total = line_sum_total(service_lines)
     if total is None or parse_currency(chosen) is None:
         return False
@@ -898,6 +908,114 @@ def charge_conflicts_with_plausible_line_sum(
     if di_backed_incomplete_grid_explains_box28(chosen, service_lines, candidates):
         return False
     return True
+
+
+def _service_line_sum_is_bleed_soup_only(service_lines: list | None) -> bool:
+    """True when every charged line is AMBIGUOUS bleed/soup (not a real Σ)."""
+    saw = False
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        if parse_currency(line.get("charges") or line.get("charge_amount")) is None:
+            continue
+        saw = True
+        selection = line.get("line_charge_selection") or {}
+        disposition = str(selection.get("disposition") or "")
+        reason = str(selection.get("reason") or "")
+        if disposition != "AMBIGUOUS_LINE_CHARGE":
+            return False
+        if not any(
+            token in reason
+            for token in (
+                "ONLY_BLEED_OR_SOUP",
+                "BARE_DIGIT_SOUP",
+                "NO_DUAL_LOCAL_AGREEMENT",
+            )
+        ):
+            # Check rejected tags for BARE_DIGIT_SOUP amount that became charges.
+            rejected = selection.get("rejected") or []
+            soupish = any(
+                "BARE_DIGIT_SOUP" in str((row or {}).get("reason") or "")
+                or "ONLY_BLEED_OR_SOUP" in str((row or {}).get("reason") or "")
+                for row in rejected
+                if isinstance(row, dict)
+            )
+            if not soupish and "ONLY_BLEED_OR_SOUP" not in reason:
+                return False
+    return saw
+
+
+def box28_geometry_underread_whole_dollar(
+    field_payload: dict | None,
+) -> str | None:
+    """Recover whole-dollar Box 28 from a mis-partitioned GEOMETRY_CENTS_UNDERREAD.
+
+    DJKN.009: rapid raw ``600`` shaped as ``6.00`` (1 dollar glyph + 2 cents) while
+    paddle whitelist ``6000``→``60`` is a ×10 short of the true ``600.00``.
+    """
+    if not isinstance(field_payload, dict):
+        return None
+    payload = field_payload
+    if isinstance(payload.get("ocr"), dict):
+        payload = payload["ocr"]
+    for attempt in payload.get("attempts") or []:
+        if not isinstance(attempt, dict):
+            continue
+        reason = str(attempt.get("reason") or "")
+        if "GEOMETRY_CENTS" not in reason or "UNDERREAD" not in reason:
+            continue
+        obs = attempt.get("observation")
+        if not isinstance(obs, dict):
+            continue
+        raw_digits = re.sub(r"\D", "", str(obs.get("raw_digit_sequence") or obs.get("text") or ""))
+        if not (3 <= len(raw_digits) <= 6):
+            continue
+        shaped = obs.get("canonical_monetary_value") or obs.get("shaped")
+        shaped_amt = parse_currency(shaped)
+        # Mis-partition: single leading dollar digit + cents zeros (600 → 6.00).
+        dollar_glyphs = obs.get("dollar_glyphs") or []
+        cents_glyphs = obs.get("cents_glyphs") or []
+        mispartitioned = (
+            len(dollar_glyphs) == 1
+            and len(cents_glyphs) >= 1
+            and shaped_amt is not None
+            and shaped_amt < Decimal(10)
+        )
+        if not mispartitioned:
+            continue
+        whole = parse_currency(raw_digits)
+        if whole is None or whole < Decimal(10):
+            continue
+        return format_currency(whole)
+    return None
+
+
+def _inflated_only_vs_whitelist_shorts(
+    chosen: object, candidates: list | None
+) -> bool:
+    """True when chosen has exact OS hit and every ×10/×100 short rival is whitelist-only.
+
+    DJKN.009: geometry ``600`` beside paddle whitelist ``60`` (from ``6000``).
+    """
+    local = open_source_charge_amounts(candidates)
+    if not any(amounts_corroborate(chosen, amount) for amount in local):
+        return False
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None:
+        return False
+    saw_short = False
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        amount = parse_currency(cand.get("value") or cand.get("raw_value"))
+        if amount is None or amount >= chosen_amt:
+            continue
+        if not is_scale_shift(chosen, amount):
+            continue
+        saw_short = True
+        if not _local_amount_only_from_digit_whitelist(amount, candidates):
+            return False
+    return saw_short
 
 
 def is_scale_shift(left: object, right: object) -> bool:

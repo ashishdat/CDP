@@ -1,0 +1,42 @@
+{
+  "title": "Geometry UNDERREAD whole-dollar Box 28 (DJKN.009 \u2192 600; 84/89 STP)",
+  "commit": "4a29c81",
+  "gates": {
+    "true_stp_ge_94": "PASS",
+    "claim_hitl_le_6": "PASS",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_geo_underread_600_decide",
+    "src": "evaluation_results/hackathon_150_digit_drop_fuller_auth_decide",
+    "method": "complete_only_geo_underread_600_v1",
+    "completed": 89,
+    "true_stp": 84,
+    "true_stp_rate_of_completed": 0.94382,
+    "field_ink_hitl": 5,
+    "hitl_rate_of_completed": 0.05618,
+    "prior_digit_drop_fuller_auth": 82,
+    "flipped_to_true_stp": [
+      "Group A/M048DJKN.009",
+      "Group A/M048EJGE.017"
+    ],
+    "lost_stp": [],
+    "djkn009": {
+      "value": "600.00",
+      "disposition": "AUTO_ACCEPTED"
+    },
+    "false_accepts": 59,
+    "accepted_fields_scored": 238,
+    "accepted_field_precision": 0.752101,
+    "gt_score_out": "evaluation_results/hackathon_gt_accuracy_geo_underread_600",
+    "claims_scored_vs_agent_gt": 68
+  },
+  "page_check": "DJKN.009: GEOMETRY_CENTS_UNDERREAD raw 600 mis-shaped as 6.00; recover whole-dollar before conflict-agent DI 160 + whitelist 60 can mint CLAIM_TOTAL. AMBIGUOUS ONLY_BLEED_OR_SOUP line 1600 is not a rival \u03a3. EJGE.017 also flipped (Box 28 28 vs soup line 7).",
+  "still_closed": "Critical accepted precision 75.2% (59 FA vs agent GT) \u2014 not release-eligible. Remaining 5 HITL: EJG7.004/007/019/021/036.",
+  "note": "HITL-only complete on frozen OCR/extract. Golden Pack not mutated. STP/HITL gates PASS; FA gates FAIL."
+}

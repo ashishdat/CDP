@@ -530,10 +530,32 @@ def decide(extraction, family):
                 continue
             agent_candidates.append(row.get('ocr_candidate') or row)
         from packages.claim_evidence.line_sum_authority import (
+            box28_geometry_underread_whole_dollar,
             charge_conflicts_with_plausible_line_sum,
             llm_charge_pick_has_open_source_authority,
             prefer_open_source_digit_drop_fuller_box28,
         )
+        # DJKN.009: recover mis-partitioned GEOMETRY_CENTS_UNDERREAD raw ``600``.
+        geo_whole = box28_geometry_underread_whole_dollar(field_payload)
+        if geo_whole:
+            agent_candidates.append(
+                {
+                    "engine": "rapidocr",
+                    "value": geo_whole,
+                    "raw_value": geo_whole,
+                    "preprocessing_variant": "GEOMETRY_CENTS",
+                }
+            )
+            if (
+                llm_charge_pick_has_open_source_authority(
+                    geo_whole, agent_candidates, service_lines
+                )
+                and not charge_conflicts_with_plausible_line_sum(
+                    geo_whole, service_lines, agent_candidates
+                )
+            ):
+                values[charge_field] = geo_whole
+                continue
         # DJKN.005: prefer unique open-source fuller twin over DI/Claude under-read.
         digit_alt = prefer_open_source_digit_drop_fuller_box28(
             current_val, agent_candidates

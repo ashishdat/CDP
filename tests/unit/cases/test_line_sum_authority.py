@@ -1131,3 +1131,61 @@ def test_prefer_open_source_digit_drop_fuller_box28():
         },
     ]
     assert llm_charge_pick_has_open_source_authority("200.00", djkn001_auth)
+
+
+def test_geometry_underread_whole_dollar_box28_djkn009():
+    """DJKN.009: UNDERREAD raw 600 → 600.00; soup line 1600 is not a rival."""
+    from packages.claim_evidence.line_sum_authority import (
+        box28_geometry_underread_whole_dollar,
+        charge_conflicts_with_plausible_line_sum,
+        llm_charge_pick_has_open_source_authority,
+    )
+
+    payload = {
+        "ocr": {
+            "attempts": [
+                {
+                    "engine": "rapidocr",
+                    "reason": "GEOMETRY_CENTS_UNDERREAD",
+                    "observation": {
+                        "text": "600",
+                        "raw_digit_sequence": "600",
+                        "shaped": "6.00",
+                        "canonical_monetary_value": "6.00",
+                        "dollar_glyphs": ["6"],
+                        "cents_glyphs": ["0", "0"],
+                        "adopted": False,
+                    },
+                }
+            ],
+            "candidates": [],
+        }
+    }
+    assert box28_geometry_underread_whole_dollar(payload) == "600.00"
+    lines = [
+        {
+            "charges": "1600.00",
+            "line_charge_selection": {
+                "disposition": "AMBIGUOUS_LINE_CHARGE",
+                "amount": "1600.00",
+                "reason": "ONLY_BLEED_OR_SOUP_CANDIDATES",
+                "rejected": [{"value": "1600.00", "reason": "BARE_DIGIT_SOUP"}],
+            },
+        }
+    ]
+    cands = [
+        {
+            "engine": "paddleocr",
+            "value": "60.00",
+            "raw_value": "6000",
+            "preprocessing_variant": "charge_digit_whitelist_fast:full",
+        },
+        {
+            "engine": "rapidocr",
+            "value": "600.00",
+            "preprocessing_variant": "GEOMETRY_CENTS",
+        },
+        {"engine": "azure_document_intelligence_read", "value": "160.00"},
+    ]
+    assert not charge_conflicts_with_plausible_line_sum("600.00", lines, cands)
+    assert llm_charge_pick_has_open_source_authority("600.00", cands, lines)
