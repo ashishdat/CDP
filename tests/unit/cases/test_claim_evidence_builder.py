@@ -160,6 +160,46 @@ def test_conflict_agent_does_not_confirm_when_line_sum_disagrees():
     assert "FINANCIAL_CONFLICT_HITL" in types or "CLAIM_TOTAL_CONTRADICTION" in types
 
 
+def test_conflict_agent_single_engine_bleed_stays_hitl():
+    """DJKH leak: conflict-agent 1571.07 / single paddle must not mint STP AUTO."""
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="DJKH.002",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "1571.07",
+            "_financial_conflict_agent": {
+                "side": "BOX28",
+                "value": "1571.07",
+                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            },
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "paddleocr", "value": "1571.07"},
+                    {"engine": "anthropic_claude_crop", "value": "157.07"},
+                ]
+            },
+        },
+        service_lines=[{"charges": "1571.00"}],
+    )
+    agent_confirmed = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+        and (i.metadata or {}).get("reason")
+        in {
+            "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
+            "BLEED_CENTS_TO_WHOLE_DOLLAR",
+        }
+    ]
+    # Must not AUTO the bleed amount via conflict-agent / tolerance.
+    assert not any(
+        i.evidence_type == "CLAIM_TOTAL_CONFIRMED" and str(i.value) == "1571.07"
+        for i in result.evidence_items
+    )
+    types = _types(result.evidence_items) | _types(result.contradictions)
+    assert "CLAIM_TOTAL_CONTRADICTION" in types or "FINANCIAL_CONFLICT_HITL" in types
+
 def test_ejge006_inflated_box28_vs_incomplete_grid_stays_hitl():
     """EJGE.006: agent+paddle 4200 must not AUTO; prefer grid-backed DI 1200."""
     lines = [
@@ -273,7 +313,12 @@ def test_partial_line_ocr_agent_box28_with_local_agreement_confirms():
             i.value
             for i in result.evidence_items
             if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
-            and (i.metadata or {}).get("reason") == "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+            and (i.metadata or {}).get("reason")
+            in {
+                "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+                "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
+                "LINE_SUM_CORROBORATES_CONFLICT_PICK",
+            }
         )
         == "955.00"
     )
@@ -305,7 +350,12 @@ def test_conflict_agent_confirms_when_both_locals_match():
             i.value
             for i in result.evidence_items
             if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
-            and (i.metadata or {}).get("reason") == "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+            and (i.metadata or {}).get("reason")
+            in {
+                "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+                "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
+                "LINE_SUM_CORROBORATES_CONFLICT_PICK",
+            }
         )
         == "400.00"
     )

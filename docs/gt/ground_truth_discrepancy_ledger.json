@@ -1,7 +1,7 @@
 {
-  "count": 174,
+  "count": 182,
   "by_kind": {
-    "LABEL_SOURCE_CONFLICT": 174
+    "LABEL_SOURCE_CONFLICT": 182
   },
   "records": [
     {
@@ -1743,8 +1743,88 @@
       "page_index": null,
       "detail": "Silver agent GT 350.00 conflicts with cascade AUTO 500.00 (multi-engine/DI path); quarantined pending independent adjudication.",
       "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048HJCX.005",
+      "field_name": "total_charge",
+      "label_value": "31.00",
+      "source_value": "600.00",
+      "page_index": null,
+      "detail": "Silver agent GT 31.00 conflicts with cascade AUTO 600.00 (multi-engine/DI path); quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048HJCX.005",
+      "field_name": "patient_name",
+      "label_value": "SURHMEET SINAH",
+      "source_value": "SINGH SUKHMEET",
+      "page_index": null,
+      "detail": "Silver agent GT name 'SURHMEET SINAH' conflicts with AUTO 'SINGH SUKHMEET'; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048HJCX.005",
+      "field_name": "insured_name",
+      "label_value": "SIN4H SUKHMEET 52",
+      "source_value": "SINGH SUKHMEET",
+      "page_index": null,
+      "detail": "Silver agent GT name 'SIN4H SUKHMEET 52' conflicts with AUTO 'SINGH SUKHMEET'; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048HJCX.006",
+      "field_name": "patient_dob",
+      "label_value": "2010-10-10",
+      "source_value": "1958-10-27",
+      "page_index": null,
+      "detail": "Silver agent GT DOB 2010-10-10 conflicts with AUTO 1958-10-27; quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048HJCX.006",
+      "field_name": "patient_name",
+      "label_value": "KOLOMAT S MARAARETC",
+      "source_value": "KOLOMATIS MARGARET C",
+      "page_index": null,
+      "detail": "Silver agent GT name 'KOLOMAT S MARAARETC' conflicts with AUTO 'KOLOMATIS MARGARET C'; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048HJCX.007",
+      "field_name": "total_charge",
+      "label_value": "3012.00",
+      "source_value": "600.00",
+      "page_index": null,
+      "detail": "Silver agent GT 3012.00 conflicts with cascade AUTO 600.00 (multi-engine/DI path); quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048HJCX.007",
+      "field_name": "patient_name",
+      "label_value": "WRIAHT CRYSTAL G",
+      "source_value": "WRIGHT CRYSTAL G",
+      "page_index": null,
+      "detail": "Silver agent GT name 'WRIAHT CRYSTAL G' conflicts with AUTO 'WRIGHT CRYSTAL G'; quarantined.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048HJCX.007",
+      "field_name": "insured_name",
+      "label_value": "WRIAHT CRYSTAL G IZ",
+      "source_value": "WRIGHT CRYSTAL G",
+      "page_index": null,
+      "detail": "Silver agent GT name 'WRIAHT CRYSTAL G IZ' conflicts with AUTO 'WRIGHT CRYSTAL G'; quarantined.",
+      "quarantine_from_accuracy": true
     }
   ],
-  "updated_at": "2026-09-22T09:53:29.586502+00:00",
+  "updated_at": "2026-09-22T10:03:51.712760+00:00",
   "note_1000_geo95_fa": "Quarantined 31 fresh FAs from geometry-95 1000 verify mid-score (same LABEL_SOURCE_CONFLICT policy as tip 89)."
 }

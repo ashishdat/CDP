@@ -106,6 +106,73 @@ def test_echo_cents_444_to_whole_dollar_sibling():
     assert reason == "BLEED_CENTS_TO_WHOLE_DOLLAR"
 
 
+def test_authorize_conflict_agent_rejects_sole_llm_and_bleed():
+    from packages.claim_evidence.charge_total_authority import (
+        authorize_conflict_agent_charge,
+    )
+
+    # Single paddle hit — not dual open-source.
+    auth, reason = authorize_conflict_agent_charge(
+        "125.00",
+        candidates=[{"engine": "paddleocr", "value": "125.00"}],
+        service_lines=None,
+    )
+    assert auth is None
+    assert reason == "CONFLICT_AGENT_SOLE_AUTHORITY"
+
+    # Bleed cents without whole sibling → HITL.
+    auth2, reason2 = authorize_conflict_agent_charge(
+        "1571.07",
+        candidates=[
+            {"engine": "paddleocr", "value": "1571.07"},
+            {"engine": "rapidocr", "value": "1571.07"},
+        ],
+        field_payload={
+            "ocr": {
+                "candidates": [
+                    {"value": "1571.07", "preprocessing_variant": "GEOMETRY_CENTS"},
+                ]
+            }
+        },
+    )
+    assert auth2 is None
+    assert reason2 == "BLEED_CENTS_UNCORROBORATED"
+
+    # Dual open-source whole dollars → allow.
+    auth3, reason3 = authorize_conflict_agent_charge(
+        "260.00",
+        candidates=[
+            {"engine": "paddleocr", "value": "260.00"},
+            {"engine": "rapidocr", "value": "260.00"},
+        ],
+    )
+    assert auth3 == "260.00"
+    assert reason3 == "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT"
+
+    # Bleed with whole sibling → recover then dual-agree on whole.
+    auth4, reason4 = authorize_conflict_agent_charge(
+        "222.22",
+        candidates=[
+            {"engine": "paddleocr", "value": "222.22"},
+            {"engine": "rapidocr", "value": "222.00"},
+            {"engine": "tesseract", "value": "222.00"},
+        ],
+        field_payload={
+            "ocr": {
+                "candidates": [
+                    {"value": "222.22", "preprocessing_variant": "GEOMETRY_CENTS"},
+                    {
+                        "value": "222.00",
+                        "preprocessing_variant": "charge_digit_whitelist_fast:full",
+                    },
+                ]
+            }
+        },
+    )
+    assert auth4 == "222.00"
+    assert reason4 == "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT"
+
+
 def test_reject_place_shift_soup_still():
     for bad in ("4972.00", "212400.00", "400406.00"):
         result = evaluate_parser_integrity(amount=bad, raw_digit_sequence=bad.replace(".", ""))

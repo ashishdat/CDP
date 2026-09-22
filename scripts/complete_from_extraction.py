@@ -581,7 +581,22 @@ def decide(extraction, family):
                 agent.get('value'), service_lines, agent_candidates
             )
         ):
-            values[charge_field] = str(agent['value']).strip()
+            from packages.claim_evidence.charge_total_authority import (
+                authorize_conflict_agent_charge,
+            )
+
+            auth, _auth_reason = authorize_conflict_agent_charge(
+                agent.get('value'),
+                candidates=agent_candidates,
+                field_payload=field_payload if isinstance(field_payload, dict) else None,
+                service_lines=service_lines,
+            )
+            if auth:
+                values[charge_field] = auth
+                continue
+            # Conflict-agent sole authority / uncorroborated bleed → clear so
+            # downstream fail-closed HITL can fire (never mint AUTO alone).
+            values[charge_field] = None
             continue
         # Defer band always wins over vision preserve. A gpt-4o/Claude Box28 that
         # is a place-shift / digit-soup twin of Σ must not veto should_defer —
@@ -1547,7 +1562,9 @@ def run(source, output, family):
     source, output = Path(source), Path(output)
     payload = source.read_bytes()
     extraction = json.loads(payload)
-    output.mkdir(parents=True, exist_ok=False)
+    # Allow decide/complete re-runs on an existing claim final/ (bleed fail-closed
+    # re-decide). Fresh cascades still create final/ empty via parents.
+    output.mkdir(parents=True, exist_ok=True)
     telemetry = {'input_sha256':sha256(payload).hexdigest(), 'events':[],
                  'upstream_executed':False, 'retries':0}
     stage = 'decision'

@@ -145,19 +145,42 @@ class ClaimEvidenceBuilder:
                 # Mint CLAIM_TOTAL_CONFIRMED so evidence policy E6 / financial
                 # authority can AUTO — WITHIN_TOLERANCE alone was leaving
                 # CALIBRATION_HITL despite Box 28 == Σ.
-                evidence.append(
-                    self._item(
-                        claim_id,
-                        "CLAIM_TOTAL_CONFIRMED",
-                        str(total),
-                        {
-                            **metadata,
-                            "reason": "CLAIM_TOTAL_WITHIN_TOLERANCE",
-                            "claim_total": str(total),
-                            "service_line_total": str(observed),
-                        },
-                    )
+                # Never AUTO units/ruling bleed cents (.07/.22/.44) that merely
+                # sit within $1 of a whole-dollar Σ — that was the DJKH leak.
+                from packages.claim_evidence.charge_total_authority import (
+                    is_units_bleed_cents,
                 )
+                from packages.claim_evidence.line_sum_authority import format_currency
+
+                reported = format_currency(total)
+                computed = format_currency(observed)
+                if is_units_bleed_cents(reported) or is_units_bleed_cents(computed):
+                    contradictions.append(
+                        self._item(
+                            claim_id,
+                            "CLAIM_TOTAL_CONTRADICTION",
+                            reported,
+                            {
+                                **metadata,
+                                "reason": "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
+                                "hitl_route": "FINANCIAL_CONFLICT",
+                            },
+                        )
+                    )
+                else:
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "CLAIM_TOTAL_CONFIRMED",
+                            str(total),
+                            {
+                                **metadata,
+                                "reason": "CLAIM_TOTAL_WITHIN_TOLERANCE",
+                                "claim_total": str(total),
+                                "service_line_total": str(observed),
+                            },
+                        )
+                    )
             else:
                 contradictions.append(
                     self._item(
@@ -793,7 +816,63 @@ class ClaimEvidenceBuilder:
                 digit_alt = format_currency(amt) if amt is not None else None
             if digit_alt:
                 chosen = digit_alt
-            if chosen and llm_charge_pick_has_open_source_authority(chosen, agent_candidates, lines) and not charge_conflicts_with_plausible_line_sum(chosen, lines, agent_candidates):
+            from packages.claim_evidence.charge_total_authority import (
+                authorize_conflict_agent_charge,
+                is_units_bleed_cents,
+            )
+
+            confirm_amount = None
+            confirm_reason = None
+            if grid_alt or digit_alt:
+                # OS-derived repair (grid / digit-drop fuller) — not sole LLM authority.
+                if (
+                    chosen
+                    and llm_charge_pick_has_open_source_authority(
+                        chosen, agent_candidates, lines
+                    )
+                    and not charge_conflicts_with_plausible_line_sum(
+                        chosen, lines, agent_candidates
+                    )
+                ):
+                    if is_units_bleed_cents(chosen):
+                        auth, auth_reason = authorize_conflict_agent_charge(
+                            chosen,
+                            candidates=agent_candidates,
+                            field_payload=payload if isinstance(payload, dict) else None,
+                            service_lines=lines,
+                        )
+                        if auth:
+                            confirm_amount, confirm_reason = auth, (
+                                "INCOMPLETE_UNIFORM_GRID_BOX28"
+                                if grid_alt
+                                else "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
+                            )
+                    else:
+                        confirm_amount = chosen
+                        confirm_reason = (
+                            "INCOMPLETE_UNIFORM_GRID_BOX28"
+                            if grid_alt
+                            else "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
+                        )
+            else:
+                # Plain conflict-agent pick: dual local OCR or exact Σ, never sole LLM.
+                auth, auth_reason = authorize_conflict_agent_charge(
+                    chosen,
+                    candidates=agent_candidates,
+                    field_payload=payload if isinstance(payload, dict) else None,
+                    service_lines=lines,
+                )
+                if (
+                    auth
+                    and llm_charge_pick_has_open_source_authority(
+                        auth, agent_candidates, lines
+                    )
+                    and not charge_conflicts_with_plausible_line_sum(
+                        auth, lines, agent_candidates
+                    )
+                ):
+                    confirm_amount, confirm_reason = auth, auth_reason
+            if confirm_amount and confirm_reason:
                 contradictions[:] = [
                     item
                     for item in contradictions
@@ -806,34 +885,26 @@ class ClaimEvidenceBuilder:
                 ]
                 meta = {
                     "supported_fields": ["total_charge", "total_charges"],
-                    "reason": (
-                        "INCOMPLETE_UNIFORM_GRID_BOX28"
-                        if grid_alt
-                        else (
-                            "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
-                            if digit_alt
-                            else "CONFLICT_AGENT_FINANCIAL_RESOLVED"
-                        )
-                    ),
+                    "reason": confirm_reason,
                     "financial_side": side,
                     "hitl_route": None,
                 }
                 if grid_alt or digit_alt:
                     meta["agent_value_rejected"] = str(agent.get("value") or "")
                 evidence.append(
-                    self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", chosen, meta)
+                    self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", confirm_amount, meta)
                 )
                 evidence.append(
                     self._item(
                         claim_id,
                         "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                        chosen,
+                        confirm_amount,
                         meta,
                     )
                 )
                 for key in ("total_charge", "total_charges", "claim_total"):
                     if key in values or key == "total_charge":
-                        values[key] = chosen
+                        values[key] = confirm_amount
                 return
         # DJKN.005: no conflict-agent side, but DI/Claude Box 28 under-reads a
         # unique open-source fuller twin (paddle 2001). Prefer that fuller for E6.
@@ -864,8 +935,11 @@ class ClaimEvidenceBuilder:
             digit_alt = format_currency(amt) if amt is not None else None
         if digit_alt is None and geo_whole:
             digit_alt = geo_whole
+        from packages.claim_evidence.charge_total_authority import is_units_bleed_cents
+
         if (
             digit_alt
+            and not is_units_bleed_cents(digit_alt)
             and llm_charge_pick_has_open_source_authority(
                 digit_alt, agent_candidates, lines
             )
@@ -1104,15 +1178,55 @@ class ClaimEvidenceBuilder:
                     chosen = digit_alt
                 # Locals-agree Box 28 may disagree with a partial line Σ (EJG7.001
                 # 955 vs 835). Still block wild soup (EJG7.004 17500 vs 1031) and
-                # beyond-grid shells (EJGE.006 4200).
-                if (
+                # beyond-grid shells (EJGE.006 4200). Plain conflict-agent picks
+                # need dual open-source agreement or exact Σ — never sole LLM.
+                from packages.claim_evidence.charge_total_authority import (
+                    authorize_conflict_agent_charge,
+                    is_units_bleed_cents,
+                )
+
+                confirm_amount = None
+                confirm_reason = None
+                base_ok = (
                     chosen
                     and llm_charge_pick_has_open_source_authority(
                         chosen, agent_candidates, lines
                     )
                     and not chosen_exceeds_cms_uniform_line_grid(chosen, lines)
                     and not is_implausible_corroborator(chosen, decision.line_sum)
-                ):
+                )
+                if base_ok and (grid_alt or digit_alt):
+                    if is_units_bleed_cents(chosen):
+                        auth, _auth_reason = authorize_conflict_agent_charge(
+                            chosen,
+                            candidates=agent_candidates,
+                            field_payload=payload if isinstance(payload, dict) else None,
+                            service_lines=lines,
+                        )
+                        if auth:
+                            confirm_amount = auth
+                            confirm_reason = (
+                                "INCOMPLETE_UNIFORM_GRID_BOX28"
+                                if grid_alt
+                                else "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
+                            )
+                    else:
+                        confirm_amount = chosen
+                        confirm_reason = (
+                            "INCOMPLETE_UNIFORM_GRID_BOX28"
+                            if grid_alt
+                            else "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
+                        )
+                elif base_ok:
+                    auth, auth_reason = authorize_conflict_agent_charge(
+                        chosen,
+                        candidates=agent_candidates,
+                        field_payload=payload if isinstance(payload, dict) else None,
+                        service_lines=lines,
+                    )
+                    if auth:
+                        confirm_amount, confirm_reason = auth, auth_reason
+                if confirm_amount and confirm_reason:
                     contradictions[:] = [
                         item
                         for item in contradictions
@@ -1123,17 +1237,8 @@ class ClaimEvidenceBuilder:
                         for item in evidence
                         if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
                     ]
-                    reason = (
-                        "INCOMPLETE_UNIFORM_GRID_BOX28"
-                        if grid_alt
-                        else (
-                            "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
-                            if digit_alt
-                            else "CONFLICT_AGENT_FINANCIAL_RESOLVED"
-                        )
-                    )
                     meta_extra = {
-                        "reason": reason,
+                        "reason": confirm_reason,
                         "financial_side": side,
                         "line_sum": decision.line_sum,
                         "box28": decision.box28,
@@ -1145,7 +1250,7 @@ class ClaimEvidenceBuilder:
                         self._item(
                             claim_id,
                             "CLAIM_TOTAL_CONFIRMED",
-                            chosen,
+                            confirm_amount,
                             {
                                 **metadata,
                                 **meta_extra,
@@ -1156,17 +1261,17 @@ class ClaimEvidenceBuilder:
                         self._item(
                             claim_id,
                             "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                            chosen,
+                            confirm_amount,
                             {
                                 **metadata,
-                                "reason": reason,
+                                "reason": confirm_reason,
                                 "financial_side": side,
                             },
                         )
                     )
                     for key in ("total_charge", "total_charges", "claim_total"):
                         if key in values or key == "total_charge":
-                            values[key] = chosen
+                            values[key] = confirm_amount
                     return
             evidence.append(
                 self._item(

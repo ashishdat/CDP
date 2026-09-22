@@ -332,3 +332,88 @@ def resolve_safe_charge_total(
     if len(amounts) == 1:
         return next(iter(amounts)), "UNVERIFIED_BOX28_CANDIDATE"
     return None, "NO_SAFE_PRIMARY"
+
+
+_OPEN_SOURCE_CHARGE_ENGINES = frozenset(
+    {"paddleocr", "rapidocr", "tesseract", "tesseract_digits"}
+)
+
+
+def dual_open_source_charge_agreement(
+    chosen: object, candidates: list | None
+) -> bool:
+    """True when ≥2 distinct local OCR engines corroborate ``chosen`` exactly.
+
+    Conflict-agent / Claude picks must not AUTO on a single paddle whitelist
+    hit — that was the TRUE_STP monetary leak on DJKH/DJJM.
+    """
+    from packages.claim_evidence.line_sum_authority import amounts_corroborate
+
+    engines: set[str] = set()
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        shell = (
+            cand.get("ocr_candidate")
+            if isinstance(cand.get("ocr_candidate"), dict)
+            else cand
+        )
+        engine = str(shell.get("engine") or shell.get("engine_name") or "").casefold()
+        if engine not in _OPEN_SOURCE_CHARGE_ENGINES:
+            continue
+        value = shell.get("value") or shell.get("raw_value")
+        if amounts_corroborate(chosen, value):
+            engines.add(engine)
+    return len(engines) >= 2
+
+
+def line_sum_corroborates_charge(
+    chosen: object, service_lines: list | None
+) -> bool:
+    """True when observed service-line Σ equals ``chosen`` exactly."""
+    from packages.claim_evidence.line_sum_authority import (
+        amounts_corroborate,
+        line_sum_total,
+    )
+
+    total = line_sum_total(service_lines)
+    if total is None:
+        return False
+    return amounts_corroborate(chosen, total)
+
+
+def authorize_conflict_agent_charge(
+    chosen: object,
+    *,
+    candidates: list | None = None,
+    field_payload: dict | None = None,
+    service_lines: list | None = None,
+) -> tuple[str | None, str]:
+    """Gate LLM conflict-agent monetary picks before CLAIM_TOTAL AUTO.
+
+    Returns ``(amount, reason)``. ``amount is None`` → fail-closed HITL.
+    Never lets Claude/conflict-agent be sole monetary authority:
+      - bleed/echo cents require an OCR whole-dollar sibling (or HITL)
+      - otherwise need dual open-source engine agreement OR exact line Σ
+    """
+    parsed = parse_currency(chosen)
+    if parsed is None or is_implausible_charge_total(chosen):
+        return None, "CONFLICT_AGENT_INVALID_AMOUNT"
+
+    text = format_currency(parsed)
+    safe, safe_reason = resolve_safe_charge_total(
+        primary=text,
+        field_payload=field_payload,
+        service_lines=None,
+    )
+    if safe_reason == "BLEED_CENTS_TO_WHOLE_DOLLAR" and safe:
+        text = safe
+    elif is_units_bleed_cents(text):
+        # Observed bleed cents with no OCR .00 sibling — do not AUTO.
+        return None, "BLEED_CENTS_UNCORROBORATED"
+
+    if dual_open_source_charge_agreement(text, candidates):
+        return text, "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT"
+    if line_sum_corroborates_charge(text, service_lines):
+        return text, "LINE_SUM_CORROBORATES_CONFLICT_PICK"
+    return None, "CONFLICT_AGENT_SOLE_AUTHORITY"

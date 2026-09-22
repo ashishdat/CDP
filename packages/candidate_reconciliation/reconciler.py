@@ -21,6 +21,16 @@ from packages.ocr.contracts import OCRCandidate
 from packages.ocr.independence import independence_group
 
 
+def _charge_is_units_bleed_cents(value: object) -> bool:
+    try:
+        from packages.claim_evidence.charge_total_authority import is_units_bleed_cents
+
+        return bool(is_units_bleed_cents(value))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+
 def _canonical_date_digits(value: str) -> str:
     """Normalize US/ISO/compact dates to YYYYMMDD for conflict comparison."""
     digits = re.sub(r"\D", "", (value or "").strip())
@@ -1785,6 +1795,11 @@ class EvidenceReconciler:
                 )
             )
         )
+        # Bleed/echo cents never carry financial AUTO authority.
+        if field_name in {"total_charge", "total_charges"} and _charge_is_units_bleed_cents(
+            value
+        ):
+            financial_authority = False
         # Explicit Field Value Authority exception for verified financial ink /
         # derived complete-line arithmetic. Not calibrated-threshold fitting.
         accept_even_if_calibrated_confidence_below_threshold = bool(
@@ -2032,6 +2047,14 @@ class EvidenceReconciler:
         if future_dob_rejected:
             decision = Decision.REVIEW
             reasons.append("FUTURE_DOB_REJECTED")
+        elif (
+            field_name in {"total_charge", "total_charges"}
+            and _charge_is_units_bleed_cents(value)
+        ):
+            # Never AUTO units/ruling bleed cents (.07/.22/.44) — conflict-agent
+            # and $1 tolerance were minting TRUE_STP on contested Box 28 ink.
+            decision = Decision.REVIEW
+            reasons.append("BLEED_CENTS_FAIL_CLOSED")
         elif reference_contradiction:
             decision = Decision.REVIEW
             reasons.append("REFERENCE_CONTRADICTION")
