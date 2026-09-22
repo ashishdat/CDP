@@ -534,8 +534,7 @@ def decide(extraction, family):
     # Drop it before evidence build so it cannot veto a unanimous line sum.
     # A real printed total in the same string, or $100+, is not in this set.
     from packages.claim_evidence.box28_blankness import (
-        caption_only_bleed_amounts,
-        cents_column_fragment_amounts,
+        box28_junk_winner_amounts,
     )
     from packages.claim_evidence.line_sum_authority import format_currency, line_sum_total
 
@@ -543,12 +542,11 @@ def decide(extraction, family):
         field_payload = next(
             (f for f in fields if f.get('field_name') == charge_field), {}
         ) or {}
-        bleed = caption_only_bleed_amounts(field_payload)
-        fragments = cents_column_fragment_amounts(
+        junk = box28_junk_winner_amounts(
             field_payload, line_total=line_sum_total(service_lines)
         )
         current_amt = parse_currency(values.get(charge_field))
-        if current_amt is not None and format_currency(current_amt) in bleed | fragments:
+        if current_amt is not None and format_currency(current_amt) in junk:
             values[charge_field] = None
 
     # Authoritative member join telemetry only here. Identity fills happen after
@@ -603,7 +601,9 @@ def decide(extraction, family):
         """Currency-shaped box-28 / Azure DI / non-derived OCR amounts."""
         found: list[str] = []
         seen: set[str] = set()
-        bleed = caption_only_bleed_amounts(field_payload)
+        junk = box28_junk_winner_amounts(
+            field_payload, line_total=line_sum_total(service_lines)
+        )
 
         def _add(raw: object) -> None:
             text = str(raw or '').strip()
@@ -618,9 +618,8 @@ def decide(extraction, family):
 
             if is_implausible_charge_total(text):
                 return
-            # ``29.00`` parsed from ``8. TOTAL CHARGE\\n29`` is the next box
-            # number. Do not let it, or a Claude echo of it, conflict with Σ.
-            if format_currency(parsed) in bleed:
+            # Caption bleed / DI multi-token soup must not conflict with Σ.
+            if format_currency(parsed) in junk:
                 return
             seen.add(text)
             found.append(text)
@@ -956,9 +955,11 @@ def decide(extraction, family):
                         continue
                     if 'derived_from_verified_service' in variant:
                         continue
-                    # Caption-index amounts (box 29 beside TOTAL CHARGE) are not
-                    # a second total. Keep real rivals such as 17500 vs Σ 1031.
-                    if format_currency(parse_currency(text)) in caption_only_bleed_amounts(f):
+                    # Caption-index / DI multi-token amounts are not a second total.
+                    # Keep real rivals such as 17500 vs Σ 1031.
+                    if format_currency(parse_currency(text)) in box28_junk_winner_amounts(
+                        f, line_total=derived
+                    ):
                         continue
                     retained.append(cand)
             candidates = [derived_candidate] + retained
@@ -981,11 +982,12 @@ def decide(extraction, family):
             else:
                 eligible, gate_reason = line_sum_gate.get(name, (False, 'UNSET'))
                 winner_val = f.get('normalized_value')
-                # Caption bleed is not a printed Box 28 winner (29 vs Σ 450).
-                # DI cents-column splits (39.00 from $97|39) are not either.
-                junk_winners = caption_only_bleed_amounts(f) | cents_column_fragment_amounts(
-                    f, line_total=derived
-                )
+                # Caption bleed / DI cents splits / DI multi-token soup are not
+                # printed Box 28 winners (29 vs Σ 450; 39 from $97|39; 100 from
+                # raw ``70 100 $`` beside agreed 70).
+                from packages.claim_evidence.box28_blankness import box28_junk_winner_amounts
+
+                junk_winners = box28_junk_winner_amounts(f, line_total=derived)
                 if (
                     parse_currency(winner_val) is not None
                     and format_currency(parse_currency(winner_val)) in junk_winners

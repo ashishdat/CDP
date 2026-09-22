@@ -208,6 +208,132 @@ def cents_column_fragment_amounts(
     return fragments
 
 
+_DI_RAW_AMOUNT_TOKEN = re.compile(
+    r"(?<!\d)(\d{1,6}(?:\.\d{2})?)(?!\d)"
+)
+
+
+def _trusted_box28_amounts(
+    field_payload: dict | None,
+    *,
+    line_total: object = None,
+) -> set[str]:
+    """Line Σ / Claude / conflict-agent amounts that may own Box 28."""
+    trusted: set[str] = set()
+    if parse_currency(line_total) is not None:
+        trusted.add(format_currency(parse_currency(line_total)))
+    if not isinstance(field_payload, dict):
+        return trusted
+    agent = field_payload.get("financial_conflict_agent") or field_payload.get("conflict_agent") or {}
+    if isinstance(agent, dict):
+        chosen = parse_currency(agent.get("chosen") or agent.get("value"))
+        if chosen is not None:
+            trusted.add(format_currency(chosen))
+    for residual_key in ("gpt4o_crop_residual",):
+        residual = field_payload.get(residual_key) or {}
+        if isinstance(residual, dict) and parse_currency(residual.get("value")) is not None:
+            trusted.add(format_currency(parse_currency(residual.get("value"))))
+    for row in (field_payload.get("candidates") or []):
+        if not isinstance(row, dict):
+            continue
+        ocr = row.get("ocr_candidate") or row
+        eng = str(ocr.get("engine") or "").casefold()
+        if not any(token in eng for token in ("claude", "anthropic", "gpt4o", "gpt-4o")):
+            continue
+        amount = parse_currency(ocr.get("value"))
+        if amount is not None:
+            trusted.add(format_currency(amount))
+    return trusted
+
+
+def di_multi_token_rival_amounts(
+    field_payload: dict | None,
+    *,
+    line_total: object = None,
+) -> set[str]:
+    """DI amounts that picked the wrong token from a multi-amount raw crop.
+
+    DJKH.048: raw ``70 100 $`` shaped as ``100.00`` while Claude / line Σ /
+    conflict agent agree on ``70.00``. The ``100`` token is not Box 28 ink.
+    """
+    if not isinstance(field_payload, dict):
+        return set()
+    trusted = _trusted_box28_amounts(field_payload, line_total=line_total)
+    if not trusted:
+        return set()
+    rivals: set[str] = set()
+
+    def _consider(engine: object, value: object, raw: object) -> None:
+        eng = str(engine or "").casefold()
+        if "document_intelligence" not in eng and "azure_di" not in eng:
+            # Residual meta has no engine — allow when called from DI residual.
+            if eng and "azure" not in eng:
+                return
+        amount = parse_currency(value)
+        if amount is None:
+            return
+        shaped = format_currency(amount)
+        if shaped in trusted:
+            return
+        tokens: set[str] = set()
+        for match in _DI_RAW_AMOUNT_TOKEN.finditer(str(raw or "")):
+            token_amt = parse_currency(match.group(1))
+            if token_amt is None:
+                continue
+            tokens.add(format_currency(token_amt))
+        if len(tokens) < 2:
+            return
+        if shaped not in tokens:
+            return
+        if tokens & trusted:
+            rivals.add(shaped)
+
+    residual = field_payload.get("azure_di_residual") or {}
+    if isinstance(residual, dict) and residual.get("currency_shaped"):
+        # Residual often lacks raw; use candidate raws that share the value.
+        _consider(
+            "azure_document_intelligence_read",
+            residual.get("value"),
+            residual.get("raw_value") or residual.get("value"),
+        )
+    rows: list[dict] = []
+    if isinstance(field_payload.get("ranked_candidate"), dict):
+        rows.append(field_payload["ranked_candidate"])
+    rows.extend(row for row in (field_payload.get("alternatives") or []) if isinstance(row, dict))
+    rows.extend(row for row in (field_payload.get("candidates") or []) if isinstance(row, dict))
+    for row in rows:
+        ocr = row.get("ocr_candidate") or row
+        if not isinstance(ocr, dict):
+            continue
+        _consider(ocr.get("engine"), ocr.get("value"), ocr.get("raw_value"))
+        # When residual value matches this DI candidate, attach its raw.
+        if (
+            isinstance(residual, dict)
+            and parse_currency(residual.get("value")) is not None
+            and parse_currency(ocr.get("value")) == parse_currency(residual.get("value"))
+            and "document_intelligence" in str(ocr.get("engine") or "").casefold()
+        ):
+            _consider(
+                ocr.get("engine"),
+                residual.get("value"),
+                ocr.get("raw_value"),
+            )
+    return rivals
+
+
+def box28_junk_winner_amounts(
+    field_payload: dict | None,
+    *,
+    line_total: object = None,
+) -> set[str]:
+    """Caption bleed, cents-column fragments, and DI multi-token rivals."""
+    return (
+        caption_only_bleed_amounts(field_payload)
+        | cents_column_fragment_amounts(field_payload, line_total=line_total)
+        | di_multi_token_rival_amounts(field_payload, line_total=line_total)
+    )
+
+
 def _payload_is_label_only_or_empty(
     field_payload: dict | None,
     observation: dict | None,

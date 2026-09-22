@@ -657,3 +657,37 @@ def test_di_cents_column_fragment_is_not_a_box_winner():
         "financial_conflict_agent": {"side": "LINES", "value": "97.39"},
     }
     assert cents_column_fragment_amounts(payload, line_total="97.39") == {"39.00"}
+
+
+def test_di_multi_token_raw_rival_is_not_a_box_winner():
+    """DJKH.048: DI ``100`` from raw ``70 100 $`` beside agreed ``70`` is junk."""
+    from packages.claim_evidence.box28_blankness import (
+        box28_junk_winner_amounts,
+        di_multi_token_rival_amounts,
+    )
+
+    payload = {
+        "candidates": [
+            {
+                "engine": "azure_document_intelligence_read",
+                "value": "100.00",
+                "raw_value": "70 100 $",
+            },
+            {
+                "engine": "anthropic_claude_crop",
+                "value": "70.00",
+                "raw_value": "70.00",
+            },
+            {
+                "engine": "paddleocr",
+                "value": "701.00",
+                "raw_value": "70100",
+            },
+        ],
+        "azure_di_residual": {"currency_shaped": True, "value": "100.00"},
+        "conflict_agent": {"chosen": "70.00", "rivals": ["70.00", "701.00", "100.00"]},
+        "gpt4o_crop_residual": {"shaped": True, "value": "70.00"},
+    }
+    assert di_multi_token_rival_amounts(payload, line_total="70.00") == {"100.00"}
+    assert "100.00" in box28_junk_winner_amounts(payload, line_total="70.00")
+    assert "70.00" not in box28_junk_winner_amounts(payload, line_total="70.00")
