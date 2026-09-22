@@ -118,6 +118,70 @@ def test_di_confirmed_inflated_local_stem_is_open_source_authority():
     )
 
 
+def test_di_vs_non_twin_digit_whitelist_soup_is_open_source_authority():
+    """EJG7.003: DI ``1825`` vs paddle whitelist ``4825``; twins stay HITL."""
+    from packages.claim_evidence.line_sum_authority import (
+        llm_charge_pick_has_open_source_authority,
+    )
+
+    ejg7_003 = [
+        {
+            "engine": "azure_document_intelligence_read",
+            "value": "1825.00",
+            "raw_value": ".TOTAL CHANGE 1825 00 2 :",
+            "preprocessing_variant": "charge_azure_di_crop_residual",
+        },
+        {
+            "engine": "anthropic_claude_crop",
+            "value": "1825.00",
+            "preprocessing_variant": "conflict_agent_financial",
+        },
+        {
+            "engine": "paddleocr",
+            "value": "4825.00",
+            "raw_value": "482500",
+            "preprocessing_variant": "charge_digit_whitelist_fast:full",
+        },
+    ]
+    assert llm_charge_pick_has_open_source_authority("1825.00", ejg7_003, None)
+    # Same digits without whitelist prep remain a real local rival.
+    assert not llm_charge_pick_has_open_source_authority(
+        "1825.00",
+        [
+            {"engine": "azure_document_intelligence_read", "value": "1825.00"},
+            {"engine": "paddleocr", "value": "4825.00", "preprocessing_variant": "full"},
+        ],
+        None,
+    )
+    # DJKN.005 / DJKN.007: digit-drop twin whitelist soup must not unlock DI.
+    assert not llm_charge_pick_has_open_source_authority(
+        "200.00",
+        [
+            {"engine": "azure_document_intelligence_read", "value": "200.00"},
+            {
+                "engine": "paddleocr",
+                "value": "2001.00",
+                "raw_value": "200100",
+                "preprocessing_variant": "charge_digit_whitelist_fast:full",
+            },
+        ],
+        None,
+    )
+    assert not llm_charge_pick_has_open_source_authority(
+        "200.00",
+        [
+            {"engine": "azure_document_intelligence_read", "value": "200.00"},
+            {
+                "engine": "paddleocr",
+                "value": "2004.00",
+                "raw_value": "200400",
+                "preprocessing_variant": "charge_digit_whitelist_fast:full",
+            },
+        ],
+        None,
+    )
+
+
 def test_incomplete_uniform_line_grid_does_not_block_box28():
     """EJGE.007: 3×$200 OCR vs printed Box 28 $1200 is not a rival total."""
     from packages.claim_evidence.line_sum_authority import (

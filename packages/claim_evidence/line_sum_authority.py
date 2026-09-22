@@ -321,6 +321,62 @@ def _di_agrees_on_charge_amount(chosen: object, candidates: list | None) -> bool
     return False
 
 
+def _is_charge_digit_whitelist_prep(cand: object) -> bool:
+    """True when the candidate came from charge digit-whitelist preprocessing."""
+    if not isinstance(cand, dict):
+        return False
+    shell = cand.get("ocr_candidate") if isinstance(cand.get("ocr_candidate"), dict) else cand
+    prep = str(
+        shell.get("preprocessing_variant")
+        or shell.get("preprocessing_path")
+        or shell.get("preprocessing_profile")
+        or ""
+    ).casefold()
+    return "charge_digit_whitelist" in prep
+
+
+def _local_amount_only_from_digit_whitelist(
+    amount: object, candidates: list | None
+) -> bool:
+    """True when every open-source read of ``amount`` is digit-whitelist soup.
+
+    EJG7.003: paddle ``4825`` via ``charge_digit_whitelist_fast:full`` beside
+    DI ``1825`` is not an independent local total — whitelist ink alone.
+    """
+    saw = False
+    for cand in candidates or []:
+        engine, value = _candidate_engine_and_value(cand)
+        if engine not in _OPEN_SOURCE_CHARGE_ENGINES:
+            continue
+        if not amounts_corroborate(amount, value):
+            continue
+        saw = True
+        if not _is_charge_digit_whitelist_prep(cand):
+            return False
+    return saw
+
+
+def _di_vs_digit_whitelist_noise_only(
+    chosen: object, candidates: list | None, local: list
+) -> bool:
+    """DI confirms ``chosen``; open-source rivals are non-twin whitelist soup.
+
+    Lands EJG7.003 (DI+Claude ``1825`` vs paddle whitelist ``4825``). Must not
+    unlock digit-drop twins (DJKN.005 ``200`` vs ``2001``, DJKN.007 ``200`` vs
+    ``2004``) or ×10/×100 scale rivals — those stay unauthorized without a grid.
+    """
+    if not local or not _di_agrees_on_charge_amount(chosen, candidates):
+        return False
+    for amount in local:
+        if amounts_corroborate(chosen, amount):
+            continue
+        if is_scale_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
+            return False
+        if not _local_amount_only_from_digit_whitelist(amount, candidates):
+            return False
+    return True
+
+
 def llm_charge_pick_has_open_source_authority(
     chosen: object,
     candidates: list | None,
@@ -335,6 +391,9 @@ def llm_charge_pick_has_open_source_authority(
     incomplete uniform line grid also explains Box 28 (3×$200 → $1200). Bare
     DI+Claude ``200`` beside paddle ``2001`` (DJKN.005) stays unauthorized —
     the local fuller read is often the true total.
+
+    EJG7.003: DI ``1825`` beside paddle digit-whitelist ``4825`` (not a twin) is
+    authorized — whitelist soup is not an independent local rival.
     """
     if parse_currency(chosen) is None:
         return False
@@ -352,8 +411,11 @@ def llm_charge_pick_has_open_source_authority(
             if is_scale_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
                 return False
         return True
-    # No exact local hit — DI-confirmed inflated stem only when the truncated
-    # equal-amount service grid independently explains Box 28.
+    # No exact local hit — DI vs non-twin digit-whitelist soup (EJG7.003).
+    if _di_vs_digit_whitelist_noise_only(chosen, candidates, local):
+        return True
+    # DI-confirmed inflated stem only when the truncated equal-amount service
+    # grid independently explains Box 28.
     if not local or not _di_agrees_on_charge_amount(chosen, candidates):
         return False
     if not incomplete_uniform_line_grid_explains_box28(chosen, service_lines):
