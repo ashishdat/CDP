@@ -691,6 +691,7 @@ class ClaimEvidenceBuilder:
                 charge_conflicts_with_plausible_line_sum,
                 llm_charge_pick_has_open_source_authority,
                 parse_currency,
+                prefer_incomplete_grid_box28,
                 should_defer_box28_to_line_sum,
             )
         except Exception:  # noqa: BLE001
@@ -710,6 +711,11 @@ class ClaimEvidenceBuilder:
         if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
             chosen = str(agent.get("value") or "").strip()
             side = agent["side"]
+            # EJGE.006: agent/paddle 4200 exceeds the 6-row CMS grid — prefer the
+            # DI amount explained by the incomplete uniform line strip (1200).
+            grid_alt = prefer_incomplete_grid_box28(chosen, agent_candidates, lines)
+            if grid_alt:
+                chosen = grid_alt
             if chosen and llm_charge_pick_has_open_source_authority(chosen, agent_candidates, lines) and not charge_conflicts_with_plausible_line_sum(chosen, lines):
                 contradictions[:] = [
                     item
@@ -723,10 +729,16 @@ class ClaimEvidenceBuilder:
                 ]
                 meta = {
                     "supported_fields": ["total_charge", "total_charges"],
-                    "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+                    "reason": (
+                        "INCOMPLETE_UNIFORM_GRID_BOX28"
+                        if grid_alt
+                        else "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+                    ),
                     "financial_side": side,
                     "hitl_route": None,
                 }
+                if grid_alt:
+                    meta["agent_value_rejected"] = str(agent.get("value") or "")
                 evidence.append(
                     self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", chosen, meta)
                 )
@@ -894,6 +906,7 @@ class ClaimEvidenceBuilder:
             # amount implies more than 6 equal CMS rows (EJGE.006 4200 vs 3×200).
             from packages.claim_evidence.line_sum_authority import (
                 chosen_exceeds_cms_uniform_line_grid,
+                prefer_incomplete_grid_box28,
             )
 
             agent = values.get("_financial_conflict_agent")
@@ -906,6 +919,9 @@ class ClaimEvidenceBuilder:
             if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
                 chosen = str(agent.get("value") or "").strip()
                 side = agent["side"]
+                grid_alt = prefer_incomplete_grid_box28(chosen, agent_candidates, lines)
+                if grid_alt:
+                    chosen = grid_alt
                 if (
                     chosen
                     and llm_charge_pick_has_open_source_authority(
@@ -923,6 +939,20 @@ class ClaimEvidenceBuilder:
                         for item in evidence
                         if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
                     ]
+                    reason = (
+                        "INCOMPLETE_UNIFORM_GRID_BOX28"
+                        if grid_alt
+                        else "CONFLICT_AGENT_FINANCIAL_RESOLVED"
+                    )
+                    meta_extra = {
+                        "reason": reason,
+                        "financial_side": side,
+                        "line_sum": decision.line_sum,
+                        "box28": decision.box28,
+                        "hitl_route": None,
+                    }
+                    if grid_alt:
+                        meta_extra["agent_value_rejected"] = str(agent.get("value") or "")
                     evidence.append(
                         self._item(
                             claim_id,
@@ -930,11 +960,7 @@ class ClaimEvidenceBuilder:
                             chosen,
                             {
                                 **metadata,
-                                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
-                                "financial_side": side,
-                                "line_sum": decision.line_sum,
-                                "box28": decision.box28,
-                                "hitl_route": None,
+                                **meta_extra,
                             },
                         )
                     )
@@ -945,7 +971,7 @@ class ClaimEvidenceBuilder:
                             chosen,
                             {
                                 **metadata,
-                                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+                                "reason": reason,
                                 "financial_side": side,
                             },
                         )

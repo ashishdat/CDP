@@ -161,11 +161,7 @@ def test_conflict_agent_does_not_confirm_when_line_sum_disagrees():
 
 
 def test_ejge006_inflated_box28_vs_incomplete_grid_stays_hitl():
-    """EJGE.006: agent+paddle 4200 must not AUTO over 3×$200 (implies 21 rows).
-
-    ARITHMETIC_MISMATCH fail-open requires open-source authority but must still
-    reject shells that exceed the 6-row CMS uniform grid.
-    """
+    """EJGE.006: agent+paddle 4200 must not AUTO; prefer grid-backed DI 1200."""
     lines = [
         {
             "charges": "200.00",
@@ -213,18 +209,18 @@ def test_ejge006_inflated_box28_vs_incomplete_grid_stays_hitl():
         },
         service_lines=lines,
     )
-    agent_confirmed = [
-        i
+    assert (
+        next(
+            i.value
+            for i in result.evidence_items
+            if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+        )
+        == "1200.00"
+    )
+    assert not any(
+        i.evidence_type == "CLAIM_TOTAL_CONFIRMED" and str(i.value or "").startswith("4200")
         for i in result.evidence_items
-        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
-        and str(i.value or "").startswith("4200")
-    ]
-    assert agent_confirmed == []
-    assert "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED" not in {
-        i.evidence_type for i in result.evidence_items if str(i.value or "").startswith("4200")
-    }
-    types = _types(result.evidence_items) | _types(result.contradictions)
-    assert "FINANCIAL_CONFLICT_HITL" in types or "CLAIM_TOTAL_CONTRADICTION" in types
+    )
 
 
 def test_partial_line_ocr_agent_box28_with_local_agreement_confirms():

@@ -164,6 +164,25 @@ def test_incomplete_uniform_line_grid_does_not_block_box28():
 
     assert chosen_exceeds_cms_uniform_line_grid("4200.00", lines)
     assert not chosen_exceeds_cms_uniform_line_grid("1200.00", lines)
+    from packages.claim_evidence.line_sum_authority import (
+        llm_charge_pick_has_open_source_authority,
+        prefer_incomplete_grid_box28,
+        _di_agrees_on_charge_amount,
+    )
+
+    cands = [
+        {"engine": "paddleocr", "value": "4200.00"},
+        {"engine": "anthropic_claude_crop", "value": "1200.00"},
+        {
+            "engine": "azure_document_intelligence_read",
+            "value": "23.00",
+            "raw_value": ".TOTAL CHARGE 1200; 00 23 $",
+        },
+    ]
+    assert _di_agrees_on_charge_amount("1200.00", cands)
+    assert prefer_incomplete_grid_box28("4200.00", cands, lines) == "1200.00"
+    assert llm_charge_pick_has_open_source_authority("1200.00", cands, lines)
+    assert not llm_charge_pick_has_open_source_authority("4200.00", cands, lines)
     # Two equal lines alone are too weak (EJG7.016 2×150 vs Box 600).
     two_lines = lines[:2]
     assert not incomplete_uniform_line_grid_explains_box28("600.00", two_lines)

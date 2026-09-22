@@ -287,7 +287,12 @@ def open_source_charge_amounts(candidates: list | None) -> list:
 
 
 def _di_agrees_on_charge_amount(chosen: object, candidates: list | None) -> bool:
-    """True when Azure Document Intelligence already read ``chosen``."""
+    """True when Azure Document Intelligence already read ``chosen``.
+
+    DI crop residuals often keep trailing scrap in ``value`` (``23.00``) while
+    ``raw_value`` still carries the printed total (``TOTAL CHARGE 1200; 00 23``).
+    Shape the raw text the same way residual OCR does before comparing.
+    """
     for cand in candidates or []:
         if not isinstance(cand, dict):
             continue
@@ -297,6 +302,18 @@ def _di_agrees_on_charge_amount(chosen: object, candidates: list | None) -> bool
             continue
         if amounts_corroborate(chosen, shell.get("value") or shell.get("raw_value")):
             return True
+        raw = shell.get("raw_value")
+        if raw and raw != shell.get("value"):
+            try:
+                from packages.extraction_recovery.charge_azure_di_residual import (
+                    _shape_charge_text,
+                )
+
+                shaped, ok = _shape_charge_text("total_charge", str(raw))
+            except Exception:  # noqa: BLE001
+                shaped, ok = None, False
+            if ok and shaped and amounts_corroborate(chosen, shaped):
+                return True
     return False
 
 
@@ -318,6 +335,10 @@ def llm_charge_pick_has_open_source_authority(
     if parse_currency(chosen) is None:
         return False
     if agent_amount_is_inflated_scale(chosen, candidates):
+        return False
+    # Open-source digit soup that implies >6 equal CMS rows is not authority
+    # (EJGE.006 paddle 4200 vs 3×$200). Prefer the grid-backed alternate.
+    if chosen_exceeds_cms_uniform_line_grid(chosen, service_lines):
         return False
     local = open_source_charge_amounts(candidates)
     if any(amounts_corroborate(chosen, amount) for amount in local):
@@ -341,8 +362,63 @@ def llm_charge_pick_has_open_source_authority(
             return False
         if amt > chosen_amt and is_scale_shift(chosen, amount):
             continue
+        # Paddle digit-whitelist soup beyond the 6-row CMS grid (4200 vs 3×200)
+        # is not a rival of the grid-explained Box 28 (EJGE.006).
+        if amt > chosen_amt and chosen_exceeds_cms_uniform_line_grid(amount, service_lines):
+            continue
         return False
     return True
+
+
+def prefer_incomplete_grid_box28(
+    chosen: object,
+    candidates: list | None,
+    service_lines: list | None,
+) -> str | None:
+    """When agent pick exceeds the CMS uniform grid, return the grid-backed total.
+
+    EJGE.006: conflict-agent+paddle ``4200`` implies 21 rows; DI raw / Claude
+    resolve ``1200`` is explained by 3×$200. Prefer that amount for E6.
+    """
+    if not chosen_exceeds_cms_uniform_line_grid(chosen, service_lines):
+        return None
+    explained: list[str] = []
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        shell = cand.get("ocr_candidate") if isinstance(cand.get("ocr_candidate"), dict) else cand
+        engine = str(shell.get("engine") or shell.get("engine_name") or "").casefold()
+        raw = shell.get("raw_value")
+        value = shell.get("value") or raw
+        # Shape DI residuals so trailing scrap does not hide the printed total.
+        if "document_intelligence" in engine or "azure_di" in engine:
+            try:
+                from packages.extraction_recovery.charge_azure_di_residual import (
+                    _shape_charge_text,
+                )
+
+                shaped, ok = _shape_charge_text("total_charge", str(raw or value or ""))
+            except Exception:  # noqa: BLE001
+                shaped, ok = None, False
+            if ok and shaped:
+                value = shaped
+        amount = parse_currency(value)
+        if amount is None:
+            continue
+        if not incomplete_uniform_line_grid_explains_box28(value, service_lines):
+            continue
+        if not _di_agrees_on_charge_amount(value, candidates):
+            continue
+        explained.append(format_currency(amount))
+    unique = sorted(set(explained))
+    if len(unique) != 1:
+        return None
+    alt = unique[0]
+    if not llm_charge_pick_has_open_source_authority(alt, candidates, service_lines):
+        return None
+    if charge_conflicts_with_plausible_line_sum(alt, service_lines):
+        return None
+    return alt
 
 
 def agent_amount_is_inflated_scale(chosen: object, candidates: list | None) -> bool:
