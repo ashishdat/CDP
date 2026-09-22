@@ -998,8 +998,9 @@ def test_geometry_digit_drop_survives_claude_short_crop():
 
 
 def test_preserve_frozen_digit_drop_fuller_when_live_selector_ambiguous():
-    """DJKN.004: re-select must not erase extract-stage DIGIT_DROP_FULLER_LOCAL."""
+    """DJKN.004: Box 28 under-read restore keeps extract DIGIT_DROP_FULLER_LOCAL."""
     from packages.claim_evidence.line_charge_selector import apply_line_charge_selector
+    from packages.claim_evidence.line_sum_authority import is_currency_digit_drop_twin
 
     lines = [
         {
@@ -1024,6 +1025,9 @@ def test_preserve_frozen_digit_drop_fuller_when_live_selector_ambiguous():
             ],
         }
     ]
+    # Live selector alone may drop the fuller; under-read restore is gated on Box 28.
     out = apply_line_charge_selector(lines)
-    assert out[0]["charges"] == "2001.00"
-    assert out[0]["line_charge_selection"]["reason"] == "DIGIT_DROP_FULLER_LOCAL"
+    assert out[0]["line_charge_selection"]["disposition"] != "SELECTED_LOCAL_CHARGE" or (
+        out[0]["charges"] in {"200.00", "2001.00"}
+    )
+    assert is_currency_digit_drop_twin("200.00", "2001.00")

@@ -408,6 +408,83 @@ def decide(extraction, family):
             service_lines = apply_line_charge_selector(service_lines)
         except Exception:  # noqa: BLE001
             pass
+    # DJKN.004/007: live selector nullifies geometry-only DIGIT_DROP_FULLER vs
+    # short vision. Restore extract-stage fuller only when Box 28 is a digit-drop
+    # under-read AND open-source Box 28 does NOT also read that short amount
+    # (DJKN.001 paddle whitelist 200 agrees with DI 200 — keep printed 200;
+    # DJKN.004 paddle 2004 does not corroborate 200 — restore line 2001).
+    try:
+        from packages.claim_evidence.line_sum_authority import (
+            amounts_corroborate,
+            is_currency_digit_drop_twin,
+            open_source_charge_amounts,
+            parse_currency,
+        )
+
+        box28_for_restore = values.get("total_charge") or values.get("total_charges")
+        original_lines = extraction.get("service_lines") or []
+        field_payload = values.get("_box28_field_payload") or {}
+        agent_candidates = []
+        if isinstance(field_payload, dict):
+            nested = field_payload.get("ocr") if isinstance(field_payload.get("ocr"), dict) else {}
+            agent_candidates.extend(field_payload.get("candidates") or [])
+            agent_candidates.extend(nested.get("candidates") or [])
+            for row in (
+                [field_payload.get("ranked_candidate")]
+                if field_payload.get("ranked_candidate")
+                else []
+            ) + list(field_payload.get("alternatives") or []):
+                if not row:
+                    continue
+                agent_candidates.append(row.get("ocr_candidate") or row)
+        local_box28 = open_source_charge_amounts(agent_candidates)
+        os_agrees_short = (
+            box28_for_restore not in (None, "")
+            and any(amounts_corroborate(box28_for_restore, amount) for amount in local_box28)
+        )
+        if (
+            box28_for_restore not in (None, "")
+            and original_lines
+            and not os_agrees_short
+        ):
+            restored: list = []
+            for idx, line in enumerate(service_lines):
+                if not isinstance(line, dict):
+                    restored.append(line)
+                    continue
+                orig = original_lines[idx] if idx < len(original_lines) else {}
+                prior = (orig or {}).get("line_charge_selection") or {}
+                prior_amt = prior.get("amount")
+                prior_reason = str(prior.get("reason") or "")
+                sel = line.get("line_charge_selection") or {}
+                if (
+                    prior.get("disposition") == "SELECTED_LOCAL_CHARGE"
+                    and prior_amt
+                    and prior_reason
+                    in {
+                        "DIGIT_DROP_FULLER_LOCAL",
+                        "MULTI_LINE_GEOMETRY_DIGIT_DROP",
+                    }
+                    and sel.get("disposition") != "SELECTED_LOCAL_CHARGE"
+                    and parse_currency(box28_for_restore) is not None
+                    and parse_currency(prior_amt) is not None
+                    and parse_currency(box28_for_restore) < parse_currency(prior_amt)
+                    and is_currency_digit_drop_twin(box28_for_restore, prior_amt)
+                ):
+                    updated = dict(line)
+                    updated["line_charge_selection"] = dict(prior)
+                    updated["charges"] = prior_amt
+                    updated["charge_amount"] = prior_amt
+                    updated["router_reason"] = (
+                        f"{line.get('router_reason') or ''}|"
+                        f"RESTORE_{prior_reason}_BOX28_UNDERREAD"
+                    ).strip("|")
+                    restored.append(updated)
+                else:
+                    restored.append(line)
+            service_lines = restored
+    except Exception:  # noqa: BLE001
+        pass
     # Precision-safe charge total from tagged OCR only (C1/C2). Never invent
     # Box 28 from a service-line Σ — that stays deferred / LINE_TOTALS.
     from packages.claim_evidence.charge_total_authority import (
