@@ -103,3 +103,51 @@ def test_charge_di_rapid_mints_e2_but_place_shift_does_not():
     assert not any(
         item.evidence_class.value == "E2" and item.independent for item in shifted.items
     )
+
+
+def test_charge_di_strong_e4_even_when_dual_local_e2_already_emitted():
+    """EJGE.001: paddle+rapid E2 must not skip DI strong E4 minting."""
+    bundle = build_evidence_bundle(
+        field_name="total_charge",
+        candidates=[
+            _cand("paddleocr", "125.00"),
+            _cand("rapidocr", "125.00"),
+            _cand("azure_document_intelligence_read", "125.00"),
+        ],
+        registration_confidence=0.95,
+        wrong_crop_suspected=False,
+        deterministic_evidence={"FORMAT_VALID", "HARD_VALIDATION_PASSED"},
+        hard_validation_passed=True,
+    )
+    assert any(
+        item.evidence_class.value == "E2"
+        and item.independent
+        and (item.metadata or {}).get("agreement_type") == "CHARGE_DI_PARTNER_AGREEMENT"
+        for item in bundle.items
+    )
+    assert any(
+        item.evidence_class.value == "E4"
+        and (item.metadata or {}).get("strength") == "STRONG"
+        and (item.metadata or {}).get("fact") == "CHARGE_DI_LOCAL_CONFIRMED"
+        for item in bundle.items
+    )
+
+
+def test_charge_di_paddle_partner_mints_strong_e4():
+    """EJGE.010: DI + paddle alone (no rapid) still confirms charge."""
+    bundle = build_evidence_bundle(
+        field_name="total_charge",
+        candidates=[
+            _cand("paddleocr", "9800.00"),
+            _cand("azure_document_intelligence_read", "9800.00"),
+        ],
+        registration_confidence=0.95,
+        wrong_crop_suspected=False,
+        deterministic_evidence={"FORMAT_VALID", "HARD_VALIDATION_PASSED"},
+        hard_validation_passed=True,
+    )
+    assert any(
+        item.evidence_class.value == "E4"
+        and (item.metadata or {}).get("strength") == "STRONG"
+        for item in bundle.items
+    )

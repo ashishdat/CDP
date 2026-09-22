@@ -105,8 +105,12 @@ def _append_di_partner_agreement(
     """Mint E2 when Document Intelligence agrees with Claude or one local.
 
     Names: Claude + DI may replace a single confusable local (FRANCAVLLA vs
-    FRANCAVILLA). Charges: DI + Rapid, or DI + Claude, but not when another
+    FRANCAVILLA). Charges: DI + Rapid/Paddle/Claude, but not when another
     candidate is a cents-column or digit-drop twin (4972 vs 49.72, 13 vs 131).
+
+    Strong E4 (``CHARGE_DI_LOCAL_CONFIRMED``) is minted even when dual-local E2
+    already exists — C3 total_charge requires strong E4, and skipping DI after
+    paddle+rapid agreement left EJGE.001/013 as MISSING_E4 despite DI agreement.
     """
     name = (field_name or "").casefold()
     by_norm: dict[str, dict[str, OCRCandidate]] = {}
@@ -148,7 +152,11 @@ def _append_di_partner_agreement(
     for norm, groups in by_norm.items():
         if "AZURE_READ_FAMILY" not in groups:
             continue
-        partner = groups.get("RAPIDOCR_FAMILY") or groups.get("CLOUD_AI_FAMILY")
+        partner = (
+            groups.get("RAPIDOCR_FAMILY")
+            or groups.get("PADDLE_FAMILY")
+            or groups.get("CLOUD_AI_FAMILY")
+        )
         if partner is None:
             continue
         agreed_value = str(groups["AZURE_READ_FAMILY"].value or partner.value)
@@ -502,11 +510,9 @@ def build_evidence_bundle(
             for item in bundle.items
         ):
             _append_ai_local_corroboration(bundle, field_name, populated)
-        if not any(
-            item.evidence_class == EvidenceClass.E2 and item.independent
-            for item in bundle.items
-        ):
-            _append_di_partner_agreement(bundle, field_name, populated)
+    # Always run DI partner for charges: dual-local E2 alone does not mint the
+    # strong E4 that C3 total_charge policy requires (EJGE.001/013 MISSING_E4).
+    _append_di_partner_agreement(bundle, field_name, populated)
     if structural_localization is not None:
         if structural_localization.confirmed and not wrong_crop_suspected:
             bundle.items.append(
