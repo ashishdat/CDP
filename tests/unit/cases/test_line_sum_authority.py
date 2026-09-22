@@ -58,6 +58,37 @@ def test_inflated_conflict_agent_amount_is_not_open_source_authority():
     assert not llm_charge_pick_has_open_source_authority("200.00", candidates)
 
 
+def test_di_confirmed_inflated_local_stem_is_open_source_authority():
+    """EJGE.009: Rapid ``12000`` + DI ``1200`` supports conflict-agent Box 28."""
+    from packages.claim_evidence.line_sum_authority import (
+        llm_charge_pick_has_open_source_authority,
+    )
+
+    candidates = [
+        {"engine": "anthropic_claude_crop", "value": "1200.00"},
+        {"engine": "azure_document_intelligence_read", "value": "1200.00"},
+        {"engine": "rapidocr", "value": "12000.00"},
+    ]
+    assert llm_charge_pick_has_open_source_authority("1200.00", candidates)
+    # Without DI, an inflated local alone is not enough.
+    assert not llm_charge_pick_has_open_source_authority(
+        "1200.00",
+        [
+            {"engine": "anthropic_claude_crop", "value": "1200.00"},
+            {"engine": "rapidocr", "value": "12000.00"},
+        ],
+    )
+    # A non-scale local rival still blocks.
+    assert not llm_charge_pick_has_open_source_authority(
+        "175.00",
+        [
+            {"engine": "azure_document_intelligence_read", "value": "175.00"},
+            {"engine": "rapidocr", "value": "1751.00"},
+            {"engine": "paddleocr", "value": "5175.00"},
+        ],
+    )
+
+
 def test_incomplete_uniform_line_grid_does_not_block_box28():
     """EJGE.007: 3×$200 OCR vs printed Box 28 $1200 is not a rival total."""
     from packages.claim_evidence.line_sum_authority import (

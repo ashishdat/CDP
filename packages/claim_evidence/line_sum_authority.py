@@ -261,27 +261,58 @@ def open_source_charge_amounts(candidates: list | None) -> list:
     return found
 
 
+def _di_agrees_on_charge_amount(chosen: object, candidates: list | None) -> bool:
+    """True when Azure Document Intelligence already read ``chosen``."""
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        shell = cand.get("ocr_candidate") if isinstance(cand.get("ocr_candidate"), dict) else cand
+        engine = str(shell.get("engine") or shell.get("engine_name") or "").casefold()
+        if "document_intelligence" not in engine and "azure_di" not in engine:
+            continue
+        if amounts_corroborate(chosen, shell.get("value") or shell.get("raw_value")):
+            return True
+    return False
+
+
 def llm_charge_pick_has_open_source_authority(
     chosen: object,
     candidates: list | None,
 ) -> bool:
-    """True only when a local OCR engine already read ``chosen`` and no local rival is a cents-column or digit-drop twin.
+    """True when open-source OCR supports ``chosen`` (exact or inflated stem).
 
     Claude/DI may arbitrate among locals. They must not mint a total the open-source
     readers did not see, and they must not pick a side of an ambiguous ×100 / dropped-digit pair.
+
+    EJGE.009: Rapid ``12000`` beside DI+Claude ``1200`` is the same digits with a
+    stuck units column — count as open-source stem authority when DI agrees on
+    the smaller amount and every local read is that inflated shell (or exact).
     """
     if parse_currency(chosen) is None:
         return False
     if agent_amount_is_inflated_scale(chosen, candidates):
         return False
     local = open_source_charge_amounts(candidates)
-    if not any(amounts_corroborate(chosen, amount) for amount in local):
+    if any(amounts_corroborate(chosen, amount) for amount in local):
+        for amount in local:
+            if amounts_corroborate(chosen, amount):
+                continue
+            if is_scale_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
+                return False
+        return True
+    # No exact local hit — allow DI-confirmed stem when locals only emitted the
+    # inflated ×10/×100 shell of chosen (Rapid 12000 vs DI 1200).
+    if not local or not _di_agrees_on_charge_amount(chosen, candidates):
         return False
+    chosen_amt = parse_currency(chosen)
+    assert chosen_amt is not None
     for amount in local:
-        if amounts_corroborate(chosen, amount):
-            continue
-        if is_scale_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
+        amt = parse_currency(amount)
+        if amt is None:
             return False
+        if amt > chosen_amt and is_scale_shift(chosen, amount):
+            continue
+        return False
     return True
 
 
