@@ -710,7 +710,7 @@ class ClaimEvidenceBuilder:
         if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
             chosen = str(agent.get("value") or "").strip()
             side = agent["side"]
-            if chosen and llm_charge_pick_has_open_source_authority(chosen, agent_candidates) and not charge_conflicts_with_plausible_line_sum(chosen, lines):
+            if chosen and llm_charge_pick_has_open_source_authority(chosen, agent_candidates, lines) and not charge_conflicts_with_plausible_line_sum(chosen, lines):
                 contradictions[:] = [
                     item
                     for item in contradictions

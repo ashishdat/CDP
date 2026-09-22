@@ -451,7 +451,9 @@ def decide(extraction, family):
         if (
             isinstance(agent, dict)
             and str(agent.get('side') or '') in {'BOX28', 'LINES'}
-            and llm_charge_pick_has_open_source_authority(agent.get('value'), agent_candidates)
+            and llm_charge_pick_has_open_source_authority(
+                agent.get('value'), agent_candidates, service_lines
+            )
             and not charge_conflicts_with_plausible_line_sum(agent.get('value'), service_lines)
         ):
             values[charge_field] = str(agent['value']).strip()

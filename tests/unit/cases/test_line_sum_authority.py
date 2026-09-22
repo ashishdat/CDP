@@ -59,7 +59,7 @@ def test_inflated_conflict_agent_amount_is_not_open_source_authority():
 
 
 def test_di_confirmed_inflated_local_stem_is_open_source_authority():
-    """EJGE.009: Rapid ``12000`` + DI ``1200`` supports conflict-agent Box 28."""
+    """EJGE.009: Rapid ``12000`` + DI ``1200`` needs incomplete 3×$200 grid."""
     from packages.claim_evidence.line_sum_authority import (
         llm_charge_pick_has_open_source_authority,
     )
@@ -69,7 +69,23 @@ def test_di_confirmed_inflated_local_stem_is_open_source_authority():
         {"engine": "azure_document_intelligence_read", "value": "1200.00"},
         {"engine": "rapidocr", "value": "12000.00"},
     ]
-    assert llm_charge_pick_has_open_source_authority("1200.00", candidates)
+    lines = [
+        {"charges": "200.00", "line_charge_selection": {"disposition": "SELECTED_LOCAL_CHARGE", "amount": "200.00"}},
+        {"charges": "200.00", "line_charge_selection": {"disposition": "SELECTED_LOCAL_CHARGE", "amount": "200.00"}},
+        {"charges": "200.00", "line_charge_selection": {"disposition": "SELECTED_LOCAL_CHARGE", "amount": "200.00"}},
+    ]
+    assert llm_charge_pick_has_open_source_authority("1200.00", candidates, lines)
+    # Without the truncated grid, DI+inflated rapid alone is not enough (DJKN.005).
+    assert not llm_charge_pick_has_open_source_authority("1200.00", candidates, None)
+    assert not llm_charge_pick_has_open_source_authority(
+        "200.00",
+        [
+            {"engine": "anthropic_claude_crop", "value": "200.00"},
+            {"engine": "azure_document_intelligence_read", "value": "200.00"},
+            {"engine": "paddleocr", "value": "2001.00"},
+        ],
+        None,
+    )
     # Without DI, an inflated local alone is not enough.
     assert not llm_charge_pick_has_open_source_authority(
         "1200.00",
@@ -77,6 +93,7 @@ def test_di_confirmed_inflated_local_stem_is_open_source_authority():
             {"engine": "anthropic_claude_crop", "value": "1200.00"},
             {"engine": "rapidocr", "value": "12000.00"},
         ],
+        lines,
     )
     # A non-scale local rival still blocks.
     assert not llm_charge_pick_has_open_source_authority(
@@ -86,6 +103,7 @@ def test_di_confirmed_inflated_local_stem_is_open_source_authority():
             {"engine": "rapidocr", "value": "1751.00"},
             {"engine": "paddleocr", "value": "5175.00"},
         ],
+        lines,
     )
 
 

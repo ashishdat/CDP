@@ -278,15 +278,17 @@ def _di_agrees_on_charge_amount(chosen: object, candidates: list | None) -> bool
 def llm_charge_pick_has_open_source_authority(
     chosen: object,
     candidates: list | None,
+    service_lines: list | None = None,
 ) -> bool:
-    """True when open-source OCR supports ``chosen`` (exact or inflated stem).
+    """True when open-source OCR supports ``chosen`` (exact or grid-backed stem).
 
     Claude/DI may arbitrate among locals. They must not mint a total the open-source
     readers did not see, and they must not pick a side of an ambiguous ×100 / dropped-digit pair.
 
-    EJGE.009: Rapid ``12000`` beside DI+Claude ``1200`` is the same digits with a
-    stuck units column — count as open-source stem authority when DI agrees on
-    the smaller amount and every local read is that inflated shell (or exact).
+    EJGE.009: Rapid ``12000`` beside DI+Claude ``1200`` is allowed only when an
+    incomplete uniform line grid also explains Box 28 (3×$200 → $1200). Bare
+    DI+Claude ``200`` beside paddle ``2001`` (DJKN.005) stays unauthorized —
+    the local fuller read is often the true total.
     """
     if parse_currency(chosen) is None:
         return False
@@ -300,9 +302,11 @@ def llm_charge_pick_has_open_source_authority(
             if is_scale_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
                 return False
         return True
-    # No exact local hit — allow DI-confirmed stem when locals only emitted the
-    # inflated ×10/×100 shell of chosen (Rapid 12000 vs DI 1200).
+    # No exact local hit — DI-confirmed inflated stem only when the truncated
+    # equal-amount service grid independently explains Box 28.
     if not local or not _di_agrees_on_charge_amount(chosen, candidates):
+        return False
+    if not incomplete_uniform_line_grid_explains_box28(chosen, service_lines):
         return False
     chosen_amt = parse_currency(chosen)
     assert chosen_amt is not None

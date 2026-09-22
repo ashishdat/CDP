@@ -105,28 +105,6 @@ def test_charge_di_rapid_mints_e2_but_place_shift_does_not():
     )
 
 
-def test_charge_di_ignores_inflated_local_shell_rival():
-    """DJKN.005: paddle ``2001`` must not veto DI+Claude ``200`` strong E4."""
-    bundle = build_evidence_bundle(
-        field_name="total_charge",
-        candidates=[
-            _cand("anthropic_claude_crop", "200.00"),
-            _cand("azure_document_intelligence_read", "200.00"),
-            _cand("paddleocr", "2001.00"),
-        ],
-        registration_confidence=0.95,
-        wrong_crop_suspected=False,
-        deterministic_evidence={"FORMAT_VALID", "HARD_VALIDATION_PASSED"},
-        hard_validation_passed=True,
-    )
-    assert any(
-        item.evidence_class.value == "E4"
-        and (item.metadata or {}).get("strength") == "STRONG"
-        and (item.metadata or {}).get("fact") == "CHARGE_DI_LOCAL_CONFIRMED"
-        for item in bundle.items
-    )
-
-
 def test_charge_di_strong_e4_even_when_dual_local_e2_already_emitted():
     """EJGE.001: paddle+rapid E2 must not skip DI strong E4 minting."""
     bundle = build_evidence_bundle(

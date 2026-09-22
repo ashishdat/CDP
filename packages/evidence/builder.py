@@ -66,19 +66,12 @@ def _vision_vendor_id(engine: object) -> str | None:
 
 
 def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list[OCRCandidate]) -> bool:
-    """True when some other candidate is a ×10/×100 or digit-drop twin.
-
-    Cents-column under-reads (``49.72`` beside ``4972``) and digit-drop twins
-    invalidate DI+partner agreement. Inflated units-concat shells of the agreed
-    amount (``2001`` beside DI+Claude ``200``, ``12000`` beside ``1200``) do not —
-    those are local OCR noise on the same digits, not a second total.
-    """
+    """True when some other candidate is a ×10/×100 or digit-drop twin."""
     from decimal import Decimal
 
     from packages.claim_evidence.line_sum_authority import (
         is_currency_digit_drop_twin,
         is_decimal_place_shift,
-        is_scale_shift,
         parse_currency,
     )
 
@@ -90,14 +83,7 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
         other = parse_currency(raw)
         if other is None or other == target:
             continue
-        if is_decimal_place_shift(agreed, raw):
-            return True
-        # Inflated ×10/×100 shell of the agreed amount (2001 vs 200) — not a
-        # disqualifying rival. Check before digit-drop: ``200``→``2001`` looks
-        # like a one-digit extension but is units-concat noise.
-        if other > target and is_scale_shift(agreed, raw):
-            continue
-        if is_currency_digit_drop_twin(agreed, raw):
+        if is_decimal_place_shift(agreed, raw) or is_currency_digit_drop_twin(agreed, raw):
             return True
         for factor in (Decimal(10), Decimal(100)):
             if abs(target * factor - other) <= Decimal("2.00"):
