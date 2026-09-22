@@ -1,0 +1,39 @@
+{
+  "title": "DOB separator peel must not invent unobserved year-1179 dates (EJG7.013)",
+  "commit": "04c49c8",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_dob_sep_peel_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_dob_sep_peel_decide",
+    "src": "evaluation_results/hackathon_150_di_multitoken_decide",
+    "completed": 89,
+    "true_stp": 67,
+    "true_stp_rate_of_completed": 0.752809,
+    "field_ink_hitl": 22,
+    "prior_di_multitoken": 66,
+    "flipped_to_true_stp": ["M048EJG7.013 patient_dob 1979-05-13"],
+    "lost_stp": [],
+    "false_accepts": 55,
+    "accepted_fields_scored": 231,
+    "accepted_field_precision": 0.761905
+  },
+  "page_check": "EJG7.013 rapidocr 1979-05-13 vs paddle compact 05131179. Old peel invented 1179-05-03 (HITL). Now _dob_ymd rejects year<1880 and separator relief only prefers observed same-year 0X forms; claim AUTO_ACCEPTS 1979-05-13.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 67. Remaining: LINE_SUM_UNCORROBORATED / EVIDENCE_POLICY_GAP total_charge, hard-15, EJGE sixth-row, identity HITL (EJG7.019/036).",
+  "note": "Decision-only on frozen OCR. Golden Pack not mutated. Gates still fail."
+}
