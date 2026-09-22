@@ -141,18 +141,8 @@ def field_requires_independent_confirmation(field_name: str) -> bool:
     The governed policy accepts independent OCR plus a strong check, or
     multi-attribute identity. Selective confirm skips the second engine once
     the primary read is field-shaped, so E2 never forms.
-
-    Latency budget: ``CDP_OCR_ALLOW_SINGLE_ENGINE_NAME=1`` skips the forced
-    Rapid confirm (saves ~0.7–1.5s/doc when paddle already shaped the name).
     """
-    if (field_name or "").casefold() != "patient_name":
-        return False
-    import os
-
-    raw = (os.environ.get("CDP_OCR_ALLOW_SINGLE_ENGINE_NAME") or "0").strip().casefold()
-    if raw in {"1", "true", "yes", "on"}:
-        return False
-    return True
+    return (field_name or "").casefold() == "patient_name"
 
 
 def semantic_accept(
@@ -524,32 +514,20 @@ def charge_column_windows(primary_x0: int, primary_x1: int) -> list[tuple[str, i
 def charge_windows_for_mode(
     primary_x0: int, primary_x1: int, *, fast: bool
 ) -> list[tuple[int, int]]:
-    """In STP fast mode keep primary (+ optional mid). Extra windows thrash wall.
-
-    Latency budget (≤20s/doc): ``CDP_OCR_CHARGE_WINDOWS=1`` keeps only primary.
-    Default fast keeps primary + mid (2) — enough for most clipped ink without
-    the old 4-window paddle+rapid tax (~seconds per blank row).
-    """
+    """In STP fast mode keep primary + mid + right — primary alone clips ink."""
     named = charge_column_windows(primary_x0, primary_x1)
     if not fast:
         return [(x0, x1) for _, x0, x1 in named]
-    import os
-
-    try:
-        max_windows = int((os.environ.get("CDP_OCR_CHARGE_WINDOWS") or "2").strip())
-    except ValueError:
-        max_windows = 2
-    max_windows = max(1, min(max_windows, 4))
-    prefer = (
-        ("charges_primary",)
-        if max_windows == 1
-        else ("charges_primary", "charges_mid", "charges_cents", "charges_right")
-    )
     keep: list[tuple[int, int]] = []
     for variant_id, x0, x1 in named:
-        if variant_id in prefer:
+        if variant_id in {
+            "charges_primary",
+            "charges_mid",
+            "charges_right",
+            "charges_cents",
+        }:
             keep.append((x0, x1))
-        if len(keep) >= max_windows:
+        if len(keep) >= 4:
             break
     return keep or ([(named[0][1], named[0][2])] if named else [])
 
