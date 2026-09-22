@@ -56,14 +56,24 @@ async def lifespan(app: FastAPI):
     assert_production_ready(settings)
     _state["settings"] = settings
     _state["session_factory"] = make_session_factory(settings.database_url)
-    object_store = ObjectStore(
-        ObjectStoreSettings(
+    from packages.storage.object_store import build_object_store
+
+    object_store = build_object_store(
+        backend=settings.object_store_backend,
+        filesystem_root=settings.object_store_filesystem_root,
+        settings=ObjectStoreSettings(
             endpoint_url=settings.object_store_endpoint,
             access_key=settings.object_store_access_key,
             secret_key=settings.object_store_secret_key,
             use_ssl=settings.object_store_use_ssl,
-        )
+        ),
     )
+    try:
+        object_store.ensure_bucket(settings.object_store_bucket)
+    except Exception:  # pragma: no cover - review API may not need bucket at boot
+        logging.getLogger("human-review-api").warning(
+            "object store bucket ensure skipped", exc_info=True
+        )
     _state["object_store"] = object_store
     yield
     _state.clear()

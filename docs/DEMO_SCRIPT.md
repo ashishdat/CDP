@@ -5,8 +5,8 @@
 Before the session:
 
 1. Restart Docker Desktop and allow at least 8 GB memory for the OCR workers.
-2. Run `docker compose up -d ingestion-api document-preparation-worker page-detection-worker standard-form-extraction-worker evaluation-ui`.
-3. Open `http://localhost:8180` and confirm the Overview and Process claims tabs load.
+2. Run `docker compose up -d --build mysql minio redpanda redis ingestion-api human-review-api human-review-task-worker document-preparation-worker page-detection-worker standard-form-extraction-worker validation-worker evaluation-ui` (or `make ui-up`).
+3. Open `http://localhost:8180` and confirm the Overview, Work Queue, and Process claims tabs load. HITL needs `human-review-api` healthy.
 4. Keep one representative CMS-1500 or UB-04 image ready for upload. Avoid using real PHI unless the demonstration environment and audience are authorized.
 5. Pre-warm the OCR worker with a non-sensitive sample. The first PaddleOCR invocation downloads/loads models and can take several minutes on a CPU-only Docker Desktop environment.
 6. Keep a previously completed extraction JSON available as a fallback if venue networking or Docker resources fail.

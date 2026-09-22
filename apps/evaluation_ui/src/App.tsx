@@ -70,7 +70,7 @@ export default function App() {
 
   // Live review tasks fetch (Status: all tasks to track active and completed)
   const reviewTasksQuery = useQuery({
-    queryKey: ["review-tasks"],
+    queryKey: ["review-tasks", "all"],
     queryFn: async () => {
       const response = await fetch("/review-api/review-tasks?status=all", { headers });
       if (!response.ok) throw new Error("Failed to fetch live tasks from Review API");

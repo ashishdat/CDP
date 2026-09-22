@@ -92,6 +92,14 @@ def validate_production_settings(settings: Settings) -> ProductionValidationResu
                 "OBJECT_STORE_ACCESS_KEY/SECRET_KEY required in production",
             )
         )
+    backend = (getattr(settings, "object_store_backend", None) or "s3").strip().casefold()
+    if backend in {"filesystem", "fs", "local"}:
+        issues.append(
+            ProductionValidationIssue(
+                "FILESYSTEM_OBJECT_STORE_FORBIDDEN",
+                "OBJECT_STORE_BACKEND=filesystem is for local UI demos only",
+            )
+        )
     if _looks_like_default_minio(
         settings.object_store_access_key, settings.object_store_secret_key
     ):

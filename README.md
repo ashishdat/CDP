@@ -396,6 +396,13 @@ removed.
 - MinIO console: http://localhost:9001 (`minioadmin` / `minioadmin`)
 - Redpanda admin: http://localhost:9644
 
+`make ui-up` starts the **Evaluation / HITL console** at
+http://localhost:8180 (proxies `/api` → ingestion, `/review-api` → human
+review). On hosts without a working Docker engine it uses the local
+sqlite + filesystem object-store path (`scripts/run_ui_local.sh`). Prefer
+`make ui-up-compose` when Compose/MinIO/MySQL are available. Seed a demo
+HITL row with `make ui-seed`.
+
 ### The sample dataset
 
 The supplied `Images & Output.zip` is **not committed** (see

@@ -99,9 +99,9 @@ export function HitlInspector({ initialTaskId, onBackToQueue }: { initialTaskId?
   const isLuhnEnabled = localStorage.getItem("idp_settings_luhn_validation") !== "false";
 
   // Queries
-  const tasks = useQuery({ 
-    queryKey: ["review-tasks"], 
-    queryFn: () => getJson<TaskSummary[]>("/review-api/review-tasks") 
+  const tasks = useQuery({
+    queryKey: ["review-tasks", "open"],
+    queryFn: () => getJson<TaskSummary[]>("/review-api/review-tasks")
   });
   
   const detail = useQuery({ 

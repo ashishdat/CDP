@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     object_store_secret_key: str = "minioadmin"
     object_store_bucket: str = "idp-documents"
     object_store_use_ssl: bool = False
+    # filesystem = Docker-less local UI demos (forbidden when CDP_ENV=production)
+    object_store_backend: str = "s3"
+    object_store_filesystem_root: str = "/tmp/idp-objects"
 
     # Kafka-compatible bus
     kafka_bootstrap_servers: str = "localhost:19092"
