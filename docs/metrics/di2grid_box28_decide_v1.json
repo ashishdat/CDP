@@ -1,0 +1,43 @@
+{
+  "title": "DI+local 2-line incomplete grid Box 28 (EJG7.016 \u2192 600 STP)",
+  "commit": "88a0a07",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_di2grid_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_di2grid_decide",
+    "src": "evaluation_results/hackathon_150_grid_prefer_decide",
+    "method": "complete_only_di2grid_v1",
+    "completed": 89,
+    "true_stp": 76,
+    "true_stp_rate_of_completed": 0.853933,
+    "field_ink_hitl": 13,
+    "prior_grid_prefer": 75,
+    "flipped_to_true_stp": [
+      "Group A/M048EJG7.016"
+    ],
+    "lost_stp": [],
+    "ejg7016": {
+      "value": "600.00",
+      "disposition": "AUTO_ACCEPTED"
+    }
+  },
+  "page_check": "EJG7.016: DI+paddle Box 28 600 with only 2 equal SELECTED $150 lines (implies 4\u22646 CMS rows). di_backed_incomplete_grid_explains_box28 unlocks CLAIM_TOTAL without lowering the default \u22653 grid rule. EJG7.004 17500 vs \u03a3 1031 stays HITL via implausible-corroborator gate.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 76. Remaining ~13 HITL: place-shift locals (DJKN.005/007), DI-only Box28 (EJG7.003), hard-15/E4 gaps, handwriting identity, empty/invalid ink.",
+  "note": "Decision-only on frozen OCR/extract. Golden Pack not mutated. Gates still fail."
+}
