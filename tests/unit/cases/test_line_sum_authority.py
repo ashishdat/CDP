@@ -96,6 +96,10 @@ def test_incomplete_uniform_line_grid_does_not_block_box28():
     # Inflated Claude/paddle 4200 implies 21 rows — beyond CMS-1500 grid.
     assert not incomplete_uniform_line_grid_explains_box28("4200.00", lines)
     assert charge_conflicts_with_plausible_line_sum("4200.00", lines)
+    # Two equal lines alone are too weak (EJG7.016 2×150 vs Box 600).
+    two_lines = lines[:2]
+    assert not incomplete_uniform_line_grid_explains_box28("600.00", two_lines)
+    assert charge_conflicts_with_plausible_line_sum("600.00", two_lines)
     # Mixed line amounts are a real rival.
     mixed = [
         {"charges": "150.00", "line_charge_selection": {"disposition": "SELECTED_LOCAL_CHARGE", "amount": "150.00"}},

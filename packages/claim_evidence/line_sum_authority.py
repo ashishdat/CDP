@@ -314,7 +314,7 @@ def incomplete_uniform_line_grid_explains_box28(
     CMS-1500 pages often OCR only the first 3 of 6 equal ``$200`` rows while
     Box 28 correctly reads ``$1200`` (EJGE.007/008). That partial Σ is not a
     rival claim total — conflict-agent BOX28 must not be blocked by it.
-    Caps the implied row count at 6 (CMS-1500 service grid).
+    Requires ≥3 equal selected lines and caps implied rows at 6.
     """
     chosen_amt = parse_currency(chosen)
     if chosen_amt is None or chosen_amt <= 0:
@@ -347,7 +347,10 @@ def incomplete_uniform_line_grid_explains_box28(
         return False
     implied_rows = int(quotient)
     observed_rows = len(units)
-    # At least one missing row; never invent beyond the printed 6-line grid.
+    # Need a clear truncated multi-row strip (not a 2-line coincidence like
+    # EJG7.016 2×150 vs Box 600). Cap at the printed 6-line CMS grid.
+    if observed_rows < 3:
+        return False
     return observed_rows < implied_rows <= 6
 
 
