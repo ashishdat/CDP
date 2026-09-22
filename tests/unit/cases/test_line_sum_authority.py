@@ -36,6 +36,9 @@ def test_implausible_box28_digit_soup():
     # Place-adjacent rivals must not be ignored (would unlock false STP).
     assert not is_implausible_corroborator("1571.07", "157.00")
     assert not is_implausible_corroborator("2281.32", "228.00")
+    # DI cents-column split of the line total is corroborator junk.
+    assert is_implausible_corroborator("39.00", "97.39")
+    assert not is_implausible_corroborator("40.00", "97.39")
     ok, reason = semantic_accept("total_charge", "208408.00")
     assert not ok and reason == "CURRENCY_IMPLAUSIBLE_TOTAL"
 

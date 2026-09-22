@@ -1,0 +1,54 @@
+{
+  "title": "Multi-line-only geometry digit-drop (HJDF 1851+1551; DJKN single-line closed)",
+  "commit": "8c9843c",
+  "documents_10": [
+    "Group A/M048HJDF.022",
+    "Group A/M048HJDF.023",
+    "Group A/M048HJDF.024",
+    "Group A/M048HJDF.025",
+    "Group A/M048HJDF.026",
+    "Group A/M048HJDF.027",
+    "Group A/M048HJDF.028",
+    "Group A/M048HJDF.029",
+    "Group A/M048HJDF.030",
+    "Group A/M048HJDF.031"
+  ],
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_multiline_digit_drop_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0,
+    "flipped_to_true_stp": ["M048HJDF.022 total_charge 3402.00"],
+    "lost_stp": [],
+    "authority": "MULTI_LINE_GEOMETRY_DIGIT_DROP → MULTI_LINE_DIGIT_DROP_FULLER_LOCAL"
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_multiline_digit_drop_decide",
+    "src": "evaluation_results/hackathon_150_caption_bleed_decide",
+    "completed": 89,
+    "true_stp": 60,
+    "true_stp_rate_of_completed": 0.674157,
+    "field_ink_hitl": 29,
+    "vs_soup_regress_57": "restored DJKN.001/.002/.006 TRUE_STP (single-line geometry 2001 vs Claude 200 stays closed)",
+    "flipped_to_true_stp": [],
+    "lost_stp": [],
+    "false_accepts": 53,
+    "accepted_fields_scored": 227,
+    "accepted_field_precision": 0.76652
+  },
+  "fix": "Per-line selector clears geometry×Claude scale rivals (ruling tick). apply_line_charge_selector promotes only when every ambiguous line is geometry digit-drop vs vision, ignoring paddle place-shift soup (18500 beside 1851).",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 60. Next: Azure DI cents-column fragments (39.00 from $97|39) veto SINGLE_LINE_GPT4O_LOCAL as BOX28_OR_DI_CONFLICT on DJKH.046 / EJGE.005.",
+  "note": "Decision-only on frozen OCR. Golden Pack not mutated. Sample 10/10 is not the release gate."
+}

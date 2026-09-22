@@ -159,6 +159,55 @@ def caption_only_bleed_amounts(field_payload: dict | None) -> set[str]:
     return bleed - clean
 
 
+def cents_column_fragment_amounts(
+    field_payload: dict | None,
+    *,
+    line_total: object = None,
+) -> set[str]:
+    """Amounts that are only the cents half of a fuller Box 28 / line peer.
+
+    Azure DI ``39.00`` from ``$ 97|39`` beside Claude / line-sum ``97.39`` must
+    not rank as the Box 28 winner or veto ``SINGLE_LINE_GPT4O_LOCAL``.
+    """
+    from packages.claim_evidence.line_sum_authority import is_cents_column_fragment
+
+    if not isinstance(field_payload, dict):
+        return set()
+    amounts: set[str] = set()
+    if parse_currency(line_total) is not None:
+        amounts.add(format_currency(parse_currency(line_total)))
+    rows: list[dict] = []
+    if isinstance(field_payload.get("ranked_candidate"), dict):
+        rows.append(field_payload["ranked_candidate"])
+    rows.extend(row for row in (field_payload.get("alternatives") or []) if isinstance(row, dict))
+    rows.extend(row for row in (field_payload.get("candidates") or []) if isinstance(row, dict))
+    for residual_key in ("gpt4o_crop_residual", "azure_di_residual"):
+        residual = field_payload.get(residual_key) or {}
+        if isinstance(residual, dict) and parse_currency(residual.get("value")) is not None:
+            amounts.add(format_currency(parse_currency(residual.get("value"))))
+    agent = field_payload.get("financial_conflict_agent") or field_payload.get("conflict_agent") or {}
+    if isinstance(agent, dict) and parse_currency(agent.get("chosen") or agent.get("value")) is not None:
+        amounts.add(
+            format_currency(parse_currency(agent.get("chosen") or agent.get("value")))
+        )
+    for row in rows:
+        ocr = row.get("ocr_candidate") or row
+        if not isinstance(ocr, dict):
+            continue
+        amount = parse_currency(ocr.get("value"))
+        if amount is None:
+            continue
+        amounts.add(format_currency(amount))
+    fragments: set[str] = set()
+    for candidate in amounts:
+        for peer in amounts:
+            if candidate == peer:
+                continue
+            if is_cents_column_fragment(candidate, peer):
+                fragments.add(candidate)
+    return fragments
+
+
 def _payload_is_label_only_or_empty(
     field_payload: dict | None,
     observation: dict | None,

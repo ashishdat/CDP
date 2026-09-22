@@ -533,16 +533,22 @@ def decide(extraction, family):
     # Caption/index OCR (``8. TOTAL CHARGE`` + box 29 → 29.00) is not Box 28 ink.
     # Drop it before evidence build so it cannot veto a unanimous line sum.
     # A real printed total in the same string, or $100+, is not in this set.
-    from packages.claim_evidence.box28_blankness import caption_only_bleed_amounts
-    from packages.claim_evidence.line_sum_authority import format_currency
+    from packages.claim_evidence.box28_blankness import (
+        caption_only_bleed_amounts,
+        cents_column_fragment_amounts,
+    )
+    from packages.claim_evidence.line_sum_authority import format_currency, line_sum_total
 
     for charge_field in ('total_charge', 'total_charges'):
         field_payload = next(
             (f for f in fields if f.get('field_name') == charge_field), {}
         ) or {}
         bleed = caption_only_bleed_amounts(field_payload)
+        fragments = cents_column_fragment_amounts(
+            field_payload, line_total=line_sum_total(service_lines)
+        )
         current_amt = parse_currency(values.get(charge_field))
-        if current_amt is not None and format_currency(current_amt) in bleed:
+        if current_amt is not None and format_currency(current_amt) in bleed | fragments:
             values[charge_field] = None
 
     # Authoritative member join telemetry only here. Identity fills happen after
@@ -976,9 +982,13 @@ def decide(extraction, family):
                 eligible, gate_reason = line_sum_gate.get(name, (False, 'UNSET'))
                 winner_val = f.get('normalized_value')
                 # Caption bleed is not a printed Box 28 winner (29 vs Σ 450).
+                # DI cents-column splits (39.00 from $97|39) are not either.
+                junk_winners = caption_only_bleed_amounts(f) | cents_column_fragment_amounts(
+                    f, line_total=derived
+                )
                 if (
                     parse_currency(winner_val) is not None
-                    and format_currency(parse_currency(winner_val)) in caption_only_bleed_amounts(f)
+                    and format_currency(parse_currency(winner_val)) in junk_winners
                 ):
                     winner_val = None
                 winner_matches_lines = (

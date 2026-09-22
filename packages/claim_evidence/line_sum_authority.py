@@ -102,6 +102,23 @@ def is_implausible_charge_total(amount: object) -> bool:
     return len(digits) >= 6 and parsed >= Decimal(100000)
 
 
+def is_cents_column_fragment(fragment: object, fuller: object) -> bool:
+    """True when ``fragment`` is only the cents column of ``fuller``.
+
+    Azure DI residual ``39.00`` from raw ``$ 97|39`` beside line-sum / Claude
+    ``97.39`` is not a second Box 28 total. Whole-dollar fullers (``.00``) never
+    match — that keeps real near-miss totals (40.00 vs 97.00) as conflicts.
+    """
+    frag = parse_currency(fragment)
+    full = parse_currency(fuller)
+    if frag is None or full is None or frag <= 0 or full <= frag:
+        return False
+    cents = int((full * 100) % 100)
+    if cents == 0:
+        return False
+    return frag == Decimal(cents)
+
+
 def is_implausible_corroborator(value: object, line_total: object) -> bool:
     """Ignore box-28 junk that would force BOX28_OR_DI_CONFLICT vs real line-sum."""
     if is_implausible_charge_total(value):
@@ -110,6 +127,9 @@ def is_implausible_corroborator(value: object, line_total: object) -> bool:
     total = parse_currency(line_total)
     if amount is None or total is None or total <= 0:
         return False
+    # DI cents-column split of the line total is not a rival charge.
+    if is_cents_column_fragment(value, line_total):
+        return True
     # Near ×10 / ×100 place-shift rivals (1571.07 vs 157.00) must CONFLICT —
     # never ignore them as ratio junk or SINGLE_LINE_GPT4O_LOCAL false-accepts.
     for factor in (Decimal(10), Decimal(100)):

@@ -623,3 +623,37 @@ def test_clean_local_box_amount_is_not_caption_bleed():
         ],
     }
     assert caption_only_bleed_amounts(payload) == set()
+
+
+def test_di_cents_column_fragment_is_not_a_box_winner():
+    """DJKH.046 / EJGE.005: DI ``39.00`` from ``$ 97|39`` is not Box 28."""
+    from packages.claim_evidence.box28_blankness import cents_column_fragment_amounts
+    from packages.claim_evidence.line_sum_authority import is_cents_column_fragment
+
+    assert is_cents_column_fragment("39.00", "97.39")
+    assert is_cents_column_fragment("19.00", "93.19")
+    assert not is_cents_column_fragment("40.00", "97.39")
+    assert not is_cents_column_fragment("39.00", "97.00")
+
+    payload = {
+        "candidates": [
+            {
+                "engine": "azure_document_intelligence_read",
+                "value": "39.00",
+                "raw_value": "$ 97|39",
+            },
+            {
+                "engine": "anthropic_claude_crop",
+                "value": "97.39",
+                "raw_value": "97.39",
+            },
+            {
+                "engine": "paddleocr",
+                "value": "971.39",
+                "raw_value": "97139",
+            },
+        ],
+        "azure_di_residual": {"currency_shaped": True, "value": "39.00"},
+        "financial_conflict_agent": {"side": "LINES", "value": "97.39"},
+    }
+    assert cents_column_fragment_amounts(payload, line_total="97.39") == {"39.00"}
