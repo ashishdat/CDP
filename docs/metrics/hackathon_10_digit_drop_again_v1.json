@@ -1,0 +1,45 @@
+{
+  "title": "10-sample HJDF blind retest after digit-drop soup relief",
+  "documents": [
+    "Group A/M048HJDF.022",
+    "Group A/M048HJDF.023",
+    "Group A/M048HJDF.024",
+    "Group A/M048HJDF.025",
+    "Group A/M048HJDF.026",
+    "Group A/M048HJDF.027",
+    "Group A/M048HJDF.028",
+    "Group A/M048HJDF.029",
+    "Group A/M048HJDF.030",
+    "Group A/M048HJDF.031"
+  ],
+  "gates": {
+    "true_stp_ge_94": "PASS_ON_SAMPLE",
+    "claim_hitl_le_6": "PASS_ON_SAMPLE",
+    "critical_accepted_precision_ge_99_5": "NOT_SCORED_NO_SAMPLE_GT",
+    "false_accepted_critical_eq_0": "NOT_SCORED_NO_SAMPLE_GT",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "live_ocr": {
+    "out": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 9,
+    "true_stp_rate_of_completed": 0.9,
+    "field_ink_hitl": 1,
+    "regression": "M048HJDF.022 HITL at 340.00; prior blind run was TRUE_STP 3402.00 (1851+1551). Geometry 185100→1851 was cleared by the ruling-tick digit-drop guard against Claude 185."
+  },
+  "decision_only_after_fix": {
+    "out": "evaluation_results/hackathon_10_digit_drop_decide2",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0,
+    "flipped_to_true_stp": ["M048HJDF.022 total_charge 3402.00"],
+    "lost_stp": [],
+    "authority": "MULTI_LINE_DIGIT_DROP_FULLER_LOCAL; truncated Box DI/Claude 340 cleared as digit-drop soup against derived line Σ"
+  },
+  "note": "Sample of 10 is not the 89-claim gate. Fixes: geometry digit-drop keeps 1851 over Claude-only 185; reconciler clears truncated Box OCR when the derived line sum owns the fuller total."
+}
