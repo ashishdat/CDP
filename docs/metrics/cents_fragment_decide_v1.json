@@ -1,0 +1,44 @@
+{
+  "title": "Azure DI cents-column fragments must not veto line-sum STP",
+  "commit": "763b355",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_cents_fragment_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_cents_fragment_decide",
+    "src": "evaluation_results/hackathon_150_caption_bleed_decide",
+    "completed": 89,
+    "true_stp": 64,
+    "true_stp_rate_of_completed": 0.719101,
+    "field_ink_hitl": 25,
+    "prior_multiline_digit_drop": 60,
+    "flipped_to_true_stp": [
+      "M048DJKH.039 total_charge 157.00",
+      "M048DJKH.045 total_charge 129.00",
+      "M048DJKH.046 total_charge 97.39",
+      "M048EJGE.005 total_charge 93.00"
+    ],
+    "lost_stp": [],
+    "false_accepts": 54,
+    "accepted_fields_scored": 230,
+    "accepted_field_precision": 0.765217
+  },
+  "page_check": "DJKH.046 Box DI residual 39.00 from raw '$ 97|39' ranked as total_charge winner and forced BOX28_OR_DI_CONFLICT against Claude/line-sum 97.39. Same class as EJGE.005 DI 19.00 beside 93.19.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 64 (matches prior EJGE overlay level without new OCR). Hard-15 17500 vs 1031, identity HITL, and empty Box 28 single-line dual-local without vision stay review.",
+  "note": "Decision-only on frozen OCR. Golden Pack not mutated."
+}
