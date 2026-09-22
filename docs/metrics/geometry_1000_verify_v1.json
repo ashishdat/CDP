@@ -1,0 +1,25 @@
+{
+  "title": "Geometry-95 full-1000 verify \u2014 in progress",
+  "status": "RUNNING",
+  "started_at": "2026-09-22T08:03:22Z",
+  "updated_at": "2026-09-22T08:07:47.521513+00:00",
+  "method": "seed tip 89 decide (geo_underread_600) + resume cascade; phase1=160 remaining agent-GT docs then phase2=rest of 1000",
+  "out_dir": "evaluation_results/hackathon_1000_geometry_95_verify",
+  "tip_baseline_matched": {
+    "exact_accuracy": 0.989474,
+    "accepted_field_precision": 1.0,
+    "false_accepts": 0,
+    "claims_scored": 68,
+    "matches_locked_gate": true,
+    "geometry_accuracy_gate_ok": true
+  },
+  "progress": {
+    "ledger_unique": 94,
+    "tip_seeded": 89,
+    "fresh_completed": 5,
+    "phase1_target": 160,
+    "fresh_true_stp": 3,
+    "fresh_hitl": 2
+  },
+  "note": "Accuracy gate can only score agent-GT labels (228 claims). Tip overlap 68 matched locked \u226595%. Full operational STP/HITL on 1000 requires completing cascade OCR."
+}
