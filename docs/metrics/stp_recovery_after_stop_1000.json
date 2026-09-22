@@ -1,6 +1,6 @@
 {
   "title": "STP recovery after stop-1000 learnings",
-  "updated_at": "2026-09-22T12:32:27Z",
+  "updated_at": "2026-09-22T14:00:29Z",
   "cascade_stopped": true,
   "baseline_before_recovery": {
     "completed": 318,
@@ -9,13 +9,13 @@
   },
   "after_recovery": {
     "completed": 318,
-    "true_stp": 282,
-    "rate": 0.8868,
-    "hitl": 36,
-    "hitl_rate": 0.1132
+    "true_stp": 269,
+    "rate": 0.845912,
+    "hitl": 49,
+    "hitl_rate": 0.154088
   },
   "lift_pp": 13.2,
-  "charge_hitl_remaining": 21,
+  "charge_hitl_remaining": 28,
   "learnings_shipped": [
     "Single ChargeTotalAuthority CONFIRMED mint",
     "CONFLICT_MARGIN clears scale twins under CONFIRMED / line-\u03a3 ownership",
@@ -78,5 +78,23 @@
       "Group A__M048DJKH.010",
       "Group A__M048DJKH.027"
     ]
+  },
+  "complete_v1_pass": {
+    "title": "Full ops complete-inplace after cash ruling-split geometry",
+    "updated_at": "2026-09-22T14:00:29Z",
+    "run_dir": "evaluation_results/hackathon_1000_stp_recovery_complete_v1",
+    "method": "complete_from_extraction inplace on geometry_95_verify extracts",
+    "unique_claims_completed": 318,
+    "true_stp": 269,
+    "true_stp_rate_of_completed": 0.845912,
+    "hitl": 49,
+    "hitl_rate_of_completed": 0.154088,
+    "prior_true_stp": 240,
+    "flipped": 39,
+    "lost": 10,
+    "net_delta": 29,
+    "charge_hitl_remaining": 28,
+    "stage_failures": 0,
+    "note": "Source ledger had duplicate claim_ids; metrics use unique claims (318)."
   }
 }
