@@ -995,3 +995,35 @@ def test_geometry_digit_drop_survives_claude_short_crop():
     assert out[1]["line_charge_selection"]["reason"] == "MULTI_LINE_GEOMETRY_DIGIT_DROP"
 
 
+
+
+def test_preserve_frozen_digit_drop_fuller_when_live_selector_ambiguous():
+    """DJKN.004: re-select must not erase extract-stage DIGIT_DROP_FULLER_LOCAL."""
+    from packages.claim_evidence.line_charge_selector import apply_line_charge_selector
+
+    lines = [
+        {
+            "charges": "2001.00",
+            "canonical_region": list(_CHARGE_BBOX),
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "2001.00",
+                "reason": "DIGIT_DROP_FULLER_LOCAL",
+                "supporting_engines": ["rapidocr"],
+            },
+            "candidates": [
+                _cand("anthropic_claude_crop", "200.00", "200.00", _CHARGE_BBOX),
+                _cand("rapidocr", "2001.00", "200100", _CHARGE_BBOX),
+            ],
+            "attempts": [
+                {
+                    "engine": "rapidocr",
+                    "reason": "GEOMETRY_CENTS",
+                    "observation": {"shaped": "2001.00", "raw_digit_sequence": "200100"},
+                }
+            ],
+        }
+    ]
+    out = apply_line_charge_selector(lines)
+    assert out[0]["charges"] == "2001.00"
+    assert out[0]["line_charge_selection"]["reason"] == "DIGIT_DROP_FULLER_LOCAL"

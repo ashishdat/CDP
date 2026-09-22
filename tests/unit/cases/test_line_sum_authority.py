@@ -999,3 +999,84 @@ def test_blind50_multiline_digit_drop_restores_stp_single_line_stays_closed():
     ok, reason = line_sum_auto_eligible(single)
     assert not ok and reason == "SINGLE_LINE_REQUIRES_DI"
 
+
+
+def test_digit_drop_box28_underread_unlocks_fuller_line_sum():
+    """DJKN.004/007: Box 28 200 under-reads DIGIT_DROP_FULLER line 2001."""
+    from packages.claim_evidence.line_sum_authority import (
+        box28_digit_drop_underread_of_fuller_line,
+        line_sum_auto_eligible,
+        should_defer_box28_to_line_sum,
+    )
+
+    lines = [
+        {
+            "charges": "2001.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "2001.00",
+                "reason": "DIGIT_DROP_FULLER_LOCAL",
+            },
+        }
+    ]
+    assert box28_digit_drop_underread_of_fuller_line("200.00", lines)
+    assert should_defer_box28_to_line_sum("200.00", lines)
+    ok, reason = line_sum_auto_eligible(
+        lines, box28_value="200.00", corroborating_values=["200.00", "2004.00"]
+    )
+    assert ok and reason == "DIGIT_DROP_BOX28_UNDERREAD"
+    # After deferral, whitelist extension alone must not re-arm CONFLICT.
+    ok, reason = line_sum_auto_eligible(
+        lines, box28_value=None, corroborating_values=["2004.00"]
+    )
+    assert ok and reason == "DIGIT_DROP_BOX28_UNDERREAD"
+    # Bare single-line digit-drop without Box 28 under-read stays closed.
+    ok, reason = line_sum_auto_eligible(lines, box28_value=None, corroborating_values=[])
+    assert not ok
+
+
+def test_geometry_cents_line_supports_box28_over_dollars_truncation():
+    """DJKH.037: GEOMETRY_CENTS 1291.15 supports Box 28 vs dollars 129."""
+    from packages.claim_evidence.line_sum_authority import (
+        llm_charge_pick_has_open_source_authority,
+    )
+
+    lines = [
+        {
+            "charges": "1291.15",
+            "candidates": [
+                {
+                    "engine": "rapidocr",
+                    "value": "1291.15",
+                    "preprocessing_variant": "GEOMETRY_CENTS",
+                },
+                {
+                    "engine": "paddleocr",
+                    "value": "129.00",
+                    "preprocessing_variant": "CURRENCY_DECIMAL_V2|dollars_ruling",
+                },
+                {
+                    "engine": "rapidocr",
+                    "value": "129.00",
+                    "preprocessing_variant": "CURRENCY_DECIMAL_V2|dollars_ruling",
+                },
+            ],
+            "attempts": [
+                {
+                    "engine": "rapidocr",
+                    "reason": "GEOMETRY_CENTS",
+                    "observation": {"shaped": "1291.15"},
+                }
+            ],
+        }
+    ]
+    cands = [
+        {"engine": "anthropic_claude_crop", "value": "1291.15"},
+        {"engine": "paddleocr", "value": "115.00"},
+        {"engine": "rapidocr", "value": "129.00"},
+    ]
+    assert llm_charge_pick_has_open_source_authority("1291.15", cands, lines)
+    # Without geometry cents, inflated 1291 vs local 129 stays unauthorized.
+    assert not llm_charge_pick_has_open_source_authority(
+        "1291.15", cands, [{"charges": "129.00", "candidates": cands}]
+    )

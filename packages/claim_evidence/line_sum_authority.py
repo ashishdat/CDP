@@ -166,6 +166,81 @@ def is_implausible_corroborator(value: object, line_total: object) -> bool:
     return bool(amount < ratio_lo and abs(amount - total) > Decimal(50))
 
 
+def selected_digit_drop_fuller_line_total(
+    service_lines: list[dict] | None,
+) -> str | None:
+    """Return Σ when every charge line is SELECTED via DIGIT_DROP_FULLER_LOCAL.
+
+    DJKN.004/007: Rapid GEOMETRY_CENTS ``2001`` beats Claude ``200`` on the line
+    cell. That fuller Σ is the claim total when Box 28 only shows the truncated
+    twin — not a second competing amount.
+    """
+    saw = False
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        if not any(parse_currency(line.get(k)) is not None for k in _CHARGE_FIELDS):
+            continue
+        selection = line.get("line_charge_selection") or {}
+        if selection.get("disposition") != "SELECTED_LOCAL_CHARGE":
+            return None
+        if selection.get("reason") not in {
+            "DIGIT_DROP_FULLER_LOCAL",
+            "MULTI_LINE_GEOMETRY_DIGIT_DROP",
+        }:
+            return None
+        saw = True
+    if not saw:
+        return None
+    return line_sum_total(service_lines)
+
+
+def box28_digit_drop_underread_of_fuller_line(
+    box28_value: object, service_lines: list[dict] | None
+) -> bool:
+    """True when Box 28 is a shorter digit-drop twin of DIGIT_DROP_FULLER Σ.
+
+    DJKN.005 GT ``2001`` vs DI/Claude Box 28 ``200``: the printed Box 28 under-read
+    must defer to the fuller selected line, not AUTO the truncated twin.
+    """
+    fuller = selected_digit_drop_fuller_line_total(service_lines)
+    if fuller is None:
+        return False
+    box = parse_currency(box28_value)
+    full = parse_currency(fuller)
+    if box is None or full is None or box >= full:
+        return False
+    return is_currency_digit_drop_twin(box28_value, fuller)
+
+
+def _is_extension_of_digit_drop_underread_stem(value: object, fuller: object) -> bool:
+    """True when ``value`` extends a 1–2 digit under-read stem of ``fuller``.
+
+    DJKN.004: after Box 28 ``200`` is deferred, paddle whitelist ``2004`` remains
+    as a corroborator. It is a ×10 / digit-drop extension of stem ``200``, not a
+    rival of DIGIT_DROP_FULLER Σ ``2001``.
+    """
+    full_amt = parse_currency(fuller)
+    val_amt = parse_currency(value)
+    if full_amt is None or val_amt is None or val_amt == full_amt:
+        return False
+    full_digits = _currency_digit_string(fuller)
+    if len(full_digits) < 3:
+        return False
+    for dropped in (1, 2):
+        if len(full_digits) <= dropped:
+            continue
+        stem_digits = full_digits[:-dropped]
+        if not stem_digits:
+            continue
+        stem = format_currency(Decimal(stem_digits))
+        if not is_currency_digit_drop_twin(stem, fuller):
+            continue
+        if is_currency_digit_drop_twin(value, stem) or is_scale_shift(value, stem):
+            return True
+    return False
+
+
 def should_defer_box28_to_line_sum(
     box28_value: object,
     service_lines: list[dict] | None,
@@ -190,6 +265,9 @@ def should_defer_box28_to_line_sum(
     # DI+local 2-line equal prefix (EJG7.016 2×150→600).
     if di_backed_incomplete_grid_explains_box28(box28_value, service_lines, candidates):
         return False
+    # Digit-drop Box 28 under-read of DIGIT_DROP_FULLER_LOCAL Σ (DJKN.004/007).
+    if box28_digit_drop_underread_of_fuller_line(box28_value, service_lines):
+        return True
     observed = sum(charges, Decimal(0))
     if observed <= 0:
         return False
@@ -377,6 +455,94 @@ def _di_vs_digit_whitelist_noise_only(
     return True
 
 
+def _line_geometry_cents_amounts(service_lines: list | None) -> list:
+    """Open-source GEOMETRY_CENTS amounts observed on service-line cells."""
+    found: list = []
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        for cand in line.get("candidates") or []:
+            if not isinstance(cand, dict):
+                continue
+            prep = str(
+                cand.get("preprocessing_variant")
+                or cand.get("evidence_reference")
+                or ""
+            )
+            if "GEOMETRY_CENTS" not in prep:
+                continue
+            engine, value = _candidate_engine_and_value(cand)
+            if engine not in _OPEN_SOURCE_CHARGE_ENGINES:
+                continue
+            if parse_currency(value) is not None:
+                found.append(value)
+        for attempt in line.get("attempts") or []:
+            if not isinstance(attempt, dict):
+                continue
+            if "GEOMETRY_CENTS" not in str(attempt.get("reason") or ""):
+                continue
+            engine = str(attempt.get("engine") or "").casefold()
+            if engine not in _OPEN_SOURCE_CHARGE_ENGINES and not any(
+                token in engine for token in ("paddle", "rapid", "tesseract")
+            ):
+                continue
+            obs = attempt.get("observation") or {}
+            shaped = (
+                obs.get("shaped")
+                or obs.get("canonical_monetary_value")
+                or obs.get("value")
+            )
+            if parse_currency(shaped) is not None:
+                found.append(shaped)
+    return found
+
+
+def _is_dollars_ruling_truncation(short: object, fuller: object) -> bool:
+    """True when ``short`` is a dollars-ruling truncation of ``fuller`` (129 vs 1291.15)."""
+    try:
+        from packages.claim_evidence.line_charge_selector import _is_dollar_truncation
+    except Exception:  # noqa: BLE001
+        return False
+    short_amt = parse_currency(short)
+    fuller_amt = parse_currency(fuller)
+    if short_amt is None or fuller_amt is None:
+        return False
+    return _is_dollar_truncation(format_currency(short_amt), format_currency(fuller_amt))
+
+
+def _geometry_cents_line_supports_box28(
+    chosen: object, candidates: list | None, service_lines: list | None
+) -> bool:
+    """True when line GEOMETRY_CENTS matches ``chosen`` and Box 28 locals truncate.
+
+    DJKH.037: Rapid GEOMETRY_CENTS ``1291.15`` + Claude Box 28 ``1291.15`` beside
+    dual-local dollars ``129.00``. Geometry cents is open-source authority; the
+    dollars-ruling stem is truncation, not a rival total.
+    """
+    if not any(
+        amounts_corroborate(chosen, amount)
+        for amount in _line_geometry_cents_amounts(service_lines)
+    ):
+        return False
+    local = open_source_charge_amounts(candidates)
+    if not local:
+        return True
+    for amount in local:
+        if amounts_corroborate(chosen, amount):
+            continue
+        if _is_dollars_ruling_truncation(amount, chosen):
+            continue
+        # ROI scrap beside the geometry fuller (115 vs 1291.15) is not a rival.
+        if is_implausible_corroborator(amount, chosen):
+            continue
+        if is_scale_shift(chosen, amount) or is_currency_digit_drop_twin(chosen, amount):
+            return False
+        if _local_amount_only_from_digit_whitelist(amount, candidates):
+            continue
+        return False
+    return True
+
+
 def llm_charge_pick_has_open_source_authority(
     chosen: object,
     candidates: list | None,
@@ -394,11 +560,17 @@ def llm_charge_pick_has_open_source_authority(
 
     EJG7.003: DI ``1825`` beside paddle digit-whitelist ``4825`` (not a twin) is
     authorized — whitelist soup is not an independent local rival.
+
+    DJKH.037: line GEOMETRY_CENTS ``1291.15`` supports Claude Box 28 when local
+    dollars reads are ruling truncations of that fuller amount.
     """
     if parse_currency(chosen) is None:
         return False
     if agent_amount_is_inflated_scale(chosen, candidates):
-        return False
+        # DJKH.037: GEOMETRY_CENTS line ``1291.15`` is open-source authority for
+        # the fuller stem; dollars-ruling ``129`` must not veto as inflated soup.
+        if not _geometry_cents_line_supports_box28(chosen, candidates, service_lines):
+            return False
     # Open-source digit soup that implies >6 equal CMS rows is not authority
     # (EJGE.006 paddle 4200 vs 3×$200). Prefer the grid-backed alternate.
     if chosen_exceeds_cms_uniform_line_grid(chosen, service_lines):
@@ -413,6 +585,9 @@ def llm_charge_pick_has_open_source_authority(
         return True
     # No exact local hit — DI vs non-twin digit-whitelist soup (EJG7.003).
     if _di_vs_digit_whitelist_noise_only(chosen, candidates, local):
+        return True
+    # Line GEOMETRY_CENTS matches chosen; box locals are dollars truncations.
+    if _geometry_cents_line_supports_box28(chosen, candidates, service_lines):
         return True
     # DI-confirmed inflated stem only when the truncated equal-amount service
     # grid independently explains Box 28.
@@ -1216,6 +1391,56 @@ def line_sum_auto_eligible(
             service_lines, total
         ) and vision_local_decimal_column(total, corroborators):
             return True, "DECIMAL_COLUMN_VISION_LOCAL"
+        # DIGIT_DROP_FULLER_LOCAL Σ with Box 28 under-read (+ stem extensions).
+        # DJKN.004/007: line 2001 vs Box 28 200; paddle whitelist 2004 is a
+        # ×10/digit-drop extension of the truncated Box 28 stem, not of 2001.
+        if selected_digit_drop_fuller_line_total(service_lines) == total:
+            underread_box = (
+                box28_value
+                if box28_digit_drop_underread_of_fuller_line(box28_value, service_lines)
+                else None
+            )
+            if underread_box is None:
+                for value in corroborators:
+                    amt = parse_currency(value)
+                    total_amt = parse_currency(total)
+                    if (
+                        amt is not None
+                        and total_amt is not None
+                        and amt < total_amt
+                        and is_currency_digit_drop_twin(value, total)
+                    ):
+                        underread_box = value
+                        break
+            blockers = []
+            for value in corroborators:
+                if amounts_corroborate_or_cents_twin(total, value):
+                    continue
+                amt = parse_currency(value)
+                total_amt = parse_currency(total)
+                if (
+                    amt is not None
+                    and total_amt is not None
+                    and amt < total_amt
+                    and is_currency_digit_drop_twin(value, total)
+                ):
+                    continue
+                # Extensions of the truncated Box 28 stem (200 → 2004), including
+                # when Box 28 was already deferred away and only 2004 remains.
+                if underread_box is not None and (
+                    is_currency_digit_drop_twin(value, underread_box)
+                    or is_scale_shift(value, underread_box)
+                ):
+                    continue
+                if _is_extension_of_digit_drop_underread_stem(value, total):
+                    continue
+                blockers.append(value)
+            if (underread_box is not None or any(
+                _is_extension_of_digit_drop_underread_stem(v, total) for v in corroborators
+            )) and not blockers:
+                return True, "DIGIT_DROP_BOX28_UNDERREAD"
+            if underread_box is not None and not blockers:
+                return True, "DIGIT_DROP_BOX28_UNDERREAD"
         # Plausible currency-shaped box-28 / DI disagrees → HITL, not false STP.
         return False, "BOX28_OR_DI_CONFLICT"
 
@@ -1223,6 +1448,10 @@ def line_sum_auto_eligible(
     if observed == 0:
         return False, "NO_LINE_CHARGES"
     if observed == 1:
+        # Single-line DIGIT_DROP_FULLER with no Box 28 corroborators: still needs
+        # an under-read Box 28 twin or DI — bare single local stays closed.
+        if selected_digit_drop_fuller_line_total(service_lines) == total:
+            return False, "SINGLE_LINE_DIGIT_DROP_NEEDS_BOX28_UNDERREAD"
         # Single-line paddle+rapid alone is insufficient without Box 28 / gpt-4o.
         if agreed >= 1:
             return False, "SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28"

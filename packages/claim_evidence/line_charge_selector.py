@@ -1532,7 +1532,33 @@ def apply_line_charge_selector(lines: list[dict] | None) -> list[dict]:
     for line in lines or []:
         if not isinstance(line, dict):
             continue
+        prior = line.get("line_charge_selection") or {}
+        prior_reason = str(prior.get("reason") or "")
+        prior_selected = (
+            prior.get("disposition") == "SELECTED_LOCAL_CHARGE"
+            and prior.get("amount")
+            and prior_reason
+            in {
+                "DIGIT_DROP_FULLER_LOCAL",
+                "MULTI_LINE_GEOMETRY_DIGIT_DROP",
+            }
+        )
         selection = select_line_charge(line)
+        # Preserve frozen DIGIT_DROP_FULLER_LOCAL when the live selector
+        # nullifies geometry-only fuller vs short vision (DJKN.004/007:
+        # Rapid ``2001`` vs Claude ``200``). Re-select must not erase the
+        # extract-stage fuller that Box 28 under-read deferral needs.
+        if prior_selected and selection.disposition != "SELECTED_LOCAL_CHARGE":
+            updated = dict(line)
+            updated["line_charge_selection"] = dict(prior)
+            updated["charges"] = prior.get("amount")
+            updated["charge_amount"] = prior.get("amount")
+            updated["router_reason"] = (
+                f"{line.get('router_reason') or ''}|"
+                f"LINE_CHARGE_SELECTOR:PRESERVE_{prior_reason}"
+            ).strip("|")
+            kept.append(updated)
+            continue
         updated = dict(line)
         updated["line_charge_selection"] = selection.to_dict()
         if selection.disposition == "SELECTED_LOCAL_CHARGE" and selection.amount:

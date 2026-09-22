@@ -473,6 +473,7 @@ def decide(extraction, family):
         preserve_azure_box28 = False
         if current_val not in (None, ''):
             from packages.claim_evidence.line_sum_authority import (
+                box28_digit_drop_underread_of_fuller_line,
                 is_decimal_place_shift,
                 is_implausible_corroborator,
                 line_sum_total,
@@ -482,9 +483,12 @@ def decide(extraction, family):
             # Never preserve form-ruling digit soup / 10×-off Azure totals.
             # Also never preserve a decimal-place twin (45000 vs line Σ 450) —
             # that blocked should_defer and falsely minted DECIMAL_SHIFT_CONFLICT.
+            # Digit-drop Box 28 under-read of DIGIT_DROP_FULLER_LOCAL Σ
+            # (DJKN.004/007 200 vs 2001) must defer — do not preserve Claude/DI.
             if line_total and (
                 is_implausible_corroborator(current_val, line_total)
                 or is_decimal_place_shift(current_val, line_total)
+                or box28_digit_drop_underread_of_fuller_line(current_val, service_lines)
             ):
                 preserve_azure_box28 = False
             else:
