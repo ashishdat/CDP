@@ -58,6 +58,53 @@ def test_inflated_conflict_agent_amount_is_not_open_source_authority():
     assert not llm_charge_pick_has_open_source_authority("200.00", candidates)
 
 
+def test_incomplete_uniform_line_grid_does_not_block_box28():
+    """EJGE.007: 3×$200 OCR vs printed Box 28 $1200 is not a rival total."""
+    from packages.claim_evidence.line_sum_authority import (
+        charge_conflicts_with_plausible_line_sum,
+        incomplete_uniform_line_grid_explains_box28,
+    )
+
+    lines = [
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+            },
+        },
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+            },
+        },
+        {
+            "charges": "200.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "200.00",
+                "reason": "DUAL_LOCAL_CHARGE_COLUMN",
+            },
+        },
+    ]
+    assert incomplete_uniform_line_grid_explains_box28("1200.00", lines)
+    assert not charge_conflicts_with_plausible_line_sum("1200.00", lines)
+    # Inflated Claude/paddle 4200 implies 21 rows — beyond CMS-1500 grid.
+    assert not incomplete_uniform_line_grid_explains_box28("4200.00", lines)
+    assert charge_conflicts_with_plausible_line_sum("4200.00", lines)
+    # Mixed line amounts are a real rival.
+    mixed = [
+        {"charges": "150.00", "line_charge_selection": {"disposition": "SELECTED_LOCAL_CHARGE", "amount": "150.00"}},
+        {"charges": "1.50", "line_charge_selection": {"disposition": "SELECTED_LOCAL_CHARGE", "amount": "1.50"}},
+    ]
+    assert not incomplete_uniform_line_grid_explains_box28("300.00", mixed)
+    assert charge_conflicts_with_plausible_line_sum("300.00", mixed)
+
+
 def test_form_ruling_noise_charge_ignored_not_auto():
     """Form-ruling digit soup (208408) must not AUTO via junk corroboration."""
     lines = [

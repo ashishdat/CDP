@@ -306,6 +306,51 @@ def agent_amount_is_inflated_scale(chosen: object, candidates: list | None) -> b
     return False
 
 
+def incomplete_uniform_line_grid_explains_box28(
+    chosen: object, service_lines: list | None
+) -> bool:
+    """True when equal selected line amounts are a proper prefix of Box 28.
+
+    CMS-1500 pages often OCR only the first 3 of 6 equal ``$200`` rows while
+    Box 28 correctly reads ``$1200`` (EJGE.007/008). That partial Σ is not a
+    rival claim total — conflict-agent BOX28 must not be blocked by it.
+    Caps the implied row count at 6 (CMS-1500 service grid).
+    """
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None or chosen_amt <= 0:
+        return False
+    units: list[Decimal] = []
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        selection = line.get("line_charge_selection") or {}
+        disposition = str(selection.get("disposition") or "")
+        # Prefer selector amounts; fall back to observed charge fields.
+        amount = None
+        if disposition.startswith("SELECTED"):
+            amount = parse_currency(selection.get("amount"))
+        if amount is None:
+            for key in _CHARGE_FIELDS:
+                amount = parse_currency(line.get(key))
+                if amount is not None:
+                    break
+        if amount is None or amount <= 0:
+            continue
+        units.append(amount)
+    if len(units) < 2:
+        return False
+    unit = units[0]
+    if any(value != unit for value in units):
+        return False
+    quotient = chosen_amt / unit
+    if quotient != quotient.to_integral_value():
+        return False
+    implied_rows = int(quotient)
+    observed_rows = len(units)
+    # At least one missing row; never invent beyond the printed 6-line grid.
+    return observed_rows < implied_rows <= 6
+
+
 def charge_conflicts_with_plausible_line_sum(chosen: object, service_lines: list | None) -> bool:
     """True when observed line Σ is a real different total, not cents noise or junk."""
     total = line_sum_total(service_lines)
@@ -314,6 +359,9 @@ def charge_conflicts_with_plausible_line_sum(chosen: object, service_lines: list
     if is_implausible_charge_total(total):
         return False
     if amounts_corroborate(chosen, total) or amounts_same_stem_cents_twin(chosen, total):
+        return False
+    # Truncated equal-amount service grid (3×200 vs Box 28 1200) is not a rival.
+    if incomplete_uniform_line_grid_explains_box28(chosen, service_lines):
         return False
     return True
 
