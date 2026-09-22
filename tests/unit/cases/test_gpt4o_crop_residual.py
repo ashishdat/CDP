@@ -496,11 +496,21 @@ def test_name_conflict_triggers_gpt4o_and_accepts_shaped(monkeypatch):
             {"value": "M", "engine": "paddleocr"},
         ],
     )
-    assert name_needs_gpt4o(
+    # Soft-equivalent multi-family locals are settled under CDP_CLOUD_STOP_LADDER
+    # (default on) — vision is not stacked for confusable ink.
+    assert not name_needs_gpt4o(
         local_accepted=True,
         candidates=[
             {"value": "KIVERALARAA", "engine": "paddleocr"},
             {"value": "RIVERA LARAA", "engine": "rapidocr"},
+        ],
+    )
+    # Hard local conflict (not soft-equivalent) still needs vision.
+    assert name_needs_gpt4o(
+        local_accepted=True,
+        candidates=[
+            {"value": "SMITH, JOHN A", "engine": "paddleocr"},
+            {"value": "JONES, MARY B", "engine": "rapidocr"},
         ],
     )
     img = Image.new("RGB", (240, 80), color=(255, 255, 255))
@@ -540,7 +550,7 @@ def test_name_conflict_triggers_gpt4o_and_accepts_shaped(monkeypatch):
 
 
 def test_confusable_name_split_accepts_only_with_local(monkeypatch):
-    """KIVERA vs RIVERA calls vision; an unrelated GPT name does not replace locals."""
+    """Soft-equivalent locals settle under stop ladder; ladder-off keeps vision gate."""
     monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
     monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
     img = Image.new("RGB", (240, 80), color=(255, 255, 255))
@@ -548,6 +558,26 @@ def test_confusable_name_split_accepts_only_with_local(monkeypatch):
         {"value": "KIVERALARAA", "engine": "paddleocr"},
         {"value": "RIVERA LARAA", "engine": "rapidocr"},
     ]
+    # Default ladder: multi-family soft agreement → no Claude/gpt-4o.
+    skipped = maybe_attach_gpt4o_crop_to_field_row(
+        {
+            "field": "patient_name",
+            "canonical_region": [10, 10, 200, 70],
+            "ocr_region": [10, 10, 200, 70],
+            "candidates": list(locals_),
+            "cascade": {
+                "accepted": True,
+                "accept_reason": "NAME_SHAPED",
+                "value": "KIVERALARAA",
+            },
+        },
+        image=img,
+        engine=_FakeEngine({}),
+    )
+    assert (skipped.get("cloud_stop_ladder") or {}).get("skipped") == "LOCALS_SETTLED"
+    assert "gpt4o_crop_residual" not in skipped
+
+    monkeypatch.setenv("CDP_CLOUD_STOP_LADDER", "0")
     reject = _FakeEngine(
         {
             "patient_name": Gpt4oCropResidualResult(

@@ -86,8 +86,9 @@ def test_attach_skips_accepted_local_dob():
         gap_class="HANDWRITING_UNREADABLE",
         engine=_FakeCropEngine("03/15/1968"),
     )
-    assert "azure_di_residual" in updated
-    assert updated["azure_di_residual"]["reason"] == "NOT_DOB_HANDWRITING_RESIDUAL"
+    # Stop ladder: cascade-accepted DOB skips DI entirely.
+    assert (updated.get("cloud_stop_ladder") or {}).get("skipped") == "LOCALS_SETTLED"
+    assert "azure_di_residual" not in updated
     assert len(updated.get("candidates") or []) == 1
 
 

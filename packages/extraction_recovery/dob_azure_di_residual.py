@@ -355,6 +355,24 @@ def maybe_attach_dob_azure_di_to_field_row(
     bbox = tuple(field_row.get("ocr_region") or field_row.get("canonical_region") or ())
     if len(bbox) != 4:
         return dict(field_row)
+    try:
+        from packages.extraction_recovery.cloud_stop_ladder import (
+            should_skip_all_cloud,
+            should_skip_second_cloud,
+        )
+
+        if should_skip_all_cloud(name, field_row) or should_skip_second_cloud(field_row):
+            updated = dict(field_row)
+            meta = dict(updated.get("cloud_stop_ladder") or {})
+            meta["skipped"] = (
+                "LOCALS_SETTLED"
+                if should_skip_all_cloud(name, field_row)
+                else "ONE_CLOUD_SHAPED"
+            )
+            updated["cloud_stop_ladder"] = meta
+            return updated
+    except Exception:  # noqa: BLE001
+        pass
     result = run_dob_azure_di_residual(
         image=image,
         bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),

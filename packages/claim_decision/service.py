@@ -200,25 +200,51 @@ class ClaimDecisionService:
     @staticmethod
     def _contradictions(context: ClaimDecisionContext) -> list[str]:
         descriptions = [item.evidence_type for item in context.contradictions]
-        # When total_charge is AUTO with ChargeTotalAuthority / cash ruling
-        # CONFIRMED (or DI+local Box 28 confirmation), stale
-        # CLAIM_TOTAL_CONTRADICTION from a failed-integrity line Σ must not
-        # force claim HITL — field FVA already locked the printed amount.
-        _MONETARY_AUTHORITY = {
-            "CLAIM_TOTAL_CONFIRMED",
-            "CHARGE_TOTAL_AUTHORITY",
-            "CASH_RULING_PRINTED_CENTS",
-            "CHARGE_DI_LOCAL_CONFIRMED",
-        }
+        # When a field is AUTO with locked FVA authority, stale claim-level
+        # soup must not re-litigate that field (esp. CLAIM_TOTAL_CONTRADICTION
+        # after ChargeTotalAuthority / Box28-over-bleed / DI+local confirm).
+        try:
+            from packages.extraction_recovery.cloud_stop_ladder import (
+                FIELD_AUTHORITY_CODES,
+                field_has_authority,
+            )
+        except Exception:  # noqa: BLE001
+            FIELD_AUTHORITY_CODES = frozenset(
+                {
+                    "CLAIM_TOTAL_CONFIRMED",
+                    "CHARGE_TOTAL_AUTHORITY",
+                    "CASH_RULING_PRINTED_CENTS",
+                    "CHARGE_DI_LOCAL_CONFIRMED",
+                }
+            )
+
+            def field_has_authority(reason_codes):  # type: ignore[misc]
+                return bool(set(reason_codes or []) & FIELD_AUTHORITY_CODES)
+
         charge_auto_authority = any(
             decision.field_name in {"total_charge", "total_charges"}
             and decision.disposition in _ACCEPTED
-            and _MONETARY_AUTHORITY.intersection(decision.reason_codes or [])
+            and field_has_authority(decision.reason_codes)
             for decision in context.field_decisions
         )
         if charge_auto_authority:
             descriptions = [
                 item for item in descriptions if item != "CLAIM_TOTAL_CONTRADICTION"
+            ]
+        # Strip field-prefixed claim contradictions for AUTO+authority fields.
+        authority_fields = {
+            decision.field_name
+            for decision in context.field_decisions
+            if decision.disposition in _ACCEPTED
+            and field_has_authority(decision.reason_codes)
+        }
+        if authority_fields:
+            descriptions = [
+                item
+                for item in descriptions
+                if not any(
+                    item.startswith(f"{field}:") for field in authority_fields
+                )
             ]
         for decision in context.field_decisions:
             # Accepted fields may still list OCR alternatives as conflicting_evidence
@@ -228,6 +254,10 @@ class ClaimDecisionService:
                 descriptions.append(f"FIELD_CONFLICT:{decision.field_name}")
             if decision.evidence_bundle and decision.evidence_bundle.contradictions:
                 if decision.disposition in _ACCEPTED:
+                    continue
+                # AUTO was already handled; non-accepted with authority still
+                # should not re-open via bundle soup when FVA locked the value.
+                if field_has_authority(decision.reason_codes):
                     continue
                 descriptions.extend(
                     f"{decision.field_name}:{item.evidence_type}"

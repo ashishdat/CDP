@@ -43,6 +43,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
     DOB: TrOCR, then Claude crop. Names: Claude may replace garbage ink.
     Member ID and charges: Claude confirms a local read and may not supersede.
     Azure DI is not on this path (default off).
+
+    Stop ladder (``CDP_CLOUD_STOP_LADDER``, default on): locals settled → no
+    DI/Claude; one shaped cloud residual → do not stack a second cloud.
     """
     trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "1").strip().casefold()
     azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "0").strip().casefold()
@@ -57,6 +60,10 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
         return rows
     from packages.extraction_recovery.charge_azure_di_residual import (
         maybe_attach_charge_azure_di_to_field_row,
+    )
+    from packages.extraction_recovery.cloud_stop_ladder import (
+        should_skip_all_cloud,
+        should_skip_second_cloud,
     )
     from packages.extraction_recovery.dob_azure_di_residual import (
         maybe_attach_dob_azure_di_to_field_row,
@@ -76,11 +83,21 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
     skip_shaped = (os.environ.get("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED") or "1").strip().casefold()
     skip_if_local_shaped = skip_shaped not in {"0", "false", "no", "off"}
 
+    def _mark_skip(row, reason: str):
+        out = dict(row)
+        meta = dict(out.get("cloud_stop_ladder") or {})
+        meta["skipped"] = reason
+        out["cloud_stop_ladder"] = meta
+        return out
+
     updated = []
     for row in rows:
         name = str(row.get("field") or "")
         key = name.casefold()
         if key in {"total_charge", "total_charges", "charges", "charge_amount"}:
+            if should_skip_all_cloud(name, row):
+                updated.append(_mark_skip(row, "LOCALS_SETTLED"))
+                continue
             current = row
             if charge_on not in {"0", "false", "no", "off"}:
                 current = maybe_attach_charge_azure_di_to_field_row(
@@ -106,8 +123,13 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
                 ):
                     updated.append(current)
                     continue
+                if di_ready and should_skip_second_cloud(current):
+                    updated.append(_mark_skip(current, "ONE_CLOUD_SHAPED"))
+                    continue
             # Box-28 empty/unshaped after local (+ optional DI): gpt-4o currency crop.
-            if gpt4o_on not in {"0", "false", "no", "off"}:
+            if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
+                current
+            ):
                 current = maybe_attach_gpt4o_crop_to_field_row(
                     current,
                     image=image,
@@ -116,7 +138,12 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
             updated.append(current)
             continue
         if key in {"insured_id_number", "member_id", "subscriber_id"}:
-            if gpt4o_on not in {"0", "false", "no", "off"}:
+            if should_skip_all_cloud(name, row):
+                updated.append(_mark_skip(row, "LOCALS_SETTLED"))
+                continue
+            if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
+                row
+            ):
                 updated.append(
                     maybe_attach_gpt4o_crop_to_field_row(row, image=image, gap_class=None)
                 )
@@ -124,9 +151,15 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
                 updated.append(row)
             continue
         if key in {"patient_name", "insured_name"}:
+            if should_skip_all_cloud(name, row):
+                updated.append(_mark_skip(row, "LOCALS_SETTLED"))
+                continue
             # gpt-4o/Claude arbitrates names. One local engine is not E2, so
-            # Document Intelligence may confirm the Claude spelling.
-            if gpt4o_on not in {"0", "false", "no", "off"}:
+            # Document Intelligence may confirm the Claude spelling — unless
+            # one cloud already shaped (stop ladder: never stack DI+Claude).
+            if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
+                row
+            ):
                 current = maybe_attach_gpt4o_crop_to_field_row(
                     row,
                     image=image,
@@ -138,7 +171,10 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
                 maybe_confirm_name_with_azure_di,
             )
 
-            updated.append(maybe_confirm_name_with_azure_di(current, image=image))
+            if should_skip_second_cloud(current):
+                updated.append(_mark_skip(current, "ONE_CLOUD_SHAPED"))
+            else:
+                updated.append(maybe_confirm_name_with_azure_di(current, image=image))
             continue
         if key not in {"patient_dob", "date_of_birth"}:
             updated.append(row)
@@ -146,6 +182,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
         cascade = row.get("cascade") or {}
         if cascade.get("accepted"):
             updated.append(row)
+            continue
+        if should_skip_all_cloud(name, row):
+            updated.append(_mark_skip(row, "LOCALS_SETTLED"))
             continue
         observed = ""
         local_date_shaped = False
@@ -171,7 +210,7 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
             except Exception:  # noqa: BLE001
                 pass
         if skip_if_local_shaped and local_date_shaped:
-            updated.append(row)
+            updated.append(_mark_skip(row, "LOCALS_SETTLED"))
             continue
         gap = classify_field_gap(
             name,
@@ -196,9 +235,12 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
             )
             di_meta = current.get("azure_di_residual") or {}
             if di_meta.get("date_shaped") and not di_meta.get("review_only"):
+                # One shaped cloud is enough — do not stack Claude after DI.
                 updated.append(current)
                 continue
-        if gpt4o_on not in {"0", "false", "no", "off"}:
+        if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
+            current
+        ):
             current = maybe_attach_gpt4o_crop_to_field_row(
                 current, image=image, gap_class=gap_class
             )

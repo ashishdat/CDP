@@ -236,6 +236,16 @@ def charge_needs_gpt4o(
     include a decimal-place rival (222.22 vs 2221.22) — otherwise Box 28 never
     gets vision arbitration and CALIBRATION_HITL / place-shift fights persist.
     """
+    try:
+        from packages.extraction_recovery.cloud_stop_ladder import (
+            charge_locals_settled,
+            cloud_stop_ladder_enabled,
+        )
+
+        if cloud_stop_ladder_enabled() and charge_locals_settled(candidates):
+            return False
+    except Exception:  # noqa: BLE001
+        pass
     if azure_di_shaped:
         # DI already read a currency, but a local amount that is not that
         # currency still needs Claude (50.00 beside 660.00, 405 beside 495).
@@ -445,10 +455,21 @@ def dob_needs_gpt4o(
     trocr_shaped: bool,
     azure_di_shaped: bool,
     gap_class: str | None,
+    candidates: list[Mapping[str, Any]] | None = None,
 ) -> bool:
     """Unresolved DOB gets a vision read. Accepted / already-shaped locals do not."""
     if local_accepted or trocr_shaped or azure_di_shaped:
         return False
+    try:
+        from packages.extraction_recovery.cloud_stop_ladder import (
+            cloud_stop_ladder_enabled,
+            dob_locals_settled,
+        )
+
+        if cloud_stop_ladder_enabled() and dob_locals_settled(candidates):
+            return False
+    except Exception:  # noqa: BLE001
+        pass
     gap = (gap_class or "").upper()
     if gap in _HANDWRITING_GAPS or gap in {
         "CALIBRATION_HITL",
@@ -524,8 +545,19 @@ def name_needs_gpt4o(
     Cascade may accept a shaped primary while paddle/rapid still disagree
     (CONFLICT_MARGIN later). Those conflicts need a crop vision arbitrator —
     not another local OCR pass. Confusable-but-not-exact locals (KIVERA vs
-    RIVERA) also need that arbitrator so E2 is not skipped.
+    RIVERA) also need that arbitrator so E2 is not skipped — unless stop
+    ladder already has soft-equivalent multi-family settlement.
     """
+    try:
+        from packages.extraction_recovery.cloud_stop_ladder import (
+            cloud_stop_ladder_enabled,
+            name_locals_settled,
+        )
+
+        if cloud_stop_ladder_enabled() and name_locals_settled(candidates):
+            return False
+    except Exception:  # noqa: BLE001
+        pass
     if name_local_engine_conflict(candidates) or _local_names_need_vision_tiebreak(
         candidates
     ):
@@ -1112,6 +1144,24 @@ def maybe_attach_gpt4o_crop_to_field_row(
     if len(bbox) != 4:
         return updated
 
+    try:
+        from packages.extraction_recovery.cloud_stop_ladder import (
+            should_skip_all_cloud,
+            should_skip_second_cloud,
+        )
+
+        if should_skip_all_cloud(name, field_row) or should_skip_second_cloud(field_row):
+            meta = dict(updated.get("cloud_stop_ladder") or {})
+            meta["skipped"] = (
+                "LOCALS_SETTLED"
+                if should_skip_all_cloud(name, field_row)
+                else "ONE_CLOUD_SHAPED"
+            )
+            updated["cloud_stop_ladder"] = meta
+            return updated
+    except Exception:  # noqa: BLE001
+        pass
+
     prior = [
         str(c.get("value") or c.get("text") or "").strip()
         for c in (field_row.get("candidates") or [])
@@ -1130,6 +1180,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
             trocr_shaped=bool(trocr.get("date_shaped") and not trocr.get("review_only")),
             azure_di_shaped=bool(di.get("date_shaped") and not di.get("review_only")),
             gap_class=gap_class,
+            candidates=list(field_row.get("candidates") or []),
         ):
             return updated
     elif key in _ID_FIELDS:

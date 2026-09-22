@@ -47,6 +47,23 @@ def maybe_confirm_name_with_azure_di(
     name = str(field_row.get("field") or "")
     if "name" not in name.casefold():
         return updated
+    try:
+        from packages.extraction_recovery.cloud_stop_ladder import (
+            should_skip_all_cloud,
+            should_skip_second_cloud,
+        )
+
+        if should_skip_all_cloud(name, field_row) or should_skip_second_cloud(field_row):
+            meta = dict(updated.get("cloud_stop_ladder") or {})
+            meta["skipped"] = (
+                "LOCALS_SETTLED"
+                if should_skip_all_cloud(name, field_row)
+                else "ONE_CLOUD_SHAPED"
+            )
+            updated["cloud_stop_ladder"] = meta
+            return updated
+    except Exception:  # noqa: BLE001
+        pass
     bbox = tuple(field_row.get("ocr_region") or field_row.get("canonical_region") or ())
     if len(bbox) != 4:
         return updated
