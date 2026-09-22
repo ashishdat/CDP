@@ -36,6 +36,12 @@ def _canonical_date_digits(value: str) -> str:
     return digits
 
 
+# Human DOB floor — matches ISO-year detection in ``_canonical_date_digits``.
+# Compact OCR like ``05131179`` (separator-1 jammed into MMDDYYYY) must not
+# become a calendar-valid year-1179 date that then invents ``1179-05-03``.
+_DOB_MIN_YEAR = 1880
+
+
 def _dob_ymd(value: str) -> tuple[str, str, str] | None:
     digits = _canonical_date_digits(value)
     if len(digits) != 8:
@@ -44,7 +50,10 @@ def _dob_ymd(value: str) -> tuple[str, str, str] | None:
     try:
         from datetime import date as _date
 
-        _date(int(year), int(month), int(day))
+        y = int(year)
+        if y < _DOB_MIN_YEAR:
+            return None
+        _date(y, int(month), int(day))
     except ValueError:
         return None
     return year, month, day
@@ -70,10 +79,10 @@ def prefer_dob_without_separator_one(
 ) -> str | None:
     """CMS DOB boxes use dashed vertical rules that OCR reads as leading ``1``.
 
-    When two calendar-valid dates differ only by that artifact on MM or DD
-    (11 vs 01, 19 vs 09), prefer the copy without the extra leading 1.
-    Returns the observed clean display string when available, else ISO
-    ``YYYY-MM-DD``.
+    When two *observed* calendar-valid dates share a year and differ only by
+    that artifact on MM or DD (11 vs 01, 19 vs 09), prefer the copy without
+    the extra leading 1. Never invent an unobserved peeled date (EJG7.013:
+    ``05/13/1979`` vs ``05131179`` must not become ``1179-05-03``).
     """
     observed: list[tuple[tuple[str, str, str], str]] = []
     for value in [primary, *competitors]:
@@ -82,52 +91,26 @@ def prefer_dob_without_separator_one(
             observed.append((ymd, value))
     if len(observed) < 2:
         return None
-    parts = [ymd for ymd, _ in observed]
+    parts = {ymd for ymd, _ in observed}
 
-    def peel(component: str) -> str | None:
-        if len(component) == 2 and component[0] == "1" and component[1] != "0":
-            return f"0{component[1]}"
-        return None
-
-    cleaned: set[tuple[str, str, str]] = set()
-    for year, month, day in parts:
-        month_opts = {month}
-        day_opts = {day}
-        peeled_m = peel(month)
-        peeled_d = peel(day)
-        if peeled_m:
-            month_opts.add(peeled_m)
-        if peeled_d:
-            day_opts.add(peeled_d)
-        for mm in month_opts:
-            for dd in day_opts:
-                try:
-                    from datetime import date as _date
-
-                    _date(int(year), int(mm), int(dd))
-                except ValueError:
-                    continue
-                cleaned.add((year, mm, dd))
-
-    # A clean date is a separator-relief if some observed date is the +1 form.
-    for year, month, day in sorted(cleaned):
+    # Prefer an observed 0X form when the matching 1X form is also observed
+    # for the same year (month or day). Do not synthesize peeled YMD tuples.
+    for year, month, day in sorted(parts):
+        if month[0] != "0" and day[0] != "0":
+            continue
         sep_month = f"1{month[1]}" if month[0] == "0" else None
         sep_day = f"1{day[1]}" if day[0] == "0" else None
-        observed_sep = False
-        observed_clean = (year, month, day) in parts
-        for oy, om, od in parts:
-            if oy != year:
-                continue
-            if sep_month and om == sep_month and od == day:
-                observed_sep = True
-            if sep_day and od == sep_day and om == month:
-                observed_sep = True
-        if observed_sep and (observed_clean or (year, month, day) not in parts):
-            # Prefer an observed OCR string for the clean YMD (keeps evidence match).
-            for ymd, display in observed:
-                if ymd == (year, month, day):
-                    return display
-            return f"{year}-{month}-{day}"
+        has_sep = False
+        if sep_month and (year, sep_month, day) in parts:
+            has_sep = True
+        if sep_day and (year, month, sep_day) in parts:
+            has_sep = True
+        if not has_sep:
+            continue
+        for ymd, display in observed:
+            if ymd == (year, month, day):
+                return display
+        return f"{year}-{month}-{day}"
     return None
 
 

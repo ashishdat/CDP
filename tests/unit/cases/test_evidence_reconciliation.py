@@ -491,6 +491,38 @@ def test_dob_separator_artifact_prefers_clean_day():
     assert "DOB_SEPARATOR_ARTIFACT_RELIEVED" in result.rationale_codes
 
 
+def test_dob_separator_does_not_invent_unobserved_year_1179():
+    """EJG7.013: compact ``05131179`` must not peel into invented ``1179-05-03``."""
+    from packages.candidate_reconciliation.reconciler import (
+        _dob_ymd,
+        prefer_dob_without_separator_one,
+    )
+
+    assert _dob_ymd("05131179") is None
+    assert prefer_dob_without_separator_one("05/13/1979", ["05131179"]) is None
+    assert prefer_dob_without_separator_one("1979-05-13", ["05131179"]) is None
+
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [
+            _candidate("05131179", "paddleocr", 0.89),
+            _candidate("1979-05-13", "rapidocr", 0.87),
+        ],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "1979-05-13"
+    assert result.selected_value != "1179-05-03"
+    assert "DOB_SEPARATOR_ARTIFACT_RELIEVED" not in result.rationale_codes
+
+
 def test_dob_prefers_calendar_valid_over_header_label():
     result = EvidenceReconciler().reconcile(
         "patient_dob",
