@@ -774,6 +774,53 @@ def decide(extraction, family):
         if current_amt is not None and format_currency(current_amt) in junk:
             values[charge_field] = None
 
+    # Promote DI cash ruling-split (``$ 222 |22`` → 222.22) into claim values
+    # before ClaimEvidenceBuilder so bare ``222.00`` under-reads cannot mint
+    # CLAIM_TOTAL_CONTRADICTION against the printed cents (DJKH.005/010).
+    from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+    from packages.extraction_recovery.charge_azure_di_residual import _shape_charge_text
+
+    for charge_field in ("total_charge", "total_charges"):
+        field_payload = next(
+            (f for f in fields if f.get("field_name") == charge_field), {}
+        ) or {}
+        rows = []
+        if isinstance(field_payload.get("ranked_candidate"), dict):
+            rows.append(field_payload["ranked_candidate"])
+        rows.extend(
+            row
+            for row in (field_payload.get("alternatives") or [])
+            if isinstance(row, dict)
+        )
+        rows.extend(
+            row
+            for row in (field_payload.get("candidates") or [])
+            if isinstance(row, dict)
+        )
+        for row in rows:
+            ocr = row.get("ocr_candidate") or row
+            if not isinstance(ocr, dict):
+                continue
+            eng = str(ocr.get("engine") or "").casefold()
+            if "document_intelligence" not in eng and "azure_di" not in eng:
+                continue
+            raw = ocr.get("raw_value") or ocr.get("value")
+            raw_text = str(raw or "")
+            if "$" not in raw_text or not re.search(r"[:|/]", raw_text):
+                continue
+            ruled = _ruling_split_amount(raw_text)
+            if not ruled:
+                reshaped, ok = _shape_charge_text(charge_field, raw_text)
+                ruled = reshaped if ok else None
+            if not ruled:
+                continue
+            current = values.get(charge_field)
+            if parse_currency(current) is None or format_currency(
+                parse_currency(current)
+            ) != ruled:
+                values[charge_field] = ruled
+            break
+
     # Strong line consensus owns E6: clear rival Box 28 before ClaimEvidenceBuilder
     # so CLAIM_TOTAL_CONTRADICTION / FINANCIAL_CONFLICT cannot re-arm (EJGE.037
     # 1225 vs Σ 936 MULTI_LINE_GPT4O; HJBI.016 100 vs Σ 199; EJGE.041 ×100).

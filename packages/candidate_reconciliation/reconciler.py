@@ -30,6 +30,41 @@ def _charge_is_units_bleed_cents(value: object) -> bool:
         return False
 
 
+def _charge_cash_ruling_confirms(value: object, candidates: list) -> bool:
+    """True when a candidate raw is ``$ dollars : cents`` matching ``value``.
+
+    Cash ruling-split geometry (``7 $ 157 :07`` → ``157.07``) proves the cents
+    column is printed ink — not units/ruling bleed soup that must fail-closed.
+    """
+    try:
+        from packages.claim_evidence.charge_total_authority import (
+            format_currency,
+            parse_currency,
+        )
+        from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+    except Exception:  # noqa: BLE001
+        return False
+    target = parse_currency(value)
+    if target is None:
+        return False
+    target_txt = format_currency(target)
+    for cand in candidates or []:
+        raw = getattr(cand, "raw_value", None)
+        if raw in (None, ""):
+            continue
+        raw_text = str(raw)
+        if "$" not in raw_text or not re.search(r"[:|/]", raw_text):
+            continue
+        ruled = _ruling_split_amount(raw_text)
+        if ruled and parse_currency(ruled) == target:
+            return True
+        # Also accept when the candidate value already matches after reshape.
+        if format_currency(parse_currency(getattr(cand, "value", None))) == target_txt:
+            if _ruling_split_amount(raw_text) == target_txt:
+                return True
+    return False
+
+
 
 def _canonical_date_digits(value: str) -> str:
     """Normalize US/ISO/compact dates to YYYYMMDD for conflict comparison."""
@@ -1849,8 +1884,12 @@ class EvidenceReconciler:
                         break
         # Bleed/echo cents never carry financial AUTO authority (defense-in-depth;
         # primary block is bleed-at-mint in ChargeTotalAuthoritySession).
-        if field_name in {"total_charge", "total_charges"} and _charge_is_units_bleed_cents(
-            value
+        # Cash ruling-split geometry confirming the selected amount is printed
+        # cents ink (``$ 157 :07``), not units bleed — keep authority.
+        if (
+            field_name in {"total_charge", "total_charges"}
+            and _charge_is_units_bleed_cents(value)
+            and not _charge_cash_ruling_confirms(value, candidates)
         ):
             financial_authority = False
         # Explicit Field Value Authority exception for verified financial ink /
@@ -2112,9 +2151,11 @@ class EvidenceReconciler:
         elif (
             field_name in {"total_charge", "total_charges"}
             and _charge_is_units_bleed_cents(value)
+            and not _charge_cash_ruling_confirms(value, candidates)
         ):
             # Never AUTO units/ruling bleed cents (.07/.22/.44) — conflict-agent
             # and $1 tolerance were minting TRUE_STP on contested Box 28 ink.
+            # Exception: cash ruling-split raws (``$ 157 :07``) confirm printed cents.
             decision = Decision.REVIEW
             reasons.append("BLEED_CENTS_FAIL_CLOSED")
         elif reference_contradiction:
@@ -2162,6 +2203,12 @@ class EvidenceReconciler:
                 field_name in {"total_charge", "total_charges"}
                 and "CLAIM_TOTAL_CONFIRMED" in deterministic
                 and "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
+            ) or (
+                # Cash ruling-split (``$ 222 |22`` → 222.22) + DI partner E4:
+                # paddle/Claude digit-insert soup (2221.22) is not a second total.
+                field_name in {"total_charge", "total_charges"}
+                and "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
+                and _charge_cash_ruling_confirms(value, candidates)
             )
             if field_name in {"total_charge", "total_charges"} and charge_soup_authority:
                 from packages.claim_evidence.line_sum_authority import (
@@ -2194,6 +2241,7 @@ class EvidenceReconciler:
                     }
                     for cand, _, _ in supporting
                 )
+                cash_ruling_owns = _charge_cash_ruling_confirms(value, candidates)
                 cleared: list[str] = []
                 for other in genuine:
                     other_amt = parse_currency(other)
@@ -2206,8 +2254,9 @@ class EvidenceReconciler:
                     # selected amount is inflated Box 28 OCR. Once line Σ owns the
                     # selected total, both directions are soup: larger (250 vs
                     # 25000), truncated (660 vs 66), and digit-drop (3402 vs 340).
+                    # Cash ruling-split + DI E4 likewise owns the printed total.
                     if is_scale_shift(value, other) or is_currency_digit_drop_twin(value, other):
-                        if line_totals_owns_selected or financial_authority:
+                        if line_totals_owns_selected or financial_authority or cash_ruling_owns:
                             continue
                         cleared.append(other)
                         continue

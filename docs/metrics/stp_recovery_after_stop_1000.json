@@ -1,6 +1,6 @@
 {
   "title": "STP recovery after stop-1000 learnings",
-  "updated_at": "2026-09-22T12:14:35.590092+00:00",
+  "updated_at": "2026-09-22T12:32:27Z",
   "cascade_stopped": true,
   "baseline_before_recovery": {
     "completed": 318,
@@ -9,30 +9,28 @@
   },
   "after_recovery": {
     "completed": 318,
-    "true_stp": 278,
-    "rate": 0.8742,
-    "hitl": 40,
-    "hitl_rate": 0.1258
+    "true_stp": 282,
+    "rate": 0.8868,
+    "hitl": 36,
+    "hitl_rate": 0.1132
   },
-  "lift_pp": 6.3,
-  "flipped_final_pass": 5,
-  "charge_hitl_remaining": 44,
-  "charge_only_hitl": 35,
+  "lift_pp": 13.2,
+  "charge_hitl_remaining": 21,
   "learnings_shipped": [
     "Single ChargeTotalAuthority CONFIRMED mint",
     "CONFLICT_MARGIN clears scale twins under CONFIRMED / line-\u03a3 ownership",
     "RIVAL_BOX28_DEFERRED promotes LINE_TOTALS over multi-engine inflated Box28",
-    "Bleed\u2192OCR whole-dollar repair mints CONFIRMED; same-stem bleed line \u03a3 no longer contradictions"
+    "Bleed\u2192OCR whole-dollar repair mints CONFIRMED; same-stem bleed line \u03a3 no longer contradictions",
+    "Cash ruling-split $ NNN :CC geometry reshape + junk-insert demotion"
   ],
   "remaining_hitl_drivers": [
     "C3_INDEPENDENT_EVIDENCE_REQUIRED",
     "LINE_TOTALS_UNCORROBORATED",
     "MISSING_E4_DETERMINISTIC_VALIDATION",
     "LINE_TOTALS_GATE:MULTI_LINE_UNCORROBORATED",
-    "CHARGE_DI_LOCAL_CONFIRMED",
+    "LINE_TOTALS_GATE:SINGLE_LINE_REQUIRES_DI",
     "CONFLICT_MARGIN_TOO_SMALL",
-    "FINANCIAL_CONFLICT_HITL",
-    "MISSING_E3_REGISTRATION_EVIDENCE"
+    "BOX28_OR_DI_CONFLICT"
   ],
   "bleed_true_stp_auto": 0,
   "remain44_pass": {
@@ -52,20 +50,33 @@
     },
     "flipped": 18,
     "charge_hitl_remaining": 25,
-    "charge_only_hitl": 24,
-    "remaining_buckets": {
-      "MULTI_LINE": 4,
-      "SINGLE_LINE": 5,
-      "OTHER": 7,
-      "BLEED": 4,
-      "MARGIN": 3,
-      "BOX28_CONFLICT": 2
-    },
     "learnings_applied": [
       "prefer_derived + pre-builder defer when strong line reopen",
       "MULTI_LINE_MIXED_LOCAL_VISION + SCALE_TWIN_BOX28_DEFERRED",
       "E3 plumbing restore from historical geometry sha256",
       "bleed WITHIN_TOLERANCE \u2192 whole-dollar sibling CONFIRMED"
+    ]
+  },
+  "cash_ruling_pass": {
+    "title": "Cash ruling-split geometry OCR pass",
+    "updated_at": "2026-09-22T12:32:27Z",
+    "before_this_pass": {
+      "completed": 318,
+      "true_stp": 278,
+      "rate": 0.8742
+    },
+    "after_this_pass": {
+      "completed": 318,
+      "true_stp": 282,
+      "rate": 0.8868
+    },
+    "flipped": 4,
+    "charge_hitl_remaining": 21,
+    "flipped_ids": [
+      "Group A__M048DJKH.002",
+      "Group A__M048DJKH.005",
+      "Group A__M048DJKH.010",
+      "Group A__M048DJKH.027"
     ]
   }
 }

@@ -1,0 +1,32 @@
+{
+  "title": "Cash ruling-split geometry OCR pass on remain charge HITL",
+  "updated_at": "2026-09-22T12:32:27Z",
+  "method": "complete_from_extraction inplace on remain44 HITL (frozen OCR/extract)",
+  "out": "evaluation_results/hackathon_1000_stp_recovery_cash_ruling_inplace",
+  "flipped": 4,
+  "flipped_ids": [
+    "Group A__M048DJKH.002",
+    "Group A__M048DJKH.005",
+    "Group A__M048DJKH.010",
+    "Group A__M048DJKH.027"
+  ],
+  "still_hitl": 22,
+  "ops_before": {
+    "completed": 318,
+    "true_stp": 278,
+    "rate": 0.8742
+  },
+  "ops_after": {
+    "completed": 318,
+    "true_stp": 282,
+    "rate": 0.8868
+  },
+  "charge_hitl_remaining": 21,
+  "page_check": "DJKH.002/027: DI raw 7 $ 157 :07 → 157.07 (+ Claude) AUTO; paddle 1571.07 demoted. DJKH.005: $ 222 |22 → 222.22. DJKH.010: $ 228 |32 → 228.32. Bare 200 vs 2001 place-shift still HITL.",
+  "learnings_applied": [
+    "cash ruling-split $ NNN :CC / |CC reshape in DI OCR",
+    "ruling-split junk-insert demotion (1571.07)",
+    "DI+Claude E4 beside geometric soup",
+    "bleed fail-closed / WITHIN_TOLERANCE waived when cash ruling confirms printed cents"
+  ]
+}

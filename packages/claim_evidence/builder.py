@@ -111,6 +111,7 @@ class ClaimEvidenceBuilder:
             bleed_relieved = mint_reason in {
                 "BLEED_CENTS_TO_WHOLE_DOLLAR",
                 "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+                "CASH_RULING_PRINTED_CENTS",
             }
             keep_bleed_blocks = {
                 "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
@@ -290,59 +291,84 @@ class ClaimEvidenceBuilder:
                 # CONFIRMED only via single ChargeTotalAuthority (priority after
                 # derived / FG / line-sum). Bleed blocked at mint.
                 from packages.claim_evidence.charge_total_authority import (
+                    cash_ruling_confirms_amount,
                     is_units_bleed_cents,
                 )
                 from packages.claim_evidence.line_sum_authority import format_currency
 
                 reported = format_currency(total)
                 computed = format_currency(observed)
+                box28_payload = (
+                    values.get("_box28_field_payload")
+                    if isinstance(values.get("_box28_field_payload"), dict)
+                    else None
+                )
                 if is_units_bleed_cents(reported) or is_units_bleed_cents(computed):
                     from packages.claim_evidence.charge_total_authority import (
                         repair_bleed_to_whole_dollar,
                     )
 
-                    # Prefer OCR/.00 sibling over fail-closed when same-stem whole
-                    # dollar is independently observed (DJKH.033 25.43→25.00).
-                    repaired, repair_reason = repair_bleed_to_whole_dollar(
-                        reported if is_units_bleed_cents(reported) else computed,
-                        field_payload=values.get("_box28_field_payload")
-                        if isinstance(values.get("_box28_field_payload"), dict)
-                        else None,
-                        service_lines=lines,
-                    )
-                    if (
-                        repair_reason
-                        in {
-                            "BLEED_CENTS_TO_WHOLE_DOLLAR",
-                            "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
-                        }
-                        and repaired
-                    ):
+                    # Cash ruling-split printed cents are not units bleed — mint.
+                    cash_amt = None
+                    if cash_ruling_confirms_amount(reported, box28_payload):
+                        cash_amt = reported
+                    elif cash_ruling_confirms_amount(computed, box28_payload):
+                        cash_amt = computed
+                    if cash_amt is not None:
                         self._mint_claim_total_confirmed(
                             claim_id=claim_id,
                             values=values,
                             evidence=evidence,
-                            amount=repaired,
-                            reason=repair_reason,
+                            amount=cash_amt,
+                            reason="CASH_RULING_PRINTED_CENTS",
                             metadata={
                                 **metadata,
                                 "service_line_total": computed,
-                                "bleed_tolerance_repaired": True,
+                                "cash_ruling_printed_cents": True,
                             },
                         )
                     else:
-                        contradictions.append(
-                            self._item(
-                                claim_id,
-                                "CLAIM_TOTAL_CONTRADICTION",
-                                reported,
-                                {
+                        # Prefer OCR/.00 sibling over fail-closed when same-stem whole
+                        # dollar is independently observed (DJKH.033 25.43→25.00).
+                        repaired, repair_reason = repair_bleed_to_whole_dollar(
+                            reported if is_units_bleed_cents(reported) else computed,
+                            field_payload=box28_payload,
+                            service_lines=lines,
+                        )
+                        if (
+                            repair_reason
+                            in {
+                                "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                                "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+                                "CASH_RULING_PRINTED_CENTS",
+                            }
+                            and repaired
+                        ):
+                            self._mint_claim_total_confirmed(
+                                claim_id=claim_id,
+                                values=values,
+                                evidence=evidence,
+                                amount=repaired,
+                                reason=repair_reason,
+                                metadata={
                                     **metadata,
-                                    "reason": "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
-                                    "hitl_route": "FINANCIAL_CONFLICT",
+                                    "service_line_total": computed,
+                                    "bleed_tolerance_repaired": True,
                                 },
                             )
-                        )
+                        else:
+                            contradictions.append(
+                                self._item(
+                                    claim_id,
+                                    "CLAIM_TOTAL_CONTRADICTION",
+                                    reported,
+                                    {
+                                        **metadata,
+                                        "reason": "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
+                                        "hitl_route": "FINANCIAL_CONFLICT",
+                                    },
+                                )
+                            )
                 else:
                     self._mint_claim_total_confirmed(
                         claim_id=claim_id,

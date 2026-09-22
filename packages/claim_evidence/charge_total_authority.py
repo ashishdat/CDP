@@ -75,6 +75,47 @@ def is_units_bleed_cents(amount: object) -> bool:
     return is_echo_cents(amount)
 
 
+def cash_ruling_confirms_amount(
+    amount: object, field_payload: dict | None = None
+) -> bool:
+    """True when a DI/Box 28 raw is ``$ dollars : cents`` matching ``amount``.
+
+    Printed cents confirmed by cash ruling-split geometry are not units bleed
+    (DJKH.002/005/010: ``7 $ 157 :07``, ``$ 222 |22``).
+    """
+    target = parse_currency(amount)
+    if target is None or not isinstance(field_payload, dict):
+        return False
+    target_txt = format_currency(target)
+    try:
+        from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+    except Exception:  # noqa: BLE001
+        return False
+    rows: list[dict] = []
+    if isinstance(field_payload.get("ranked_candidate"), dict):
+        rows.append(field_payload["ranked_candidate"])
+    rows.extend(
+        row for row in (field_payload.get("alternatives") or []) if isinstance(row, dict)
+    )
+    rows.extend(
+        row for row in (field_payload.get("candidates") or []) if isinstance(row, dict)
+    )
+    residual = field_payload.get("azure_di_residual") or {}
+    if isinstance(residual, dict):
+        rows.append(residual)
+    for row in rows:
+        ocr = row.get("ocr_candidate") or row
+        if not isinstance(ocr, dict):
+            continue
+        raw_text = str(ocr.get("raw_value") or ocr.get("value") or "")
+        if "$" not in raw_text or not re.search(r"[:|/]", raw_text):
+            continue
+        ruled = _ruling_split_amount(raw_text)
+        if ruled and ruled == target_txt:
+            return True
+    return False
+
+
 def is_ruling_tail_extension(shorter: object, longer: object) -> bool:
     """True when ``longer`` is ``shorter`` plus one ruling-tail digit (1/4/5).
 
@@ -307,7 +348,10 @@ def resolve_safe_charge_total(
                 return full, "RULING_TAIL_TO_FULL_STEM"
 
     # C1: bleed cents → same-dollar .00 sibling from OCR (never from line Σ).
+    # Cash ruling-split printed cents (``$ 222 |22``) are not units bleed.
     if primary_txt and is_units_bleed_cents(primary_txt):
+        if cash_ruling_confirms_amount(primary_txt, field_payload):
+            return primary_txt, "CASH_RULING_PRINTED_CENTS"
         dollars = _dollars_part(primary_txt)
         sibling = f"{dollars}.00"
         if sibling in ocr_amounts:
@@ -324,6 +368,10 @@ def resolve_safe_charge_total(
 
     for amount in ocr_amounts:
         if not is_units_bleed_cents(amount):
+            continue
+        if cash_ruling_confirms_amount(amount, field_payload):
+            if primary_txt in {amount, None}:
+                return amount, "CASH_RULING_PRINTED_CENTS"
             continue
         sibling = f"{_dollars_part(amount)}.00"
         if sibling in ocr_amounts and primary_txt in {amount, sibling, None}:
@@ -534,25 +582,28 @@ class ChargeTotalAuthoritySession:
             return False, detail
         text = format_currency(parsed)
         if is_units_bleed_cents(text):
-            # Prefer same-dollar .00 stem when reason already implies line/OCR
-            # whole-dollar corroboration; otherwise fail closed at mint.
-            whole = f"{_dollars_part(text)}.00"
-            if reason in {
-                "CLAIM_TOTAL_WITHIN_TOLERANCE",
-                "BOX28_LINE_SUM_CORROBORATED",
-                "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                "LINE_TOTALS_CORROBORATED",
-                "BLEED_CENTS_TO_WHOLE_DOLLAR",
-                "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
-            }:
-                # Caller must pass the repaired whole amount; bleed text alone
-                # never locks.
+            # Cash ruling-split printed cents are not units bleed — allow mint.
+            if reason != "CASH_RULING_PRINTED_CENTS":
+                # Prefer same-dollar .00 stem when reason already implies line/OCR
+                # whole-dollar corroboration; otherwise fail closed at mint.
+                whole = f"{_dollars_part(text)}.00"
+                if reason in {
+                    "CLAIM_TOTAL_WITHIN_TOLERANCE",
+                    "BOX28_LINE_SUM_CORROBORATED",
+                    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                    "LINE_TOTALS_CORROBORATED",
+                    "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                    "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+                }:
+                    # Caller must pass the repaired whole amount; bleed text alone
+                    # never locks.
+                    detail = "BLEED_CENTS_AT_MINT"
+                    self._rejects.append((reason, detail))
+                    return False, detail
                 detail = "BLEED_CENTS_AT_MINT"
                 self._rejects.append((reason, detail))
                 return False, detail
-            detail = "BLEED_CENTS_AT_MINT"
-            self._rejects.append((reason, detail))
-            return False, detail
+            # else: fall through and lock CASH_RULING_PRINTED_CENTS
         if self._locked:
             if self._amount == text and self._reason == reason:
                 return True, "ALREADY_LOCKED"

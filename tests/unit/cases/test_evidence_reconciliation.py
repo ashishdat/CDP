@@ -12,10 +12,11 @@ def _candidate(
     *,
     preprocessing_variant: str = "original",
     evidence_reference: str | None = None,
+    raw_value: str | None = None,
 ) -> OCRCandidate:
     return OCRCandidate(
         value=value,
-        raw_value=value,
+        raw_value=raw_value if raw_value is not None else value,
         engine=engine,
         model_name=engine,
         model_version="1",
@@ -217,6 +218,71 @@ def test_bleed_cents_repaired_to_whole_dollar_sibling():
     assert result.selected_value == "25.00"
     assert "BLEED_CENTS_FAIL_CLOSED" not in result.rationale_codes
     assert "BLEED_CENTS_REPAIRED_TO_WHOLE_DOLLAR" in result.rationale_codes
+
+
+def test_cash_ruling_split_printed_cents_not_bleed_fail_closed():
+    """DJKH.002: ``$ 157 :07`` cash ruling is printed cents, not units bleed."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate(
+                "157.07",
+                "azure_document_intelligence_read",
+                0.99,
+                raw_value="7 $ 157 :07",
+            ),
+            _candidate("157.07", "anthropic_claude_crop", 0.98),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+            "MULTI_ENGINE_AGREEMENT",
+            "BOX28_BLANKNESS_EVALUATED",
+            "BOX28_LINE_SUM_EVALUATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"157.07"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "157.07"
+    assert "BLEED_CENTS_FAIL_CLOSED" not in result.rationale_codes
+
+
+def test_cash_ruling_di_local_clears_junk_insert_margin():
+    """DJKH.005: ``$ 222 |22`` + DI E4 AUTO beside Claude/paddle 2221.22 soup."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate(
+                "222.22",
+                "azure_document_intelligence_read",
+                0.99,
+                raw_value="$ 222 |22",
+            ),
+            _candidate("222.22", "anthropic_claude_crop", 0.97),
+            _candidate("2221.22", "anthropic_claude_crop", 0.96),
+            _candidate("2221.22", "paddleocr", 0.95, raw_value="222122"),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+            "MULTI_ENGINE_AGREEMENT",
+            "BOX28_BLANKNESS_EVALUATED",
+            "BOX28_LINE_SUM_EVALUATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"222.22"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "222.22"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+    assert "BLEED_CENTS_FAIL_CLOSED" not in result.rationale_codes
 
 
 def test_line_sum_truncated_scale_twin_does_not_veto_stp():
