@@ -1,0 +1,14 @@
+{
+  "title": "Split STP/accuracy metrics index",
+  "updated_at": "2026-09-22T11:02:31.708145+00:00",
+  "rule": "Never blend tip_decide_only_v1 (frozen OCR) with ops_fresh_ocr_stp_v1 (fresh cascade) into one STP/accuracy number.",
+  "files": {
+    "tip_decide_only": "tip_decide_only_v1.json",
+    "ops_fresh_ocr": "ops_fresh_ocr_stp_v1.json",
+    "quarantined_auto_debt": "quarantined_auto_debt_v1.json"
+  },
+  "ops_true_stp_rate": 0.742958,
+  "ops_hitl_rate": 0.257042,
+  "accuracy_exact": 0.949848,
+  "false_accepts": 0
+}

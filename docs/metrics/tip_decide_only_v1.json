@@ -1,0 +1,31 @@
+{
+  "title": "Tip decide-only accuracy/STP \u2014 frozen OCR cohort",
+  "updated_at": "2026-09-22T11:02:31.707223+00:00",
+  "corpus": {
+    "zip": "data/Hackathon - 1000 Claims.zip",
+    "documents_in_zip": 1000,
+    "frozen_ocr_tip_claims": 89,
+    "note": "Full-1000 cascade OCR not retained on disk; tip is the 89-complete decide cohort with frozen geometry+OCR."
+  },
+  "gates": {
+    "field_exact_accuracy_ge_95": "PASS",
+    "accepted_field_precision_ge_99_5": "PASS",
+    "false_accepted_critical_eq_0": "PASS",
+    "true_stp_ge_95": "FAIL_OPERATIONAL",
+    "true_stp_ge_94": "PASS",
+    "claim_hitl_le_6": "PASS",
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "accuracy": {
+    "exact_accuracy": 0.989474,
+    "accepted_field_precision": 1.0,
+    "false_accepts": 0,
+    "claims_scored": 68
+  },
+  "stp": {
+    "true_stp_rate": null,
+    "hitl_rate": null
+  },
+  "note": "Use this file for \u226595% exact / tip STP gates. Never merge with ops_fresh_ocr_stp_v1.json into one STP number."
+}

@@ -63,30 +63,126 @@ class ClaimEvidenceBuilder:
         claim_values: dict[str, object],
         service_lines: list[dict[str, object]] | None = None,
     ) -> ClaimEvidenceResult:
+        from packages.claim_evidence.charge_total_authority import (
+            new_charge_total_authority,
+        )
+
         evidence: list[EvidenceItem] = []
         contradictions: list[EvidenceItem] = []
         lines = service_lines or []
+        # Single monetary AUTO gate for this claim — at most one CONFIRMED mint.
+        authority = new_charge_total_authority()
+        values = dict(claim_values)
+        values["_charge_total_authority"] = authority
 
-        self._financial(claim_id, claim_values, lines, evidence, contradictions)
-        self._dates(claim_id, claim_values, lines, evidence, contradictions)
-        self._member_identity(claim_id, claim_values, evidence, contradictions)
-        if document_family.upper() in {"CMS1500", "CMS-1500"}:
-            self._form_field_redundancy(claim_id, claim_values, evidence, contradictions)
-        self._provider_identity(claim_id, claim_values, evidence, contradictions)
-        if document_family.upper() in {"CMS1500", "CMS-1500"}:
-            self._box28_line_sum_authority(claim_id, claim_values, lines, evidence, contradictions)
-            self._financial_geometry_arithmetic(
-                claim_id, claim_values, lines, evidence, contradictions
-            )
+        # Priority stack (CMS1500): blank-derived → FG/conflict → line-sum →
+        # WITHIN_TOLERANCE. Non-CMS still runs _financial for line arithmetic.
+        family = document_family.upper()
+        if family in {"CMS1500", "CMS-1500"}:
             self._derived_total_from_verified_lines(
-                claim_id, claim_values, lines, evidence, contradictions
+                claim_id, values, lines, evidence, contradictions
             )
-        if document_family.upper() == "UB04":
+            self._financial_geometry_arithmetic(
+                claim_id, values, lines, evidence, contradictions
+            )
+            self._box28_line_sum_authority(
+                claim_id, values, lines, evidence, contradictions
+            )
+        self._financial(claim_id, values, lines, evidence, contradictions)
+        self._dates(claim_id, values, lines, evidence, contradictions)
+        self._member_identity(claim_id, values, evidence, contradictions)
+        if family in {"CMS1500", "CMS-1500"}:
+            self._form_field_redundancy(claim_id, values, evidence, contradictions)
+        self._provider_identity(claim_id, values, evidence, contradictions)
+        if family == "UB04":
             self._ub04_lines(claim_id, lines, evidence, contradictions)
+        # Successful single-authority mint clears stale financial conflict soup
+        # minted by earlier FG evaluation before tolerance/line-sum confirmed.
+        if authority.locked:
+            evidence[:] = [
+                item
+                for item in evidence
+                if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+            ]
+            contradictions[:] = [
+                item
+                for item in contradictions
+                if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                or (item.metadata or {}).get("reason")
+                in {
+                    # Keep bleed blocks — those are intentional fail-closed.
+                    "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
+                    "BLEED_CENTS_GEOMETRY_BLOCKED",
+                    "BLEED_CENTS_LINE_SUM_BLOCKED",
+                    "BLEED_CENTS_AT_MINT",
+                }
+            ]
+        # Propagate any amount bind back to caller-visible values.
+        for key in ("total_charge", "total_charges", "claim_total"):
+            if key in values and key in claim_values:
+                claim_values[key] = values[key]
+            elif key in values and values.get(key) not in (None, ""):
+                claim_values[key] = values[key]
         return ClaimEvidenceResult(
             evidence_items=evidence,
             contradictions=contradictions,
         )
+
+    def _charge_authority(self, values: dict[str, object]):
+        from packages.claim_evidence.charge_total_authority import (
+            ChargeTotalAuthoritySession,
+            new_charge_total_authority,
+        )
+
+        auth = values.get("_charge_total_authority")
+        if isinstance(auth, ChargeTotalAuthoritySession):
+            return auth
+        auth = new_charge_total_authority()
+        values["_charge_total_authority"] = auth
+        return auth
+
+    def _mint_claim_total_confirmed(
+        self,
+        *,
+        claim_id: str,
+        values: dict[str, object],
+        evidence: list[EvidenceItem],
+        amount: object,
+        reason: str,
+        metadata: dict | None = None,
+    ) -> bool:
+        """Sole CONFIRMED mint path — bleed-at-mint + single lock."""
+        from packages.claim_evidence.charge_total_authority import (
+            CHARGE_TOTAL_AUTHORITY_CODE,
+        )
+
+        auth = self._charge_authority(values)
+        ok, detail = auth.try_confirm(amount, reason)
+        if not ok:
+            return False
+        meta = {
+            "supported_fields": ["total_charge", "total_charges"],
+            "reason": reason,
+            "claim_total": auth.amount,
+            "charge_total_authority": True,
+            "authority_detail": detail,
+            **(metadata or {}),
+        }
+        evidence.append(
+            self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", auth.amount, meta)
+        )
+        evidence.append(
+            self._item(
+                claim_id,
+                CHARGE_TOTAL_AUTHORITY_CODE,
+                auth.amount,
+                {
+                    **meta,
+                    "authority_reason": reason,
+                },
+            )
+        )
+        return True
 
     def _financial(self, claim_id, values, lines, evidence, contradictions) -> None:
         total = self._first_decimal(values, "total_charge", "total_charges", "claim_total")
@@ -142,11 +238,8 @@ class ClaimEvidenceBuilder:
                     )
                 )
                 # Configured tolerance is cent-exact (abs $0.01 / rel 0.0001).
-                # Mint CLAIM_TOTAL_CONFIRMED so evidence policy E6 / financial
-                # authority can AUTO — WITHIN_TOLERANCE alone was leaving
-                # CALIBRATION_HITL despite Box 28 == Σ.
-                # Never AUTO units/ruling bleed cents (.07/.22/.44) that merely
-                # sit within $1 of a whole-dollar Σ — that was the DJKH leak.
+                # CONFIRMED only via single ChargeTotalAuthority (priority after
+                # derived / FG / line-sum). Bleed blocked at mint.
                 from packages.claim_evidence.charge_total_authority import (
                     is_units_bleed_cents,
                 )
@@ -168,18 +261,16 @@ class ClaimEvidenceBuilder:
                         )
                     )
                 else:
-                    evidence.append(
-                        self._item(
-                            claim_id,
-                            "CLAIM_TOTAL_CONFIRMED",
-                            str(total),
-                            {
-                                **metadata,
-                                "reason": "CLAIM_TOTAL_WITHIN_TOLERANCE",
-                                "claim_total": str(total),
-                                "service_line_total": str(observed),
-                            },
-                        )
+                    self._mint_claim_total_confirmed(
+                        claim_id=claim_id,
+                        values=values,
+                        evidence=evidence,
+                        amount=reported,
+                        reason="CLAIM_TOTAL_WITHIN_TOLERANCE",
+                        metadata={
+                            **metadata,
+                            "service_line_total": computed,
+                        },
                     )
             else:
                 contradictions.append(
@@ -703,19 +794,16 @@ class ClaimEvidenceBuilder:
                         metadata,
                     )
                 )
-                # Bind the confirmed total so CLAIM_TOTAL paths stay consistent.
-                evidence.append(
-                    self._item(
-                        claim_id,
-                        "CLAIM_TOTAL_CONFIRMED",
-                        decision.amount,
-                        {
-                            **metadata,
-                            "reason": "BOX28_LINE_SUM_CORROBORATED",
-                            "claim_total": decision.amount,
-                            "service_line_total": decision.line_sum_amount,
-                        },
-                    )
+                self._mint_claim_total_confirmed(
+                    claim_id=claim_id,
+                    values=values,
+                    evidence=evidence,
+                    amount=decision.amount,
+                    reason="BOX28_LINE_SUM_CORROBORATED",
+                    metadata={
+                        **metadata,
+                        "service_line_total": decision.line_sum_amount,
+                    },
                 )
         else:
             # Persist the evaluated HITL reason without creating a claim-level
@@ -817,21 +905,37 @@ class ClaimEvidenceBuilder:
                     ),
                     "hitl_route": None,
                 }
-                evidence.append(
-                    self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", geo_whole, meta)
-                )
-                evidence.append(
-                    self._item(
-                        claim_id,
-                        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                        geo_whole,
-                        meta,
+                if self._mint_claim_total_confirmed(
+                    claim_id=claim_id,
+                    values=values,
+                    evidence=evidence,
+                    amount=geo_whole,
+                    reason="GEOMETRY_UNDERREAD_WHOLE_DOLLAR_BOX28",
+                    metadata=meta,
+                ):
+                    contradictions[:] = [
+                        item
+                        for item in contradictions
+                        if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                    ]
+                    evidence[:] = [
+                        item
+                        for item in evidence
+                        if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                    ]
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                            geo_whole,
+                            meta,
+                        )
                     )
-                )
-                for key in ("total_charge", "total_charges", "claim_total"):
-                    if key in values or key == "total_charge":
-                        values[key] = geo_whole
-                return
+                    for key in ("total_charge", "total_charges", "claim_total"):
+                        if key in values or key == "total_charge":
+                            values[key] = geo_whole
+                    return
+                # bleed / already-locked — fall through to other FG paths
         if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
             chosen = str(agent.get("value") or "").strip()
             side = agent["side"]
@@ -907,16 +1011,6 @@ class ClaimEvidenceBuilder:
                 ):
                     confirm_amount, confirm_reason = auth, auth_reason
             if confirm_amount and confirm_reason:
-                contradictions[:] = [
-                    item
-                    for item in contradictions
-                    if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
-                ]
-                evidence[:] = [
-                    item
-                    for item in evidence
-                    if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
-                ]
                 meta = {
                     "supported_fields": ["total_charge", "total_charges"],
                     "reason": confirm_reason,
@@ -925,21 +1019,36 @@ class ClaimEvidenceBuilder:
                 }
                 if grid_alt or digit_alt:
                     meta["agent_value_rejected"] = str(agent.get("value") or "")
-                evidence.append(
-                    self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", confirm_amount, meta)
-                )
-                evidence.append(
-                    self._item(
-                        claim_id,
-                        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                        confirm_amount,
-                        meta,
+                if self._mint_claim_total_confirmed(
+                    claim_id=claim_id,
+                    values=values,
+                    evidence=evidence,
+                    amount=confirm_amount,
+                    reason=confirm_reason,
+                    metadata=meta,
+                ):
+                    contradictions[:] = [
+                        item
+                        for item in contradictions
+                        if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                    ]
+                    evidence[:] = [
+                        item
+                        for item in evidence
+                        if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                    ]
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                            confirm_amount,
+                            meta,
+                        )
                     )
-                )
-                for key in ("total_charge", "total_charges", "claim_total"):
-                    if key in values or key == "total_charge":
-                        values[key] = confirm_amount
-                return
+                    for key in ("total_charge", "total_charges", "claim_total"):
+                        if key in values or key == "total_charge":
+                            values[key] = confirm_amount
+                    return
         # DJKN.005: no conflict-agent side, but DI/Claude Box 28 under-reads a
         # unique open-source fuller twin (paddle 2001). Prefer that fuller for E6.
         # complete_from_extraction may already have written the fuller into
@@ -981,16 +1090,6 @@ class ClaimEvidenceBuilder:
                 digit_alt, lines, agent_candidates
             )
         ):
-            contradictions[:] = [
-                item
-                for item in contradictions
-                if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
-            ]
-            evidence[:] = [
-                item
-                for item in evidence
-                if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
-            ]
             meta = {
                 "supported_fields": ["total_charge", "total_charges"],
                 "reason": (
@@ -1001,21 +1100,37 @@ class ClaimEvidenceBuilder:
                 "agent_value_rejected": str(box28_seed or ""),
                 "hitl_route": None,
             }
-            evidence.append(
-                self._item(claim_id, "CLAIM_TOTAL_CONFIRMED", digit_alt, meta)
-            )
-            evidence.append(
-                self._item(
-                    claim_id,
-                    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                    digit_alt,
-                    meta,
+            mint_reason = meta["reason"]
+            if self._mint_claim_total_confirmed(
+                claim_id=claim_id,
+                values=values,
+                evidence=evidence,
+                amount=digit_alt,
+                reason=str(mint_reason),
+                metadata=meta,
+            ):
+                contradictions[:] = [
+                    item
+                    for item in contradictions
+                    if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                ]
+                evidence[:] = [
+                    item
+                    for item in evidence
+                    if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                ]
+                evidence.append(
+                    self._item(
+                        claim_id,
+                        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                        digit_alt,
+                        meta,
+                    )
                 )
-            )
-            for key in ("total_charge", "total_charges", "claim_total"):
-                if key in values or key == "total_charge":
-                    values[key] = digit_alt
-            return
+                for key in ("total_charge", "total_charges", "claim_total"):
+                    if key in values or key == "total_charge":
+                        values[key] = digit_alt
+                return
         box28_amount = values.get("total_charge") or values.get("total_charges")
         deferred = box28_amount in (None, "")
         # When Box 28 was deferred (OCR soup cleared from values), only restore a
@@ -1113,62 +1228,57 @@ class ClaimEvidenceBuilder:
                     )
                 )
             else:
-                evidence.append(
-                    self._item(
-                        claim_id,
-                        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                        decision.amount,
-                        metadata,
+                if self._mint_claim_total_confirmed(
+                    claim_id=claim_id,
+                    values=values,
+                    evidence=evidence,
+                    amount=decision.amount,
+                    reason="FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                    metadata={
+                        **metadata,
+                        "service_line_total": decision.line_sum,
+                    },
+                ):
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                            decision.amount,
+                            metadata,
+                        )
                     )
-                )
-                evidence.append(
-                    self._item(
-                        claim_id,
-                        "CLAIM_TOTAL_CONFIRMED",
-                        decision.amount,
-                        {
-                            **metadata,
-                            "reason": "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                            "claim_total": decision.amount,
-                            "service_line_total": decision.line_sum,
-                        },
+                    # FG may relieve OCR soup that previously failed Σ tolerance.
+                    contradictions[:] = [
+                        item
+                        for item in contradictions
+                        if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                    ]
+                    evidence[:] = [
+                        item
+                        for item in evidence
+                        if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                    ]
+                    for key in ("total_charge", "total_charges", "claim_total"):
+                        if key in values or key == "total_charge":
+                            values[key] = decision.amount
+                    evidence.append(
+                        self._item(
+                            claim_id,
+                            "CLAIM_TOTAL_WITHIN_TOLERANCE",
+                            decision.amount,
+                            {
+                                "supported_fields": [
+                                    "total_charge",
+                                    "total_charges",
+                                    "charges",
+                                    "charge_amount",
+                                ],
+                                "claim_total": decision.amount,
+                                "service_line_total": decision.line_sum,
+                                "reason": "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                            },
+                        )
                     )
-                )
-                # FG may relieve OCR soup that previously failed Σ tolerance. Drop the
-                # stale CLAIM_TOTAL_CONTRADICTION and bind the confirmed amount.
-                contradictions[:] = [
-                    item
-                    for item in contradictions
-                    if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
-                ]
-                # Stale FINANCIAL_CONFLICT from an earlier pass / rival soup must not
-                # survive confirmed arithmetic (CLAIM_TOTAL_CONFIRMED + CONFLICT HITL).
-                evidence[:] = [
-                    item
-                    for item in evidence
-                    if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
-                ]
-                for key in ("total_charge", "total_charges", "claim_total"):
-                    if key in values or key == "total_charge":
-                        values[key] = decision.amount
-                evidence.append(
-                    self._item(
-                        claim_id,
-                        "CLAIM_TOTAL_WITHIN_TOLERANCE",
-                        decision.amount,
-                        {
-                            "supported_fields": [
-                                "total_charge",
-                                "total_charges",
-                                "charges",
-                                "charge_amount",
-                            ],
-                            "claim_total": decision.amount,
-                            "service_line_total": decision.line_sum,
-                            "reason": "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                        },
-                    )
-                )
         elif decision.reason in {
             "ARITHMETIC_MISMATCH",
             "DECIMAL_SHIFT_CONFLICT",
@@ -1285,16 +1395,6 @@ class ClaimEvidenceBuilder:
                     if auth:
                         confirm_amount, confirm_reason = auth, auth_reason
                 if confirm_amount and confirm_reason:
-                    contradictions[:] = [
-                        item
-                        for item in contradictions
-                        if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
-                    ]
-                    evidence[:] = [
-                        item
-                        for item in evidence
-                        if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
-                    ]
                     meta_extra = {
                         "reason": confirm_reason,
                         "financial_side": side,
@@ -1304,33 +1404,40 @@ class ClaimEvidenceBuilder:
                     }
                     if grid_alt or digit_alt:
                         meta_extra["agent_value_rejected"] = str(agent.get("value") or "")
-                    evidence.append(
-                        self._item(
-                            claim_id,
-                            "CLAIM_TOTAL_CONFIRMED",
-                            confirm_amount,
-                            {
-                                **metadata,
-                                **meta_extra,
-                            },
+                    if self._mint_claim_total_confirmed(
+                        claim_id=claim_id,
+                        values=values,
+                        evidence=evidence,
+                        amount=confirm_amount,
+                        reason=confirm_reason,
+                        metadata={**metadata, **meta_extra},
+                    ):
+                        contradictions[:] = [
+                            item
+                            for item in contradictions
+                            if item.evidence_type != "CLAIM_TOTAL_CONTRADICTION"
+                        ]
+                        evidence[:] = [
+                            item
+                            for item in evidence
+                            if item.evidence_type != "FINANCIAL_CONFLICT_HITL"
+                        ]
+                        evidence.append(
+                            self._item(
+                                claim_id,
+                                "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                                confirm_amount,
+                                {
+                                    **metadata,
+                                    "reason": confirm_reason,
+                                    "financial_side": side,
+                                },
+                            )
                         )
-                    )
-                    evidence.append(
-                        self._item(
-                            claim_id,
-                            "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                            confirm_amount,
-                            {
-                                **metadata,
-                                "reason": confirm_reason,
-                                "financial_side": side,
-                            },
-                        )
-                    )
-                    for key in ("total_charge", "total_charges", "claim_total"):
-                        if key in values or key == "total_charge":
-                            values[key] = confirm_amount
-                    return
+                        for key in ("total_charge", "total_charges", "claim_total"):
+                            if key in values or key == "total_charge":
+                                values[key] = confirm_amount
+                        return
             evidence.append(
                 self._item(
                     claim_id,
@@ -1338,6 +1445,19 @@ class ClaimEvidenceBuilder:
                     decision.box28 or decision.line_sum,
                     {
                         **metadata,
+                        "hitl_route": "FINANCIAL_CONFLICT",
+                        "reason": decision.reason,
+                    },
+                )
+            )
+            contradictions.append(
+                self._item(
+                    claim_id,
+                    "CLAIM_TOTAL_CONTRADICTION",
+                    decision.box28 or decision.line_sum,
+                    {
+                        **metadata,
+                        "reason": decision.reason,
                         "hitl_route": "FINANCIAL_CONFLICT",
                         "line_sum": decision.line_sum,
                         "box28": decision.box28,
@@ -1462,22 +1582,23 @@ class ClaimEvidenceBuilder:
                     },
                 )
             )
-            evidence.append(
-                self._item(
-                    claim_id,
-                    "CLAIM_TOTAL_CONFIRMED",
-                    decision.amount,
-                    {
-                        **metadata,
-                        "reason": "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
-                        "claim_total": decision.amount,
-                        "service_line_total": decision.amount,
-                        "value_origin": "DERIVED_FROM_VERIFIED_SERVICE_LINES",
-                        "printed_box28_value": None,
-                        "box28_status": "CONFIRMED_BLANK",
-                    },
-                )
-            )
+            if self._mint_claim_total_confirmed(
+                claim_id=claim_id,
+                values=values,
+                evidence=evidence,
+                amount=decision.amount,
+                reason="DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+                metadata={
+                    **metadata,
+                    "service_line_total": decision.amount,
+                    "value_origin": "DERIVED_FROM_VERIFIED_SERVICE_LINES",
+                    "printed_box28_value": None,
+                    "box28_status": "CONFIRMED_BLANK",
+                },
+            ):
+                for key in ("total_charge", "total_charges", "claim_total"):
+                    if key in values or key == "total_charge":
+                        values[key] = decision.amount
 
     def _provider_identity(self, claim_id, values, evidence, contradictions) -> None:
         repeated = self._values(values.get("provider_npi"))

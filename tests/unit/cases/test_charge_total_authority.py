@@ -266,3 +266,58 @@ def test_djjm028_bleed_cents_uses_line_sum_sibling():
     )
     assert safe == "400.40"
     assert reason == "PRIMARY_UNCHANGED"
+
+
+def test_charge_total_authority_session_bleed_at_mint():
+    from packages.claim_evidence.charge_total_authority import (
+        CHARGE_TOTAL_AUTHORITY_CODE,
+        new_charge_total_authority,
+    )
+
+    auth = new_charge_total_authority()
+    ok, detail = auth.try_confirm("157.07", "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED")
+    assert ok is False
+    assert detail == "BLEED_CENTS_AT_MINT"
+    assert auth.locked is False
+    assert auth.decision().auto is False
+
+
+def test_charge_total_authority_session_single_lock():
+    from packages.claim_evidence.charge_total_authority import new_charge_total_authority
+
+    auth = new_charge_total_authority()
+    ok, detail = auth.try_confirm("157.00", "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES")
+    assert ok is True
+    assert detail == "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES"
+    ok2, detail2 = auth.try_confirm("157.00", "CLAIM_TOTAL_WITHIN_TOLERANCE")
+    assert ok2 is False
+    assert "ALREADY_CONFIRMED" in detail2
+    assert auth.amount == "157.00"
+    assert auth.reason == "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES"
+    d = auth.decision()
+    assert d.auto is True
+    assert d.amount == "157.00"
+
+
+def test_builder_mints_at_most_one_claim_total_confirmed():
+    from packages.claim_evidence.builder import ClaimEvidenceBuilder
+    from packages.claim_evidence.charge_total_authority import CHARGE_TOTAL_AUTHORITY_CODE
+
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="single-mint",
+        document_family="CMS1500",
+        claim_values={"total_charge": "200.00"},
+        service_lines=[{"charges": "100.00"}, {"charges": "100.00"}],
+    )
+    confirmed = [
+        i for i in result.evidence_items if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+    ]
+    authority = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == CHARGE_TOTAL_AUTHORITY_CODE
+    ]
+    assert len(confirmed) == 1
+    assert len(authority) == 1
+    assert confirmed[0].value == "200.00"
+    assert (confirmed[0].metadata or {}).get("charge_total_authority") is True

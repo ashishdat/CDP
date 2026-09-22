@@ -1,0 +1,18 @@
+{
+  "title": "Quarantined AUTO / label-source debt (not FA, not tip exact)",
+  "updated_at": "2026-09-22T11:02:31.707728+00:00",
+  "ledger": "docs/gt/ground_truth_discrepancy_ledger.json",
+  "record_count": 201,
+  "by_kind": {
+    "LABEL_SOURCE_CONFLICT": 201
+  },
+  "by_field": {
+    "patient_dob": 40,
+    "total_charge": 109,
+    "patient_name": 24,
+    "insured_name": 23,
+    "insured_id_number": 5
+  },
+  "total_charge_quarantines": 109,
+  "note": "Quarantined wrong AUTOs are GT/authority debt. They suppress FA but must not be counted as tip exact wins."
+}

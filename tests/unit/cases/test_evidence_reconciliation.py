@@ -139,7 +139,34 @@ def test_criticality_policy_is_externalized():
 
 
 def test_line_totals_e6_can_authorize_total_charge_without_second_engine():
-    """Phase 2: corroborated line-sum E6 is financial authority for empty box-28."""
+    """Phase 2: corroborated line-sum E6 is financial authority for empty box-28.
+
+    Single ChargeTotalAuthority requires CLAIM_TOTAL_CONFIRMED (stamped when
+    LINE_TOTALS_CORROBORATED is eligible in complete_from_extraction).
+    """
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [_candidate("400.00", "rapidocr")],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_CORROBORATED",
+            "CLAIM_TOTAL_CONFIRMED",
+            "CHARGE_TOTAL_AUTHORITY",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "400.00"
+    assert "LINE_TOTALS_RECONCILED" in result.rationale_codes
+    assert "LINE_TOTALS_CORROBORATED" in result.rationale_codes
+
+
+def test_line_totals_without_confirmed_stays_hitl():
+    """LINE_TOTALS alone (no CLAIM_TOTAL_CONFIRMED) must not AUTO charge."""
     result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
         "total_charge",
         [_candidate("400.00", "rapidocr")],
@@ -153,10 +180,7 @@ def test_line_totals_e6_can_authorize_total_charge_without_second_engine():
         document_family="CMS1500",
         enforce_legacy_evidence_policy=False,
     )
-    assert result.decision == Decision.ACCEPT
-    assert result.selected_value == "400.00"
-    assert "LINE_TOTALS_RECONCILED" in result.rationale_codes
-    assert "LINE_TOTALS_CORROBORATED" in result.rationale_codes
+    assert result.decision != Decision.ACCEPT
 
 
 def test_line_sum_scale_twin_does_not_veto_the_smaller_total():
@@ -179,6 +203,8 @@ def test_line_sum_scale_twin_does_not_veto_the_smaller_total():
             "FORMAT_VALID",
             "LINE_TOTALS_RECONCILED",
             "LINE_TOTALS_CORROBORATED",
+            "CLAIM_TOTAL_CONFIRMED",
+            "CHARGE_TOTAL_AUTHORITY",
         },
         document_family="CMS1500",
         enforce_legacy_evidence_policy=False,
@@ -214,7 +240,10 @@ def test_inflated_box28_scale_twin_stays_in_review():
     )
     assert result.selected_value == "25000.00"
     assert result.decision != Decision.ACCEPT
-    assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
+    assert (
+        "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
+        or "C3_INDEPENDENT_EVIDENCE_REQUIRED" in result.rationale_codes
+    )
 
 
 def test_line_sum_fuller_digit_drop_does_not_veto_stp():
@@ -239,6 +268,8 @@ def test_line_sum_fuller_digit_drop_does_not_veto_stp():
             "FORMAT_VALID",
             "LINE_TOTALS_RECONCILED",
             "LINE_TOTALS_CORROBORATED",
+            "CLAIM_TOTAL_CONFIRMED",
+            "CHARGE_TOTAL_AUTHORITY",
         },
         document_family="CMS1500",
         enforce_legacy_evidence_policy=False,
@@ -690,6 +721,8 @@ def test_di_local_confirmed_clears_embedded_paddle_digit_scrap():
             "BOX28_BLANKNESS_EVALUATED",
             "BOX28_LINE_SUM_EVALUATED",
             "CHARGE_DI_LOCAL_CONFIRMED",
+            "CLAIM_TOTAL_CONFIRMED",
+            "CHARGE_TOTAL_AUTHORITY",
         },
         document_family="CMS1500",
         enforce_legacy_evidence_policy=False,

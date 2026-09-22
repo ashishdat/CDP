@@ -1,62 +1,20 @@
 {
-  "title": "Geometry-95 full-1000 verify (phase1 done, phase2 running)",
-  "updated_at": "2026-09-22T10:38:52.931512+00:00",
-  "phase": "phase2_in_progress",
-  "phase1": {
-    "priority_gt_docs": 160,
-    "finished": true,
-    "scored_at": "2026-09-22T10:36:46Z"
+  "title": "Geometry-1000 verify \u2014 see split metrics",
+  "updated_at": "2026-09-22T11:02:31.708214+00:00",
+  "see": {
+    "tip": "docs/metrics/tip_decide_only_v1.json",
+    "ops": "docs/metrics/ops_fresh_ocr_stp_v1.json",
+    "debt": "docs/metrics/quarantined_auto_debt_v1.json",
+    "index": "docs/metrics/stp_metrics_index_v1.json"
   },
-  "phase2": {
-    "selected": 1000,
-    "already_done_at_start": 242,
-    "pending_at_start": 758,
-    "status": "running"
-  },
-  "tip_baseline": {
-    "exact_accuracy": 0.989474,
-    "accepted_field_precision": 1.0,
-    "false_accepts": 0,
-    "true_stp_rate_of_completed_89": 0.94382,
-    "hitl_rate_of_completed_89": 0.05618
-  },
-  "n_ledger": 251,
-  "completed": 251,
-  "true_stp": 179,
-  "true_stp_rate_of_completed": 0.713147,
-  "field_ink_hitl": 72,
-  "hitl_rate_of_completed": 0.286853,
-  "disposition_counts": {
-    "FIELD_HITL": 7,
-    "TRUE_STP": 179,
-    "HITL": 65
-  },
-  "bleed_cents_true_stp_auto": 0,
-  "accuracy": {
+  "ops_snapshot": {
+    "completed": 284,
+    "true_stp_rate_of_completed": 0.742958,
+    "hitl_rate_of_completed": 0.257042,
+    "bleed_cents_true_stp_auto": 0,
     "exact_accuracy": 0.949848,
-    "accepted_field_precision": 1.0,
-    "false_accepts": 0,
-    "claims_scored": 228,
-    "field_count": 658,
-    "quarantined_fields": 186
+    "false_accepts": 0
   },
-  "gates": {
-    "field_exact_accuracy_ge_95": "FAIL",
-    "accepted_field_precision_ge_99_5": "PASS",
-    "false_accepted_critical_eq_0": "PASS",
-    "true_stp_ge_94": "FAIL",
-    "claim_hitl_le_6": "FAIL",
-    "release_gate_eligible": false,
-    "note": "Phase1 mid-score: exact 0.949848 is 1 field under 0.95 after expanding from tip-89 to full agent-GT set; FA=0 and precision=1.0 hold. Ops STP ~71% on fresh OCR (not tip curated decide-only)."
-  },
-  "leak_fix": {
-    "remaining_bleed_true_stp_auto": 0,
-    "guards": [
-      "authorize_conflict_agent_charge",
-      "BLEED_CENTS_FAIL_CLOSED",
-      "BLEED_CENTS_WITHIN_TOLERANCE_BLOCKED",
-      "BLEED_CENTS_GEOMETRY_BLOCKED",
-      "BLEED_CENTS_LINE_SUM_BLOCKED"
-    ]
-  }
+  "release_gate_eligible": false,
+  "note": "Tip and ops are different experiments. Treat ops STP dips after fail-closed monetary guards as expected, not tip regressions."
 }

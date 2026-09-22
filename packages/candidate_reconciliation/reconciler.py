@@ -1753,7 +1753,8 @@ class EvidenceReconciler:
                     "CROSS_DOCUMENT_AGREEMENT",
                     "FINANCIAL_RECONCILIATION_VALID",
                     "CLAIM_TOTAL_CONFIRMED",
-                    "LINE_TOTALS_CORROBORATED",
+                    # LINE_TOTALS_CORROBORATED alone is not C3 OK for charge —
+                    # requires CLAIM_TOTAL_CONFIRMED from ChargeTotalAuthority.
                     "DATE_RELATIONSHIP_CONFIRMED",
                     "DOB_SERVICE_DATE_CONSISTENT",
                     "MEMBER_IDENTITY_CONSISTENT",
@@ -1773,42 +1774,32 @@ class EvidenceReconciler:
             self.allow_authoritative_financial_e6
             and field_name in {"total_charge", "total_charges"}
             and (
-                bool(
-                    deterministic
-                    & {
-                        "CLAIM_TOTAL_CONFIRMED",
-                        "FINANCIAL_RECONCILIATION_VALID",
-                        "BOX28_LINE_SUM_CORROBORATED",
-                        # Evidence-based exception: selected Box 24F Σ == Box 28
-                        # with charge-column geometry — not threshold lowering.
-                        "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                        # Operational Σ when Box 28 is confirmed blank.
-                        "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
-                        "E6_COMPLETE_LINE_ARITHMETIC",
-                    }
-                )
-                # Bare LINE_TOTALS_RECONCILED is observed ink only — AUTO requires
-                # dual-engine line agreement or box-28/DI corroboration (hard-15).
-                or (
-                    "LINE_TOTALS_RECONCILED" in deterministic
-                    and "LINE_TOTALS_CORROBORATED" in deterministic
-                )
+                # Single ChargeTotalAuthority mint — never OR FG ∪ line-sum ∪
+                # derived ∪ LINE_TOTALS alone. Supporting codes may coexist but
+                # AUTO requires CLAIM_TOTAL_CONFIRMED from the authority session.
+                "CLAIM_TOTAL_CONFIRMED" in deterministic
             )
         )
-        # Bleed/echo cents never carry financial AUTO authority.
+        # Bleed/echo cents never carry financial AUTO authority (defense-in-depth;
+        # primary block is bleed-at-mint in ChargeTotalAuthoritySession).
         if field_name in {"total_charge", "total_charges"} and _charge_is_units_bleed_cents(
             value
         ):
             financial_authority = False
         # Explicit Field Value Authority exception for verified financial ink /
         # derived complete-line arithmetic. Not calibrated-threshold fitting.
+        # Requires the single-authority CONFIRMED mint, not FG/derived codes alone.
         accept_even_if_calibrated_confidence_below_threshold = bool(
             financial_authority
+            and "CLAIM_TOTAL_CONFIRMED" in deterministic
             and deterministic
             & {
+                "CHARGE_TOTAL_AUTHORITY",
                 "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
                 "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
                 "E6_COMPLETE_LINE_ARITHMETIC",
+                "BOX28_LINE_SUM_CORROBORATED",
+                "CLAIM_TOTAL_WITHIN_TOLERANCE",
             }
         )
         # A verified reference is an independent E5 authority, not an OCR
@@ -2060,19 +2051,10 @@ class EvidenceReconciler:
             reasons.append("REFERENCE_CONTRADICTION")
         elif (
             "FINANCIAL_CONFLICT_HITL" in deterministic
-            and not (
-                deterministic
-                & {
-                    "CLAIM_TOTAL_CONFIRMED",
-                    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
-                    "BOX28_LINE_SUM_CORROBORATED",
-                    "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
-                    "E6_COMPLETE_LINE_ARITHMETIC",
-                }
-            )
+            and "CLAIM_TOTAL_CONFIRMED" not in deterministic
         ):
             # Arithmetic Box 28 ↔ Σ conflict is never equivalent-value soup —
-            # unless a confirmed financial authority already owns the amount.
+            # unless the single ChargeTotalAuthority already confirmed the amount.
             decision = Decision.REVIEW
             reasons.append("FINANCIAL_CONFLICT_HITL")
         elif not threshold_ok:
@@ -2101,11 +2083,13 @@ class EvidenceReconciler:
             # ``105.00``) — not enough to invent totals or clear place-shift.
             charge_soup_authority = financial_authority or (
                 field_name in {"total_charge", "total_charges"}
+                and "CLAIM_TOTAL_CONFIRMED" in deterministic
                 and "LINE_TOTALS_RECONCILED" in deterministic
                 and "LINE_TOTALS_CORROBORATED" in deterministic
                 and "LINE_TOTALS_UNCORROBORATED" not in deterministic
             ) or (
                 field_name in {"total_charge", "total_charges"}
+                and "CLAIM_TOTAL_CONFIRMED" in deterministic
                 and "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
             )
             if field_name in {"total_charge", "total_charges"} and charge_soup_authority:

@@ -1183,15 +1183,30 @@ def decide(extraction, family):
                     eligible = False
                     gate_reason = 'BOX28_OR_DI_CONFLICT'
                 if eligible:
+                    from packages.claim_evidence.charge_total_authority import (
+                        is_units_bleed_cents,
+                    )
+                    # Bleed-at-mint: never stamp CONFIRMED on units/ruling cents.
+                    bind_amount = derived or winner_val
+                    if bind_amount and is_units_bleed_cents(bind_amount):
+                        eligible = False
+                        gate_reason = 'BLEED_CENTS_AT_MINT'
+                if eligible:
                     # Financial E6 only when dual-engine / gpt4o+local or DI/box-28.
+                    # Single ChargeTotalAuthority mint — stamp CONFIRMED so
+                    # reconciler AUTO does not OR LINE_TOTALS alone.
                     check.evidence = set(check.evidence) | {
                         'LINE_TOTALS_RECONCILED',
                         'LINE_TOTALS_CORROBORATED',
+                        'CLAIM_TOTAL_CONFIRMED',
+                        'CHARGE_TOTAL_AUTHORITY',
                         'HARD_VALIDATION_PASSED',
                     }
                     check.cross_field_evidence = set(check.cross_field_evidence) | {
                         'LINE_TOTALS_RECONCILED',
                         'LINE_TOTALS_CORROBORATED',
+                        'CLAIM_TOTAL_CONFIRMED',
+                        'CHARGE_TOTAL_AUTHORITY',
                     }
                     check.passed = True
                 else:
@@ -1221,20 +1236,17 @@ def decide(extraction, family):
             confirmed = None
             for item in facts.evidence_items:
                 if item.evidence_type == 'CLAIM_TOTAL_CONFIRMED' and item.value:
+                    # Bleed-at-mint should already have blocked these, but refuse
+                    # to bind a bleed amount into candidate shells.
+                    from packages.claim_evidence.charge_total_authority import (
+                        is_units_bleed_cents,
+                    )
+                    if is_units_bleed_cents(item.value):
+                        continue
                     confirmed = str(item.value)
                     break
-            if confirmed is None:
-                for item in facts.evidence_items:
-                    if (
-                        item.evidence_type in {
-                            'BOX28_LINE_SUM_CORROBORATED',
-                            'FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED',
-                            'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES',
-                        }
-                        and item.value
-                    ):
-                        confirmed = str(item.value)
-                        break
+            # Do not promote FG / BOX28_LINE_SUM alone — single authority requires
+            # CLAIM_TOTAL_CONFIRMED. Legacy artifacts without CONFIRMED stay HITL.
             filtered = []
             exact_confirmed = []
             for cand in candidates:

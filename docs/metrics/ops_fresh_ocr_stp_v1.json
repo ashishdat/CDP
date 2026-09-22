@@ -1,0 +1,79 @@
+{
+  "title": "Fresh-OCR ops STP (cascade) \u2014 not tip decide-only",
+  "updated_at": "2026-09-22T11:02:31.706659+00:00",
+  "run_dir": "evaluation_results/hackathon_1000_geometry_95_verify",
+  "n_ledger": 284,
+  "completed": 284,
+  "true_stp": 211,
+  "true_stp_rate_of_completed": 0.742958,
+  "field_ink_hitl": 73,
+  "hitl_rate_of_completed": 0.257042,
+  "disposition_counts": {
+    "FIELD_HITL": 7,
+    "TRUE_STP": 211,
+    "HITL": 66
+  },
+  "hitl_gap_class_counts": {
+    "LINE_SUM_UNCORROBORATED": 45,
+    "EVIDENCE_POLICY_GAP": 20,
+    "NO_GAP_CLASS": 4,
+    "HANDWRITING_UNREADABLE": 2,
+    "CALIBRATION_HITL": 2,
+    "AMBIGUOUS_DIGIT_FRAGMENTS": 2,
+    "EMPTY_FINANCIAL_INK": 1
+  },
+  "bleed_cents_true_stp_auto": 0,
+  "accuracy_vs_agent_gt": {
+    "exact_accuracy": 0.949848,
+    "accepted_field_precision": 1.0,
+    "false_accepts": 0,
+    "claims_scored": 228,
+    "field_count": 658,
+    "quarantined_fields": 186,
+    "field_exact": {
+      "patient_dob": {
+        "exact": 33,
+        "n": 33,
+        "rate": 1.0
+      },
+      "total_charge": {
+        "exact": 59,
+        "n": 90,
+        "rate": 0.655556
+      },
+      "patient_name": {
+        "exact": 172,
+        "n": 172,
+        "rate": 1.0
+      },
+      "insured_id_number": {
+        "exact": 200,
+        "n": 201,
+        "rate": 0.995025
+      },
+      "insured_name": {
+        "exact": 161,
+        "n": 162,
+        "rate": 0.993827
+      }
+    }
+  },
+  "gates_ops": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "bleed_cents_true_stp_auto_eq_0": "PASS",
+    "note": "Ops STP is fresh OCR + full cascade. Do not compare to tip-89 decide-only STP as a regression signal."
+  },
+  "authority": {
+    "single_mint": "CLAIM_TOTAL_CONFIRMED via ChargeTotalAuthoritySession",
+    "priority": [
+      "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+      "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+      "BOX28_LINE_SUM_CORROBORATED",
+      "CLAIM_TOTAL_WITHIN_TOLERANCE",
+      "conflict-agent gated",
+      "else HITL"
+    ],
+    "bleed_at_mint": true
+  }
+}

@@ -12,6 +12,7 @@ like ``251.00 → 25.00``.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 
 from packages.claim_evidence.line_sum_authority import (
     format_currency,
@@ -417,3 +418,130 @@ def authorize_conflict_agent_charge(
     if line_sum_corroborates_charge(text, service_lines):
         return text, "LINE_SUM_CORROBORATES_CONFLICT_PICK"
     return None, "CONFLICT_AGENT_SOLE_AUTHORITY"
+
+
+# ---------------------------------------------------------------------------
+# Single monetary AUTO gate — one mint of CLAIM_TOTAL_CONFIRMED per claim.
+# Priority (highest first). Callers must try_confirm in this order; first
+# non-bleed success locks. Later paths keep diagnostic evidence only.
+# ---------------------------------------------------------------------------
+CONFIRM_PRIORITY: tuple[str, ...] = (
+    "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+    "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+    "GEOMETRY_UNDERREAD_WHOLE_DOLLAR_BOX28",
+    "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28",
+    "INCOMPLETE_UNIFORM_GRID_BOX28",
+    "BOX28_LINE_SUM_CORROBORATED",
+    "CLAIM_TOTAL_WITHIN_TOLERANCE",
+    "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
+    "LINE_SUM_CORROBORATES_CONFLICT_PICK",
+    "LINE_TOTALS_CORROBORATED",
+)
+
+# Evidence code stamped on every successful mint so reconciliation requires the
+# single-authority path instead of OR-ing FG ∪ line-sum ∪ derived ∪ DI.
+CHARGE_TOTAL_AUTHORITY_CODE = "CHARGE_TOTAL_AUTHORITY"
+
+
+def _priority_index(reason: str) -> int:
+    try:
+        return CONFIRM_PRIORITY.index(reason)
+    except ValueError:
+        # Unknown reasons sort after the known stack (weaker).
+        return len(CONFIRM_PRIORITY)
+
+
+@dataclass(frozen=True)
+class ChargeTotalDecision:
+    """Sole monetary AUTO decision for a claim."""
+
+    amount: str | None
+    auto: bool
+    reason: str
+    locked_by: str | None = None
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "amount": self.amount,
+            "auto": self.auto,
+            "reason": self.reason,
+            "locked_by": self.locked_by,
+        }
+
+
+class ChargeTotalAuthoritySession:
+    """Per-claim lock: at most one CLAIM_TOTAL_CONFIRMED mint.
+
+    Bleed/echo cents are rejected at mint time (not only at reconciler AUTO).
+    """
+
+    def __init__(self) -> None:
+        self._amount: str | None = None
+        self._reason: str | None = None
+        self._locked: bool = False
+        self._rejects: list[tuple[str, str]] = []
+
+    @property
+    def locked(self) -> bool:
+        return self._locked
+
+    @property
+    def amount(self) -> str | None:
+        return self._amount
+
+    @property
+    def reason(self) -> str | None:
+        return self._reason
+
+    @property
+    def rejects(self) -> list[tuple[str, str]]:
+        return list(self._rejects)
+
+    def decision(self) -> ChargeTotalDecision:
+        if self._locked and self._amount:
+            return ChargeTotalDecision(
+                amount=self._amount,
+                auto=True,
+                reason=self._reason or "CHARGE_TOTAL_AUTHORITY",
+                locked_by=self._reason,
+            )
+        return ChargeTotalDecision(
+            amount=None,
+            auto=False,
+            reason="CHARGE_TOTAL_HITL",
+            locked_by=None,
+        )
+
+    def try_confirm(self, amount: object, reason: str) -> tuple[bool, str]:
+        """Attempt to lock monetary AUTO for ``amount``.
+
+        Returns ``(accepted, detail)``. Rejects bleed at mint; ignores weaker
+        or duplicate confirms after the lock is held.
+        """
+        parsed = parse_currency(amount)
+        if parsed is None or is_implausible_charge_total(amount):
+            detail = "INVALID_AMOUNT"
+            self._rejects.append((reason, detail))
+            return False, detail
+        text = format_currency(parsed)
+        if is_units_bleed_cents(text):
+            detail = "BLEED_CENTS_AT_MINT"
+            self._rejects.append((reason, detail))
+            return False, detail
+        if self._locked:
+            if self._amount == text and self._reason == reason:
+                return True, "ALREADY_LOCKED"
+            # Higher-priority reason may upgrade only if called before lock in
+            # normal stack order; once locked, refuse (callers own ordering).
+            detail = f"ALREADY_CONFIRMED_BY_{self._reason}"
+            self._rejects.append((reason, detail))
+            return False, detail
+        self._amount = text
+        self._reason = reason
+        self._locked = True
+        return True, reason
+
+
+def new_charge_total_authority() -> ChargeTotalAuthoritySession:
+    """Factory for a fresh per-claim monetary authority session."""
+    return ChargeTotalAuthoritySession()
