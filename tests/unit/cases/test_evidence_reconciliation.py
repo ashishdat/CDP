@@ -183,6 +183,75 @@ def test_line_totals_without_confirmed_stays_hitl():
     assert result.decision != Decision.ACCEPT
 
 
+def test_line_sum_truncated_scale_twin_does_not_veto_stp():
+    """EJI2.003: line Σ 660 must AUTO beside truncated 66 and inflated 66000."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate(
+                "660.00",
+                "rapidocr",
+                1.0,
+                preprocessing_variant="DERIVED_FROM_OBSERVED_LINE_CHARGES",
+                evidence_reference="LINE_TOTALS_RECONCILED",
+            ),
+            _candidate("660.00", "anthropic_claude_crop", 0.98),
+            _candidate("66000", "azure_document_intelligence_read", 0.97),
+            _candidate("66", "paddleocr", 0.95),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_CORROBORATED",
+            "CLAIM_TOTAL_CONFIRMED",
+            "CHARGE_TOTAL_AUTHORITY",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "660.00"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_rival_box28_deferred_prefers_line_sum_over_multi_engine_ocr():
+    """EJG7.004: deferred Box 28 17500 must not outrank confirmed Σ 1031."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate("17500.00", "paddleocr", 0.99),
+            _candidate("17500.00", "anthropic_claude_crop", 0.98),
+            _candidate("17500.00", "azure_document_intelligence_read", 0.97),
+            _candidate(
+                "1031.00",
+                "rapidocr",
+                1.0,
+                preprocessing_variant="DERIVED_FROM_OBSERVED_LINE_CHARGES",
+                evidence_reference="LINE_TOTALS_RECONCILED",
+            ),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_CORROBORATED",
+            "CLAIM_TOTAL_CONFIRMED",
+            "CHARGE_TOTAL_AUTHORITY",
+            "LINE_TOTALS_GATE:DUAL_ENGINE_LINE_AGREEMENT+RIVAL_BOX28_DEFERRED",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"17500", "17500.00"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "1031.00"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
 def test_line_sum_scale_twin_does_not_veto_the_smaller_total():
     """Box 28 25000 must not keep line Σ 250 in review once line totals own it."""
     result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(

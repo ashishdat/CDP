@@ -1146,6 +1146,16 @@ def decide(extraction, family):
                 # printed Box 28 winners (29 vs Σ 450; 39 from $97|39; 100 from
                 # raw ``70 100 $`` beside agreed 70).
                 from packages.claim_evidence.box28_blankness import box28_junk_winner_amounts
+                from packages.claim_evidence.charge_total_authority import (
+                    is_units_bleed_cents,
+                )
+                from packages.claim_evidence.line_sum_authority import (
+                    amounts_corroborate_or_cents_twin,
+                    incomplete_uniform_line_grid_explains_box28,
+                    is_currency_digit_drop_twin,
+                    is_scale_shift,
+                    line_sum_auto_eligible,
+                )
 
                 junk_winners = box28_junk_winner_amounts(f, line_total=derived)
                 if (
@@ -1153,17 +1163,30 @@ def decide(extraction, family):
                     and format_currency(parse_currency(winner_val)) in junk_winners
                 ):
                     winner_val = None
+
+                def _dollars(text: object) -> str:
+                    from packages.claim_evidence.charge_total_authority import (
+                        _dollars_part,
+                    )
+
+                    return _dollars_part(text)
+
+                # Bleed Box 28 (.22/.43) beside whole-dollar Σ same stem → prefer Σ.
+                if (
+                    winner_val
+                    and derived
+                    and is_units_bleed_cents(winner_val)
+                    and not is_units_bleed_cents(derived)
+                    and _dollars(winner_val) == _dollars(derived)
+                    and format_currency(parse_currency(derived)).endswith(".00")
+                ):
+                    winner_val = None
+
                 winner_matches_lines = (
                     parse_currency(winner_val) is None
                     or parse_currency(derived) is None
                     or parse_currency(winner_val) == parse_currency(derived)
-                )
-                # A plausible Box 28 that is not a ×10/×100 or digit-drop twin of Σ
-                # must not inherit line-sum AUTO (17500 vs Σ 1031).
-                from packages.claim_evidence.line_sum_authority import (
-                    incomplete_uniform_line_grid_explains_box28,
-                    is_currency_digit_drop_twin,
-                    is_scale_shift,
+                    or amounts_corroborate_or_cents_twin(winner_val, derived)
                 )
                 scale_twin = bool(
                     winner_val
@@ -1179,47 +1202,110 @@ def decide(extraction, family):
                         winner_val, service_lines
                     )
                 )
+                # Strong line consensus already cleared weak Box 28 inside
+                # line_sum_auto_eligible — do not re-veto with a rival winner.
+                _STRONG_LINE_GATES = {
+                    "SINGLE_LINE_GPT4O_LOCAL",
+                    "MULTI_LINE_GPT4O_LOCAL",
+                    "DUAL_ENGINE_LINE_AGREEMENT",
+                    "MULTI_LINE_DIGIT_DROP_FULLER_LOCAL",
+                    "DECIMAL_COLUMN_VISION_LOCAL",
+                    "DIGIT_DROP_BOX28_UNDERREAD",
+                    "BOX28_OR_DI_CORROBORATED",
+                }
                 if eligible and not winner_matches_lines and not scale_twin and not incomplete_grid:
-                    eligible = False
-                    gate_reason = 'BOX28_OR_DI_CONFLICT'
-                if eligible:
-                    from packages.claim_evidence.charge_total_authority import (
-                        is_units_bleed_cents,
+                    if gate_reason in _STRONG_LINE_GATES:
+                        # Keep eligible; bind derived Σ (line consensus owns E6).
+                        gate_reason = f"{gate_reason}+RIVAL_BOX28_DEFERRED"
+                    else:
+                        eligible = False
+                        gate_reason = "BOX28_OR_DI_CONFLICT"
+
+                # Re-open when Σ is clean and lines independently agree, but the
+                # earlier gate used a conflicting Box 28 shell as corroborator.
+                if (
+                    not eligible
+                    and derived
+                    and not is_units_bleed_cents(derived)
+                    and gate_reason
+                    in {
+                        "MULTI_LINE_UNCORROBORATED",
+                        "BOX28_OR_DI_CONFLICT",
+                        "SINGLE_LINE_REQUIRES_DI",
+                        "SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28",
+                    }
+                ):
+                    re_ok, re_reason = line_sum_auto_eligible(
+                        service_lines,
+                        box28_value=None,
+                        corroborating_values=None,
                     )
+                    if re_ok and re_reason in _STRONG_LINE_GATES:
+                        eligible = True
+                        gate_reason = f"REOPEN_BLANK_BOX28:{re_reason}"
+
+                if eligible:
                     # Bleed-at-mint: never stamp CONFIRMED on units/ruling cents.
+                    # Prefer whole-dollar Σ when bind is bleed of the same dollars.
                     bind_amount = derived or winner_val
                     if bind_amount and is_units_bleed_cents(bind_amount):
-                        eligible = False
-                        gate_reason = 'BLEED_CENTS_AT_MINT'
+                        whole = f"{_dollars(bind_amount)}.00"
+                        if (
+                            derived
+                            and format_currency(parse_currency(derived)) == whole
+                        ):
+                            bind_amount = whole
+                            derived = whole
+                        else:
+                            eligible = False
+                            gate_reason = "BLEED_CENTS_AT_MINT"
                 if eligible:
                     # Financial E6 only when dual-engine / gpt4o+local or DI/box-28.
                     # Single ChargeTotalAuthority mint — stamp CONFIRMED so
                     # reconciler AUTO does not OR LINE_TOTALS alone.
                     check.evidence = set(check.evidence) | {
-                        'LINE_TOTALS_RECONCILED',
-                        'LINE_TOTALS_CORROBORATED',
-                        'CLAIM_TOTAL_CONFIRMED',
-                        'CHARGE_TOTAL_AUTHORITY',
-                        'HARD_VALIDATION_PASSED',
+                        "LINE_TOTALS_RECONCILED",
+                        "LINE_TOTALS_CORROBORATED",
+                        "CLAIM_TOTAL_CONFIRMED",
+                        "CHARGE_TOTAL_AUTHORITY",
+                        "HARD_VALIDATION_PASSED",
+                        f"LINE_TOTALS_GATE:{gate_reason}",
                     }
                     check.cross_field_evidence = set(check.cross_field_evidence) | {
-                        'LINE_TOTALS_RECONCILED',
-                        'LINE_TOTALS_CORROBORATED',
-                        'CLAIM_TOTAL_CONFIRMED',
-                        'CHARGE_TOTAL_AUTHORITY',
+                        "LINE_TOTALS_RECONCILED",
+                        "LINE_TOTALS_CORROBORATED",
+                        "CLAIM_TOTAL_CONFIRMED",
+                        "CHARGE_TOTAL_AUTHORITY",
                     }
                     check.passed = True
+                    # Bind the (possibly bleed-repaired) amount into values.
+                    if derived:
+                        values[name] = format_currency(parse_currency(derived))
+                    # Deferred Box 28 rivals must not remain as competing shells —
+                    # keep only amounts that match the confirmed line Σ (plus the
+                    # derived candidate already at the head of the list).
+                    if derived and "RIVAL_BOX28_DEFERRED" in str(gate_reason or ""):
+                        bind = format_currency(parse_currency(derived))
+                        kept = []
+                        for cand in candidates:
+                            text = str(cand.value or cand.raw_value or "").strip()
+                            if not text or parse_currency(text) is None:
+                                continue
+                            if parse_currency(text) == parse_currency(bind):
+                                kept.append(cand)
+                        if kept:
+                            candidates = kept
                 else:
                     # Observed line-sum stays as a candidate for review — no E6 AUTO.
                     check.evidence = set(check.evidence) | {
-                        'LINE_TOTALS_UNCORROBORATED',
-                        f'LINE_TOTALS_GATE:{gate_reason}',
+                        "LINE_TOTALS_UNCORROBORATED",
+                        f"LINE_TOTALS_GATE:{gate_reason}",
                     }
                     check.cross_field_evidence = set(check.cross_field_evidence) | {
-                        'LINE_TOTALS_UNCORROBORATED',
+                        "LINE_TOTALS_UNCORROBORATED",
                     }
                     # Fail-closed: do not treat uncorroborated line-sum as hard-valid E6.
-                    if name in {'total_charge', 'total_charges'} and not retained:
+                    if name in {"total_charge", "total_charges"} and not retained:
                         check.passed = False
             checks[name] = check.model_dump(mode='json')
         localization = localizations.get(name)
@@ -1228,6 +1314,9 @@ def decide(extraction, family):
             # and drop common-mode soup that only matches after inconsistent repair.
             from decimal import Decimal
 
+            from packages.claim_evidence.charge_total_authority import (
+                is_units_bleed_cents,
+            )
             from packages.claim_evidence.line_sum_authority import (
                 amounts_within_tolerance,
                 is_implausible_charge_total,
@@ -1238,15 +1327,16 @@ def decide(extraction, family):
                 if item.evidence_type == 'CLAIM_TOTAL_CONFIRMED' and item.value:
                     # Bleed-at-mint should already have blocked these, but refuse
                     # to bind a bleed amount into candidate shells.
-                    from packages.claim_evidence.charge_total_authority import (
-                        is_units_bleed_cents,
-                    )
                     if is_units_bleed_cents(item.value):
                         continue
                     confirmed = str(item.value)
                     break
-            # Do not promote FG / BOX28_LINE_SUM alone — single authority requires
-            # CLAIM_TOTAL_CONFIRMED. Legacy artifacts without CONFIRMED stay HITL.
+            # LINE_TOTALS path stamps CONFIRMED on the check + values bind without
+            # always minting a builder evidence_item — still filter rivals to Σ.
+            if confirmed is None and "CLAIM_TOTAL_CONFIRMED" in set(check.evidence or []):
+                bound = values.get(name)
+                if bound and not is_units_bleed_cents(bound):
+                    confirmed = str(bound)
             filtered = []
             exact_confirmed = []
             for cand in candidates:

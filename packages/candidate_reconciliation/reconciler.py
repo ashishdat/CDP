@@ -1363,6 +1363,50 @@ class EvidenceReconciler:
             ),
             reverse=True,
         )
+        # Strong line-Σ mint deferred a rival Box 28: do not let multi-engine
+        # OCR on the deferred shell outrank the LINE_TOTALS / CONFIRMED amount
+        # (EJG7.004 17500 vs Σ 1031; DJJF.002 1160 vs Σ 520).
+        if (
+            field_name in {"total_charge", "total_charges"}
+            and deterministic
+            and "CLAIM_TOTAL_CONFIRMED" in deterministic
+            and "LINE_TOTALS_CORROBORATED" in deterministic
+            and any(
+                "RIVAL_BOX28_DEFERRED" in str(code) or str(code).endswith("RIVAL_BOX28_DEFERRED")
+                for code in deterministic
+            )
+        ):
+            def _group_is_line_sum_authority(items) -> bool:
+                for cand, _, _ in items:
+                    variant = str(cand.preprocessing_variant or "").casefold()
+                    ref = str(cand.evidence_reference or "")
+                    if (
+                        "derived_from_observed_line" in variant
+                        or "derived_from_verified" in variant
+                        or "phase2-line-sum" in variant
+                        or "claim_total_confirmed" in variant
+                        or ref
+                        in {
+                            "LINE_TOTALS_RECONCILED",
+                            "DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES",
+                            "CLAIM_TOTAL_CONFIRMED",
+                        }
+                    ):
+                        return True
+                return False
+
+            authority_groups = [
+                (norm, items)
+                for norm, items in ranked
+                if _group_is_line_sum_authority(items)
+            ]
+            if authority_groups:
+                ranked = authority_groups + [
+                    (norm, items)
+                    for norm, items in ranked
+                    if not _group_is_line_sum_authority(items)
+                ]
+
         _normalized_value, supporting = ranked[0]
         value = max(supporting, key=lambda item: item[1])[0].value
         early_separator_relief = False
@@ -2132,27 +2176,11 @@ class EvidenceReconciler:
                     if other_amt == primary_amt and not is_decimal_place_shift(value, other):
                         continue
                     # ×10/×100 and dropped-digit twins are real conflicts when the
-                    # selected amount is the inflated Box 28. Once line Σ owns the
-                    # smaller amount (250 vs Box 28 25000), the twin is the same
-                    # ink at the wrong scale and must not veto AUTO. Once line Σ
-                    # owns the fuller digit-drop amount (3402 vs Box OCR 340),
-                    # the short rival is truncated ink and must not veto either.
+                    # selected amount is inflated Box 28 OCR. Once line Σ owns the
+                    # selected total, both directions are soup: larger (250 vs
+                    # 25000), truncated (660 vs 66), and digit-drop (3402 vs 340).
                     if is_scale_shift(value, other) or is_currency_digit_drop_twin(value, other):
-                        line_sum_is_smaller_scale = (
-                            line_totals_owns_selected
-                            and is_scale_shift(value, other)
-                            and primary_amt is not None
-                            and other_amt is not None
-                            and primary_amt < other_amt
-                        )
-                        line_sum_is_fuller_digit_drop = (
-                            line_totals_owns_selected
-                            and is_currency_digit_drop_twin(value, other)
-                            and primary_amt is not None
-                            and other_amt is not None
-                            and primary_amt > other_amt
-                        )
-                        if line_sum_is_smaller_scale or line_sum_is_fuller_digit_drop:
+                        if line_totals_owns_selected or financial_authority:
                             continue
                         cleared.append(other)
                         continue

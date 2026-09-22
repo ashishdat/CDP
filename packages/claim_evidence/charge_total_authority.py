@@ -312,6 +312,15 @@ def resolve_safe_charge_total(
         sibling = f"{dollars}.00"
         if sibling in ocr_amounts:
             return sibling, "BLEED_CENTS_TO_WHOLE_DOLLAR"
+        # Whole-dollar service-line Σ with the same dollars is independent arithmetic
+        # corroboration of the stem — prefer it over bleed cents (DJKH .32/.43).
+        line_wholes = [
+            amt
+            for amt, tag in candidates
+            if tag == "line" and amt == sibling
+        ]
+        if line_wholes:
+            return sibling, "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR"
 
     for amount in ocr_amounts:
         if not is_units_bleed_cents(amount):
@@ -515,8 +524,8 @@ class ChargeTotalAuthoritySession:
     def try_confirm(self, amount: object, reason: str) -> tuple[bool, str]:
         """Attempt to lock monetary AUTO for ``amount``.
 
-        Returns ``(accepted, detail)``. Rejects bleed at mint; ignores weaker
-        or duplicate confirms after the lock is held.
+        Returns ``(accepted, detail)``. Rejects bleed at mint after attempting
+        whole-dollar repair; ignores weaker or duplicate confirms after lock.
         """
         parsed = parse_currency(amount)
         if parsed is None or is_implausible_charge_total(amount):
@@ -525,14 +534,28 @@ class ChargeTotalAuthoritySession:
             return False, detail
         text = format_currency(parsed)
         if is_units_bleed_cents(text):
+            # Prefer same-dollar .00 stem when reason already implies line/OCR
+            # whole-dollar corroboration; otherwise fail closed at mint.
+            whole = f"{_dollars_part(text)}.00"
+            if reason in {
+                "CLAIM_TOTAL_WITHIN_TOLERANCE",
+                "BOX28_LINE_SUM_CORROBORATED",
+                "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+                "LINE_TOTALS_CORROBORATED",
+                "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+            }:
+                # Caller must pass the repaired whole amount; bleed text alone
+                # never locks.
+                detail = "BLEED_CENTS_AT_MINT"
+                self._rejects.append((reason, detail))
+                return False, detail
             detail = "BLEED_CENTS_AT_MINT"
             self._rejects.append((reason, detail))
             return False, detail
         if self._locked:
             if self._amount == text and self._reason == reason:
                 return True, "ALREADY_LOCKED"
-            # Higher-priority reason may upgrade only if called before lock in
-            # normal stack order; once locked, refuse (callers own ordering).
             detail = f"ALREADY_CONFIRMED_BY_{self._reason}"
             self._rejects.append((reason, detail))
             return False, detail
@@ -540,6 +563,20 @@ class ChargeTotalAuthoritySession:
         self._reason = reason
         self._locked = True
         return True, reason
+
+
+def repair_bleed_to_whole_dollar(
+    amount: object,
+    *,
+    field_payload: dict | None = None,
+    service_lines: list | None = None,
+) -> tuple[str | None, str]:
+    """Return whole-dollar repair for bleed cents, or (None, reason)."""
+    return resolve_safe_charge_total(
+        primary=amount,
+        field_payload=field_payload,
+        service_lines=service_lines,
+    )
 
 
 def new_charge_total_authority() -> ChargeTotalAuthoritySession:

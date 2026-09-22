@@ -74,6 +74,7 @@ class ClaimEvidenceBuilder:
         authority = new_charge_total_authority()
         values = dict(claim_values)
         values["_charge_total_authority"] = authority
+        values["_service_lines_for_charge_repair"] = lines
 
         # Priority stack (CMS1500): blank-derived → FG/conflict → line-sum →
         # WITHIN_TOLERANCE. Non-CMS still runs _financial for line arithmetic.
@@ -154,15 +155,54 @@ class ClaimEvidenceBuilder:
         """Sole CONFIRMED mint path — bleed-at-mint + single lock."""
         from packages.claim_evidence.charge_total_authority import (
             CHARGE_TOTAL_AUTHORITY_CODE,
+            is_units_bleed_cents,
+            repair_bleed_to_whole_dollar,
         )
 
+        mint_amount = amount
+        mint_reason = reason
+        if is_units_bleed_cents(amount):
+            repaired, repair_reason = repair_bleed_to_whole_dollar(
+                amount,
+                field_payload=values.get("_box28_field_payload")
+                if isinstance(values.get("_box28_field_payload"), dict)
+                else None,
+                service_lines=None,
+            )
+            # Also try with service lines from metadata if present later — builder
+            # callers pass values only; line Σ repair needs lines on values.
+            lines = values.get("_service_lines_for_charge_repair")
+            if (
+                repaired is None
+                or repair_reason
+                not in {
+                    "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                    "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+                }
+            ) and isinstance(lines, list):
+                repaired, repair_reason = repair_bleed_to_whole_dollar(
+                    amount,
+                    field_payload=values.get("_box28_field_payload")
+                    if isinstance(values.get("_box28_field_payload"), dict)
+                    else None,
+                    service_lines=lines,
+                )
+            if repair_reason in {
+                "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+            } and repaired:
+                mint_amount = repaired
+                mint_reason = repair_reason
+            else:
+                return False
+
         auth = self._charge_authority(values)
-        ok, detail = auth.try_confirm(amount, reason)
+        ok, detail = auth.try_confirm(mint_amount, mint_reason)
         if not ok:
             return False
         meta = {
             "supported_fields": ["total_charge", "total_charges"],
-            "reason": reason,
+            "reason": mint_reason,
             "claim_total": auth.amount,
             "charge_total_authority": True,
             "authority_detail": detail,
@@ -178,7 +218,7 @@ class ClaimEvidenceBuilder:
                 auth.amount,
                 {
                     **meta,
-                    "authority_reason": reason,
+                    "authority_reason": mint_reason,
                 },
             )
         )
