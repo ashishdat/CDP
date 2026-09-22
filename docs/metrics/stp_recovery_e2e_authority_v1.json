@@ -1,0 +1,83 @@
+{
+  "title": "E2E authority waiver + cash-ruling line-junk relief",
+  "updated_at": "2026-09-22T14:40:10Z",
+  "prior": "hackathon_1000_stp_recovery_cash_geometry_v2",
+  "unique_claims_completed": 318,
+  "true_stp": 282,
+  "true_stp_rate_of_completed": 0.886792,
+  "hitl": 36,
+  "flipped_vs_prior": 3,
+  "lost_vs_prior": 0,
+  "net_delta": 3,
+  "flipped_ids": [
+    "Group A__M048DJKH.001",
+    "Group A__M048DJKH.006",
+    "Group A__M048DJKH.049"
+  ],
+  "lost_ids": [],
+  "remaining_hitl_taxonomy": {
+    "charge_field_hitl": 16,
+    "charge_conflict_margin": 7,
+    "stale_claim_contra_unfixed": 3,
+    "identity_id": 4,
+    "identity_dob": 4,
+    "bleed_fail_closed": 2
+  },
+  "remaining_hitl_ids": {
+    "charge_field_hitl": [
+      "Group A__M048DJKH.031",
+      "Group A__M048EJI2.039",
+      "Group A__M048DJJM.008",
+      "Group A__M048HJCX.014",
+      "Group A__M048DJKH.015",
+      "Group A__M048EJG7.007",
+      "Group A__M048DJKH.037",
+      "Group A__M048EJGE.039",
+      "Group A__M048EJG7.021",
+      "Group A__M048EJGE.017",
+      "Group A__M048HJDF.009",
+      "Group A__M048DJKN.002",
+      "Group A__M048EJGE.019",
+      "Group A__M048HJDF.017",
+      "Group A__M048HJDF.008",
+      "Group A__M048DJKH.023"
+    ],
+    "charge_conflict_margin": [
+      "Group A__M048EJGE.001",
+      "Group A__M048HJBI.005",
+      "Group A__M048DJKH.029",
+      "Group A__M048DJJM.004",
+      "Group A__M048HJCX.020",
+      "Group A__M048EJI2.036",
+      "Group A__M048HJCX.021"
+    ],
+    "stale_claim_contra_unfixed": [
+      "Group A__M048EJI2.046",
+      "Group A__M048HJBI.008",
+      "Group A__M048HJBI.017"
+    ],
+    "identity_id": [
+      "Group A__M048EJG7.036",
+      "Group A__M048DJJM.046",
+      "Group A__M048EJH6.006",
+      "Group A__M048EJG7.019"
+    ],
+    "identity_dob": [
+      "Group A__M048HJBI.014",
+      "Group A__M048DJKH.022",
+      "Group A__M048HJCX.003",
+      "Group A__M048EJI2.020"
+    ],
+    "bleed_fail_closed": [
+      "Group A__M048EJGE.043",
+      "Group A__M048DJJM.049"
+    ]
+  },
+  "why_issues_kept_coming": [
+    "Fail-closed gates stacked (bleed mint, FG, line-sum, claim decision) without E2E assertion that field AUTO + CONFIRMED clears claim HITL",
+    "Line selector could crown junk-insert 1571.07 while Box 28 cash ruling had 157.07 \u2014 FG treated as ARITHMETIC_MISMATCH",
+    "complete_from_extraction stamped field CONFIRMED while ClaimEvidenceBuilder contradictions remained for claim_decision",
+    "Identity DOB/ID HITL are separate OCR failures, not charge fail-closed"
+  ],
+  "elapsed_sec": 65.89
+}
