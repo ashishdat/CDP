@@ -183,6 +183,40 @@ def test_incomplete_uniform_line_grid_does_not_block_box28():
     assert prefer_incomplete_grid_box28("4200.00", cands, lines) == "1200.00"
     assert llm_charge_pick_has_open_source_authority("1200.00", cands, lines)
     assert not llm_charge_pick_has_open_source_authority("4200.00", cands, lines)
+
+    # EJG7.016: DI+paddle 600 with only 2 equal $150 lines.
+    from packages.claim_evidence.line_sum_authority import (
+        di_backed_incomplete_grid_explains_box28,
+    )
+
+    two = [
+        {
+            "charges": "150.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "150.00",
+            },
+        },
+        {
+            "charges": "150.00",
+            "line_charge_selection": {
+                "disposition": "SELECTED_LOCAL_CHARGE",
+                "amount": "150.00",
+            },
+        },
+    ]
+    di_local = [
+        {"engine": "paddleocr", "value": "600.00"},
+        {
+            "engine": "azure_document_intelligence_read",
+            "value": "600.00",
+            "raw_value": "$600 :00",
+        },
+    ]
+    assert not incomplete_uniform_line_grid_explains_box28("600.00", two)
+    assert di_backed_incomplete_grid_explains_box28("600.00", two, di_local)
+    assert not charge_conflicts_with_plausible_line_sum("600.00", two, di_local)
+    assert not should_defer_box28_to_line_sum("600.00", two, candidates=di_local)
     # Two equal lines alone are too weak (EJG7.016 2×150 vs Box 600).
     two_lines = lines[:2]
     assert not incomplete_uniform_line_grid_explains_box28("600.00", two_lines)

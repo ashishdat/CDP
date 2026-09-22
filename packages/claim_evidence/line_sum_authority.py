@@ -172,6 +172,7 @@ def should_defer_box28_to_line_sum(
     *,
     relative_contradiction: Decimal = Decimal("0.50"),
     min_lines: int = 2,
+    candidates: list | None = None,
 ) -> bool:
     """Return True when box-28 should be cleared so LINE_TOTALS_RECONCILED owns E6."""
     charges = observed_line_charges(service_lines)
@@ -185,6 +186,9 @@ def should_defer_box28_to_line_sum(
     # Truncated equal-line OCR (3×200 vs Box 28 1200) is not a contradiction —
     # keep Box 28 so incomplete-grid authority can STP (EJGE.006/007/008).
     if incomplete_uniform_line_grid_explains_box28(box28_value, service_lines):
+        return False
+    # DI+local 2-line equal prefix (EJG7.016 2×150→600).
+    if di_backed_incomplete_grid_explains_box28(box28_value, service_lines, candidates):
         return False
     observed = sum(charges, Decimal(0))
     if observed <= 0:
@@ -416,9 +420,30 @@ def prefer_incomplete_grid_box28(
     alt = unique[0]
     if not llm_charge_pick_has_open_source_authority(alt, candidates, service_lines):
         return None
-    if charge_conflicts_with_plausible_line_sum(alt, service_lines):
+    if charge_conflicts_with_plausible_line_sum(alt, service_lines, candidates):
         return None
     return alt
+
+
+def di_backed_incomplete_grid_explains_box28(
+    chosen: object,
+    service_lines: list | None,
+    candidates: list | None,
+) -> bool:
+    """True when ≥2 equal selected lines prefix Box 28 and DI+local agree.
+
+    EJG7.016: only 2 of 4 equal ``$150`` rows OCR'd while DI+paddle Box 28
+    read ``$600``. Requiring ≥3 equal lines would leave a DI-local total HITL
+    despite open-source agreement. Still caps implied rows at 6.
+    """
+    if not incomplete_uniform_line_grid_explains_box28(
+        chosen, service_lines, min_observed=2
+    ):
+        return False
+    if not _di_agrees_on_charge_amount(chosen, candidates):
+        return False
+    local = open_source_charge_amounts(candidates)
+    return any(amounts_corroborate(chosen, amount) for amount in local)
 
 
 def agent_amount_is_inflated_scale(chosen: object, candidates: list | None) -> bool:
@@ -443,14 +468,16 @@ def agent_amount_is_inflated_scale(chosen: object, candidates: list | None) -> b
 
 
 def incomplete_uniform_line_grid_explains_box28(
-    chosen: object, service_lines: list | None
+    chosen: object, service_lines: list | None, *, min_observed: int = 3
 ) -> bool:
     """True when equal selected line amounts are a proper prefix of Box 28.
 
     CMS-1500 pages often OCR only the first 3 of 6 equal ``$200`` rows while
     Box 28 correctly reads ``$1200`` (EJGE.007/008). That partial Σ is not a
     rival claim total — conflict-agent BOX28 must not be blocked by it.
-    Requires ≥3 equal selected lines and caps implied rows at 6.
+    Requires ``min_observed`` equal selected lines (default ≥3) and caps
+    implied rows at 6. DI+open-source callers may pass ``min_observed=2``
+    (EJG7.016).
     """
     chosen_amt = parse_currency(chosen)
     if chosen_amt is None or chosen_amt <= 0:
@@ -483,9 +510,8 @@ def incomplete_uniform_line_grid_explains_box28(
         return False
     implied_rows = int(quotient)
     observed_rows = len(units)
-    # Need a clear truncated multi-row strip (not a 2-line coincidence like
-    # EJG7.016 2×150 vs Box 600). Cap at the printed 6-line CMS grid.
-    if observed_rows < 3:
+    # Need a clear truncated multi-row strip. Cap at the printed 6-line CMS grid.
+    if observed_rows < max(2, int(min_observed)):
         return False
     return observed_rows < implied_rows <= 6
 
@@ -530,7 +556,11 @@ def chosen_exceeds_cms_uniform_line_grid(
     return int(quotient) > 6
 
 
-def charge_conflicts_with_plausible_line_sum(chosen: object, service_lines: list | None) -> bool:
+def charge_conflicts_with_plausible_line_sum(
+    chosen: object,
+    service_lines: list | None,
+    candidates: list | None = None,
+) -> bool:
     """True when observed line Σ is a real different total, not cents noise or junk."""
     total = line_sum_total(service_lines)
     if total is None or parse_currency(chosen) is None:
@@ -541,6 +571,9 @@ def charge_conflicts_with_plausible_line_sum(chosen: object, service_lines: list
         return False
     # Truncated equal-amount service grid (3×200 vs Box 28 1200) is not a rival.
     if incomplete_uniform_line_grid_explains_box28(chosen, service_lines):
+        return False
+    # DI+open-source Box 28 with a 2-line equal prefix (EJG7.016 2×150→600).
+    if di_backed_incomplete_grid_explains_box28(chosen, service_lines, candidates):
         return False
     return True
 

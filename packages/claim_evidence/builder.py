@@ -716,7 +716,7 @@ class ClaimEvidenceBuilder:
             grid_alt = prefer_incomplete_grid_box28(chosen, agent_candidates, lines)
             if grid_alt:
                 chosen = grid_alt
-            if chosen and llm_charge_pick_has_open_source_authority(chosen, agent_candidates, lines) and not charge_conflicts_with_plausible_line_sum(chosen, lines):
+            if chosen and llm_charge_pick_has_open_source_authority(chosen, agent_candidates, lines) and not charge_conflicts_with_plausible_line_sum(chosen, lines, agent_candidates):
                 contradictions[:] = [
                     item
                     for item in contradictions
@@ -906,6 +906,7 @@ class ClaimEvidenceBuilder:
             # amount implies more than 6 equal CMS rows (EJGE.006 4200 vs 3×200).
             from packages.claim_evidence.line_sum_authority import (
                 chosen_exceeds_cms_uniform_line_grid,
+                is_implausible_corroborator,
                 prefer_incomplete_grid_box28,
             )
 
@@ -922,12 +923,16 @@ class ClaimEvidenceBuilder:
                 grid_alt = prefer_incomplete_grid_box28(chosen, agent_candidates, lines)
                 if grid_alt:
                     chosen = grid_alt
+                # Locals-agree Box 28 may disagree with a partial line Σ (EJG7.001
+                # 955 vs 835). Still block wild soup (EJG7.004 17500 vs 1031) and
+                # beyond-grid shells (EJGE.006 4200).
                 if (
                     chosen
                     and llm_charge_pick_has_open_source_authority(
                         chosen, agent_candidates, lines
                     )
                     and not chosen_exceeds_cms_uniform_line_grid(chosen, lines)
+                    and not is_implausible_corroborator(chosen, decision.line_sum)
                 ):
                     contradictions[:] = [
                         item

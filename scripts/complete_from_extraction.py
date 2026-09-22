@@ -454,7 +454,9 @@ def decide(extraction, family):
             and llm_charge_pick_has_open_source_authority(
                 agent.get('value'), agent_candidates, service_lines
             )
-            and not charge_conflicts_with_plausible_line_sum(agent.get('value'), service_lines)
+            and not charge_conflicts_with_plausible_line_sum(
+                agent.get('value'), service_lines, agent_candidates
+            )
         ):
             values[charge_field] = str(agent['value']).strip()
             continue
@@ -462,7 +464,7 @@ def decide(extraction, family):
         # is a place-shift / digit-soup twin of Σ must not veto should_defer —
         # that re-arms FINANCIAL_CONFLICT after we cleared the contradictory shell.
         if current_val not in (None, '') and should_defer_box28_to_line_sum(
-            current_val, service_lines
+            current_val, service_lines, candidates=agent_candidates
         ):
             values[charge_field] = None
             continue
