@@ -1,0 +1,27 @@
+{
+  "title": "Full ops after same-Box28 cash ruling geometry clear",
+  "updated_at": "2026-09-22T14:25:04Z",
+  "src_prior": "hackathon_1000_stp_recovery_complete_v1",
+  "unique_claims_completed": 318,
+  "true_stp": 279,
+  "true_stp_rate_of_completed": 0.877358,
+  "hitl": 39,
+  "flipped_vs_complete_v1": 10,
+  "lost_vs_complete_v1": 0,
+  "net_delta_vs_complete_v1": 10,
+  "charge_hitl_remaining": 25,
+  "flipped_ids": [
+    "Group A__M048DJKH.007",
+    "Group A__M048DJKH.008",
+    "Group A__M048DJKH.009",
+    "Group A__M048DJKH.013",
+    "Group A__M048DJKH.017",
+    "Group A__M048DJKH.019",
+    "Group A__M048DJKH.030",
+    "Group A__M048DJKH.038",
+    "Group A__M048DJKH.039",
+    "Group A__M048DJKH.041"
+  ],
+  "lost_ids": [],
+  "elapsed_sec": 65.978
+}

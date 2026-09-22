@@ -1,0 +1,435 @@
+{
+  "title": "Same-Box28 cash ruling printed-cents clear",
+  "updated_at": "2026-09-22T14:23:16Z",
+  "cohort": [
+    "Group A__M048DJKH.007",
+    "Group A__M048DJKH.008",
+    "Group A__M048DJKH.009",
+    "Group A__M048DJKH.013",
+    "Group A__M048DJKH.017",
+    "Group A__M048DJKH.019",
+    "Group A__M048DJKH.022",
+    "Group A__M048DJKH.030",
+    "Group A__M048DJKH.038",
+    "Group A__M048DJKH.039",
+    "Group A__M048DJKH.041"
+  ],
+  "completed": 11,
+  "true_stp": 10,
+  "flipped": 10,
+  "flipped_ids": [
+    "Group A__M048DJKH.007",
+    "Group A__M048DJKH.008",
+    "Group A__M048DJKH.009",
+    "Group A__M048DJKH.013",
+    "Group A__M048DJKH.017",
+    "Group A__M048DJKH.019",
+    "Group A__M048DJKH.030",
+    "Group A__M048DJKH.038",
+    "Group A__M048DJKH.039",
+    "Group A__M048DJKH.041"
+  ],
+  "still_hitl": 1,
+  "still_hitl_ids": [
+    "Group A__M048DJKH.022"
+  ],
+  "rows": [
+    {
+      "claim_id": "Group A__M048DJKH.007",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "228.32",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_EVALUATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.729,
+      "ts": "2026-09-22T14:23:10Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.008",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "157.07",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_CORROBORATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.721,
+      "ts": "2026-09-22T14:23:10Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.009",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "157.07",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_CORROBORATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.719,
+      "ts": "2026-09-22T14:23:11Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.013",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "157.07",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_EVALUATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.674,
+      "ts": "2026-09-22T14:23:12Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.017",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "222.22",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_CORROBORATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.679,
+      "ts": "2026-09-22T14:23:12Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.019",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "157.07",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_EVALUATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.668,
+      "ts": "2026-09-22T14:23:13Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.022",
+      "completed": true,
+      "true_stp": false,
+      "disposition": "HITL",
+      "claim_status": "CLAIM_REVIEW_REQUIRED",
+      "decision_reason": [
+        "UNRESOLVED_CLAIM_CONTRADICTION"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "25.43",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_CORROBORATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.67,
+      "ts": "2026-09-22T14:23:14Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.030",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "25.43",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_CORROBORATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.66,
+      "ts": "2026-09-22T14:23:14Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.038",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "222.22",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_CORROBORATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.663,
+      "ts": "2026-09-22T14:23:15Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.039",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "157.07",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_EVALUATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.676,
+      "ts": "2026-09-22T14:23:16Z"
+    },
+    {
+      "claim_id": "Group A__M048DJKH.041",
+      "completed": true,
+      "true_stp": true,
+      "disposition": "TRUE_STP",
+      "claim_status": "STP_SAFE",
+      "decision_reason": [
+        "ALL_BLOCKING_FIELDS_SAFELY_RESOLVED"
+      ],
+      "total_charge": {
+        "disp": "AUTO_ACCEPTED",
+        "value": "228.32",
+        "reasons": [
+          "HARD_VALIDATION_PASSED",
+          "MULTI_ENGINE_AGREEMENT",
+          "BOX28_BLANKNESS_EVALUATED",
+          "BOX28_LINE_SUM_CORROBORATED",
+          "CASH_RULING_PRINTED_CENTS",
+          "CHARGE_DI_LOCAL_CONFIRMED",
+          "CHARGE_TOTAL_AUTHORITY",
+          "CLAIM_TOTAL_CONFIRMED",
+          "CLAIM_TOTAL_WITHIN_TOLERANCE",
+          "FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED",
+          "FORMAT_VALID",
+          "FINANCIAL_GEOMETRY_CALIBRATION_EXCEPTION"
+        ]
+      },
+      "has_cash_ruling": true,
+      "has_geometry_blocked": false,
+      "has_line_sum_blocked": false,
+      "has_confirmed": true,
+      "prior_true_stp": false,
+      "prior_disposition": "HITL",
+      "elapsed_sec": 0.669,
+      "ts": "2026-09-22T14:23:16Z"
+    }
+  ],
+  "page_check": "FG/line-sum mint CASH_RULING_PRINTED_CENTS when DI raw is $ NNN :CC; BLEED_CENTS_GEOMETRY/LINE_SUM_BLOCKED cleared; field binds printed cents."
+}
