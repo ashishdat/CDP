@@ -906,7 +906,68 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
+def _agent_gt_accuracy_block(run_dir: Path | None) -> dict[str, Any]:
+    """Score cascade results against agent-confirmed labels when present.
+
+    Hackathon ZIP has no vendor field GT. Confirmed SILVER/GOLD labels live in
+    ``evaluation_data/hackathon_agent_gt/field_truth.json``.
+    """
+    unavailable = {
+        "status": "UNAVAILABLE_NO_GROUND_TRUTH",
+        "end_to_end_correct_completion_rate": None,
+        "field_accuracy": None,
+        "note": (
+            "Hackathon 1000 ZIP has no vendor field-level labels. Provide "
+            "evaluation_data/hackathon_agent_gt/field_truth.json to enable "
+            "agent-confirmed accuracy scoring."
+        ),
+    }
+    if run_dir is None:
+        return unavailable
+    gt_path = ROOT / "evaluation_data" / "hackathon_agent_gt" / "field_truth.json"
+    if not gt_path.exists():
+        return unavailable
+    try:
+        from scripts.score_hackathon_gt_accuracy import score as score_agent_gt
+
+        gt = json.loads(gt_path.read_text(encoding="utf-8"))
+        scored = score_agent_gt(Path(run_dir), gt)
+    except Exception as exc:  # noqa: BLE001
+        return {
+            **unavailable,
+            "status": "AGENT_GT_SCORE_FAILED",
+            "note": f"Agent GT present but scoring failed: {type(exc).__name__}: {exc}",
+        }
+    return {
+        "status": "SCORED_VS_AGENT_CONFIRMED_LABELS",
+        "gt_path": str(gt_path.relative_to(ROOT)),
+        "claims_scored": scored.get("claims_scored"),
+        "field_count": scored.get("field_count"),
+        "exact_accuracy": scored.get("exact_accuracy"),
+        "perfect_claim_exact_rate": scored.get("perfect_claim_exact_rate"),
+        "false_accepts": scored.get("false_accepts"),
+        "accepted_fields_scored": scored.get("accepted_fields_scored"),
+        "accepted_field_precision": scored.get("accepted_field_precision"),
+        "false_accept_rate": scored.get("false_accept_rate"),
+        "quarantined_fields": scored.get("quarantined_fields"),
+        "field_exact": scored.get("field_exact"),
+        "true_stp_of_scored": scored.get("true_stp_of_scored"),
+        "release_gate_eligible": scored.get("release_gate_eligible"),
+        "release_gate_reason": scored.get("release_gate_reason"),
+        "metric_contract": scored.get("metric_contract"),
+        "end_to_end_correct_completion_rate": scored.get("perfect_claim_exact_rate"),
+        "field_accuracy": scored.get("exact_accuracy"),
+        "note": (
+            "Accuracy vs agent-confirmed SILVER/GOLD labels (not vendor ZIP GT). "
+            "Discrepancy ledger quarantines excluded from denominator. "
+            "Not independent adjudicated truth — release_gate_eligible stays false."
+        ),
+    }
+
+
+def _summarize(
+    rows: list[dict[str, Any]], *, limit: int, run_dir: Path | None = None
+) -> dict[str, Any]:
     n = len(rows)
     by_disp = Counter(str(r.get("disposition") or "UNKNOWN") for r in rows)
     blockers: Counter[str] = Counter()
@@ -971,15 +1032,7 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
             name: round(auto[name] / completed, 6) if completed else 0.0
             for name in CRITICAL
         },
-        "accuracy": {
-            "status": "UNAVAILABLE_NO_GROUND_TRUTH",
-            "end_to_end_correct_completion_rate": None,
-            "field_accuracy": None,
-            "note": (
-                "Hackathon 1000 ZIP has no field-level labels. Accuracy cannot be "
-                "scored; report operational STP/HITL and field auto-accept rates only."
-            ),
-        },
+        "accuracy": _agent_gt_accuracy_block(run_dir),
         "ocr_cascade": {
             "claims_with_ocr": cascade_claims,
             "cascade_healthy_claims": cascade_healthy,
@@ -1013,6 +1066,11 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
                 "REGISTRATION_FAILED | STAGE_FAILURE | APP_FAILURE | "
                 "SUMMARY_ERROR | WORKER_ERROR | OCR_MISSING | INCOMPLETE"
             ),
+            "accuracy": (
+                "When agent-confirmed labels exist: exact_accuracy / "
+                "accepted_field_precision / false_accepts vs "
+                "evaluation_data/hackathon_agent_gt/field_truth.json"
+            ),
             "note": (
                 "Primary STP/HITL rates use the completed denominator. "
                 "Infra failures are reported separately and must not be folded into HITL."
@@ -1020,8 +1078,9 @@ def _summarize(rows: list[dict[str, Any]], *, limit: int) -> dict[str, Any]:
         },
         "note": (
             "Operational metrics under field-cascade-v12 with paddle+rapid confirmation "
-            "cascade, name/ID value-band-first, and label-contamination relief. No "
-            "field-level GT on Hackathon corpus — accuracy marked unavailable."
+            "cascade, name/ID value-band-first, and label-contamination relief. "
+            "Accuracy uses agent-confirmed labels when "
+            "evaluation_data/hackathon_agent_gt/field_truth.json is present."
         ),
         "generated_at": _utc_now(),
         "run_status": "PARTIAL" if n < limit else "COMPLETE",
@@ -1325,7 +1384,7 @@ def main() -> int:
         if cid:
             by_id[cid] = row
     final_rows = [by_id[_claim_slug(d)] for d in selected if _claim_slug(d) in by_id]
-    summary = _summarize(final_rows, limit=len(selected))
+    summary = _summarize(final_rows, limit=len(selected), run_dir=out_dir)
     summary["workers"] = args.workers
     summary["engines_probe"] = engine_probe
     try:
