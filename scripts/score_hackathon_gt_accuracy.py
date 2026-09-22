@@ -97,11 +97,31 @@ def _exact(field: str, predicted: object, expected: object, **_context: Any) -> 
 
         a, b = parse_currency(predicted), parse_currency(expected)
         return a is not None and b is not None and a == b
-    if field in {"insured_id_number", "member_id", "patient_name", "insured_name"}:
+    if field in {"insured_id_number", "member_id"}:
         def compact(value: object) -> str:
             return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
 
         return compact(predicted) == compact(expected)
+    if field in {"patient_name", "insured_name"}:
+        def compact(value: object) -> str:
+            return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+        if compact(predicted) == compact(expected):
+            return True
+        # Optional single-letter middle initial is representation variance, not a
+        # different person (GAVIN ROBERT M ↔ GAVIN ROBERT).
+        try:
+            from packages.candidate_reconciliation.reconciler import (
+                _names_differ_by_optional_middle_initial,
+            )
+
+            if _names_differ_by_optional_middle_initial(
+                str(predicted or ""), str(expected or "")
+            ):
+                return True
+        except Exception:  # noqa: BLE001
+            pass
+        return False
     return str(predicted or "").strip().upper() == str(expected or "").strip().upper()
 
 
