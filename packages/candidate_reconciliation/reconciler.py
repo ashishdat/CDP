@@ -1824,6 +1824,29 @@ class EvidenceReconciler:
                 "CLAIM_TOTAL_CONFIRMED" in deterministic
             )
         )
+        # Bleed→whole: prefer same-dollar .00 sibling among candidates before
+        # stripping financial authority / fail-closed on units bleed cents.
+        bleed_repaired_to_whole = False
+        if field_name in {"total_charge", "total_charges"} and _charge_is_units_bleed_cents(
+            value
+        ):
+            from packages.claim_evidence.charge_total_authority import (
+                _dollars_part,
+                format_currency,
+                parse_currency,
+            )
+
+            bleed_amt = parse_currency(value)
+            if bleed_amt is not None:
+                target = f"{_dollars_part(format_currency(bleed_amt))}.00"
+                for cand in candidates:
+                    text = str(cand.value or "").strip()
+                    if not text:
+                        continue
+                    if parse_currency(text) == parse_currency(target):
+                        value = format_currency(parse_currency(text))
+                        bleed_repaired_to_whole = True
+                        break
         # Bleed/echo cents never carry financial AUTO authority (defense-in-depth;
         # primary block is bleed-at-mint in ChargeTotalAuthoritySession).
         if field_name in {"total_charge", "total_charges"} and _charge_is_units_bleed_cents(
@@ -1914,6 +1937,8 @@ class EvidenceReconciler:
                 for candidate, _, _ in items
             )
         reasons = ["HARD_VALIDATION_PASSED"] if "HARD_VALIDATION_PASSED" in deterministic else []
+        if bleed_repaired_to_whole:
+            reasons.append("BLEED_CENTS_REPAIRED_TO_WHOLE_DOLLAR")
         if charge_reader_relief:
             reasons.append("CHARGE_READER_AGREEMENT_THRESHOLD_RELIEF")
         if has_independent_agreement:

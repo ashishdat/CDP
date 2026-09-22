@@ -1246,19 +1246,36 @@ def decide(extraction, family):
 
                 if eligible:
                     # Bleed-at-mint: never stamp CONFIRMED on units/ruling cents.
-                    # Prefer whole-dollar Σ when bind is bleed of the same dollars.
+                    # Prefer whole-dollar Σ / OCR sibling via ChargeTotalAuthority.
                     bind_amount = derived or winner_val
                     if bind_amount and is_units_bleed_cents(bind_amount):
-                        whole = f"{_dollars(bind_amount)}.00"
-                        if (
-                            derived
-                            and format_currency(parse_currency(derived)) == whole
-                        ):
-                            bind_amount = whole
-                            derived = whole
+                        from packages.claim_evidence.charge_total_authority import (
+                            repair_bleed_to_whole_dollar,
+                        )
+
+                        repaired, repair_reason = repair_bleed_to_whole_dollar(
+                            bind_amount,
+                            field_payload=f if isinstance(f, dict) else None,
+                            service_lines=service_lines,
+                        )
+                        if repair_reason in {
+                            "BLEED_CENTS_TO_WHOLE_DOLLAR",
+                            "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
+                        } and repaired:
+                            bind_amount = repaired
+                            derived = repaired
+                            gate_reason = f"{gate_reason}+{repair_reason}"
                         else:
-                            eligible = False
-                            gate_reason = "BLEED_CENTS_AT_MINT"
+                            whole = f"{_dollars(bind_amount)}.00"
+                            if (
+                                derived
+                                and format_currency(parse_currency(derived)) == whole
+                            ):
+                                bind_amount = whole
+                                derived = whole
+                            else:
+                                eligible = False
+                                gate_reason = "BLEED_CENTS_AT_MINT"
                 if eligible:
                     # Financial E6 only when dual-engine / gpt4o+local or DI/box-28.
                     # Single ChargeTotalAuthority mint — stamp CONFIRMED so

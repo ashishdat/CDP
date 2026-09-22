@@ -183,6 +183,42 @@ def test_line_totals_without_confirmed_stays_hitl():
     assert result.decision != Decision.ACCEPT
 
 
+def test_bleed_cents_repaired_to_whole_dollar_sibling():
+    """DJKH.036: 25.43 bleed AUTO→25.00 when OCR sibling .00 is present + CONFIRMED."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            # Bleed ranked first (higher raw confidence) — must repair to .00.
+            _candidate("25.43", "paddleocr", 0.99),
+            _candidate("25.43", "azure_document_intelligence_read", 0.98),
+            _candidate("25.00", "rapidocr", 0.90),
+            _candidate(
+                "25.00",
+                "rapidocr",
+                0.91,
+                preprocessing_variant="DERIVED_FROM_OBSERVED_LINE_CHARGES",
+                evidence_reference="LINE_TOTALS_RECONCILED",
+            ),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "LINE_TOTALS_RECONCILED",
+            "LINE_TOTALS_CORROBORATED",
+            "CLAIM_TOTAL_CONFIRMED",
+            "CHARGE_TOTAL_AUTHORITY",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"25.43", "25"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "25.00"
+    assert "BLEED_CENTS_FAIL_CLOSED" not in result.rationale_codes
+    assert "BLEED_CENTS_REPAIRED_TO_WHOLE_DOLLAR" in result.rationale_codes
+
+
 def test_line_sum_truncated_scale_twin_does_not_veto_stp():
     """EJI2.003: line Σ 660 must AUTO beside truncated 66 and inflated 66000."""
     result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
