@@ -872,8 +872,8 @@ def test_geometry_ruling_tick_is_not_digit_drop_fuller():
 
 
 def test_geometry_digit_drop_survives_claude_short_crop():
-    """HJDF.022: geometry ``185100`` → ``1851`` must beat Claude ``185``."""
-    line = {
+    """Single-line geometry×Claude stays closed; multi-line HJDF.022 promotes."""
+    line_a = {
         "charges": None,
         "canonical_region": list(_CHARGE_BBOX),
         "candidates": [
@@ -882,12 +882,29 @@ def test_geometry_digit_drop_survives_claude_short_crop():
             _cand("rapidocr", "1851.00", "185100", _CHARGE_BBOX),
         ],
     }
-    line["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
-    result = select_line_charge(line)
-    assert result.disposition == "SELECTED_LOCAL_CHARGE"
-    assert result.amount == "1851.00"
-    assert result.reason == "DIGIT_DROP_FULLER_LOCAL"
-    out = apply_line_charge_selector([line])
+    line_a["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
+    # Per-line: do not promote geometry 1851 over Claude-only 185 — that same
+    # pattern is the DJKN.001 ruling tick (2001 vs 200) on single-line claims.
+    single = select_line_charge(line_a)
+    assert single.disposition != "SELECTED_LOCAL_CHARGE" or single.amount != "1851.00"
+    assert single.reason != "DIGIT_DROP_FULLER_LOCAL"
+    closed = apply_line_charge_selector([line_a])
+    assert closed[0].get("charges") != "1851.00"
+
+    line_b = {
+        "charges": None,
+        "canonical_region": list(_CHARGE_BBOX),
+        "candidates": [
+            _cand("anthropic_claude_crop", "155.00", "155.00", _CHARGE_BBOX),
+            _cand("paddleocr", "15500.00", "15500", _CHARGE_BBOX),
+            _cand("rapidocr", "1551.00", "155100", _CHARGE_BBOX),
+        ],
+    }
+    line_b["candidates"][-1]["preprocessing_variant"] = "GEOMETRY_CENTS"
+    out = apply_line_charge_selector([line_a, line_b])
     assert out[0]["charges"] == "1851.00"
+    assert out[1]["charges"] == "1551.00"
+    assert out[0]["line_charge_selection"]["reason"] == "MULTI_LINE_GEOMETRY_DIGIT_DROP"
+    assert out[1]["line_charge_selection"]["reason"] == "MULTI_LINE_GEOMETRY_DIGIT_DROP"
 
 

@@ -896,7 +896,10 @@ def _multi_line_digit_drop_resolved(service_lines: list[dict] | None) -> bool:
         selection = line.get("line_charge_selection") or {}
         if selection.get("disposition") != "SELECTED_LOCAL_CHARGE":
             return False
-        if selection.get("reason") == "DIGIT_DROP_FULLER_LOCAL":
+        if selection.get("reason") in {
+            "DIGIT_DROP_FULLER_LOCAL",
+            "MULTI_LINE_GEOMETRY_DIGIT_DROP",
+        }:
             saw_drop = True
             continue
         if not line_has_dual_engine_agreement(line):

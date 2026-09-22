@@ -1034,10 +1034,11 @@ def select_line_charge(
         if vision_fuller is not None:
             return vision_fuller
         digit_drop = _digit_drop_fuller_local(by_amount)
-        # Geometry-only ``200100`` → ``2001.00`` is a ruling tick when a local
-        # peer already reads the smaller dollars (``200.00``). Do not clear the
-        # Blind-50 case where the only shorter rival is Claude ``185`` beside
-        # geometry ``1851`` — that is a dropped digit, not a ruling tick.
+        # Geometry-only ``200100`` → ``2001.00`` is a ruling tick, not the
+        # dropped-digit case that keeps Rapid ``1851.00`` over Claude ``185``.
+        # Single-line DJKN.001/.002/.006 stay at printed ``200`` when Claude is
+        # the only shorter rival. Multi-line HJDF.022 is recovered in
+        # ``apply_line_charge_selector`` after every line shows this pattern.
         if (
             digit_drop is not None
             and _geometry_only_rows(digit_drop, filtered)
@@ -1046,7 +1047,6 @@ def select_line_charge(
                 and (full_amt := parse_currency(digit_drop)) is not None
                 and full_amt > other_amt
                 and is_scale_shift(digit_drop, other)
-                and bool((by_amount.get(other) or set()) & _LOCAL_ENGINES)
                 for other in by_amount
                 if other != digit_drop
             )
@@ -1366,6 +1366,73 @@ def select_line_charge(
     )
 
 
+def _geometry_digit_drop_vs_vision_short(line: dict) -> str | None:
+    """Fuller GEOMETRY_CENTS amount when the only shorter rival is vision.
+
+    Used for multi-line Blind-50 recovery (1851+1551) where the per-line
+    selector clears geometry digit-drop against Claude so single-line ruling
+    ticks (2001 vs 200) stay closed.
+    """
+    by_amount: dict[str, set[str]] = {}
+    geometry_amounts: set[str] = set()
+    for cand in line.get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        amount = _shaped_amount(cand)
+        if amount is None:
+            continue
+        family = _engine_family(cand.get("engine"))
+        by_amount.setdefault(amount, set()).add(family)
+        prep = str(cand.get("preprocessing_variant") or cand.get("evidence_reference") or "")
+        if "GEOMETRY_CENTS" in prep and family in _LOCAL_ENGINES:
+            geometry_amounts.add(amount)
+    if len(geometry_amounts) != 1:
+        return None
+    fuller = next(iter(geometry_amounts))
+    fuller_rows = [
+        cand
+        for cand in (line.get("candidates") or [])
+        if isinstance(cand, dict) and _shaped_amount(cand) == fuller
+    ]
+    if not fuller_rows or not all(
+        "GEOMETRY_CENTS"
+        in str(cand.get("preprocessing_variant") or cand.get("evidence_reference") or "")
+        for cand in fuller_rows
+    ):
+        return None
+    fuller_dollars = _dollars_digits(fuller)
+    if len(fuller_dollars) < 3:
+        return None
+    others = [amount for amount in by_amount if amount != fuller]
+    if not others:
+        return None
+    saw_drop = False
+    for other in others:
+        families = by_amount[other]
+        other_dollars = _dollars_digits(other)
+        is_drop = (
+            bool(other_dollars)
+            and fuller_dollars.startswith(other_dollars)
+            and len(fuller_dollars) - len(other_dollars) == 1
+        )
+        if is_drop:
+            # A local short twin is real disagreement, not Claude digit-drop.
+            if families & _LOCAL_ENGINES:
+                return None
+            saw_drop = True
+            continue
+        if families & _LOCAL_ENGINES:
+            # Paddle ``18500`` beside geometry ``1851`` is place-shift soup, not
+            # a second charge that should block multi-line Blind-50 recovery.
+            if is_scale_shift(fuller, other):
+                continue
+            return None
+        if families <= {"tesseract"}:
+            continue
+        return None
+    return fuller if saw_drop else None
+
+
 def apply_line_charge_selector(lines: list[dict] | None) -> list[dict]:
     """Apply ``select_line_charge`` to each service line; drop unreadable rows."""
     kept: list[dict] = []
@@ -1448,4 +1515,41 @@ def apply_line_charge_selector(lines: list[dict] | None) -> list[dict]:
             f"{line.get('router_reason') or ''}|LINE_CHARGE_UNREADABLE:{selection.reason}"
         ).strip("|")
         kept.append(updated)
+
+    # Multi-line only: every observed line is geometry digit-drop vs Claude short
+    # (HJDF.022 1851+1551). Single-line geometry 2001 vs Claude 200 stays closed.
+    promote: list[tuple[int, str]] = []
+    for index, line in enumerate(kept):
+        if not line.get("line_charge_ambiguous"):
+            if any(parse_currency(line.get(k)) is not None for k in ("charges", "charge_amount")):
+                # A clean selected line breaks the all-ambiguous pattern.
+                promote = []
+                break
+            continue
+        fuller = _geometry_digit_drop_vs_vision_short(line)
+        if fuller is None:
+            promote = []
+            break
+        promote.append((index, fuller))
+    if len(promote) >= 2 and len(promote) == sum(
+        1
+        for line in kept
+        if line.get("line_charge_ambiguous")
+        or any(parse_currency(line.get(k)) is not None for k in ("charges", "charge_amount"))
+    ):
+        for index, fuller in promote:
+            line = kept[index]
+            selection = LineChargeSelection(
+                "SELECTED_LOCAL_CHARGE",
+                fuller,
+                "MULTI_LINE_GEOMETRY_DIGIT_DROP",
+                supporting_engines=("rapidocr",),
+            )
+            line["line_charge_selection"] = selection.to_dict()
+            line["charges"] = fuller
+            line["charge_amount"] = fuller
+            line.pop("line_charge_ambiguous", None)
+            line["router_reason"] = (
+                f"{line.get('router_reason') or ''}|LINE_CHARGE_SELECTOR:{selection.reason}"
+            ).strip("|")
     return kept
