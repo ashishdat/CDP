@@ -387,18 +387,12 @@ def _name_confirm_confidence(attempts: list, candidates: list) -> float:
 
 def _field_in_scope(field_name: str) -> bool:
     scope = _ocr_scope()
-    key = (field_name or "").casefold()
     if scope in {"", "all", "*"}:
         return True
     if scope in {"stp_critical", "critical", "stp"}:
-        drop = {
-            part.strip().casefold()
-            for part in (os.environ.get("CDP_OCR_CRITICAL_EXCLUDE") or "").split(",")
-            if part.strip()
-        }
-        return key in _STP_CRITICAL_FIELDS and key not in drop
+        return (field_name or "").casefold() in _STP_CRITICAL_FIELDS
     allowed = {part.strip().casefold() for part in scope.split(",") if part.strip()}
-    return key in allowed
+    return (field_name or "").casefold() in allowed
 
 
 def _digit_psms_charge() -> tuple[int, ...]:
