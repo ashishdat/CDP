@@ -250,6 +250,8 @@ def should_defer_box28_to_line_sum(
     candidates: list | None = None,
 ) -> bool:
     """Return True when box-28 should be cleared so LINE_TOTALS_RECONCILED owns E6."""
+    from packages.claim_evidence.charge_total_authority import is_units_bleed_cents
+
     charges = observed_line_charges(service_lines)
     if not charges:
         return False
@@ -258,6 +260,17 @@ def should_defer_box28_to_line_sum(
         return True
     if is_suspicious_tiny_total(box) or is_implausible_charge_total(box):
         return True
+    # Never defer DI/vision+local Box 28 to a units-bleed line Σ.
+    observed = sum(charges, Decimal(0))
+    line_txt = format_currency(observed) if observed > 0 else None
+    if (
+        candidates
+        and line_txt
+        and not is_units_bleed_cents(box28_value)
+        and is_units_bleed_cents(line_txt)
+        and box28_di_partner_confirmed(box28_value, candidates)
+    ):
+        return False
     # Truncated equal-line OCR (3×200 vs Box 28 1200) is not a contradiction —
     # keep Box 28 so incomplete-grid authority can STP (EJGE.006/007/008).
     if incomplete_uniform_line_grid_explains_box28(box28_value, service_lines):
@@ -268,7 +281,6 @@ def should_defer_box28_to_line_sum(
     # Digit-drop Box 28 under-read of DIGIT_DROP_FULLER_LOCAL Σ (DJKN.004/007).
     if box28_digit_drop_underread_of_fuller_line(box28_value, service_lines):
         return True
-    observed = sum(charges, Decimal(0))
     if observed <= 0:
         return False
     difference = abs(box - observed)
@@ -727,6 +739,100 @@ def prefer_di_partner_fuller_over_local_underread(
     if len(unique) != 1:
         return None
     return unique[0]
+
+
+def box28_di_partner_confirmed(amount: object, candidates: list | None) -> bool:
+    """True when DI + (vision or local) — or vision + local — read ``amount``.
+
+    DI may return a ×10/×100 twin of the partner (``523800`` vs ``5238``); that
+    still counts as DI family support for the partner amount. Used to keep
+    printed Box 28 over bleed-cents line Σ without another cloud call.
+    """
+    target = parse_currency(amount)
+    if target is None or not candidates:
+        return False
+    target_txt = format_currency(target)
+    families: set[str] = set()
+    for cand in candidates:
+        if isinstance(cand, dict):
+            shell = (
+                cand.get("ocr_candidate")
+                if isinstance(cand.get("ocr_candidate"), dict)
+                else cand
+            )
+            engine = str(shell.get("engine") or "")
+            value = str(shell.get("value") or "")
+            raw = str(shell.get("raw_value") or "")
+        else:
+            engine = str(getattr(cand, "engine", "") or "")
+            value = str(getattr(cand, "value", "") or "")
+            raw = str(getattr(cand, "raw_value", "") or "")
+        charge_value = value
+        if "$" in raw and re.search(r"[:|/]", raw):
+            try:
+                from packages.claim_evidence.line_charge_selector import (
+                    _ruling_split_amount,
+                )
+
+                ruled = _ruling_split_amount(raw)
+                if ruled:
+                    charge_value = ruled
+            except Exception:  # noqa: BLE001
+                pass
+        amt = parse_currency(charge_value)
+        if amt is None:
+            continue
+        amt_txt = format_currency(amt)
+        eng = engine.casefold()
+        if "document_intelligence" in eng or "azure_di" in eng or "azure_read" in eng:
+            if amt_txt == target_txt or is_scale_shift(target_txt, amt_txt):
+                families.add("di")
+        elif "claude" in eng or "gpt4o" in eng or "anthropic" in eng:
+            if amt_txt == target_txt:
+                families.add("vision")
+        elif any(x in eng for x in ("paddle", "rapid", "tesseract")):
+            if amt_txt == target_txt:
+                families.add("local")
+    if "di" in families and (families & {"vision", "local"}):
+        return True
+    return "vision" in families and "local" in families
+
+
+def prefer_box28_over_bleed_line_sum(
+    chosen: object, candidates: list | None
+) -> str | None:
+    """When chosen is bleed-cents line Σ, prefer DI/vision+local Box 28 ink.
+
+    DJJM.049: derived ``342.01`` beside Claude+paddle ``5238.00``.
+    EJGE.043: derived ``250.10`` beside DI+Claude ``25000.00``.
+    """
+    from packages.claim_evidence.charge_total_authority import is_units_bleed_cents
+
+    if not is_units_bleed_cents(chosen) or not candidates:
+        return None
+    # Collect non-bleed amounts corroborated by DI+partner or vision+local.
+    amounts: dict[str, int] = {}
+    for cand in candidates:
+        if isinstance(cand, dict):
+            shell = (
+                cand.get("ocr_candidate")
+                if isinstance(cand.get("ocr_candidate"), dict)
+                else cand
+            )
+            value = str(shell.get("value") or "")
+        else:
+            value = str(getattr(cand, "value", "") or "")
+        amt = parse_currency(value)
+        if amt is None:
+            continue
+        txt = format_currency(amt)
+        if is_units_bleed_cents(txt):
+            continue
+        if box28_di_partner_confirmed(txt, candidates):
+            amounts[txt] = amounts.get(txt, 0) + 1
+    if len(amounts) != 1:
+        return None
+    return next(iter(amounts))
 
 
 def _chosen_is_open_source_digit_drop_fuller(

@@ -2,18 +2,16 @@
   "title": "E2E HITL taxonomy (full ops cohort)",
   "run": "evaluation_results/hackathon_1000_stp_recovery_latest_arch",
   "completed": 317,
-  "true_stp": 286,
-  "true_stp_rate": 0.902208,
-  "hitl": 31,
+  "true_stp": 291,
+  "true_stp_rate": 0.917981,
+  "hitl": 26,
   "buckets": {
-    "true_stp": 286,
+    "true_stp": 291,
     "charge_conflict_margin": 6,
     "charge_field_hitl": 16,
-    "bleed_fail_closed": 2,
     "identity_id": 1,
     "other_hitl": 1,
-    "identity_dob": 2,
-    "true_box28_line_disagree": 3
+    "identity_dob": 2
   },
   "hitl_ids": {
     "charge_conflict_margin": [
@@ -42,10 +40,6 @@
       "Group A__M048HJDF.009",
       "Group A__M048HJDF.017"
     ],
-    "bleed_fail_closed": [
-      "Group A__M048DJJM.049",
-      "Group A__M048EJGE.043"
-    ],
     "identity_id": [
       "Group A__M048EJG7.019"
     ],
@@ -55,11 +49,6 @@
     "identity_dob": [
       "Group A__M048EJI2.020",
       "Group A__M048HJBI.014"
-    ],
-    "true_box28_line_disagree": [
-      "Group A__M048EJI2.046",
-      "Group A__M048HJBI.008",
-      "Group A__M048HJBI.017"
     ]
   },
   "invariant": "AUTO total_charge with CLAIM_TOTAL_CONFIRMED/CASH_RULING/CHARGE_TOTAL_AUTHORITY must never remain in true_box28_line_disagree or other_hitl solely due to CLAIM_TOTAL_CONTRADICTION."

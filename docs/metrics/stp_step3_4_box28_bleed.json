@@ -1,0 +1,40 @@
+{
+  "title": "Steps 3\u20134 Box28\u2194line + bleed: DI_LOCAL clears stale contradiction; Box28 over bleed \u03a3",
+  "before_true_stp": 286,
+  "after_true_stp": 291,
+  "completed": 317,
+  "true_stp_rate": 0.917981,
+  "step3_box28_line": {
+    "cohort": [
+      "Group A__M048EJI2.046",
+      "Group A__M048HJBI.008",
+      "Group A__M048HJBI.017"
+    ],
+    "flipped": 3,
+    "mechanism": "CHARGE_DI_LOCAL_CONFIRMED waives stale CLAIM_TOTAL_CONTRADICTION from failed-integrity line \u03a3"
+  },
+  "step4_bleed": {
+    "cohort": [
+      "Group A__M048DJJM.049",
+      "Group A__M048EJGE.043"
+    ],
+    "flipped": 2,
+    "mechanism": "prefer DI/vision+local Box 28 over bleed-cents line \u03a3; no new cloud calls",
+    "values": {
+      "Group A__M048DJJM.049": "5238.00",
+      "Group A__M048EJGE.043": "25000.00"
+    }
+  },
+  "cloud_call_reduction": {
+    "identity": "skip gpt-4o/Claude when locals already multi-engine agree on shaped ID; skip DOB residual when display-shaped local exists",
+    "bleed_box28": "reuse existing DI/Claude Box 28 ink \u2014 do not re-call to resolve bleed line \u03a3"
+  },
+  "remaining_hitl": 26,
+  "remaining_buckets": {
+    "charge_conflict_margin": 6,
+    "charge_field_hitl": 16,
+    "identity_dob": 2,
+    "identity_id": 1,
+    "other_hitl": 1
+  }
+}

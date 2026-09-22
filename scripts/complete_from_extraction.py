@@ -1254,6 +1254,9 @@ def decide(extraction, family):
         # printed shell is a scale/decimal twin of Σ (past conflict-defer learning).
         _prefer_strong = False
         if name in {"total_charge", "total_charges"} and derived:
+            from packages.claim_evidence.charge_total_authority import (
+                is_units_bleed_cents,
+            )
             from packages.claim_evidence.line_sum_authority import (
                 is_decimal_place_shift,
                 is_scale_shift,
@@ -1293,6 +1296,15 @@ def decide(extraction, family):
                 )
                 or scale_soup
             )
+            # Never crown a bleed-cents line Σ over DI/vision+local Box 28 ink.
+            if _prefer_strong and derived and is_units_bleed_cents(derived):
+                from packages.claim_evidence.line_sum_authority import (
+                    prefer_box28_over_bleed_line_sum,
+                )
+
+                box28_keep = prefer_box28_over_bleed_line_sum(derived, candidates)
+                if box28_keep:
+                    _prefer_strong = False
         prefer_derived = bool(derived) and (
             not check.passed
             or f.get('status') == 'NO_VALUE'
@@ -1304,6 +1316,14 @@ def decide(extraction, family):
             )
             or _prefer_strong
         )
+        # Bleed line Σ must not be injected at conf=1.0 when Box 28 is settled.
+        if prefer_derived and derived and is_units_bleed_cents(derived):
+            from packages.claim_evidence.line_sum_authority import (
+                prefer_box28_over_bleed_line_sum,
+            )
+
+            if prefer_box28_over_bleed_line_sum(derived, candidates):
+                prefer_derived = False
         if prefer_derived:
             from packages.domain.common import BoundingBox
             # Always mint a clean derived candidate. Reusing an empty/invalid OCR

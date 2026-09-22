@@ -1165,6 +1165,28 @@ def test_prefer_di_partner_fuller_over_local_underread():
     assert prefer_di_partner_fuller_over_local_underread("150.00", eji2) is None
 
 
+def test_prefer_box28_over_bleed_line_sum():
+    from packages.claim_evidence.line_sum_authority import (
+        prefer_box28_over_bleed_line_sum,
+    )
+
+    # DJJM.049: Claude+paddle 5238 beats bleed line Σ 342.01 (DI ×100 twin ok).
+    djjm = [
+        {"engine": "anthropic_claude_crop", "value": "5238.00"},
+        {"engine": "paddleocr", "value": "5238.00"},
+        {"engine": "azure_document_intelligence_read", "value": "523800.00"},
+    ]
+    assert prefer_box28_over_bleed_line_sum("342.01", djjm) == "5238.00"
+    # EJGE.043: DI+Claude+paddle 25000 beats bleed Σ 250.10.
+    ejge = [
+        {"engine": "anthropic_claude_crop", "value": "25000.00"},
+        {"engine": "paddleocr", "value": "25000.00"},
+        {"engine": "azure_document_intelligence_read", "value": "25000.00"},
+    ]
+    assert prefer_box28_over_bleed_line_sum("250.10", ejge) == "25000.00"
+    assert prefer_box28_over_bleed_line_sum("25000.00", ejge) is None
+
+
 def test_geometry_underread_whole_dollar_box28_djkn009():
     """DJKN.009: UNDERREAD raw 600 → 600.00; soup line 1600 is not a rival."""
     from packages.claim_evidence.line_sum_authority import (

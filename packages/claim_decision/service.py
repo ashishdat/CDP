@@ -201,12 +201,14 @@ class ClaimDecisionService:
     def _contradictions(context: ClaimDecisionContext) -> list[str]:
         descriptions = [item.evidence_type for item in context.contradictions]
         # When total_charge is AUTO with ChargeTotalAuthority / cash ruling
-        # CONFIRMED, stale CLAIM_TOTAL_CONTRADICTION from earlier FG/tolerance
-        # soup must not force claim HITL (field FVA already locked the amount).
+        # CONFIRMED (or DI+local Box 28 confirmation), stale
+        # CLAIM_TOTAL_CONTRADICTION from a failed-integrity line Σ must not
+        # force claim HITL — field FVA already locked the printed amount.
         _MONETARY_AUTHORITY = {
             "CLAIM_TOTAL_CONFIRMED",
             "CHARGE_TOTAL_AUTHORITY",
             "CASH_RULING_PRINTED_CENTS",
+            "CHARGE_DI_LOCAL_CONFIRMED",
         }
         charge_auto_authority = any(
             decision.field_name in {"total_charge", "total_charges"}

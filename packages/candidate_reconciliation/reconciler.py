@@ -1844,6 +1844,28 @@ class EvidenceReconciler:
                 if compact_id:
                     value = compact_id
 
+        # Prefer DI/vision+local Box 28 over bleed-cents line Σ (DJJM.049 /
+        # EJGE.043) before BLEED_CENTS_FAIL_CLOSED.
+        early_box28_over_bleed = False
+        if field_name in {"total_charge", "total_charges"} and value:
+            from packages.claim_evidence.line_sum_authority import (
+                prefer_box28_over_bleed_line_sum,
+            )
+
+            box28_keep = prefer_box28_over_bleed_line_sum(value, candidates)
+            if box28_keep and str(box28_keep) != str(value):
+                value = box28_keep
+                keep_norm = normalize_agreement_value(field_name, box28_keep)
+                for norm, items in ranked:
+                    if norm == keep_norm or any(
+                        normalize_agreement_value(field_name, str(c.value or ""))
+                        == keep_norm
+                        for c, _, _ in items
+                    ):
+                        supporting = items
+                        break
+                early_box28_over_bleed = True
+
         # Never auto-accept a future DOB — OCR year junk / box-rule misreads.
         future_dob_rejected = False
         if is_dob_field and value and (
@@ -2223,6 +2245,26 @@ class EvidenceReconciler:
         # requires E2-qualified independent_agreement or deterministic_ok so
         # empty E2 sets cannot authorize non-ID critical fields.
         independent_evidence_ok = has_independent_agreement or deterministic_ok or financial_authority
+        # Box 28 over bleed line Σ already requires DI/vision+local corroboration;
+        # do not leave C3 HITL solely because the E2 agreement set was empty.
+        if (
+            early_box28_over_bleed
+            and has_multi_engine_family
+            and field_name in {"total_charge", "total_charges"}
+        ):
+            independent_evidence_ok = True
+        elif (
+            field_name in {"total_charge", "total_charges"}
+            and has_multi_engine_family
+            and "HARD_VALIDATION_PASSED" in deterministic
+            and not _charge_is_units_bleed_cents(value)
+        ):
+            from packages.claim_evidence.line_sum_authority import (
+                box28_di_partner_confirmed,
+            )
+
+            if box28_di_partner_confirmed(value, candidates):
+                independent_evidence_ok = True
         if future_dob_rejected:
             decision = Decision.REVIEW
             reasons.append("FUTURE_DOB_REJECTED")
@@ -2234,6 +2276,7 @@ class EvidenceReconciler:
             # Never AUTO units/ruling bleed cents (.07/.22/.44) — conflict-agent
             # and $1 tolerance were minting TRUE_STP on contested Box 28 ink.
             # Exception: cash ruling-split raws (``$ 157 :07``) confirm printed cents.
+            # Box28-over-bleed swap happens earlier (BOX28_OVER_BLEED_LINE_SUM).
             decision = Decision.REVIEW
             reasons.append("BLEED_CENTS_FAIL_CLOSED")
         elif reference_contradiction:
@@ -2275,6 +2318,26 @@ class EvidenceReconciler:
                     for other in genuine
                     if _dob_is_display_shaped(other)
                 ]
+            # Scale / place-shift charge OCR (DI ``523800`` vs Claude ``5238``)
+            # is not a genuine second total beside DI/vision+local Box 28.
+            if field_name in {"total_charge", "total_charges"}:
+                from packages.claim_evidence.line_sum_authority import (
+                    box28_di_partner_confirmed,
+                    is_currency_digit_drop_twin,
+                    is_decimal_place_shift,
+                    is_scale_shift,
+                )
+
+                if box28_di_partner_confirmed(value, candidates):
+                    genuine = [
+                        other
+                        for other in genuine
+                        if not (
+                            is_scale_shift(value, other)
+                            or is_decimal_place_shift(value, other)
+                            or is_currency_digit_drop_twin(value, other)
+                        )
+                    ]
             # Decimal-place / fragment charge OCR is not a genuine conflict when
             # Box 28 ↔ line-sum financial authority already confirmed the total,
             # or when LINE_TOTALS_RECONCILED owns the selected amount (soup rivals
@@ -2684,6 +2747,8 @@ class EvidenceReconciler:
                 reasons.append("GPT4O_ID_DIGIT_CONFLICT_TIEBREAK")
             if early_id_relief:
                 reasons.append("MEMBER_ID_CONFUSABLE_INSERTION_RELIEVED")
+            if early_box28_over_bleed:
+                reasons.append("BOX28_OVER_BLEED_LINE_SUM")
         # Letter soup stays fail-closed. Zero-padded short shells that were
         # already multi-engine shaped (``0000007267`` → ``7267``) keep ACCEPT;
         # lone-engine pads still fail closed.
