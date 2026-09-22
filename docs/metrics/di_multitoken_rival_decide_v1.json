@@ -1,0 +1,39 @@
+{
+  "title": "DI multi-token raw rivals are not Box 28 (DJKH.048 70 vs 100)",
+  "commit": "68bbb68",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_di_multitoken_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_di_multitoken_decide",
+    "src": "evaluation_results/hackathon_150_units_concat_v3",
+    "completed": 89,
+    "true_stp": 66,
+    "true_stp_rate_of_completed": 0.741573,
+    "field_ink_hitl": 23,
+    "prior_units_concat_v3": 65,
+    "flipped_to_true_stp": ["M048DJKH.048 total_charge 70.00"],
+    "lost_stp": [],
+    "false_accepts": 55,
+    "accepted_fields_scored": 231,
+    "accepted_field_precision": 0.761905
+  },
+  "page_check": "DJKH.048 line and Claude agree on 70.00. Azure DI raw '70 100 $' shaped as 100.00 ranked as Box 28 and forced FINANCIAL_CONFLICT. Multi-token DI rivals of an agreed line/Claude/conflict amount are now Box 28 junk.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 66. Hard-15 17500 vs 1031, EJGE 600 vs 1200 sixth-row, identity HITL, and empty-box single-line geometry ticks remain review.",
+  "note": "Decision-only on frozen OCR. Golden Pack not mutated. Gates still fail."
+}
