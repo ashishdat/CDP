@@ -1,0 +1,62 @@
+{
+  "title": "OS digit-drop fuller Box 28 past inflated-scale veto (DJKN.005 \u2192 2001 STP)",
+  "commit": "4531d80",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_digit_drop_fuller_auth_decide",
+    "src": "evaluation_results/hackathon_10_digit_drop_underread_decide",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_digit_drop_fuller_auth_decide",
+    "src": "evaluation_results/hackathon_150_digit_drop_underread_decide",
+    "method": "complete_only_digit_drop_fuller_auth_v1",
+    "completed": 89,
+    "true_stp": 82,
+    "true_stp_rate_of_completed": 0.921348,
+    "field_ink_hitl": 7,
+    "prior_digit_drop_underread": 80,
+    "flipped_to_true_stp": [
+      "Group A/M048DJKN.005",
+      "Group A/M048EJG7.026"
+    ],
+    "lost_stp": [],
+    "djkn005": {
+      "value": "2001.00",
+      "disposition": "AUTO_ACCEPTED"
+    },
+    "djkn001": {
+      "value": "200.00",
+      "disposition": "AUTO_ACCEPTED"
+    },
+    "false_accepts": 59,
+    "accepted_fields_scored": 237,
+    "accepted_field_precision": 0.751055,
+    "critical_false_accepts": 59,
+    "false_accepts_by_field": {
+      "total_charge": 29,
+      "patient_dob": 10,
+      "patient_name": 10,
+      "insured_name": 9,
+      "insured_id_number": 1
+    },
+    "gt_score_out": "evaluation_results/hackathon_gt_accuracy_digit_drop_fuller_auth",
+    "claims_scored_vs_agent_gt": 68
+  },
+  "page_check": "DJKN.005: paddle 2001 vs DI/Claude 200 \u2014 llm_auth bypasses inflated-scale when fuller is OS-only unique digit-drop twin; builder emits CLAIM_TOTAL even if complete_from_extraction already wrote 2001. DJKN.001/002/006 keep 200 (paddle corroborates short). Conflict-agent 2004 soup stays blocked.",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 82. Remaining 7 HITL: DJKN.009, EJG7.004/007/019/021/036, EJGE.017.",
+  "false_accept_note": "59 AUTO\u2260agent-GT on scored critical fields (precision 75.1%). Many are silver-GT cents truncation / name punctuation \u2014 not independent adjudicated truth. Gates FAIL; release_gate_eligible false.",
+  "note": "Decision-only on frozen OCR/extract. Golden Pack not mutated. Gates still fail."
+}

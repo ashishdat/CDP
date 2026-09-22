@@ -694,6 +694,8 @@ class ClaimEvidenceBuilder:
                 prefer_incomplete_grid_box28,
                 prefer_open_source_digit_drop_fuller_box28,
                 should_defer_box28_to_line_sum,
+                _chosen_is_open_source_digit_drop_fuller,
+                format_currency,
             )
         except Exception:  # noqa: BLE001
             return
@@ -728,6 +730,11 @@ class ClaimEvidenceBuilder:
             digit_alt = prefer_open_source_digit_drop_fuller_box28(
                 chosen, agent_candidates
             )
+            if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
+                chosen, agent_candidates
+            ):
+                amt = parse_currency(chosen)
+                digit_alt = format_currency(amt) if amt is not None else None
             if digit_alt:
                 chosen = digit_alt
             if chosen and llm_charge_pick_has_open_source_authority(chosen, agent_candidates, lines) and not charge_conflicts_with_plausible_line_sum(chosen, lines, agent_candidates):
@@ -774,10 +781,18 @@ class ClaimEvidenceBuilder:
                 return
         # DJKN.005: no conflict-agent side, but DI/Claude Box 28 under-reads a
         # unique open-source fuller twin (paddle 2001). Prefer that fuller for E6.
+        # complete_from_extraction may already have written the fuller into
+        # values — prefer_* then returns None; still emit CLAIM_TOTAL when the
+        # amount is the unique OS digit-drop fuller of short DI/Claude rivals.
         box28_seed = values.get("total_charge") or values.get("total_charges")
         digit_alt = prefer_open_source_digit_drop_fuller_box28(
             box28_seed, agent_candidates
         )
+        if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
+            box28_seed, agent_candidates
+        ):
+            amt = parse_currency(box28_seed)
+            digit_alt = format_currency(amt) if amt is not None else None
         if (
             digit_alt
             and llm_charge_pick_has_open_source_authority(
@@ -973,6 +988,7 @@ class ClaimEvidenceBuilder:
                 is_implausible_corroborator,
                 prefer_incomplete_grid_box28,
                 prefer_open_source_digit_drop_fuller_box28,
+                _chosen_is_open_source_digit_drop_fuller,
             )
 
             agent = values.get("_financial_conflict_agent")
@@ -999,6 +1015,16 @@ class ClaimEvidenceBuilder:
                 digit_alt = prefer_open_source_digit_drop_fuller_box28(
                     chosen, agent_candidates
                 )
+                if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
+                    chosen, agent_candidates
+                ):
+                    from packages.claim_evidence.line_sum_authority import (
+                        format_currency,
+                        parse_currency,
+                    )
+
+                    amt = parse_currency(chosen)
+                    digit_alt = format_currency(amt) if amt is not None else None
                 if digit_alt:
                     chosen = digit_alt
                 # Locals-agree Box 28 may disagree with a partial line Σ (EJG7.001
