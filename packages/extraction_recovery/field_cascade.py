@@ -246,11 +246,24 @@ def semantic_accept(
         compact = text.upper().replace(" ", "")
         # Reject header-only crops that still contain ID NUMBER / PROGRAM boilerplate.
         alnum = re.sub(r"[^A-Z0-9]", "", compact)
-        if alnum.isdigit():
-            alnum = alnum.lstrip("0") or "0"
-        if re.search(r"INSUR|NUMBER|PROGRAM|ITEM", compact) and not _ID_SHAPE.fullmatch(alnum):
+        digit_mass = sum(ch.isdigit() for ch in alnum)
+        # Letter soup (``eee ae | ONNNAAIVKRT``) must never outrank digit ink.
+        # Keep digit-mass aligned with reconciler ``_member_id_is_shaped``.
+        if digit_mass < 5:
+            return False, "NOT_ID_SHAPED"
+        # Shape-check the padded digit string before stripping zeros so
+        # ``0000007267`` remains ID_SHAPED for cascade ranking (AUTO still
+        # fail-closed in reconciler for short stripped shells).
+        shape_probe = alnum
+        if alnum.isdigit() and len(alnum) >= 5:
+            shape_probe = alnum
+        elif alnum.isdigit():
+            shape_probe = alnum.lstrip("0") or "0"
+        if re.search(r"INSUR|NUMBER|PROGRAM|ITEM", compact) and not _ID_SHAPE.fullmatch(
+            shape_probe
+        ):
             return False, "ID_LABEL_CONTAMINATED"
-        if _ID_SHAPE.fullmatch(alnum):
+        if _ID_SHAPE.fullmatch(shape_probe):
             return True, "ID_SHAPED"
         return False, "NOT_ID_SHAPED"
 

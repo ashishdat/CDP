@@ -1,6 +1,7 @@
 .PHONY: setup test test-unit test-integration test-golden test-performance \
 	architecture lint quality run down logs clean clean-runtime-data evaluation \
-	prod-smoke prod-check prod-closeout-init ui-up ui-down ui-seed ui-up-local ui-down-local
+	prod-smoke prod-check prod-closeout-init ui-up ui-down ui-seed ui-up-local ui-down-local \
+	geo-accuracy-gate
 
 setup:
 	@if [ ! -f .env ]; then cp .env.example .env; echo "created .env from .env.example"; fi
@@ -97,6 +98,9 @@ prod-smoke:
 
 prod-closeout-init:
 	python3 scripts/check_production_closeout.py --init
+
+geo-accuracy-gate:
+	python3 scripts/check_geometry_accuracy_gate.py
 
 prod-check: prod-smoke
 	@python3 scripts/check_production_closeout.py; status=$$?; \

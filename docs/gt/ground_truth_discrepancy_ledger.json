@@ -1,7 +1,7 @@
 {
-  "count": 66,
+  "count": 67,
   "by_kind": {
-    "LABEL_SOURCE_CONFLICT": 66
+    "LABEL_SOURCE_CONFLICT": 67
   },
   "records": [
     {
@@ -662,6 +662,16 @@
       "source_value": "1998-06-09",
       "page_index": null,
       "detail": "GOLD 09/02 absent from frozen OCR (rapid 06/09/1998). Quarantined pending re-adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJG7.004",
+      "field_name": "total_charge",
+      "label_value": "9641.00",
+      "source_value": "1031.00",
+      "page_index": 0,
+      "detail": "SILVER auto_accepted+line_sum label 9641 does not match dual-local Box 24F \u03a3 (951+80=1031). Box 28 OCR 17500 conflicts; remain HITL. Quarantine label from accuracy.",
       "quarantine_from_accuracy": true
     }
   ]

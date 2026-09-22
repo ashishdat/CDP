@@ -81,15 +81,21 @@ the correct status is **production-hardened, not production-authorized**.
 ## Measured eval tip (development labels — not release authority)
 
 Hackathon decide tip `evaluation_results/hackathon_150_geo_underread_600_decide`
-(see `docs/metrics/geo_underread_600_decide_v1.json`):
+(see `docs/metrics/geo_underread_600_decide_v1.json` and
+`docs/metrics/geometry_accuracy_95_gate_v1.json`):
 
 | Gate | Result |
 |---|---|
+| Field exact accuracy ≥95% | **PASS (98.95%)** via geometry tip + GT ledger |
 | True STP ≥94% | PASS (84/89) |
+| True STP ≥95% | FAIL operational (need ≥85/89; 5 fail-closed HITL remain) |
 | Claim HITL ≤6% | PASS (5.6%) |
 | Critical accepted precision ≥99.5% | PASS (100% on scored accepts) |
 | Zero critical false accepts | PASS (0) |
 | `release_gate_eligible` | **false** — agent-confirmed labels are not independent adjudicated truth |
+
+Operator check: `python3 scripts/check_geometry_accuracy_gate.py` (exit 0 when
+exact ≥95%, precision ≥99.5%, FA=0).
 
 These numbers harden confidence in the cascade; they do **not** close holdout
 blocker #7 or authorize PHI.
