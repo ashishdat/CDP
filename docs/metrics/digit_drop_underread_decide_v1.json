@@ -1,0 +1,44 @@
+{
+  "title": "Digit-drop Box 28 under-read → DIGIT_DROP_FULLER line Σ (DJKN.004/007 + DJKH.037)",
+  "commit": "3e5541a",
+  "gates": {
+    "true_stp_ge_94": "FAIL",
+    "claim_hitl_le_6": "FAIL",
+    "critical_accepted_precision_ge_99_5": "FAIL",
+    "false_accepted_critical_eq_0": "FAIL",
+    "llm_never_sole_monetary_authority": "enforced",
+    "golden_mutated": false,
+    "release_gate_eligible": false,
+    "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH"
+  },
+  "decision_only_10": {
+    "out": "evaluation_results/hackathon_10_digit_drop_underread_decide",
+    "src": "evaluation_results/hackathon_10_caption_bleed_again",
+    "completed": 10,
+    "true_stp": 10,
+    "true_stp_rate_of_completed": 1.0,
+    "field_ink_hitl": 0
+  },
+  "decision_only_89": {
+    "out": "evaluation_results/hackathon_150_digit_drop_underread_decide",
+    "src": "evaluation_results/hackathon_150_whitelist_noise_decide",
+    "method": "complete_only_digit_drop_underread_v2",
+    "completed": 89,
+    "true_stp": 80,
+    "true_stp_rate_of_completed": 0.898876,
+    "field_ink_hitl": 9,
+    "prior_whitelist_noise": 77,
+    "flipped_to_true_stp": [
+      "Group A/M048DJKH.037",
+      "Group A/M048DJKN.004",
+      "Group A/M048DJKN.007"
+    ],
+    "lost_stp": [],
+    "djkn004": {"value": "2001.00", "disposition": "AUTO_ACCEPTED"},
+    "djkn007": {"value": "2001.00", "disposition": "AUTO_ACCEPTED"},
+    "djkh037": {"value": "1291.15", "disposition": "AUTO_ACCEPTED"}
+  },
+  "page_check": "DJKN.004/007: restore extract DIGIT_DROP_FULLER 2001 only when open-source Box 28 does not corroborate truncated 200 (paddle 2004 stem extension). DJKN.001/002/006 keep printed 200 when paddle whitelist agrees with DI/Claude (silver GT 200). DJKH.037: line GEOMETRY_CENTS 1291.15 supports Claude Box 28 over dollars truncation 129. DJKN.005 stays HITL (line UNREADABLE; GT 2001).",
+  "still_closed": "94% of 89 needs ~84 TRUE_STP; cohort is 80. Remaining ~9 HITL: DJKN.005 place-shift, hard-15/E4 gaps, handwriting identity, empty/invalid ink.",
+  "note": "Decision-only on frozen OCR/extract. Golden Pack not mutated. Gates still fail."
+}
