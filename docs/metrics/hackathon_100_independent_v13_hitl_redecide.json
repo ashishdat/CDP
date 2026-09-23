@@ -1,0 +1,34 @@
+{
+  "cohort": "hackathon_100_independent_v13_hitl_redecide",
+  "n": 16,
+  "true_stp": 9,
+  "true_stp_rate": 0.5625,
+  "still_hitl": 7,
+  "flipped_to_stp": 9,
+  "projected_n100_if_merge": 77,
+  "note": "Prior Independent-100 had 84 STP + 16 HITL; flipped replace HITL.",
+  "still_hitl_ids": [
+    "Group A/M048DJJM.037",
+    "Group A/M048DJJM.040",
+    "Group A/M048DJKH.023",
+    "Group A/M048DJKH.048",
+    "Group A/M048DJKN.023",
+    "Group A/M048EJG7.007",
+    "Group A/M048EJG7.009"
+  ],
+  "flipped_ids": [
+    "Group A/M048DJJM.036",
+    "Group A/M048DJJM.039",
+    "Group A/M048DJJM.041",
+    "Group A/M048DJJM.042",
+    "Group A/M048DJJM.043",
+    "Group A/M048DJJM.049",
+    "Group A/M048DJKH.030",
+    "Group A/M048DJKH.035",
+    "Group A/M048DJKN.009"
+  ],
+  "median_elapsed_sec": 45.96,
+  "finished_at": "2026-09-23T05:39:22.463018+00:00",
+  "projected_n100_stp": 93,
+  "projected_n100_rate": 0.93
+}
