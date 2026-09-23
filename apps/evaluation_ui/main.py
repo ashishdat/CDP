@@ -213,6 +213,40 @@ def get_ops_usage_progress():
     return {"cohort": None, "progress": None}
 
 
+def _work_plan_candidates() -> list[Path]:
+    root = Path(__file__).resolve().parents[2]
+    return [
+        DIST_DIR / "reports" / "work_distribution_plan.json",
+        PUBLIC_DIR / "reports" / "work_distribution_plan.json",
+        root / "evaluation_results" / "hackathon_600_independent_v13c" / "work_distribution_plan.json",
+        root / "docs" / "metrics" / "work_distribution_plan_demo.json",
+    ]
+
+
+@app.get("/reports/work_distribution_plan.json")
+def get_work_distribution_plan():
+    for candidate in _work_plan_candidates():
+        if candidate.is_file():
+            return FileResponse(candidate)
+    return JSONResponse({"error": "work_plan_missing"}, status_code=404)
+
+
+@app.get("/scale/preview")
+def scale_preview(nodes: int = 4, count: int = 600):
+    """Interactive preview: how load splits if the fleet had ``nodes`` members."""
+    nodes = max(1, min(int(nodes), 64))
+    count = max(1, min(int(count), 5000))
+    sys_path_root = Path(__file__).resolve().parents[2]
+    if str(sys_path_root) not in __import__("sys").path:
+        __import__("sys").path.insert(0, str(sys_path_root))
+    from packages.work_distribution import auto_local_workers, plan_distribution
+
+    items = [f"Group A/M048DOC.{i:03d}" for i in range(count)]
+    workers = auto_local_workers(pending=max(1, count // nodes), node_count=nodes)
+    plan = plan_distribution(items, node_count=nodes, local_workers_per_node=workers)
+    return plan.to_dict()
+
+
 _MISSING_DIST_MESSAGE = (
     "Evaluation UI build unavailable: dist/index.html is missing. "
     "Run `npm run build` in apps/evaluation_ui."

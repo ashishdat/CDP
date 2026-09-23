@@ -1158,7 +1158,26 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=1000)
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--workers", type=int, default=1,
-                        help="Claim workers (default 1 until VLM/DI locks are shard-safe).")
+                        help="Claim workers (default 1 until VLM/DI locks are shard-safe). "
+                        "Use --auto-workers to size from CPUs/nodes.")
+    parser.add_argument(
+        "--nodes",
+        type=int,
+        default=None,
+        help="Fleet size for node-aware claim sharding (env CDP_NODE_COUNT). Default 1.",
+    )
+    parser.add_argument(
+        "--node-index",
+        type=int,
+        default=None,
+        help="This node's zero-based index (env CDP_NODE_INDEX / StatefulSet ordinal).",
+    )
+    parser.add_argument(
+        "--auto-workers",
+        action="store_true",
+        default=False,
+        help="Auto-size --workers from pending load, CPUs, and node count.",
+    )
     parser.add_argument(
         "--documents",
         default="",
@@ -1284,11 +1303,77 @@ def main() -> int:
     else:
         selected = docs[args.offset : args.offset + args.limit]
     done = _load_done(ledger) if args.resume else set()
-    pending = [d for d in selected if _claim_slug(d) not in done]
+    pending_global = [d for d in selected if _claim_slug(d) not in done]
+    already_done = len(selected) - len(pending_global)
+
+    from packages.work_distribution import (
+        auto_local_workers,
+        plan_distribution,
+        resolve_topology,
+        shard_for_node,
+        write_plan,
+    )
+
+    topology = resolve_topology(node_count=args.nodes, node_index=args.node_index)
+    fleet_plan = plan_distribution(
+        pending_global,
+        node_count=topology.node_count,
+        notes=(
+            f"offset={args.offset}",
+            f"limit={args.limit}",
+            f"selected={len(selected)}",
+            f"already_done={already_done}",
+        ),
+    )
+    write_plan(fleet_plan, out_dir / "work_distribution_plan.json")
+    pending = shard_for_node(pending_global, topology)
+    if topology.node_count > 1:
+        print(
+            f"node_shard={topology.node_id} index={topology.node_index}/"
+            f"{topology.node_count} claimed={len(pending)}/{len(pending_global)} "
+            f"(stable_hash_mod)",
+            flush=True,
+        )
+
+    workers = int(args.workers)
+    auto_env = (os.environ.get("CDP_AUTO_WORKERS") or "").strip().casefold() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+    if args.auto_workers or auto_env:
+        workers = auto_local_workers(
+            pending=len(pending),
+            node_count=topology.node_count,
+        )
+        print(
+            f"auto_workers={workers} (pending={len(pending)} "
+            f"nodes={topology.node_count} cpus={os.cpu_count()})",
+            flush=True,
+        )
+    args.workers = workers
+
+    # Refresh plan with chosen local concurrency for the Ops / Scale UI.
+    fleet_plan = plan_distribution(
+        pending_global,
+        node_count=topology.node_count,
+        local_workers_per_node=int(args.workers),
+        notes=(
+            f"offset={args.offset}",
+            f"limit={args.limit}",
+            f"selected={len(selected)}",
+            f"already_done={already_done}",
+            f"this_node_pending={len(pending)}",
+        ),
+    )
+    write_plan(fleet_plan, out_dir / "work_distribution_plan.json")
+
     print(
         f"strategy=field-cascade-v12 selected={len(selected)} "
-        f"already_done={len(selected) - len(pending)} pending={len(pending)} "
-        f"workers={args.workers}",
+        f"already_done={already_done} pending={len(pending)} "
+        f"workers={args.workers} nodes={topology.node_count} "
+        f"node_index={topology.node_index}",
         flush=True,
     )
 

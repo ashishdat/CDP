@@ -1,0 +1,57 @@
+# Node-aware cascade fleet (example).
+# Each replica is one node; StatefulSet ordinal → CDP_NODE_INDEX.
+# Claims are sharded with stable_hash_mod so load rebalances when you scale replicas.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cdp-cascade-fleet
+  labels:
+    app.kubernetes.io/name: cdp-cascade-fleet
+spec:
+  serviceName: cdp-cascade-fleet
+  replicas: 3   # ← change node count here; load auto-shards across ordinals
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cdp-cascade-fleet
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cdp-cascade-fleet
+    spec:
+      containers:
+        - name: cascade
+          image: idp-claims-platform:latest
+          env:
+            - name: CDP_NODE_COUNT
+              value: "3"   # must match spec.replicas
+            - name: CDP_AUTO_WORKERS
+              value: "1"
+            - name: CDP_NODE_INDEX
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['apps.kubernetes.io/pod-index']
+          # Fallback when pod-index label unavailable: parse hostname ordinal in-process.
+          command:
+            - python3
+            - -u
+            - -m
+            - scripts.run_hackathon_1000_cascade
+            - --out-dir
+            - /data/cascade
+            - --offset
+            - "50"
+            - --limit
+            - "600"
+            - --auto-workers
+            - --resume
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
