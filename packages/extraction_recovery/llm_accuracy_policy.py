@@ -168,6 +168,48 @@ def name_accuracy_needs_vision(row: Mapping[str, Any]) -> bool:
     )
 
 
+def name_force_despite_budget(row: Mapping[str, Any]) -> bool:
+    """Override soft/hard budget only for genuine name conflict / unread gap.
+
+    Mono-engine E2 vision remains preferred under budget (call while soft
+    allows) but must not wipe DOC_BUDGET_SKIP on every insured_name — that
+    alone regressed Independent-100 median ~33s → ~39s.
+    """
+    if not accuracy_first_llm_enabled():
+        return False
+    from packages.extraction_recovery.gpt4o_crop_residual import (
+        _NAME_GAPS,
+        _local_names_need_vision_tiebreak,
+        name_local_engine_conflict,
+    )
+
+    cands = list(row.get("candidates") or [])
+    try:
+        from packages.extraction_recovery.cloud_stop_ladder import (
+            cloud_stop_ladder_enabled,
+            name_locals_settled,
+        )
+
+        if cloud_stop_ladder_enabled() and name_locals_settled(cands):
+            return False
+    except Exception:  # noqa: BLE001
+        pass
+    if name_local_engine_conflict(cands) or _local_names_need_vision_tiebreak(cands):
+        return True
+    cascade = row.get("cascade") or {}
+    accepted = bool(cascade.get("accepted"))
+    gap = str(row.get("gap_class") or "").upper().strip()
+    # _NAME_GAPS includes "" for residual routing; empty is not a force reason.
+    if gap and gap in _NAME_GAPS and not accepted:
+        return True
+    return False
+
+
+def name_budget_unsettled(row: Mapping[str, Any]) -> bool:
+    """Soft budget may skip mono-engine name vision; conflicts stay unsettled."""
+    return name_force_despite_budget(row)
+
+
 def force_cloud_despite_budget(field_name: str, row: Mapping[str, Any]) -> bool:
     """Unsettled accuracy-critical residuals ignore soft/hard budget skips."""
     if not accuracy_first_llm_enabled():
@@ -178,5 +220,5 @@ def force_cloud_despite_budget(field_name: str, row: Mapping[str, Any]) -> bool:
     if key in {"insured_id_number", "member_id", "subscriber_id"}:
         return id_accuracy_needs_vision(row)
     if key in {"patient_name", "insured_name"}:
-        return name_accuracy_needs_vision(row)
+        return name_force_despite_budget(row)
     return False

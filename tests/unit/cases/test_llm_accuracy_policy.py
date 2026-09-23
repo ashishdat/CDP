@@ -8,6 +8,7 @@ from packages.extraction_recovery.llm_accuracy_policy import (
     charge_accuracy_needs_di,
     charge_accuracy_needs_vision,
     force_cloud_despite_budget,
+    name_force_despite_budget,
 )
 from packages.ocr.contracts import OCRCandidate
 
@@ -126,3 +127,29 @@ def test_vision_local_does_not_mint_e4_on_place_shift_rival():
         if item.metadata
     }
     assert "CHARGE_VISION_LOCAL_CONFIRMED" not in facts
+
+
+def test_mono_engine_name_does_not_force_past_budget():
+    """Latency: insured_name mono-engine E2 must not wipe DOC_BUDGET_SKIP."""
+    row = {
+        "field": "insured_name",
+        "cascade": {"accepted": False, "value": "SMITH JOHN"},
+        "candidates": [{"engine": "paddleocr", "value": "SMITH JOHN"}],
+        "gap_class": "",
+    }
+    assert name_force_despite_budget(row) is False
+    assert force_cloud_despite_budget("insured_name", row) is False
+
+
+def test_name_engine_conflict_forces_past_budget():
+    row = {
+        "field": "patient_name",
+        "cascade": {"accepted": True, "value": "SMITH JOHN"},
+        "candidates": [
+            {"engine": "paddleocr", "value": "SMITH JOHN"},
+            {"engine": "rapidocr", "value": "SMYTH JOHN"},
+        ],
+        "gap_class": "",
+    }
+    assert name_force_despite_budget(row) is True
+    assert force_cloud_despite_budget("patient_name", row) is True

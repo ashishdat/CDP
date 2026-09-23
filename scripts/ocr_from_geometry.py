@@ -161,6 +161,8 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
                     continue
             current = row
+            di_ready = False
+            di_agrees = False
             if charge_on not in {"0", "false", "no", "off"}:
                 current = maybe_attach_charge_azure_di_to_field_row(
                     current,
@@ -173,7 +175,7 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     _charge_local_disagrees_with_di,
                 )
 
-                di_ready = (
+                di_ready = bool(
                     di_meta.get("currency_shaped")
                     and not di_meta.get("review_only")
                     and di_meta.get("value")
@@ -184,7 +186,7 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                 )
                 need_vision = charge_accuracy_needs_vision(
                     current,
-                    di_ready=bool(di_ready),
+                    di_ready=di_ready,
                     di_agrees_local=di_agrees,
                     observed_line_charges=observed_line_charges,
                 )
@@ -197,10 +199,11 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     updated.append(_mark_skip(current, "ONE_CLOUD_SHAPED"))
                     continue
             # Box-28 empty/unshaped after local (+ optional DI): gpt-4o/Claude crop.
+            # Pass real DI state so 0-line DI-agree does not re-force vision.
             force_vision = charge_accuracy_needs_vision(
                 current,
-                di_ready=False,
-                di_agrees_local=False,
+                di_ready=di_ready,
+                di_agrees_local=di_agrees,
                 observed_line_charges=observed_line_charges,
             )
             if gpt4o_on not in {"0", "false", "no", "off"} and (
@@ -211,22 +214,16 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     image=image,
                     gap_class="CHARGE_LOCAL_EXHAUSTED",
                 )
-            # P1.C: execute conflict agent when router planned it or place-shift
-            # rivals remain after DI/vision (OVERLAP / CONFLICT ladders).
-            plan_tools = list(
-                ((current.get("recovery_plan") or {}).get("tools") or [])
-            )
-            need_agent = "conflict_agent" in plan_tools or force_vision
-            if need_agent and gpt4o_on not in {"0", "false", "no", "off"}:
+            # Conflict agent only on genuine twin rivals — do not re-Claude
+            # after every vision corroboration (latency).
+            if gpt4o_on not in {"0", "false", "no", "off"}:
                 try:
                     from packages.extraction_recovery.conflict_agent import (
                         field_needs_conflict_agent,
                         maybe_attach_conflict_agent_to_field_row,
                     )
 
-                    if field_needs_conflict_agent(
-                        name, current.get("candidates")
-                    ) or force_vision:
+                    if field_needs_conflict_agent(name, current.get("candidates")):
                         current = maybe_attach_conflict_agent_to_field_row(
                             current, image=image
                         )
@@ -238,7 +235,8 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
             if should_skip_all_cloud(name, row):
                 updated.append(_mark_skip(row, "LOCALS_SETTLED"))
                 continue
-            if not allow_cloud_residual(name, unsettled=True):
+            id_unsettled = not should_skip_all_cloud(name, row)
+            if not allow_cloud_residual(name, unsettled=id_unsettled):
                 if not force_cloud_despite_budget(name, row):
                     updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
                     continue
@@ -255,7 +253,13 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
             if should_skip_all_cloud(name, row):
                 updated.append(_mark_skip(row, "LOCALS_SETTLED"))
                 continue
-            if not allow_cloud_residual(name, unsettled=True):
+            from packages.extraction_recovery.llm_accuracy_policy import (
+                name_budget_unsettled,
+            )
+
+            # Mono-engine E2 vision is soft-optional; conflicts stay unsettled.
+            name_unsettled = name_budget_unsettled(row)
+            if not allow_cloud_residual(name, unsettled=name_unsettled):
                 if not force_cloud_despite_budget(name, row):
                     updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
                     continue
