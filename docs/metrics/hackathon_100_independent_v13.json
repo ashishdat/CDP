@@ -1,0 +1,69 @@
+{
+  "cohort": "hackathon_100_independent_v13",
+  "offset": 50,
+  "limit": 100,
+  "completed": 100,
+  "true_stp": 84,
+  "true_stp_rate": 0.84,
+  "field_hitl": 16,
+  "field_hitl_rate": 0.16,
+  "registration_hitl": 0,
+  "infra_failures": 0,
+  "median_elapsed_sec": 33.27,
+  "mean_elapsed_sec": 35.34,
+  "p90_elapsed_sec": 49.43,
+  "split": {
+    "pre_harden_first_60": {
+      "n": 60,
+      "true_stp": 49,
+      "true_stp_rate": 0.8167,
+      "note": "cascade before residual-wiring + accuracy-first LLM commit"
+    },
+    "post_resume_last_40": {
+      "n": 40,
+      "true_stp": 35,
+      "true_stp_rate": 0.875,
+      "note": "resume after residual wiring; accuracy-first LLM mid-flight for later samples"
+    }
+  },
+  "hitl_blocker_fields": {
+    "total_charge": 11,
+    "insured_id_number": 4,
+    "patient_name": 2,
+    "patient_dob": 1
+  },
+  "hitl_gap_classes": {
+    "total_charge:EVIDENCE_POLICY_GAP": 10,
+    "insured_id_number:HANDWRITING_UNREADABLE": 4,
+    "patient_name:NAME_ENGINE_CONFLICT": 2,
+    "total_charge:LINE_SUM_UNCORROBORATED": 1,
+    "patient_dob:HANDWRITING_UNREADABLE": 1
+  },
+  "hitl_claim_ids": [
+    "Group A/M048DJJM.036",
+    "Group A/M048DJJM.037",
+    "Group A/M048DJJM.039",
+    "Group A/M048DJJM.040",
+    "Group A/M048DJJM.041",
+    "Group A/M048DJJM.042",
+    "Group A/M048DJJM.043",
+    "Group A/M048DJJM.049",
+    "Group A/M048DJKH.023",
+    "Group A/M048DJKH.030",
+    "Group A/M048DJKH.035",
+    "Group A/M048DJKH.048",
+    "Group A/M048DJKN.009",
+    "Group A/M048DJKN.023",
+    "Group A/M048EJG7.007",
+    "Group A/M048EJG7.009"
+  ],
+  "agent_gt_critical_exact": null,
+  "agent_gt_critical_n": null,
+  "gates": {
+    "true_stp_ge_90": "FAIL",
+    "true_stp_ge_95": "FAIL",
+    "true_stp_ge_96": "FAIL"
+  },
+  "finished_at": "2026-09-23T04:58:44.593560+00:00",
+  "commits_note": "ca4edfd residual wiring; b391b27 accuracy-first LLM (partial on last-40)"
+}
