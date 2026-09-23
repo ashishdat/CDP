@@ -703,11 +703,18 @@ def decide(extraction, family):
                     continue
                 # Conflict-agent sole authority / uncorroborated bleed → clear so
                 # downstream fail-closed HITL can fire (never mint AUTO alone).
-                values[charge_field] = None
+                # Keep the agent pick bound when BOX28 authorize failed so a
+                # later geometry-underread path cannot invent a third total
+                # (DJKH.040 516) after wiping 1571.63.
+                if agent_side == "LINES":
+                    values[charge_field] = None
+                elif agent_val not in (None, ""):
+                    values[charge_field] = agent_val
                 continue
-            # Uncorroborated BOX28 agent — clear for fail-closed HITL.
-            if agent_side in {"BOX28", "LINES"}:
-                values[charge_field] = None
+            # Uncorroborated BOX28/LINES without authorize attempt — keep agent
+            # value for HITL rather than clearing into geometry invention.
+            if agent_side in {"BOX28", "LINES"} and agent_val not in (None, ""):
+                values[charge_field] = agent_val
                 continue
         # Defer band always wins over vision preserve. A gpt-4o/Claude Box28 that
         # is a place-shift / digit-soup twin of Σ must not veto should_defer —

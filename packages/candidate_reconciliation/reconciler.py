@@ -104,6 +104,52 @@ def _charge_vision_local_confirms_bleed(value: object, candidates: list) -> bool
     return bool(_vision_local_confirms_bleed_cents(value, rows))
 
 
+def _di_raw_embeds_selected_charge(
+    selected: object, rival: object, candidates: list
+) -> bool:
+    """True when a DI raw embeds selected dollars beside a junk rival token.
+
+    DJKH.023: DI raw ``J $ 70 100`` shaped as ``100`` beside Claude+local ``70``.
+    Requires the selected stem to appear as its own token in DI raw.
+    """
+    try:
+        from packages.claim_evidence.charge_total_authority import (
+            format_currency,
+            parse_currency,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    selected_amt = parse_currency(selected)
+    rival_amt = parse_currency(rival)
+    if selected_amt is None or rival_amt is None or selected_amt == rival_amt:
+        return False
+    selected_txt = format_currency(selected_amt)
+    selected_dollars = selected_txt.split(".", 1)[0]
+    rival_txt = format_currency(rival_amt)
+    rival_dollars = rival_txt.split(".", 1)[0]
+    if not selected_dollars or not rival_dollars:
+        return False
+    for cand in candidates or []:
+        if isinstance(cand, Mapping):
+            engine = str(cand.get("engine") or "")
+            raw = str(cand.get("raw_value") or "")
+            shaped = str(cand.get("value") or "")
+        else:
+            engine = str(getattr(cand, "engine", "") or "")
+            raw = str(getattr(cand, "raw_value", "") or "")
+            shaped = str(getattr(cand, "value", "") or "")
+        eng = engine.casefold()
+        if "document_intelligence" not in eng and "azure_di" not in eng and "azure_read" not in eng:
+            continue
+        if format_currency(parse_currency(shaped)) != rival_txt:
+            continue
+        # Selected and rival dollars both appear as digit tokens in DI raw.
+        tokens = re.findall(r"\d+", raw)
+        if selected_dollars in tokens and rival_dollars in tokens:
+            return True
+    return False
+
+
 
 def _canonical_date_digits(value: str) -> str:
     """Normalize US/ISO/compact dates to YYYYMMDD for conflict comparison."""
@@ -2474,6 +2520,19 @@ class EvidenceReconciler:
                             value, candidates
                         ) and is_scale_shift(value, other):
                             continue
+                        # L2: underread scrap of DI/vision-local fuller amount is soup
+                        # (``14`` / ``20`` beside ``140`` / ``200``). Inflated rivals
+                        # (``2001`` beside ``200``) stay genuine.
+                        if (
+                            other_amt is not None
+                            and primary_amt is not None
+                            and other_amt < primary_amt
+                            and (
+                                "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
+                                or "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
+                            )
+                        ):
+                            continue
                         cleared.append(other)
                         continue
                     # When line Σ owns the selected total, deferred Box 28 OCR
@@ -2527,13 +2586,25 @@ class EvidenceReconciler:
                                 for i in range(len(longer))
                             ):
                                 continue
-                        # L2 / DJKH.023: DI/vision+local E4 owns the selected total —
-                        # non-place-shift rivals (``100`` beside Claude+local ``70``)
-                        # are soup. Place-shift twins already stayed genuine above.
+                        # L2: underread digit-drop / scale scrap of the selected
+                        # total (``14`` beside Claude+local ``140``) is soup when
+                        # DI/vision-local E4 owns the fuller amount. Inflated
+                        # rivals (``2001`` beside ``200``) stay genuine above.
+                        if (
+                            other_amt < primary_amt
+                            and (
+                                "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
+                                or "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
+                            )
+                        ):
+                            continue
+                        # DI raw that already contains the selected dollars stem
+                        # (``J $ 70 100`` beside Claude+local ``70``) is ruling
+                        # soup, not a second total (DJKH.023).
                         if (
                             "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
                             or "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
-                        ):
+                        ) and _di_raw_embeds_selected_charge(value, other, candidates):
                             continue
                     cleared.append(other)
                 genuine = cleared

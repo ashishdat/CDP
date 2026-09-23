@@ -121,13 +121,17 @@ def test_l2_inflated_rival_still_blocks_vision_local_e4():
 
 
 def test_l2_vision_local_clears_non_place_shift_di_rival():
-    """DJKH.023: Claude+local 70 clears DI 100 conflict margin."""
+    """DJKH.023: Claude+local 70 clears DI 100 when DI raw embeds both tokens."""
     result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
         "total_charge",
         [
             _cand("anthropic_claude_crop", "70.00"),
             _cand("paddleocr", "70.00"),
-            _cand("azure_document_intelligence_read", "100.00"),
+            _cand(
+                "azure_document_intelligence_read",
+                "100.00",
+                raw_value="J $ 70 100",
+            ),
         ],
         CriticalityLevel.C3,
         deterministic_evidence={
@@ -141,6 +145,30 @@ def test_l2_vision_local_clears_non_place_shift_di_rival():
         independent_agreement_values={"70", "70.00"},
     )
     assert result.selected_value == "70.00"
+    assert result.decision == Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_l2_underread_rival_cleared_when_vision_local_owns_fuller():
+    """EJG7.007-class: DI 14 scrap beside Claude+local 140 is soup."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _cand("anthropic_claude_crop", "140.00"),
+            _cand("paddleocr", "140.00"),
+            _cand("azure_document_intelligence_read", "14.00"),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_VISION_LOCAL_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"140", "140.00"},
+    )
+    assert result.selected_value == "140.00"
     assert result.decision == Decision.ACCEPT
     assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
 
