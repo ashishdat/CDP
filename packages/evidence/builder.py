@@ -532,6 +532,65 @@ def _append_ai_local_corroboration(
         return
 
 
+def _append_name_soft_equivalent_e2(
+    bundle: FieldEvidenceBundle,
+    field_name: str,
+    candidates: list[OCRCandidate],
+) -> None:
+    """Mint E2 when paddle+rapid soft-match a strong person name (fragment↔fuller).
+
+    Exact-normalize dual-local E2 misses ``NOVOTNY. FINNIE`` vs ``NOVOTNY``;
+    without this, NAME_CONFLICT_RELIEVED still dies as MISSING_E2.
+    """
+    name = (field_name or "").casefold()
+    if "name" not in name:
+        return
+    from packages.candidate_reconciliation.reconciler import (
+        _core_name_tokens,
+        _name_is_strong_person,
+        _name_soft_equivalent_second_family,
+        _name_tokens,
+    )
+
+    locals_ = [
+        cand
+        for cand in candidates
+        if engine_family(cand.engine) != "CLOUD_AI_FAMILY"
+        and _name_is_strong_person(str(cand.value or ""))
+    ]
+    if not locals_:
+        return
+
+    def _mass(c: OCRCandidate) -> tuple[int, int, float]:
+        cores = _core_name_tokens(_name_tokens(str(c.value or "")))
+        return (sum(len(t) for t in cores), len(cores), float(c.raw_confidence or 0))
+
+    primary = max(locals_, key=_mass)
+    if not _name_soft_equivalent_second_family(str(primary.value), candidates):
+        return
+    families = {
+        engine_family(c.engine)
+        for c in candidates
+        if engine_family(c.engine) != "CLOUD_AI_FAMILY" and (c.value or "").strip()
+    }
+    bundle.items.append(
+        EvidenceItem(
+            evidence_class=EvidenceClass.E2,
+            evidence_type="OCR_AGREEMENT_INDEPENDENT",
+            evidence_family="INDEPENDENT_OCR_AGREEMENT",
+            source="evidence_builder",
+            value=str(primary.value),
+            independent=True,
+            metadata={
+                "engines": sorted(families),
+                "agreement_type": "NAME_SOFT_EQUIVALENT_FAMILY",
+                "dependency_relation": "INDEPENDENT",
+                "local_engine_family_confirmation": True,
+            },
+        )
+    )
+
+
 _STRONG_DETERMINISTIC_FACTS = {
     "CHECKSUM_VALID",
     "NPI_CHECKSUM_VALID",
@@ -725,6 +784,11 @@ def build_evidence_bundle(
             for item in bundle.items
         ):
             _append_ai_local_corroboration(bundle, field_name, populated)
+        if not any(
+            item.evidence_class == EvidenceClass.E2 and item.independent
+            for item in bundle.items
+        ):
+            _append_name_soft_equivalent_e2(bundle, field_name, populated)
         if not any(
             item.evidence_class == EvidenceClass.E2 and item.independent
             for item in bundle.items

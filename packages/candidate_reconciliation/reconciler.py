@@ -700,6 +700,53 @@ def _name_is_strong_person(value: str) -> bool:
     return len(cores) == 1 and len(cores[0]) >= 5
 
 
+def _name_soft_equivalent_second_family(
+    selected: str, candidates: list
+) -> bool:
+    """True when another local OCR family soft-matches the selected person name.
+
+    Covers fuller-vs-fragment (``NOVOTNY. FINNIE`` ↔ ``NOVOTNY``) so C3 E2 is
+    satisfied without inventing letters after NAME_CONFLICT_RELIEVED.
+    """
+    from packages.ocr.independence import independence_group
+
+    selected_txt = (selected or "").strip()
+    if not selected_txt or not _name_is_strong_person(selected_txt):
+        return False
+
+    def _eng_val(cand) -> tuple[str, str]:
+        eng = str(getattr(cand, "engine", None) or "")
+        raw = str(getattr(cand, "value", None) or "")
+        if isinstance(cand, dict):
+            eng = eng or str(cand.get("engine") or "")
+            raw = raw or str(cand.get("value") or cand.get("raw_value") or "")
+        return eng, raw.strip()
+
+    selected_fams: set[str] = set()
+    for cand in candidates or []:
+        eng, text = _eng_val(cand)
+        if not text:
+            continue
+        eng_l = eng.casefold()
+        if any(
+            t in eng_l
+            for t in ("gpt4o", "claude", "anthropic", "document_intelligence", "conflict_agent")
+        ):
+            continue
+        fam = independence_group(eng)
+        if text.casefold() == selected_txt.casefold() or values_conflict_equivalent(
+            "patient_name", selected_txt, text
+        ):
+            selected_fams.add(fam)
+            continue
+        # Fragment / prefix soft match of the selected fuller reading.
+        if prefer_name_without_short_fragment(selected_txt, [text]) == selected_txt:
+            selected_fams.add(fam)
+        elif prefer_longer_name_prefix(selected_txt, [text]) == selected_txt:
+            selected_fams.add(fam)
+    return len(selected_fams) >= 2
+
+
 def _names_differ_by_short_fragment(left: str, right: str) -> bool:
     """True when one engine has short junk and the other has a strong person name.
 
@@ -2374,6 +2421,17 @@ class EvidenceReconciler:
         # requires E2-qualified independent_agreement or deterministic_ok so
         # empty E2 sets cannot authorize non-ID critical fields.
         independent_evidence_ok = has_independent_agreement or deterministic_ok or financial_authority
+        # Soft-equivalent local families on a strong person name (fuller reading
+        # vs surname fragment: NOVOTNY. FINNIE ↔ NOVOTNY) corroborate without
+        # inventing ink — do not leave patient_name HITL on MISSING_E2 alone.
+        if (
+            is_name_field
+            and not independent_evidence_ok
+            and name_strong_corroborated
+            and _name_soft_equivalent_second_family(str(value or ""), candidates)
+        ):
+            independent_evidence_ok = True
+            reasons.append("NAME_SOFT_EQUIVALENT_FAMILY_E2")
         # Box 28 over bleed line Σ already requires DI/vision+local corroboration;
         # do not leave C3 HITL solely because the E2 agreement set was empty.
         if (

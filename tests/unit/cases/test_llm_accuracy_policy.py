@@ -141,6 +141,18 @@ def test_mono_engine_name_does_not_force_past_budget():
     assert force_cloud_despite_budget("insured_name", row) is False
 
 
+def test_patient_name_mono_engine_still_forces_past_budget():
+    """Box 2 patient_name must not be budget-skipped (false HITL on garbled OCR)."""
+    row = {
+        "field": "patient_name",
+        "cascade": {"accepted": False, "value": "CHANAUICNI ARUA. M"},
+        "candidates": [{"engine": "rapidocr", "value": "CHANAUICNI ARUA. M"}],
+        "gap_class": "",
+    }
+    assert name_force_despite_budget(row) is True
+    assert force_cloud_despite_budget("patient_name", row) is True
+
+
 def test_name_engine_conflict_forces_past_budget():
     row = {
         "field": "patient_name",

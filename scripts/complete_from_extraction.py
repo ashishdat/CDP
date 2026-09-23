@@ -1231,53 +1231,51 @@ def decide(extraction, family):
                             evidence_reference='PATIENT_NAME_SELF_TWIN',
                             preprocessing_version='v12.2-self-twin',
                         ))
-        # Mirror: Box 2 patient_name missing E2 while Box 4 holds a soft OCR twin
-        # (FRANCAVLLA↔FRANCAVILLA). Inject the observed insured ink — no invention.
-        if name == 'patient_name':
-            from packages.candidate_reconciliation.reconciler import (
-                _name_is_strong_person,
-            )
-            from packages.geometry_authority.form_redundancy import (
-                names_agree,
-                relationship_is_self,
-            )
+            # Mirror: Box 2 patient_name missing E2 while Box 4 holds a soft OCR twin
+            # (FRANCAVLLA↔FRANCAVILLA). Inject the observed insured ink — no invention.
+            # Require soft name agreement — Self checkbox alone must NOT inject a
+            # divergent insured OCR (AJAY vs ARYA / CRMAUIANI vs CHANAUICNI) as a
+            # patient rival; that false CONFLICT_MARGIN is not a patient_name fail.
+            if name == 'patient_name':
+                from packages.candidate_reconciliation.reconciler import (
+                    _name_is_strong_person,
+                )
+                from packages.geometry_authority.form_redundancy import (
+                    names_agree,
+                )
 
-            relationship = (
-                values.get('insured_relationship')
-                or values.get('relationship')
-                or values.get('rel_code')
-            )
-            insured_val = str(values.get('insured_name') or '').strip()
-            patient_seed = str(values.get('patient_name') or '').strip()
-            soft_self = bool(insured_val) and (
-                relationship_is_self(relationship)
-                or (patient_seed and names_agree(patient_seed, insured_val))
-            )
-            if soft_self and insured_val and _name_is_strong_person(insured_val):
-                already = {
-                    str(c.value or '').strip().casefold()
-                    for c in candidates
-                    if (c.value or '').strip()
-                }
-                if insured_val.casefold() not in already:
-                    from packages.domain.common import BoundingBox
-                    base_box = candidates[0].bounding_box if candidates else None
-                    candidates.append(OCRCandidate(
-                        value=insured_val,
-                        raw_value=insured_val,
-                        engine='paddleocr',
-                        model_name='claim_cross_field',
-                        model_version='v12.2-self-twin',
-                        preprocessing_variant='INSURED_NAME_SELF_TWIN',
-                        raw_confidence=0.9,
-                        calibrated_confidence=0.9,
-                        bounding_box=base_box or BoundingBox(
-                            x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
-                        ),
-                        latency_ms=0.0,
-                        evidence_reference='INSURED_NAME_SELF_TWIN',
-                        preprocessing_version='v12.2-self-twin',
-                    ))
+                insured_val = str(values.get('insured_name') or '').strip()
+                patient_seed = str(values.get('patient_name') or '').strip()
+                soft_twin = bool(
+                    insured_val
+                    and patient_seed
+                    and names_agree(patient_seed, insured_val)
+                )
+                if soft_twin and insured_val and _name_is_strong_person(insured_val):
+                    already = {
+                        str(c.value or '').strip().casefold()
+                        for c in candidates
+                        if (c.value or '').strip()
+                    }
+                    if insured_val.casefold() not in already:
+                        from packages.domain.common import BoundingBox
+                        base_box = candidates[0].bounding_box if candidates else None
+                        candidates.append(OCRCandidate(
+                            value=insured_val,
+                            raw_value=insured_val,
+                            engine='paddleocr',
+                            model_name='claim_cross_field',
+                            model_version='v12.2-self-twin',
+                            preprocessing_variant='INSURED_NAME_SELF_TWIN',
+                            raw_confidence=0.9,
+                            calibrated_confidence=0.9,
+                            bounding_box=base_box or BoundingBox(
+                                x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
+                            ),
+                            latency_ms=0.0,
+                            evidence_reference='INSURED_NAME_SELF_TWIN',
+                            preprocessing_version='v12.2-self-twin',
+                        ))
         # Prefer LINE_TOTALS derived amount over empty / invalid / deferred box-28 OCR.
         # Also prefer when strong line consensus can reopen blank Box 28 or the
         # printed shell is a scale/decimal twin of Σ (past conflict-defer learning).

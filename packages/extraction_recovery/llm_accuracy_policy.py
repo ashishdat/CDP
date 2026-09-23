@@ -169,14 +169,19 @@ def name_accuracy_needs_vision(row: Mapping[str, Any]) -> bool:
 
 
 def name_force_despite_budget(row: Mapping[str, Any]) -> bool:
-    """Override soft/hard budget only for genuine name conflict / unread gap.
+    """When soft/hard budget may be overridden for name cloud residuals.
 
-    Mono-engine E2 vision remains preferred under budget (call while soft
-    allows) but must not wipe DOC_BUDGET_SKIP on every insured_name — that
-    alone regressed Independent-100 median ~33s → ~39s.
+    - ``patient_name``: always force when vision is needed (Box 2 is STP-critical;
+      budget-skip here caused false patient_name HITL on garbled mono-OCR).
+    - ``insured_name``: override only for genuine conflict / named unread gap.
+      Mono-engine E2 on Box 4 stays soft-optional (latency).
     """
     if not accuracy_first_llm_enabled():
         return False
+    field = str(row.get("field") or "").casefold()
+    if field == "patient_name":
+        return name_accuracy_needs_vision(row)
+
     from packages.extraction_recovery.gpt4o_crop_residual import (
         _NAME_GAPS,
         _local_names_need_vision_tiebreak,
@@ -206,7 +211,10 @@ def name_force_despite_budget(row: Mapping[str, Any]) -> bool:
 
 
 def name_budget_unsettled(row: Mapping[str, Any]) -> bool:
-    """Soft budget may skip mono-engine name vision; conflicts stay unsettled."""
+    """Soft budget may skip insured mono-engine vision; patient_name stays unsettled."""
+    field = str(row.get("field") or "").casefold()
+    if field == "patient_name":
+        return name_accuracy_needs_vision(row)
     return name_force_despite_budget(row)
 
 
@@ -219,6 +227,13 @@ def force_cloud_despite_budget(field_name: str, row: Mapping[str, Any]) -> bool:
         return charge_accuracy_needs_di(row) or charge_accuracy_needs_vision(row)
     if key in {"insured_id_number", "member_id", "subscriber_id"}:
         return id_accuracy_needs_vision(row)
-    if key in {"patient_name", "insured_name"}:
-        return name_force_despite_budget(row)
+    if key == "patient_name":
+        # Stamp field on row so name_force sees patient_name (OCR rows carry it).
+        stamped = dict(row)
+        stamped.setdefault("field", field_name)
+        return name_force_despite_budget(stamped)
+    if key == "insured_name":
+        stamped = dict(row)
+        stamped.setdefault("field", field_name)
+        return name_force_despite_budget(stamped)
     return False
