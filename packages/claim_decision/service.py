@@ -215,6 +215,7 @@ class ClaimDecisionService:
                     "CHARGE_TOTAL_AUTHORITY",
                     "CASH_RULING_PRINTED_CENTS",
                     "CHARGE_DI_LOCAL_CONFIRMED",
+                    "CHARGE_VISION_LOCAL_CONFIRMED",
                 }
             )
 

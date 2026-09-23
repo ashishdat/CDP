@@ -51,7 +51,8 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
     trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "1").strip().casefold()
     azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "0").strip().casefold()
     gpt4o_on = (os.environ.get("CDP_GPT4O_CROP_RESIDUAL") or "1").strip().casefold()
-    charge_on = (os.environ.get("CDP_AZURE_DI_CHARGE_RESIDUAL") or "0").strip().casefold()
+    # Accuracy-first: DI charge residual ON by default (was off → MISSING_E4).
+    charge_on = (os.environ.get("CDP_AZURE_DI_CHARGE_RESIDUAL") or "1").strip().casefold()
     if (
         trocr_on in {"0", "false", "no", "off"}
         and azure_on in {"0", "false", "no", "off"}
@@ -80,6 +81,10 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
     from packages.extraction_recovery.gap_taxonomy import classify_field_gap
     from packages.extraction_recovery.gpt4o_crop_residual import (
         maybe_attach_gpt4o_crop_to_field_row,
+    )
+    from packages.extraction_recovery.llm_accuracy_policy import (
+        charge_accuracy_needs_vision,
+        force_cloud_despite_budget,
     )
 
     # Default on: if local cascade already has a date-shaped value, skip TrOCR/DI.
@@ -152,8 +157,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
             except Exception:  # noqa: BLE001
                 pass
             if not allow_cloud_residual(name, unsettled=unsettled):
-                updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
-                continue
+                if not force_cloud_despite_budget(name, row):
+                    updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
+                    continue
             current = row
             if charge_on not in {"0", "false", "no", "off"}:
                 current = maybe_attach_charge_azure_di_to_field_row(
@@ -172,19 +178,33 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     and not di_meta.get("review_only")
                     and di_meta.get("value")
                 )
-                # A local that already matches DI does not need another model.
-                # DI alone, or a local that read a different amount, still does.
-                if di_ready and not _charge_local_disagrees_with_di(
-                    current.get("candidates")
-                ):
+                di_agrees = bool(
+                    di_ready
+                    and not _charge_local_disagrees_with_di(current.get("candidates"))
+                )
+                need_vision = charge_accuracy_needs_vision(
+                    current,
+                    di_ready=bool(di_ready),
+                    di_agrees_local=di_agrees,
+                    observed_line_charges=observed_line_charges,
+                )
+                # Accuracy-first: skip LLM only when DI already completed E4 and
+                # vision is not required (no place-shift vs lines).
+                if di_agrees and not need_vision:
                     updated.append(current)
                     continue
-                if di_ready and should_skip_second_cloud(current):
+                if di_ready and should_skip_second_cloud(current) and not need_vision:
                     updated.append(_mark_skip(current, "ONE_CLOUD_SHAPED"))
                     continue
-            # Box-28 empty/unshaped after local (+ optional DI): gpt-4o currency crop.
-            if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
-                current
+            # Box-28 empty/unshaped after local (+ optional DI): gpt-4o/Claude crop.
+            force_vision = charge_accuracy_needs_vision(
+                current,
+                di_ready=False,
+                di_agrees_local=False,
+                observed_line_charges=observed_line_charges,
+            )
+            if gpt4o_on not in {"0", "false", "no", "off"} and (
+                not should_skip_second_cloud(current) or force_vision
             ):
                 current = maybe_attach_gpt4o_crop_to_field_row(
                     current,
@@ -198,8 +218,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                 updated.append(_mark_skip(row, "LOCALS_SETTLED"))
                 continue
             if not allow_cloud_residual(name, unsettled=True):
-                updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
-                continue
+                if not force_cloud_despite_budget(name, row):
+                    updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
+                    continue
             if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
                 row
             ):
@@ -214,8 +235,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                 updated.append(_mark_skip(row, "LOCALS_SETTLED"))
                 continue
             if not allow_cloud_residual(name, unsettled=True):
-                updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
-                continue
+                if not force_cloud_despite_budget(name, row):
+                    updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
+                    continue
             # gpt-4o/Claude arbitrates names. One local engine is not E2, so
             # Document Intelligence may confirm the Claude spelling — unless
             # one cloud already shaped (stop ladder: never stack DI+Claude).
@@ -253,8 +275,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
             updated.append(_mark_skip(row, "LOCALS_SETTLED"))
             continue
         if not allow_cloud_residual(name, unsettled=True):
-            updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
-            continue
+            if not force_cloud_despite_budget(name, row):
+                updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
+                continue
         observed = ""
         local_date_shaped = False
         for cand in row.get("candidates") or []:

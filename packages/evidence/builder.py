@@ -254,6 +254,82 @@ def _append_di_partner_agreement(
         return
 
 
+def _append_vision_local_charge_agreement(
+    bundle: FieldEvidenceBundle,
+    field_name: str,
+    candidates: list[OCRCandidate],
+) -> None:
+    """Mint strong E4 when Claude/gpt-4o agrees with a local charge (DI absent).
+
+    Accuracy-first path for 0-line Box28 when Azure DI is unavailable or
+    abstains: vision corroborating paddle/rapid is the same policy strength as
+    DI+local, but never clears place-shift / digit-drop rivals.
+    """
+    name = (field_name or "").casefold()
+    if "charge" not in name:
+        return
+    # Already have DI-local E4 — do not double-mint.
+    if any(
+        (item.metadata or {}).get("fact") == "CHARGE_DI_LOCAL_CONFIRMED"
+        for item in bundle.items
+    ):
+        return
+    by_norm: dict[str, dict[str, OCRCandidate]] = {}
+    for cand in candidates:
+        if not (cand.value or "").strip():
+            continue
+        group = independence_group(cand.engine)
+        norm = normalize_agreement_value(field_name, cand.value)
+        if not norm:
+            continue
+        by_norm.setdefault(norm, {})[group] = cand
+    for norm, groups in by_norm.items():
+        vision = groups.get("CLOUD_AI_FAMILY")
+        if vision is None:
+            continue
+        partner = (
+            groups.get("RAPIDOCR_FAMILY")
+            or groups.get("PADDLE_FAMILY")
+            or groups.get("TESSERACT_FAMILY")
+        )
+        if partner is None:
+            continue
+        agreed_value = str(vision.value or partner.value)
+        if _charge_has_place_shift_rival(field_name, agreed_value, candidates):
+            continue
+        bundle.items.append(
+            EvidenceItem(
+                evidence_class=EvidenceClass.E2,
+                evidence_type="OCR_AGREEMENT_INDEPENDENT",
+                evidence_family="INDEPENDENT_OCR_AGREEMENT",
+                source="evidence_builder",
+                value=agreed_value,
+                independent=True,
+                metadata={
+                    "engines": [vision.engine, partner.engine],
+                    "agreement_type": "CHARGE_VISION_LOCAL_AGREEMENT",
+                    "dependency_relation": "INDEPENDENT",
+                    "normalized_value": norm,
+                },
+            )
+        )
+        bundle.items.append(
+            EvidenceItem(
+                evidence_class=EvidenceClass.E4,
+                evidence_type="STRONG_DETERMINISTIC:CHARGE_VISION_LOCAL_CONFIRMED",
+                evidence_family="DETERMINISTIC:STRONG:CHARGE_VISION_LOCAL_CONFIRMED",
+                source="evidence_builder",
+                deterministic=True,
+                metadata={
+                    "validation_result": "PASS",
+                    "strength": "STRONG",
+                    "fact": "CHARGE_VISION_LOCAL_CONFIRMED",
+                },
+            )
+        )
+        return
+
+
 def _append_dual_vision_agreement(
     bundle: FieldEvidenceBundle,
     field_name: str,
@@ -572,6 +648,8 @@ def build_evidence_bundle(
     # Always run DI partner for charges: dual-local E2 alone does not mint the
     # strong E4 that C3 total_charge policy requires (EJGE.001/013 MISSING_E4).
     _append_di_partner_agreement(bundle, field_name, populated)
+    # Accuracy-first: when DI abstains, Claude/gpt-4o + local still mints strong E4.
+    _append_vision_local_charge_agreement(bundle, field_name, populated)
     if structural_localization is not None:
         if structural_localization.confirmed and not wrong_crop_suspected:
             bundle.items.append(

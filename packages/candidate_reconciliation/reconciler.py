@@ -2357,10 +2357,18 @@ class EvidenceReconciler:
                 and "CLAIM_TOTAL_CONFIRMED" in deterministic
                 and "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
             ) or (
+                field_name in {"total_charge", "total_charges"}
+                and "CLAIM_TOTAL_CONFIRMED" in deterministic
+                and "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
+            ) or (
                 # Cash ruling-split (``$ 222 |22`` → 222.22) + DI partner E4:
                 # paddle/Claude digit-insert soup (2221.22) is not a second total.
                 field_name in {"total_charge", "total_charges"}
                 and "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
+                and _charge_cash_ruling_confirms(value, candidates)
+            ) or (
+                field_name in {"total_charge", "total_charges"}
+                and "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
                 and _charge_cash_ruling_confirms(value, candidates)
             ) or (
                 # DI+local confirmed Box 28 alone clears digit-substring scrap
@@ -2368,6 +2376,9 @@ class EvidenceReconciler:
                 # to mint CLAIM_TOTAL — place-shift twins still stay genuine above.
                 field_name in {"total_charge", "total_charges"}
                 and "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
+            ) or (
+                field_name in {"total_charge", "total_charges"}
+                and "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
             )
             if field_name in {"total_charge", "total_charges"} and charge_soup_authority:
                 from packages.claim_evidence.line_sum_authority import (
