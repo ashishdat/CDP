@@ -1,0 +1,22 @@
+{
+  "title": "Adaptive budget tip-overlap n100 (partial \u2014 stopped for memory)",
+  "updated_at": "2026-09-23T02:16:23.570874+00:00",
+  "run_status": "STOPPED_MEMORY",
+  "n_docs_requested": 100,
+  "completed": 68,
+  "registration_failed": 1,
+  "ledger_rows": 69,
+  "true_stp": 53,
+  "true_stp_rate": 0.77941,
+  "prior_true_stp_on_done": 69,
+  "prior_true_stp_rate": 1.0,
+  "stp_delta_pp": -22.059,
+  "median_elapsed_sec": 34.73,
+  "mean_elapsed_sec": 35.58,
+  "gates": {
+    "median_le_25": "FAIL",
+    "stp_within_2pp_of_prior": "FAIL"
+  },
+  "workers": 1,
+  "note": "Cascade stopped at ~65/100 to free OCR worker memory (~5GiB). Partial metrics only; not a final gate."
+}

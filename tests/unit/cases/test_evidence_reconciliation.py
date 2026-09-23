@@ -251,6 +251,65 @@ def test_cash_ruling_split_printed_cents_not_bleed_fail_closed():
     assert "BLEED_CENTS_FAIL_CLOSED" not in result.rationale_codes
 
 
+def test_cash_ruling_split_without_dollar_sign_not_bleed_fail_closed():
+    """DJKH.050-class: ``25|43`` ruling split confirms printed cents without $."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate(
+                "25.43",
+                "azure_document_intelligence_read",
+                0.99,
+                raw_value="25|43",
+            ),
+            _candidate("25.43", "anthropic_claude_crop", 0.98),
+            _candidate("251.43", "paddleocr", 0.90, raw_value="25143"),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+            "MULTI_ENGINE_AGREEMENT",
+            "BOX28_BLANKNESS_EVALUATED",
+            "BOX28_LINE_SUM_EVALUATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"25.43"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "25.43"
+    assert "BLEED_CENTS_FAIL_CLOSED" not in result.rationale_codes
+
+
+def test_di_local_confirmed_clears_digit_substring_soup_without_claim_total():
+    """DJKH.018: Claude+DI 186 vs paddle 86 — DI E4 clears substring scrap."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _candidate("186.00", "azure_document_intelligence_read", 0.99),
+            _candidate("186.00", "anthropic_claude_crop", 0.98),
+            _candidate("86.00", "paddleocr", 0.90),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+            "MULTI_ENGINE_AGREEMENT",
+            "BOX28_BLANKNESS_EVALUATED",
+            "BOX28_LINE_SUM_EVALUATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"186.00"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "186.00"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
 def test_cash_ruling_di_local_clears_junk_insert_margin():
     """DJKH.005: ``$ 222 |22`` + DI E4 AUTO beside Claude/paddle 2221.22 soup."""
     result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(

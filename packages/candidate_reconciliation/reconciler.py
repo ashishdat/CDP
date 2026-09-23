@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import UTC
 from hashlib import sha256
 
@@ -31,10 +32,11 @@ def _charge_is_units_bleed_cents(value: object) -> bool:
 
 
 def _charge_cash_ruling_confirms(value: object, candidates: list) -> bool:
-    """True when a candidate raw is ``$ dollars : cents`` matching ``value``.
+    """True when a candidate raw is dollars[:|/]cents matching ``value``.
 
-    Cash ruling-split geometry (``7 $ 157 :07`` → ``157.07``) proves the cents
-    column is printed ink — not units/ruling bleed soup that must fail-closed.
+    Cash ruling-split geometry (``7 $ 157 :07``, ``25|43``, ``25\\n43``) proves
+    the cents column is printed ink — not units/ruling bleed soup that must
+    fail-closed. Dollar sign is optional when a ruling separator is present.
     """
     try:
         from packages.claim_evidence.charge_total_authority import (
@@ -51,15 +53,29 @@ def _charge_cash_ruling_confirms(value: object, candidates: list) -> bool:
     for cand in candidates or []:
         raw = getattr(cand, "raw_value", None)
         if raw in (None, ""):
-            continue
+            # Dict-shaped candidates from OCR rows.
+            if isinstance(cand, Mapping):
+                raw = cand.get("raw_value")
+            if raw in (None, ""):
+                continue
         raw_text = str(raw)
-        if "$" not in raw_text or not re.search(r"[:|/]", raw_text):
+        has_sep = bool(re.search(r"[:|/\n]", raw_text)) or ("|" in raw_text)
+        has_dollar = "$" in raw_text
+        # Prefer cash-marked or explicit ruling separators; avoid bare "25 43".
+        if not has_sep and not has_dollar:
             continue
+        if has_dollar and not re.search(r"[:|/]", raw_text):
+            # "$ 157.07" alone is not a ruling split.
+            if _ruling_split_amount(raw_text) is None:
+                continue
         ruled = _ruling_split_amount(raw_text)
         if ruled and parse_currency(ruled) == target:
             return True
         # Also accept when the candidate value already matches after reshape.
-        if format_currency(parse_currency(getattr(cand, "value", None))) == target_txt:
+        cand_val = getattr(cand, "value", None)
+        if cand_val is None and isinstance(cand, Mapping):
+            cand_val = cand.get("value")
+        if format_currency(parse_currency(cand_val)) == target_txt:
             if _ruling_split_amount(raw_text) == target_txt:
                 return True
     return False
@@ -2361,6 +2377,12 @@ class EvidenceReconciler:
                 field_name in {"total_charge", "total_charges"}
                 and "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
                 and _charge_cash_ruling_confirms(value, candidates)
+            ) or (
+                # DI+local confirmed Box 28 alone clears digit-substring scrap
+                # (paddle ``86`` beside Claude+DI ``186.00``) when no lines exist
+                # to mint CLAIM_TOTAL — place-shift twins still stay genuine above.
+                field_name in {"total_charge", "total_charges"}
+                and "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
             )
             if field_name in {"total_charge", "total_charges"} and charge_soup_authority:
                 from packages.claim_evidence.line_sum_authority import (

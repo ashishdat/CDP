@@ -397,12 +397,15 @@ def id_local_already_settled(candidates: list[Mapping[str, Any]] | None) -> bool
 
     Saves DI/Claude when paddle+rapid (etc.) already corroborate the subscriber
     id. Digit conflicts and weak/chrome locals still need a vision read.
+    Short zero-padded shells (``0000374350``) never settle on locals alone —
+    reconciler still demands a second family for SHORT_PADDED corroboration.
     """
     if not candidates:
         return False
     from packages.candidate_reconciliation.reconciler import (
         _canonical_member_id,
         _member_id_is_shaped,
+        _member_id_is_short_padded_shell,
         _member_id_is_weak_for_gpt4o_gate,
     )
     from packages.ocr.independence import independence_group
@@ -418,6 +421,9 @@ def id_local_already_settled(candidates: list[Mapping[str, Any]] | None) -> bool
             continue
         raw = str(cand.get("value") or cand.get("text") or "").strip()
         if not raw or _member_id_is_weak_for_gpt4o_gate(raw):
+            continue
+        if _member_id_is_short_padded_shell(raw):
+            # Force one cloud corroboration for padded shells.
             continue
         if not _member_id_is_shaped(raw):
             continue

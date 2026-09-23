@@ -37,7 +37,7 @@ from packages.ocr_router import OCRRouter, OCRRouteRequest
 from packages.templates.registry import TemplateRegistry
 
 
-def _maybe_attach_dob_handwriting_residuals(rows, image):
+def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
     """Per-field residual after local OCR.
 
     DOB: TrOCR, then Claude crop. Names: Claude may replace garbage ink.
@@ -46,6 +46,7 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
 
     Stop ladder (``CDP_CLOUD_STOP_LADDER``, default on): locals settled → no
     DI/Claude; one shaped cloud residual → do not stack a second cloud.
+    ``service_lines`` informs charge settle (0 lines / place-shift vs Σ).
     """
     trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "1").strip().casefold()
     azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "0").strip().casefold()
@@ -87,6 +88,14 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
     skip_shaped = (os.environ.get("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED") or "1").strip().casefold()
     skip_if_local_shaped = skip_shaped not in {"0", "false", "no", "off"}
 
+    observed_line_charges: list[str] = []
+    for line in service_lines or []:
+        if not isinstance(line, dict):
+            continue
+        raw = line.get("charges") or line.get("charge_amount") or line.get("value")
+        if raw:
+            observed_line_charges.append(str(raw))
+
     def _mark_skip(row, reason: str):
         out = dict(row)
         meta = dict(out.get("cloud_stop_ladder") or {})
@@ -99,11 +108,15 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
         name = str(row.get("field") or "")
         key = name.casefold()
         if key in {"total_charge", "total_charges", "charges", "charge_amount"}:
-            if should_skip_all_cloud(name, row):
+            if should_skip_all_cloud(
+                name, row, observed_line_charges=observed_line_charges
+            ):
                 updated.append(_mark_skip(row, "LOCALS_SETTLED"))
                 continue
             # Settled locals already skipped; empty/conflict remains unsettled.
-            unsettled = not should_skip_all_cloud(name, row)
+            unsettled = not should_skip_all_cloud(
+                name, row, observed_line_charges=observed_line_charges
+            )
             if not allow_cloud_residual(name, unsettled=unsettled):
                 updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
                 continue
@@ -3417,7 +3430,9 @@ def run(directory, output):
                 recognize_regions(canonical, geometry, router, save, template=template)
                 report['service_lines'] = recognize_service_lines(canonical, router, template)
                 report['fields'] = _maybe_attach_dob_handwriting_residuals(
-                    report['fields'], canonical
+                    report['fields'],
+                    canonical,
+                    service_lines=report['service_lines'],
                 )
                 # OCR/model conflicts → Claude picks one rival. Box 28 ≠ Σ → BOX28/LINES.
                 from packages.extraction_recovery.conflict_agent import (

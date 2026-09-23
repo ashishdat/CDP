@@ -86,6 +86,7 @@ def test_id_locals_settled_two_shaped_families():
 
 
 def test_name_locals_settled_soft_equivalent_families():
+    # Punctuation-only difference still normalizes to the same token.
     cands = [
         {"engine": "rapidocr", "value": "SMITH, JOHN"},
         {"engine": "paddleocr", "value": "SMITH JOHN"},
@@ -93,6 +94,47 @@ def test_name_locals_settled_soft_equivalent_families():
     assert name_locals_settled(cands)
     assert should_skip_all_cloud(
         "patient_name", {"field": "patient_name", "candidates": cands}
+    )
+
+
+def test_name_locals_not_settled_on_initial_soup():
+    # Soft-eq-ish garbage must not skip cloud (MISSING_E2 / conflict margin).
+    cands = [
+        {"engine": "rapidocr", "value": "ACOSTA, BRIDGITA"},
+        {"engine": "paddleocr", "value": "ACOS'TA, BRIDGITA"},
+    ]
+    # Apostrophe may normalize equal — if so still settled; force distinct.
+    cands2 = [
+        {"engine": "rapidocr", "value": "crmauiani . Aiay . M"},
+        {"engine": "paddleocr", "value": "CRAMIGNANI, AJAY M"},
+    ]
+    assert not name_locals_settled(cands2)
+
+
+def test_charge_locals_not_settled_when_zero_lines():
+    cands = [
+        {"engine": "rapidocr", "value": "90.00"},
+        {"engine": "paddleocr", "value": "90.00"},
+    ]
+    assert charge_locals_settled(cands)  # legacy: no line context
+    assert not charge_locals_settled(cands, observed_line_charges=[])
+    assert should_skip_all_cloud(
+        "total_charge",
+        {"field": "total_charge", "candidates": cands},
+        observed_line_charges=[],
+    ) is False
+
+
+def test_charge_locals_not_settled_on_line_place_shift():
+    cands = [
+        {"engine": "rapidocr", "value": "251.00"},
+        {"engine": "paddleocr", "value": "251.00"},
+    ]
+    assert not charge_locals_settled(
+        cands, observed_line_charges=["2.51"]
+    )
+    assert charge_locals_settled(
+        cands, observed_line_charges=["251.00"]
     )
 
 
