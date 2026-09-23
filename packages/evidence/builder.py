@@ -285,6 +285,10 @@ def _append_vision_local_charge_agreement(
     Accuracy-first path for 0-line Box28 when Azure DI is unavailable or
     abstains: vision corroborating paddle/rapid is the same policy strength as
     DI+local, but never clears place-shift / digit-drop rivals.
+
+    EJGE extension: vision agrees on amount A while every local dissent is a
+    strict underread scrap of A (``300`` vs ``29``) — still mint E4; inflated
+    local rivals keep HITL.
     """
     name = (field_name or "").casefold()
     if "charge" not in name:
@@ -313,42 +317,83 @@ def _append_vision_local_charge_agreement(
             or groups.get("PADDLE_FAMILY")
             or groups.get("TESSERACT_FAMILY")
         )
-        if partner is None:
+        agreed_value = str(vision.value or (partner.value if partner else ""))
+        if partner is not None:
+            if _charge_has_place_shift_rival(field_name, agreed_value, candidates):
+                continue
+            _mint_vision_local_e4(bundle, agreed_value, vision, partner, norm)
+            return
+        # No exact local partner — allow underread-only local dissent (EJGE).
+        from packages.claim_evidence.charge_total_authority import (
+            _vision_corroborates_underread_locals,
+        )
+
+        cand_dicts = [
+            {
+                "engine": c.engine,
+                "value": c.value,
+                "raw_value": c.raw_value,
+            }
+            for c in candidates
+        ]
+        if not _vision_corroborates_underread_locals(agreed_value, cand_dicts):
             continue
-        agreed_value = str(vision.value or partner.value)
+        # Block only when an inflated place/scale rival of the vision pick exists.
         if _charge_has_place_shift_rival(field_name, agreed_value, candidates):
             continue
-        bundle.items.append(
-            EvidenceItem(
-                evidence_class=EvidenceClass.E2,
-                evidence_type="OCR_AGREEMENT_INDEPENDENT",
-                evidence_family="INDEPENDENT_OCR_AGREEMENT",
-                source="evidence_builder",
-                value=agreed_value,
-                independent=True,
-                metadata={
-                    "engines": [vision.engine, partner.engine],
-                    "agreement_type": "CHARGE_VISION_LOCAL_AGREEMENT",
-                    "dependency_relation": "INDEPENDENT",
-                    "normalized_value": norm,
-                },
-            )
+        underread_partner = next(
+            (
+                c
+                for c in candidates
+                if independence_group(c.engine)
+                in {"RAPIDOCR_FAMILY", "PADDLE_FAMILY", "TESSERACT_FAMILY"}
+                and (c.value or "").strip()
+            ),
+            vision,
         )
-        bundle.items.append(
-            EvidenceItem(
-                evidence_class=EvidenceClass.E4,
-                evidence_type="STRONG_DETERMINISTIC:CHARGE_VISION_LOCAL_CONFIRMED",
-                evidence_family="DETERMINISTIC:STRONG:CHARGE_VISION_LOCAL_CONFIRMED",
-                source="evidence_builder",
-                deterministic=True,
-                metadata={
-                    "validation_result": "PASS",
-                    "strength": "STRONG",
-                    "fact": "CHARGE_VISION_LOCAL_CONFIRMED",
-                },
-            )
+        _mint_vision_local_e4(
+            bundle, agreed_value, vision, underread_partner, norm
         )
         return
+
+
+def _mint_vision_local_e4(
+    bundle: FieldEvidenceBundle,
+    agreed_value: str,
+    vision: OCRCandidate,
+    partner: OCRCandidate,
+    norm: str,
+) -> None:
+    bundle.items.append(
+        EvidenceItem(
+            evidence_class=EvidenceClass.E2,
+            evidence_type="OCR_AGREEMENT_INDEPENDENT",
+            evidence_family="INDEPENDENT_OCR_AGREEMENT",
+            source="evidence_builder",
+            value=agreed_value,
+            independent=True,
+            metadata={
+                "engines": [vision.engine, partner.engine],
+                "agreement_type": "CHARGE_VISION_LOCAL_AGREEMENT",
+                "dependency_relation": "INDEPENDENT",
+                "normalized_value": norm,
+            },
+        )
+    )
+    bundle.items.append(
+        EvidenceItem(
+            evidence_class=EvidenceClass.E4,
+            evidence_type="STRONG_DETERMINISTIC:CHARGE_VISION_LOCAL_CONFIRMED",
+            evidence_family="DETERMINISTIC:STRONG:CHARGE_VISION_LOCAL_CONFIRMED",
+            source="evidence_builder",
+            deterministic=True,
+            metadata={
+                "validation_result": "PASS",
+                "strength": "STRONG",
+                "fact": "CHARGE_VISION_LOCAL_CONFIRMED",
+            },
+        )
+    )
 
 
 def _append_dual_vision_agreement(

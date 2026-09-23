@@ -1255,9 +1255,14 @@ class ClaimEvidenceBuilder:
                     and _exact_di_partner_charge_agreement(auth, agent_candidates)
                 )
                 lines_ok = side == "LINES" and auth is not None
+                vision_underread_ok = (
+                    auth is not None
+                    and auth_reason == "VISION_CORROBORATES_CONFLICT_PICK"
+                )
                 if auth and (
                     lines_ok
                     or di_partner_ok
+                    or vision_underread_ok
                     or (
                         llm_charge_pick_has_open_source_authority(
                             auth, agent_candidates, lines
@@ -1272,6 +1277,7 @@ class ClaimEvidenceBuilder:
                         "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK",
                         "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
                         "LINE_SUM_CORROBORATES_CONFLICT_PICK",
+                        "VISION_CORROBORATES_CONFLICT_PICK",
                     }:
                         confirm_reason = "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK"
             if confirm_amount and confirm_reason:
@@ -1723,14 +1729,26 @@ class ClaimEvidenceBuilder:
                 confirm_reason = None
                 # L4: exact DI+vision/local corroboration of agent BOX28 is enough
                 # authority even when a single under-read line Σ disagrees.
+                # EJGE underread: vision agrees with agent; locals are scraps only.
                 di_partner_ok = (
                     side == "BOX28"
                     and _exact_di_partner_charge_agreement(chosen, agent_candidates)
+                )
+                auth, auth_reason = authorize_conflict_agent_charge(
+                    chosen,
+                    candidates=agent_candidates,
+                    field_payload=payload if isinstance(payload, dict) else None,
+                    service_lines=lines,
+                )
+                vision_underread_ok = (
+                    auth is not None
+                    and auth_reason == "VISION_CORROBORATES_CONFLICT_PICK"
                 )
                 base_ok = (
                     chosen
                     and (
                         di_partner_ok
+                        or vision_underread_ok
                         or llm_charge_pick_has_open_source_authority(
                             chosen, agent_candidates, lines
                         )
@@ -1740,12 +1758,6 @@ class ClaimEvidenceBuilder:
                 )
                 if base_ok and (grid_alt or digit_alt):
                     if is_units_bleed_cents(chosen):
-                        auth, _auth_reason = authorize_conflict_agent_charge(
-                            chosen,
-                            candidates=agent_candidates,
-                            field_payload=payload if isinstance(payload, dict) else None,
-                            service_lines=lines,
-                        )
                         if auth:
                             confirm_amount = auth
                             confirm_reason = (
@@ -1760,15 +1772,8 @@ class ClaimEvidenceBuilder:
                             if grid_alt
                             else "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
                         )
-                elif base_ok:
-                    auth, auth_reason = authorize_conflict_agent_charge(
-                        chosen,
-                        candidates=agent_candidates,
-                        field_payload=payload if isinstance(payload, dict) else None,
-                        service_lines=lines,
-                    )
-                    if auth:
-                        confirm_amount, confirm_reason = auth, auth_reason
+                elif base_ok and auth:
+                    confirm_amount, confirm_reason = auth, auth_reason
                 if confirm_amount and confirm_reason:
                     meta_extra = {
                         "reason": confirm_reason,

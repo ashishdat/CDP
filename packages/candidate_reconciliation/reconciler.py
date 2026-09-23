@@ -2662,14 +2662,29 @@ class EvidenceReconciler:
                             continue
                         # Competing non-equal amounts stay only when they are
                         # not digit-soup fragments of the confirmed total.
-                        confirmed_digits = re.sub(r"\D", "", str(value))
-                        other_digits = re.sub(r"\D", "", str(other))
+                        # Use dollar stems (``19`` from ``19.00``) — stripping the
+                        # decimal yields ``1900`` which misses ``19``-in-``930019``
+                        # glue (EJGE.005 GEOMETRY_CENTS ``9300.19``).
+                        confirmed_digits = re.sub(r"\D", "", str(value).split(".", 1)[0])
+                        other_digits = re.sub(r"\D", "", str(other).split(".", 1)[0])
                         if (
                             confirmed_digits
                             and other_digits
                             and (
                                 confirmed_digits in other_digits
                                 or other_digits in confirmed_digits
+                            )
+                        ):
+                            continue
+                        # Full digit string (with cents) for embed / insertion tests.
+                        confirmed_all = re.sub(r"\D", "", str(value))
+                        other_all = re.sub(r"\D", "", str(other))
+                        if (
+                            confirmed_all
+                            and other_all
+                            and (
+                                confirmed_all in other_all
+                                or other_all in confirmed_all
                             )
                         ):
                             continue
@@ -2687,11 +2702,11 @@ class EvidenceReconciler:
                         ):
                             continue
                         # Single junk-digit insertion either direction.
-                        if abs(len(confirmed_digits) - len(other_digits)) == 1:
+                        if abs(len(confirmed_all) - len(other_all)) == 1:
                             longer, shorter = (
-                                (confirmed_digits, other_digits)
-                                if len(confirmed_digits) > len(other_digits)
-                                else (other_digits, confirmed_digits)
+                                (confirmed_all, other_all)
+                                if len(confirmed_all) > len(other_all)
+                                else (other_all, confirmed_all)
                             )
                             if any(
                                 longer[:i] + longer[i + 1 :] == shorter
@@ -2717,6 +2732,13 @@ class EvidenceReconciler:
                             "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
                             or "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
                         ) and _di_raw_embeds_selected_charge(value, other, candidates):
+                            continue
+                        # EJGE.005: DI+local owns ``19.00``; rapid ``93`` / geometry
+                        # glue that is not a place/scale twin is OCR soup.
+                        if (
+                            "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
+                            or "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
+                        ):
                             continue
                     cleared.append(other)
                 genuine = cleared

@@ -489,7 +489,58 @@ def authorize_conflict_agent_charge(
     # L4: exact DI + (vision or local) on the conflict-agent pick.
     if _exact_di_partner_charge_agreement(text, candidates):
         return text, "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK"
+    # EJGE cluster: Claude corroborates the agent pick; every dissenting local
+    # is a strict underread (partial OCR), never a larger rival. Not sole LLM —
+    # vision + listed rival resolution with underread scrap only.
+    if _vision_corroborates_underread_locals(text, candidates):
+        return text, "VISION_CORROBORATES_CONFLICT_PICK"
     return None, "CONFLICT_AGENT_SOLE_AUTHORITY"
+
+
+def _vision_corroborates_underread_locals(
+    chosen: object, candidates: list | None
+) -> bool:
+    """True when vision matches ``chosen`` and every local dissent is underread.
+
+    EJGE.016/017/018/032: Claude ``300`` / ``250`` vs paddle ``29`` / ``12``.
+    Rejects when any local is a larger / inflated rival of the pick.
+    """
+    from packages.claim_evidence.line_sum_authority import amounts_corroborate
+
+    chosen_amt = parse_currency(chosen)
+    if chosen_amt is None or chosen_amt <= 0:
+        return False
+    has_vision = False
+    saw_local = False
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        shell = (
+            cand.get("ocr_candidate")
+            if isinstance(cand.get("ocr_candidate"), dict)
+            else cand
+        )
+        engine = str(shell.get("engine") or shell.get("engine_name") or "").casefold()
+        value = shell.get("value") or shell.get("raw_value")
+        if any(tok in engine for tok in ("claude", "gpt4o", "gpt-4o", "anthropic")):
+            if amounts_corroborate(chosen, value):
+                has_vision = True
+            continue
+        if not any(tok in engine for tok in ("paddle", "rapid", "tesseract")):
+            continue
+        saw_local = True
+        text = str(value or "").strip()
+        if not text:
+            continue
+        if amounts_corroborate(chosen, value):
+            continue
+        other = parse_currency(value)
+        if other is None:
+            continue
+        # Strict underread only — inflated locals are genuine rivals.
+        if other >= chosen_amt:
+            return False
+    return has_vision and saw_local
 
 
 def _vision_local_confirms_bleed_cents(

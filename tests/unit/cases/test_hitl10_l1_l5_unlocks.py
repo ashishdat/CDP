@@ -375,3 +375,128 @@ def test_l5_unique_calendar_dob_mints_independent_e2():
     assert (e2[0].metadata or {}).get("agreement_type") == (
         "DATE_UNIQUE_CALENDAR_CORROBORATED"
     )
+
+
+def test_ejge_vision_underread_authorizes_and_mints_e4():
+    """EJGE.016/032: Claude 300/250 vs paddle underread scrap → E4 + authorize."""
+    auth, reason = authorize_conflict_agent_charge(
+        "300.00",
+        candidates=[
+            {"engine": "anthropic_claude_crop", "value": "300.00"},
+            {"engine": "paddleocr", "value": "29.00"},
+            {"engine": "rapidocr", "value": "3:TOTAL CHARGE"},
+        ],
+    )
+    assert auth == "300.00"
+    assert reason == "VISION_CORROBORATES_CONFLICT_PICK"
+
+    # Inflated local rival must stay HITL (not underread).
+    auth_bad, reason_bad = authorize_conflict_agent_charge(
+        "300.00",
+        candidates=[
+            {"engine": "anthropic_claude_crop", "value": "300.00"},
+            {"engine": "paddleocr", "value": "3000.00"},
+        ],
+    )
+    assert auth_bad is None
+    assert reason_bad == "CONFLICT_AGENT_SOLE_AUTHORITY"
+
+    bundle = build_evidence_bundle(
+        field_name="total_charge",
+        candidates=[
+            _cand("anthropic_claude_crop", "300.00"),
+            _cand("paddleocr", "29.00"),
+        ],
+        registration_confidence=0.9,
+        wrong_crop_suspected=False,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        hard_validation_passed=True,
+    )
+    facts = {
+        (item.metadata or {}).get("fact")
+        for item in bundle.items
+        if item.metadata
+    }
+    assert "CHARGE_VISION_LOCAL_CONFIRMED" in facts
+
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="EJGE.016",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "300.00",
+            "_financial_conflict_agent": {
+                "side": "BOX28",
+                "value": "300.00",
+                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            },
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "anthropic_claude_crop", "value": "300.00"},
+                    {"engine": "paddleocr", "value": "29.00"},
+                ]
+            },
+        },
+        service_lines=[],
+    )
+    confirmed = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+    ]
+    assert confirmed
+    assert all(str(i.value) == "300.00" for i in confirmed)
+    reasons = {(i.metadata or {}).get("reason") for i in confirmed}
+    assert "VISION_CORROBORATES_CONFLICT_PICK" in reasons
+
+
+def test_ejge005_di_local_clears_geometry_glue_and_rapid_93():
+    """EJGE.005: DI+paddle 19.00 owns; geometry 9300.19 / rapid 93 are soup."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _cand("azure_document_intelligence_read", "19.00"),
+            _cand("paddleocr", "19.00"),
+            _cand("rapidocr", "9300.19"),
+            _cand("rapidocr", "93.00"),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+            "MULTI_ENGINE_AGREEMENT",
+            "BOX28_BLANKNESS_EVALUATED",
+            "BOX28_LINE_SUM_EVALUATED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"19", "19.00"},
+    )
+    assert result.selected_value == "19.00"
+    assert result.decision == Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_ejge_inflated_digit_drop_twin_still_hitl_under_di_local():
+    """Precision guard: DI-local 200 vs digit-drop 2001 stays CONFLICT (DJKN.005)."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _cand("azure_document_intelligence_read", "200.00"),
+            _cand("paddleocr", "200.00"),
+            _cand("rapidocr", "2001.00"),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+            "MULTI_ENGINE_AGREEMENT",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"200", "200.00"},
+    )
+    assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes or (
+        result.decision != Decision.ACCEPT
+    )
