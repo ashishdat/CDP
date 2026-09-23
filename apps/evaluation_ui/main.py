@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -180,11 +181,35 @@ def get_ops_usage_progress():
         "hackathon_600_independent_v13c",
         "hackathon_300_independent_v13c",
     ):
-        progress = root / "evaluation_results" / name / "progress.txt"
+        run_dir = root / "evaluation_results" / name
+        progress = run_dir / "progress.txt"
         if progress.is_file():
             text = progress.read_text(encoding="utf-8", errors="ignore").strip()
             line = text.splitlines()[-1] if text else ""
-            return {"cohort": name, "progress": line}
+            if line:
+                return {"cohort": name, "progress": line}
+        results = run_dir / "results.jsonl"
+        run_log = run_dir / "run.log"
+        if results.is_file() or run_log.is_file():
+            done = 0
+            if results.is_file():
+                done = sum(1 for line in results.read_text(encoding="utf-8").splitlines() if line.strip())
+            token_path = run_dir / "vlm_token_meter.jsonl"
+            tok = 0
+            if token_path.is_file():
+                tok = sum(
+                    int(json.loads(line).get("total_tokens") or 0)
+                    for line in token_path.read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                )
+            di_path = run_dir / "azure_di_meter.jsonl"
+            di = 0
+            if di_path.is_file():
+                di = sum(1 for line in di_path.read_text(encoding="utf-8").splitlines() if line.strip())
+            return {
+                "cohort": name,
+                "progress": f"{name}: completed={done} di_calls={di} vlm_tokens={tok}",
+            }
     return {"cohort": None, "progress": None}
 
 
