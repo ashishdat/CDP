@@ -1,0 +1,53 @@
+{
+  "title": "Adaptive budget tip-overlap smoke",
+  "n_docs": 20,
+  "completed": 20,
+  "true_stp": 16,
+  "true_stp_rate": 0.8,
+  "prior_true_stp_on_pick": 20,
+  "prior_true_stp_rate": 1.0,
+  "stp_delta_pp": -20.0,
+  "median_elapsed_sec": 33.418,
+  "gates": {
+    "median_le_25": "FAIL",
+    "stp_within_2pp_of_prior": "FAIL"
+  },
+  "workers": 1,
+  "hitl_attack_order": [
+    "charge_field_hitl",
+    "charge_conflict_margin",
+    "identity_id",
+    "identity_dob"
+  ],
+  "updated_at": "2026-09-23T00:14:48.458186+00:00",
+  "run_dir": "evaluation_results/adaptive_budget_tip_overlap_v1",
+  "note": "Fresh OCR cascade with adaptive budget + stop ladder + workers=1. Prior rate is decide-only TRUE_STP on the same claim ids (frozen OCR), so -20 pp is fresh-OCR delta vs tip decide, not residual-off regression. HITL misses: 3\u00d7total_charge, 1\u00d7insured_id_number. Median 33.4s > soft 25s.",
+  "hitl_misses": [
+    {
+      "claim_id": "Group A__M048DJJF.002",
+      "blocker": "insured_id_number",
+      "elapsed_sec": 45.4
+    },
+    {
+      "claim_id": "Group A__M048DJJM.040",
+      "blocker": "total_charge",
+      "elapsed_sec": 25.9
+    },
+    {
+      "claim_id": "Group A__M048DJKH.018",
+      "blocker": "total_charge",
+      "elapsed_sec": 34.1
+    },
+    {
+      "claim_id": "Group A__M048EJGE.045",
+      "blocker": "total_charge",
+      "elapsed_sec": 38.6
+    }
+  ],
+  "latency": {
+    "median_sec": 33.418,
+    "mean_sec": 35.253,
+    "min_sec": 20.54,
+    "max_sec": 56.44
+  }
+}
