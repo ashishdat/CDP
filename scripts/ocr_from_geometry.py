@@ -117,6 +117,32 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
             unsettled = not should_skip_all_cloud(
                 name, row, observed_line_charges=observed_line_charges
             )
+            # v13 recovery plan (telemetry + future residual orchestration).
+            try:
+                from packages.extraction_recovery.field_recovery_router import (
+                    plan_recovery,
+                )
+                from packages.extraction_recovery.gap_taxonomy import classify_field_gap
+
+                gap = classify_field_gap(
+                    name,
+                    observed_text=str(
+                        (row.get("candidates") or [{}])[0].get("value") or ""
+                    ),
+                    accepted=False,
+                    service_line_charges=len(observed_line_charges),
+                    reason_codes=[],
+                )
+                plan = plan_recovery(
+                    name,
+                    gap_class=gap.gap_class if gap else None,
+                    candidates=row.get("candidates"),
+                    observed_line_charges=observed_line_charges,
+                )
+                row = dict(row)
+                row["recovery_plan"] = plan.to_dict()
+            except Exception:  # noqa: BLE001
+                pass
             if not allow_cloud_residual(name, unsettled=unsettled):
                 updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
                 continue

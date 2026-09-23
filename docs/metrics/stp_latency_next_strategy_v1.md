@@ -73,6 +73,9 @@ Do not merge. Mark any residual-off / latency-smoke ledger as **non-gate**.
 - Global `*_RESIDUAL=0` for STP eval.
 - Raising workers above 1 until lock sharding is proven.
 
+See also: **Field recovery tool stack v13** —
+`docs/FIELD_RECOVERY_TOOLSTACK_V13.md` (missing ink · overlap · conflict).
+
 ## Validation sequence
 
 1. Unit: `tests/unit/cases/test_doc_latency_budget.py` (budget + early-stop + HITL order).

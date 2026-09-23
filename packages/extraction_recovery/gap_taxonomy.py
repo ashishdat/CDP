@@ -136,6 +136,12 @@ def classify_field_gap(
             )
         if text and any(tok in text.upper() for tok in ("NPI", "NATIONAL")):
             return _pack("NPI_CONTAMINATED_CHARGE", f"charge crop contaminated ({text!r})")
+        # Box28 text with 0 lines is policy/overlap — not empty ink (v13).
+        if text:
+            return _pack(
+                "EVIDENCE_POLICY_GAP",
+                f"box-28 observed ({text!r}) without line corroboration / strong E4",
+            )
         return _pack("EMPTY_FINANCIAL_INK", "no box-28 ink and no observed line charges")
 
     return _pack("HANDWRITING_UNREADABLE", f"unresolved field ink ({text!r})")

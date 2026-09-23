@@ -1,0 +1,118 @@
+# Field recovery tool stack v13 — declarative routes
+# Consumed by packages.extraction_recovery.field_recovery_router
+
+version: field-recovery-toolstack-v13
+
+classes:
+  MISSING_INK:
+    description: No usable shaped value in the ROI
+  OVERLAP:
+    description: Same ink, rival parses (place-shift, digit-drop, bleed, substring)
+  CONFLICT:
+    description: Independent rival values or Box28 vs line arithmetic gap
+
+# Gap / reason → class (first match wins within field group)
+gap_to_class:
+  EMPTY_FINANCIAL_INK: MISSING_INK
+  HANDWRITING_UNREADABLE: MISSING_INK
+  AMBIGUOUS_DIGIT_FRAGMENTS: MISSING_INK
+  LINE_SUM_UNCORROBORATED: OVERLAP
+  NPI_CONTAMINATED_CHARGE: CONFLICT
+  NAME_ENGINE_CONFLICT: CONFLICT
+  EVIDENCE_POLICY_GAP: OVERLAP   # often MISSING_E4 / MISSING_E2 — refine by reason
+  CALIBRATION_HITL: CONFLICT
+  EVIDENCE_PLUMBING_GAP: CONFLICT
+
+reason_to_class:
+  LINE_TOTALS_UNCORROBORATED: OVERLAP
+  SINGLE_LINE_REQUIRES_DI: OVERLAP
+  SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28: OVERLAP
+  MISSING_E4_DETERMINISTIC_VALIDATION: OVERLAP
+  BLEED_CENTS_FAIL_CLOSED: OVERLAP
+  CONFLICT_MARGIN_TOO_SMALL: CONFLICT
+  FINANCIAL_CONFLICT_HITL: CONFLICT
+  MISSING_E2_INDEPENDENT_CONFIRMATION: CONFLICT
+  SHORT_PADDED_MEMBER_ID_NEEDS_CORROBORATION: MISSING_INK
+  UNSHAPED_MEMBER_ID: MISSING_INK
+  NAME_ENGINE_CONFLICT: CONFLICT
+
+# Ordered tool steps per class × field family
+# Tools: dual_local | tess_digits | charge_windows | cash_ruling | azure_di_crop |
+#         vision_crop | trocr | conflict_agent | hitl
+ladders:
+  MISSING_INK:
+    total_charge:
+      - dual_local
+      - charge_windows
+      - tess_digits
+      - azure_di_crop
+      - vision_crop
+      - hitl
+    patient_dob:
+      - dual_local
+      - trocr
+      - azure_di_crop
+      - vision_crop
+      - hitl
+    insured_id_number:
+      - dual_local
+      - vision_crop
+      - azure_di_crop
+      - hitl
+    patient_name:
+      - dual_local
+      - vision_crop
+      - conflict_agent
+      - hitl
+  OVERLAP:
+    total_charge:
+      - cash_ruling
+      - tess_digits
+      - azure_di_crop
+      - vision_crop
+      - conflict_agent
+      - hitl
+    patient_dob:
+      - dual_local
+      - vision_crop
+      - conflict_agent
+      - hitl
+    insured_id_number:
+      - vision_crop
+      - conflict_agent
+      - hitl
+    patient_name:
+      - vision_crop
+      - conflict_agent
+      - hitl
+  CONFLICT:
+    total_charge:
+      - conflict_agent
+      - vision_crop
+      - hitl
+    patient_dob:
+      - conflict_agent
+      - vision_crop
+      - hitl
+    insured_id_number:
+      - conflict_agent
+      - vision_crop
+      - hitl
+    patient_name:
+      - vision_crop
+      - conflict_agent
+      - hitl
+
+# Stop-ladder / budget interaction (documented for implementers)
+gates:
+  never_settle_skip_cloud_when:
+    - zero_observed_line_charges_on_total_charge
+    - box28_place_or_scale_shift_vs_line_sum
+    - short_padded_member_id_shell
+    - name_norms_disagree
+  budget:
+    soft_sec: 18
+    hard_sec: 22
+    never_kill_unsettled: [total_charge, patient_dob, insured_id_number]
+  one_cloud_max: true
+  invent_ink: false
