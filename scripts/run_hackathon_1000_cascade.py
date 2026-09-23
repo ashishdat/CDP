@@ -1157,7 +1157,8 @@ def main() -> int:
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--limit", type=int, default=1000)
     parser.add_argument("--offset", type=int, default=0)
-    parser.add_argument("--workers", type=int, default=2)
+    parser.add_argument("--workers", type=int, default=1,
+                        help="Claim workers (default 1 until VLM/DI locks are shard-safe).")
     parser.add_argument(
         "--documents",
         default="",
@@ -1216,6 +1217,11 @@ def main() -> int:
         # v02-12 identity boxes sit on the insurance-type row after alignment.
         # A clean shell must not fall back to that release.
         "CDP_PIPELINE_RELEASE": "extraction-v3",
+        # Adaptive spend: soft/hard cut optional work only (never unsettled charge/DOB/ID).
+        "CDP_DOC_LATENCY_BUDGET": "1",
+        "CDP_DOC_BUDGET_SOFT_SEC": "18",
+        "CDP_DOC_BUDGET_HARD_SEC": "22",
+        "CDP_CLOUD_STOP_LADDER": "1",
     }
     for key, value in _product.items():
         if _respect:

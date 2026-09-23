@@ -75,6 +75,18 @@ Do not merge. Mark any residual-off / latency-smoke ledger as **non-gate**.
 
 ## Validation sequence
 
-1. Smoke 20 docs: product defaults + stop ladder — median wall + True STP vs prior tip cohort overlap.
-2. If median ≤25s and STP ≥ tip overlap rate → scale 100 → 317 tip set.
-3. Only then tune A/B early-stops to pull median toward ≤20s **without** STP drop >2 pp on the same cohort.
+1. Unit: `tests/unit/cases/test_doc_latency_budget.py` (budget + early-stop + HITL order).
+2. Smoke: `python3 scripts/validate_adaptive_budget_tip_overlap.py --limit 20`
+   — tip-overlap STP within 2 pp of prior; median ≤25s (then tighten to ≤20).
+3. If median ≤25s and STP ≥ tip overlap rate → scale 100 → 317 tip set.
+4. Only then tune A/B early-stops to pull median toward ≤20s **without** STP drop >2 pp on the same cohort.
+
+## Implemented (v1 code)
+
+| Piece | Location |
+|-------|----------|
+| Per-doc soft/hard budget | `packages/extraction_recovery/doc_latency_budget.py` |
+| Charge-window early-stop | `should_early_stop_charge_windows` + `recognize_service_lines` |
+| Residual gating | `scripts/ocr_from_geometry.py` residual attach |
+| Workers default 1 | `scripts/run_hackathon_1000_cascade.py` |
+| Tip-overlap runner | `scripts/validate_adaptive_budget_tip_overlap.py` |

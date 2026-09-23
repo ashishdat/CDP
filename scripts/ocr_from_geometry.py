@@ -65,6 +65,10 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
         should_skip_all_cloud,
         should_skip_second_cloud,
     )
+    from packages.extraction_recovery.doc_latency_budget import (
+        allow_cloud_residual,
+        allow_optional,
+    )
     from packages.extraction_recovery.dob_azure_di_residual import (
         maybe_attach_dob_azure_di_to_field_row,
     )
@@ -97,6 +101,11 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
         if key in {"total_charge", "total_charges", "charges", "charge_amount"}:
             if should_skip_all_cloud(name, row):
                 updated.append(_mark_skip(row, "LOCALS_SETTLED"))
+                continue
+            # Settled locals already skipped; empty/conflict remains unsettled.
+            unsettled = not should_skip_all_cloud(name, row)
+            if not allow_cloud_residual(name, unsettled=unsettled):
+                updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
                 continue
             current = row
             if charge_on not in {"0", "false", "no", "off"}:
@@ -141,6 +150,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
             if should_skip_all_cloud(name, row):
                 updated.append(_mark_skip(row, "LOCALS_SETTLED"))
                 continue
+            if not allow_cloud_residual(name, unsettled=True):
+                updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
+                continue
             if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
                 row
             ):
@@ -153,6 +165,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
         if key in {"patient_name", "insured_name"}:
             if should_skip_all_cloud(name, row):
                 updated.append(_mark_skip(row, "LOCALS_SETTLED"))
+                continue
+            if not allow_cloud_residual(name, unsettled=True):
+                updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
                 continue
             # gpt-4o/Claude arbitrates names. One local engine is not E2, so
             # Document Intelligence may confirm the Claude spelling — unless
@@ -173,6 +188,10 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
 
             if should_skip_second_cloud(current):
                 updated.append(_mark_skip(current, "ONE_CLOUD_SHAPED"))
+            elif key == "insured_name" and not allow_optional(
+                "insured_name_di_confirm", field_name=name
+            ):
+                updated.append(_mark_skip(current, "DOC_BUDGET_SKIP_OPTIONAL_DI"))
             else:
                 updated.append(maybe_confirm_name_with_azure_di(current, image=image))
             continue
@@ -185,6 +204,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
             continue
         if should_skip_all_cloud(name, row):
             updated.append(_mark_skip(row, "LOCALS_SETTLED"))
+            continue
+        if not allow_cloud_residual(name, unsettled=True):
+            updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
             continue
         observed = ""
         local_date_shaped = False
@@ -220,7 +242,11 @@ def _maybe_attach_dob_handwriting_residuals(rows, image):
         )
         gap_class = gap.gap_class if gap is not None else "HANDWRITING_UNREADABLE"
         current = row
-        if trocr_on not in {"0", "false", "no", "off"}:
+        # TrOCR is local but cold-load heavy — treat as optional after soft when
+        # we still have DI/Claude path for unsettled DOB.
+        if trocr_on not in {"0", "false", "no", "off"} and allow_optional(
+            "trocr_dob_optional", field_name=name
+        ):
             current = maybe_attach_dob_trocr_to_field_row(
                 current, image=image, gap_class=gap_class
             )
@@ -1812,7 +1838,7 @@ def recognize_service_lines(image, router, template):
         # Phase 2: skip leading header/blank rows; only stop after a live block ends.
         # Charge-column currency ink can also prove the row is live when date/CPT probes fail.
         best = None
-        for x0, x1 in charge_windows:
+        for window_index, (x0, x1) in enumerate(charge_windows):
             bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
             if fast:
                 # Agent-GT retest: tess CHARGE_DIGITS_FAST truncates (1571→157)
@@ -1953,6 +1979,14 @@ def recognize_service_lines(image, router, template):
                     # Digit-drop twins (13 vs 131): still ask gpt-4o to pick ink.
                     need_gpt4o_twin = True
             if need_di:
+                from packages.extraction_recovery.doc_latency_budget import (
+                    allow_cloud_residual,
+                )
+
+                # Unsettled charge cloud always allowed past hard budget.
+                if not allow_cloud_residual("charges", unsettled=not bool(value)):
+                    need_di = False
+            if need_di:
                 # Local replacement for the removed Azure DI crop: digit-whitelist
                 # Tesseract may confirm a paddle or rapid amount. It may not
                 # become the only reader of the charge.
@@ -2067,7 +2101,33 @@ def recognize_service_lines(image, router, template):
                     # DI was needed but did not contribute a candidate.
                     need_gpt4o = True
             if need_gpt4o:
-                value, raw, candidates, attempts, reason = _merge_gpt4o_line_charge(
+                from packages.extraction_recovery.doc_latency_budget import (
+                    allow_cloud_residual,
+                )
+
+                unsettled_line = (not value) or need_gpt4o_twin or (
+                    value and len(unique_vals) < 2
+                )
+                if allow_cloud_residual("charges", unsettled=unsettled_line):
+                    value, raw, candidates, attempts, reason = _merge_gpt4o_line_charge(
+                        image,
+                        bbox,
+                        value=value,
+                        raw=raw,
+                        candidates=candidates,
+                        attempts=attempts,
+                        reason=reason,
+                    )
+                else:
+                    attempts = list(attempts or []) + [{
+                        'engine': 'azure_gpt4o_crop',
+                        'reason': 'CHARGE_GPT4O_SKIPPED_DOC_BUDGET',
+                    }]
+            # Redesign: optional OpenOCR/SVTRv2 printed-crop (default off).
+            from packages.extraction_recovery.doc_latency_budget import allow_optional
+
+            if allow_optional("openocr_svtr", field_name="charges"):
+                value, raw, candidates, attempts, reason = _maybe_attach_openocr_svtr_line(
                     image,
                     bbox,
                     value=value,
@@ -2076,28 +2136,19 @@ def recognize_service_lines(image, router, template):
                     attempts=attempts,
                     reason=reason,
                 )
-            # Redesign: optional OpenOCR/SVTRv2 printed-crop (default off).
-            value, raw, candidates, attempts, reason = _maybe_attach_openocr_svtr_line(
-                image,
-                bbox,
-                value=value,
-                raw=raw,
-                candidates=candidates,
-                attempts=attempts,
-                reason=reason,
-            )
             # Optional PP-OCRv5 Server residual (isolated paddleocr 3.x venv).
             # Adds a paddle-family candidate when local paddle/rapid left a
             # single-engine or empty charge cell — can unlock dual-engine with rapid.
-            value, raw, candidates, attempts, reason = _maybe_attach_ppocr_v5_server_line(
-                image,
-                bbox,
-                value=value,
-                raw=raw,
-                candidates=candidates,
-                attempts=attempts,
-                reason=reason,
-            )
+            if allow_optional("ppocr_v5_server", field_name="charges"):
+                value, raw, candidates, attempts, reason = _maybe_attach_ppocr_v5_server_line(
+                    image,
+                    bbox,
+                    value=value,
+                    raw=raw,
+                    candidates=candidates,
+                    attempts=attempts,
+                    reason=reason,
+                )
             geometry_confirmed = False
             try:
                 from packages.geometry_authority.cms1500_regions import (
@@ -2252,6 +2303,19 @@ def recognize_service_lines(image, router, template):
             if best is None or candidate['_score'] > best['_score']:
                 best = candidate
             if score >= 5 and geometry_confirmed:
+                break
+            # Adaptive early-stop: blank primary or dual-local shaped currency.
+            from packages.extraction_recovery.doc_latency_budget import (
+                should_early_stop_charge_windows,
+            )
+
+            dual_ok = _dual_local_engines_agree_on_charge(value, candidates)
+            if should_early_stop_charge_windows(
+                window_index=window_index,
+                value=value,
+                dual_local_agree=dual_ok,
+                probe_empty=probe_empty,
+            ):
                 break
         assert best is not None
         best.pop('_score', None)
@@ -3194,9 +3258,15 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
 
 
 def run(directory, output):
+    from packages.extraction_recovery.doc_latency_budget import (
+        begin_doc_budget,
+        get_doc_budget,
+        reset_doc_budget,
+    )
     from workers.ocr_engine_factories import wire_package_ocr_providers
 
     wire_package_ocr_providers()
+    begin_doc_budget()
     directory, output = Path(directory), Path(output)
     output.mkdir(parents=True, exist_ok=False)
     geometry = json.loads((directory / 'GeometryResult.json').read_text())
@@ -3503,6 +3573,10 @@ def run(directory, output):
         report['error'] = {'type': type(exc).__name__, 'message': str(exc)}
         raise
     finally:
+        budget = get_doc_budget()
+        if budget is not None:
+            report["doc_latency_budget"] = budget.to_dict()
+        reset_doc_budget()
         report['fields'] = _promote_self_box2_values(report.get('fields') or [])
         save(report['fields'])
         wiring = tel.summary()
@@ -3514,6 +3588,7 @@ def run(directory, output):
                 {k: a[k] for k in ('engine', 'reason', 'latency_ms') if k in a} for a in r['attempts']]}
                 for r in report['fields']], 'stop_after': 'ocr',
             'runtime_wiring': wiring,
+            'doc_latency_budget': report.get('doc_latency_budget'),
         }, indent=2), encoding='utf-8')
     return report
 
