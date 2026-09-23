@@ -2334,26 +2334,11 @@ class EvidenceReconciler:
                     for other in genuine
                     if _dob_is_display_shaped(other)
                 ]
-            # Scale / place-shift charge OCR (DI ``523800`` vs Claude ``5238``)
-            # is not a genuine second total beside DI/vision+local Box 28.
-            if field_name in {"total_charge", "total_charges"}:
-                from packages.claim_evidence.line_sum_authority import (
-                    box28_di_partner_confirmed,
-                    is_currency_digit_drop_twin,
-                    is_decimal_place_shift,
-                    is_scale_shift,
-                )
-
-                if box28_di_partner_confirmed(value, candidates):
-                    genuine = [
-                        other
-                        for other in genuine
-                        if not (
-                            is_scale_shift(value, other)
-                            or is_decimal_place_shift(value, other)
-                            or is_currency_digit_drop_twin(value, other)
-                        )
-                    ]
+            # Scale / place-shift / digit-drop twins beside DI/vision+local Box 28
+            # are real conflicts (DJKN.005: 200 vs 2001; truncated 340 vs Σ 3402).
+            # Soup relief below clears them only when line-Σ / financial /
+            # cash-ruling authority owns the selected total. Digit-substring
+            # scrap (186 vs 86) is handled there — never wipe twins early.
             # Decimal-place / fragment charge OCR is not a genuine conflict when
             # Box 28 ↔ line-sum financial authority already confirmed the total,
             # or when LINE_TOTALS_RECONCILED owns the selected amount (soup rivals
@@ -2429,12 +2414,19 @@ class EvidenceReconciler:
                     # second Box 28 (DJKH.029: 97.39 vs 39 / 139).
                     if cash_ruling_owns and other_amt != primary_amt:
                         continue
-                    # ×10/×100 and dropped-digit twins are real conflicts when the
-                    # selected amount is inflated Box 28 OCR. Once line Σ owns the
-                    # selected total, both directions are soup: larger (250 vs
-                    # 25000), truncated (660 vs 66), and digit-drop (3402 vs 340).
-                    # Cash ruling-split + DI E4 likewise owns the printed total.
-                    if is_scale_shift(value, other) or is_currency_digit_drop_twin(value, other):
+                    # ×10/×100, place-shift, and dropped-digit twins are real
+                    # conflicts when the selected amount is inflated/truncated
+                    # Box 28 OCR. Once line Σ owns the selected total, both
+                    # directions are soup: larger (250 vs 25000), truncated
+                    # (660 vs 66), and digit-drop (3402 vs 340). Cash
+                    # ruling-split + DI E4 likewise owns the printed total.
+                    # Never clear these via digit-substring below — DJKN.005
+                    # (200 vs 2001) must stay CONFLICT under DI-local alone.
+                    if (
+                        is_scale_shift(value, other)
+                        or is_decimal_place_shift(value, other)
+                        or is_currency_digit_drop_twin(value, other)
+                    ):
                         if line_totals_owns_selected or financial_authority or cash_ruling_owns:
                             continue
                         cleared.append(other)

@@ -229,12 +229,16 @@ def charge_needs_gpt4o(
     azure_di_shaped: bool,
     gap_class: str | None = None,
     candidates: list[Mapping[str, Any]] | None = None,
+    observed_line_charges: list[str] | None = None,
 ) -> bool:
     """Run gpt-4o when local+DI left box-28 empty/unshaped (hard-15 charge hole).
 
     Also run when DIGITS_FIRST accepted a currency shell but local candidates
     include a decimal-place rival (222.22 vs 2221.22) — otherwise Box 28 never
     gets vision arbitration and CALIBRATION_HITL / place-shift fights persist.
+
+    ``observed_line_charges`` must be passed (or stamped on the field row) so
+    dual-local Box28 with 0 lines / place-shift vs Σ does not falsely settle.
     """
     try:
         from packages.extraction_recovery.cloud_stop_ladder import (
@@ -242,7 +246,9 @@ def charge_needs_gpt4o(
             cloud_stop_ladder_enabled,
         )
 
-        if cloud_stop_ladder_enabled() and charge_locals_settled(candidates):
+        if cloud_stop_ladder_enabled() and charge_locals_settled(
+            candidates, observed_line_charges=observed_line_charges
+        ):
             return False
     except Exception:  # noqa: BLE001
         pass
@@ -253,6 +259,46 @@ def charge_needs_gpt4o(
     if local_accepted:
         if _charge_candidates_have_place_shift_rival(candidates):
             return True
+        # Dual-local accepted with no line ink still needs cloud for strong E4
+        # unless lines were never provided (legacy unit tests).
+        if observed_line_charges is not None and len(
+            [x for x in observed_line_charges if str(x).strip()]
+        ) == 0:
+            return True
+        # Place-shift vs line Σ: still need vision even if locals agree.
+        if observed_line_charges:
+            try:
+                from packages.claim_evidence.line_sum_authority import (
+                    format_currency,
+                    is_decimal_place_shift,
+                    is_scale_shift,
+                    parse_currency,
+                )
+                from decimal import Decimal
+
+                line_amts = [
+                    parse_currency(x) for x in observed_line_charges if x
+                ]
+                line_amts = [a for a in line_amts if a is not None]
+                if line_amts:
+                    line_txt = format_currency(sum(line_amts, start=Decimal("0")))
+                    for cand in candidates or []:
+                        eng = str(cand.get("engine") or "").casefold()
+                        if any(
+                            t in eng
+                            for t in ("gpt4o", "claude", "anthropic", "document_intelligence")
+                        ):
+                            continue
+                        amt = parse_currency(cand.get("value") or cand.get("raw_value"))
+                        if amt is None:
+                            continue
+                        txt = format_currency(amt)
+                        if is_decimal_place_shift(txt, line_txt) or is_scale_shift(
+                            txt, line_txt
+                        ):
+                            return True
+            except Exception:  # noqa: BLE001
+                pass
         return False
     gap = (gap_class or "").upper()
     return gap in _CHARGE_GAPS
@@ -342,8 +388,22 @@ def _charge_local_disagrees_with_di(
 
 
 def id_local_needs_gpt4o(value: str | None, *, accepted: bool) -> bool:
-    """True when local ID cascade is missing, chrome-contaminated, or too weak."""
+    """True when local ID cascade is missing, chrome-contaminated, or too weak.
+
+    Short zero-padded shells (``00000259054``) always need a second family /
+    vision corroboration — cascade may mark them accepted as shaped, but
+    reconciler still fail-closes without multi-engine corroboration.
+    """
     text = _normalize(value) or ""
+    try:
+        from packages.candidate_reconciliation.reconciler import (
+            _member_id_is_short_padded_shell,
+        )
+
+        if text and _member_id_is_short_padded_shell(text):
+            return True
+    except Exception:  # noqa: BLE001
+        pass
     if not accepted:
         return True
     if _ID_CHROME.search(text):
@@ -397,15 +457,14 @@ def id_local_already_settled(candidates: list[Mapping[str, Any]] | None) -> bool
 
     Saves DI/Claude when paddle+rapid (etc.) already corroborate the subscriber
     id. Digit conflicts and weak/chrome locals still need a vision read.
-    Short zero-padded shells (``0000374350``) never settle on locals alone —
-    reconciler still demands a second family for SHORT_PADDED corroboration.
+    Short zero-padded shells may settle when ≥2 local families agree on the
+    same canon; a lone padded shell still needs vision (see ``id_needs_gpt4o``).
     """
     if not candidates:
         return False
     from packages.candidate_reconciliation.reconciler import (
         _canonical_member_id,
         _member_id_is_shaped,
-        _member_id_is_short_padded_shell,
         _member_id_is_weak_for_gpt4o_gate,
     )
     from packages.ocr.independence import independence_group
@@ -421,9 +480,6 @@ def id_local_already_settled(candidates: list[Mapping[str, Any]] | None) -> bool
             continue
         raw = str(cand.get("value") or cand.get("text") or "").strip()
         if not raw or _member_id_is_weak_for_gpt4o_gate(raw):
-            continue
-        if _member_id_is_short_padded_shell(raw):
-            # Force one cloud corroboration for padded shells.
             continue
         if not _member_id_is_shaped(raw):
             continue
@@ -446,7 +502,19 @@ def id_needs_gpt4o(
     """Weak/chrome local OR same-length digit conflict between local engines.
 
     Skip when locals already multi-engine agree on one shaped ID (no DI/Claude).
+    Short-padded shells always need vision/second family even if cascade accepted.
     """
+    try:
+        from packages.candidate_reconciliation.reconciler import (
+            _member_id_is_short_padded_shell,
+        )
+
+        if value and _member_id_is_short_padded_shell(str(value)):
+            # Already multi-engine on the same padded canon → cloud optional.
+            if not id_local_already_settled(candidates):
+                return True
+    except Exception:  # noqa: BLE001
+        pass
     if id_local_already_settled(candidates):
         # Settled locals still need vision when same-length digit twins conflict.
         return id_local_digit_conflict(candidates)
@@ -1215,11 +1283,18 @@ def maybe_attach_gpt4o_crop_to_field_row(
         di_shaped = bool(
             di.get("currency_shaped") and not di.get("review_only") and di.get("value")
         )
+        line_meta = field_row.get("observed_line_charges")
+        line_charges = (
+            [str(x) for x in line_meta if x]
+            if isinstance(line_meta, list)
+            else None
+        )
         if not charge_needs_gpt4o(
             local_accepted=local_accepted,
             azure_di_shaped=di_shaped,
             gap_class=gap_class or "EMPTY_FINANCIAL_INK",
             candidates=list(field_row.get("candidates") or []),
+            observed_line_charges=line_charges,
         ):
             return updated
     else:

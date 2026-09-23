@@ -103,8 +103,16 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
         out["cloud_stop_ladder"] = meta
         return out
 
+    def _with_line_ctx(row: dict) -> dict:
+        """Stamp line charges on every row so nested residual helpers see them."""
+        out = dict(row)
+        # Always stamp a list (possibly empty) — None means "legacy unknown".
+        out["observed_line_charges"] = list(observed_line_charges)
+        return out
+
     updated = []
     for row in rows:
+        row = _with_line_ctx(row)
         name = str(row.get("field") or "")
         key = name.casefold()
         if key in {"total_charge", "total_charges", "charges", "charge_amount"}:

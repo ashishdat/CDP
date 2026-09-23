@@ -182,29 +182,37 @@ def id_locals_settled(candidates: list[Mapping[str, Any]] | None) -> bool:
 
 
 def name_locals_settled(candidates: list[Mapping[str, Any]] | None) -> bool:
-    """≥2 local families agree on the *same* shaped name → skip cloud.
+    """≥2 local families agree (soft-equivalent) on a shaped name → skip cloud.
 
-    Soft-equivalent-only cliques (punctuation / initial soup) still need one
-    vision crop so E2 / conflict margin can clear — soft-eq alone often fails
-    independent OCR agreement and leaves MISSING_E2 / CONFLICT_MARGIN.
+    Soft-equivalent cliques still settle for latency; garbage / non-shaped
+    tokens never enter the clique. Conflict-margin / MISSING_E2 residuals are
+    handled by forcing vision when cascade did not accept + gap signals.
     """
     try:
-        from packages.evidence.normalization import normalize_agreement_value
+        from packages.candidate_reconciliation.reconciler import (
+            values_conflict_equivalent,
+        )
         from packages.extraction_recovery.field_cascade import semantic_accept
         from packages.ocr.independence import independence_group
     except Exception:  # noqa: BLE001
         return False
 
-    by_norm: dict[str, set[str]] = {}
+    shaped: list[tuple[str, str]] = []
     for cand in _local_candidates(candidates):
         text = str(cand.get("value") or cand.get("text") or "").strip()
         if not text or not semantic_accept("patient_name", text)[0]:
             continue
-        norm = normalize_agreement_value("patient_name", text) or text.casefold()
-        if not norm:
-            continue
-        by_norm.setdefault(norm, set()).add(independence_group(_eng(cand)))
-    return any(len(groups) >= 2 for groups in by_norm.values())
+        shaped.append((text, independence_group(_eng(cand))))
+    if len(shaped) < 2:
+        return False
+    for i, (left, left_fam) in enumerate(shaped):
+        families = {left_fam}
+        for right, right_fam in shaped[i + 1 :]:
+            if values_conflict_equivalent("patient_name", left, right):
+                families.add(right_fam)
+        if len(families) >= 2:
+            return True
+    return False
 
 
 def should_skip_all_cloud(
