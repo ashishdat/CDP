@@ -504,6 +504,10 @@ def _vision_corroborates_underread_locals(
 
     EJGE.016/017/018/032: Claude ``300`` / ``250`` vs paddle ``29`` / ``12``.
     Rejects when any local is a larger / inflated rival of the pick.
+
+    Also rejects extreme magnitude vs scrap locals (DJKN.023 Claude ``45000``
+    vs rapid ``11``) — underreads of a real total stay within ~100×; hallucinated
+    place-shifted shells do not.
     """
     from packages.claim_evidence.line_sum_authority import amounts_corroborate
 
@@ -512,6 +516,7 @@ def _vision_corroborates_underread_locals(
         return False
     has_vision = False
     saw_local = False
+    underread_amts: list = []
     for cand in candidates or []:
         if not isinstance(cand, dict):
             continue
@@ -540,7 +545,15 @@ def _vision_corroborates_underread_locals(
         # Strict underread only — inflated locals are genuine rivals.
         if other >= chosen_amt:
             return False
-    return has_vision and saw_local
+        if other > 0:
+            underread_amts.append(other)
+    if not (has_vision and saw_local):
+        return False
+    # Extreme ratio: scrap local is <1% of the vision pick (45000/11).
+    # EJGE underreads stay well under 100× (1800/29 ≈ 62).
+    if underread_amts and chosen_amt / min(underread_amts) > 100:
+        return False
+    return True
 
 
 def _vision_local_confirms_bleed_cents(

@@ -401,6 +401,17 @@ def test_ejge_vision_underread_authorizes_and_mints_e4():
     assert auth_bad is None
     assert reason_bad == "CONFLICT_AGENT_SOLE_AUTHORITY"
 
+    # DJKN.023: Claude hallucinated 45000 vs rapid 11 — extreme ratio, stay HITL.
+    auth_huge, reason_huge = authorize_conflict_agent_charge(
+        "45000.00",
+        candidates=[
+            {"engine": "anthropic_claude_crop", "value": "45000.00"},
+            {"engine": "rapidocr", "value": "11.00"},
+        ],
+    )
+    assert auth_huge is None
+    assert reason_huge == "CONFLICT_AGENT_SOLE_AUTHORITY"
+
     bundle = build_evidence_bundle(
         field_name="total_charge",
         candidates=[
@@ -418,6 +429,25 @@ def test_ejge_vision_underread_authorizes_and_mints_e4():
         if item.metadata
     }
     assert "CHARGE_VISION_LOCAL_CONFIRMED" in facts
+
+    # Extreme ratio must not mint underread E4 either.
+    bundle_bad = build_evidence_bundle(
+        field_name="total_charge",
+        candidates=[
+            _cand("anthropic_claude_crop", "45000.00"),
+            _cand("rapidocr", "11.00"),
+        ],
+        registration_confidence=0.9,
+        wrong_crop_suspected=False,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        hard_validation_passed=True,
+    )
+    facts_bad = {
+        (item.metadata or {}).get("fact")
+        for item in bundle_bad.items
+        if item.metadata
+    }
+    assert "CHARGE_VISION_LOCAL_CONFIRMED" not in facts_bad
 
     result = ClaimEvidenceBuilder.load().build(
         claim_id="EJGE.016",
