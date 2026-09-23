@@ -1,0 +1,62 @@
+{
+  "cohort": "hackathon_300_independent_v13c",
+  "offset": 50,
+  "limit": 300,
+  "completed": 300,
+  "true_stp": 284,
+  "true_stp_rate": 0.9467,
+  "field_hitl": 14,
+  "field_hitl_rate": 0.0467,
+  "registration_hitl": 2,
+  "infra_failures": 0,
+  "median_elapsed_sec": 37.31,
+  "mean_elapsed_sec": 40.68,
+  "p90_elapsed_sec": 60.69,
+  "first100_true_stp": 97,
+  "after100_true_stp_rate": 0.935,
+  "post_resume_n": 96,
+  "post_resume_median_elapsed_sec": 37.84,
+  "post_resume_true_stp_rate": 0.9896,
+  "baseline_n100_v13c_true_stp_rate": 0.97,
+  "baseline_n100_v13c_median_elapsed_sec": 36.98,
+  "precision_safe_redecide_flips": [
+    "Group A__M048EJG7.005",
+    "Group A__M048EJGE.005",
+    "Group A__M048EJGE.016",
+    "Group A__M048EJGE.017",
+    "Group A__M048EJGE.018",
+    "Group A__M048EJGE.026",
+    "Group A__M048EJGE.032",
+    "Group A__M048EJH6.001"
+  ],
+  "projected_true_stp_after_redecide": 292,
+  "projected_true_stp_rate_after_redecide": 0.9733,
+  "hitl_claim_ids": [
+    "Group A/M048DJKN.022",
+    "Group A/M048DJKN.023",
+    "Group A/M048EJG7.005",
+    "Group A/M048EJGE.005",
+    "Group A/M048EJGE.016",
+    "Group A/M048EJGE.017",
+    "Group A/M048EJGE.018",
+    "Group A/M048EJGE.019",
+    "Group A/M048EJGE.026",
+    "Group A/M048EJGE.032",
+    "Group A/M048EJGE.041",
+    "Group A/M048EJH6.001",
+    "Group A/M048EJI2.020",
+    "Group A/M048HJCR.004"
+  ],
+  "registration_failed_ids": [
+    "Group A/M048EJGE.014",
+    "Group A/M048EJGE.015"
+  ],
+  "gates": {
+    "true_stp_ge_90": "PASS",
+    "true_stp_ge_95": "FAIL",
+    "projected_redecide_ge_95": "PASS",
+    "median_le_n100_v13c": "PASS"
+  },
+  "finished_at": "2026-09-23T13:37:51.843687+00:00",
+  "note": "Live ledger before remaining-HITL redecide; EJGE pocket drove after-100 dip. Precision-safe unlocks: vision-underread E4, DI soup, ID digit-core pad, DI-partner not digit-drop-upgraded. Guards: extreme ratio, underread requires scrap, DJKN.023/022 stay HITL."
+}

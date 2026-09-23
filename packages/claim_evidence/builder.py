@@ -1185,16 +1185,24 @@ class ClaimEvidenceBuilder:
                 chosen = grid_alt
             # L1 / DJJM.040: agent LINES cents-column (2.51) must not be rewritten
             # to the unplaced Box28 fuller twin (251) via digit-drop preference.
+            # L4 / EJG7.005: when DI+vision already exact-agree on the agent pick,
+            # do not upgrade to an inflated digit-drop twin (400 → 4007) that then
+            # fails open-source mint and skips DI-partner authorize.
             digit_alt = None
             if side != "LINES":
-                digit_alt = prefer_open_source_digit_drop_fuller_box28(
-                    chosen, agent_candidates
+                from packages.claim_evidence.charge_total_authority import (
+                    _exact_di_partner_charge_agreement,
                 )
-                if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
-                    chosen, agent_candidates
-                ):
-                    amt = parse_currency(chosen)
-                    digit_alt = format_currency(amt) if amt is not None else None
+
+                if not _exact_di_partner_charge_agreement(chosen, agent_candidates):
+                    digit_alt = prefer_open_source_digit_drop_fuller_box28(
+                        chosen, agent_candidates
+                    )
+                    if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
+                        chosen, agent_candidates
+                    ):
+                        amt = parse_currency(chosen)
+                        digit_alt = format_currency(amt) if amt is not None else None
                 if digit_alt:
                     chosen = digit_alt
             from packages.claim_evidence.charge_total_authority import (
@@ -1204,6 +1212,7 @@ class ClaimEvidenceBuilder:
 
             confirm_amount = None
             confirm_reason = None
+            agent_original = str(agent.get("value") or "").strip()
             if grid_alt or digit_alt:
                 # OS-derived repair (grid / digit-drop fuller) — not sole LLM authority.
                 if (
@@ -1235,14 +1244,19 @@ class ClaimEvidenceBuilder:
                             if grid_alt
                             else "OPEN_SOURCE_DIGIT_DROP_FULLER_BOX28"
                         )
-            else:
-                # Plain conflict-agent pick: dual local OCR or exact Σ, never sole LLM.
-                # L1 LINES / L4 DI+partner BOX28: authorize success is enough —
-                # do not re-veto via digit-drop rivals of the unplaced Box28 twin.
+                elif digit_alt and not grid_alt:
+                    # Digit-drop fuller failed OS corroboration — authorize the
+                    # original agent pick (DI+partner / vision-underread).
+                    chosen = agent_original
+                    digit_alt = None
+            if confirm_amount is None and not grid_alt:
+                # Plain conflict-agent pick: dual local / DI+partner / underread.
                 from packages.claim_evidence.charge_total_authority import (
                     _exact_di_partner_charge_agreement,
                 )
 
+                if not chosen:
+                    chosen = agent_original
                 auth, auth_reason = authorize_conflict_agent_charge(
                     chosen,
                     candidates=agent_candidates,
@@ -1694,36 +1708,39 @@ class ClaimEvidenceBuilder:
             if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
                 chosen = str(agent.get("value") or "").strip()
                 side = agent["side"]
+                from packages.claim_evidence.charge_total_authority import (
+                    authorize_conflict_agent_charge,
+                    is_units_bleed_cents,
+                    _exact_di_partner_charge_agreement,
+                )
+
                 grid_alt = prefer_incomplete_grid_box28(chosen, agent_candidates, lines)
                 if grid_alt:
                     chosen = grid_alt
                 # L1: never digit-drop-upgrade an agent LINES cents-column pick.
+                # L4: skip digit-drop fuller when DI+partner already owns agent pick.
                 digit_alt = None
                 if side != "LINES":
-                    digit_alt = prefer_open_source_digit_drop_fuller_box28(
-                        chosen, agent_candidates
-                    )
-                    if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
-                        chosen, agent_candidates
-                    ):
-                        from packages.claim_evidence.line_sum_authority import (
-                            format_currency,
-                            parse_currency,
+                    if not _exact_di_partner_charge_agreement(chosen, agent_candidates):
+                        digit_alt = prefer_open_source_digit_drop_fuller_box28(
+                            chosen, agent_candidates
                         )
+                        if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
+                            chosen, agent_candidates
+                        ):
+                            from packages.claim_evidence.line_sum_authority import (
+                                format_currency,
+                                parse_currency,
+                            )
 
-                        amt = parse_currency(chosen)
-                        digit_alt = format_currency(amt) if amt is not None else None
+                            amt = parse_currency(chosen)
+                            digit_alt = format_currency(amt) if amt is not None else None
                     if digit_alt:
                         chosen = digit_alt
                 # Locals-agree Box 28 may disagree with a partial line Σ (EJG7.001
                 # 955 vs 835). Still block wild soup (EJG7.004 17500 vs 1031) and
                 # beyond-grid shells (EJGE.006 4200). Plain conflict-agent picks
                 # need dual open-source agreement or exact Σ — never sole LLM.
-                from packages.claim_evidence.charge_total_authority import (
-                    authorize_conflict_agent_charge,
-                    is_units_bleed_cents,
-                    _exact_di_partner_charge_agreement,
-                )
 
                 confirm_amount = None
                 confirm_reason = None

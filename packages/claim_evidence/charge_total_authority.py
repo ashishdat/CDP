@@ -549,9 +549,15 @@ def _vision_corroborates_underread_locals(
             underread_amts.append(other)
     if not (has_vision and saw_local):
         return False
+    # Require at least one strict underread scrap. Exact vision+local agreement
+    # is handled by CHARGE_VISION_LOCAL E4 — do not use this path to authorize
+    # a conflict-agent pick that merely matches one local while line Σ disagrees
+    # (DJKN.022 Claude+paddle ``25`` vs dual-line ``450``).
+    if not underread_amts:
+        return False
     # Extreme ratio: scrap local is <1% of the vision pick (45000/11).
     # EJGE underreads stay well under 100× (1800/29 ≈ 62).
-    if underread_amts and chosen_amt / min(underread_amts) > 100:
+    if chosen_amt / min(underread_amts) > 100:
         return False
     return True
 

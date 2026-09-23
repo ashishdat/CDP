@@ -97,6 +97,41 @@ def test_gpt4o_vs_weak_local_id_conflict_relieved():
     assert "GPT4O_ID_WEAK_LOCAL_RELIEVED" in result.rationale_codes
 
 
+def test_ejge026_claude_carrier_id_vs_zero_pad_core():
+    """EJGE.026: Claude USW000179858 vs paddle 000179858 → ACCEPT carrier."""
+    result = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("USW000179858", "anthropic_claude_crop", 0.95),
+            _candidate("000179858", "paddleocr", 0.90),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        independent_agreement_values=set(),
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "USW000179858"
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+    assert "GPT4O_ID_WEAK_LOCAL_RELIEVED" in result.rationale_codes
+
+    # Pad ranked first still prefers Claude carrier.
+    result2 = EvidenceReconciler().reconcile(
+        "insured_id_number",
+        [
+            _candidate("000179858", "paddleocr", 0.97),
+            _candidate("USW000179858", "anthropic_claude_crop", 0.95),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        independent_agreement_values=set(),
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result2.decision == Decision.ACCEPT
+    assert result2.selected_value == "USW000179858"
+    assert "GPT4O_ID_WEAK_LOCAL_RELIEVED" in result2.rationale_codes
+
+
 def test_weak_local_ranked_first_still_prefers_gpt4o():
     """When ranking crowns short rapid, reconcile still prefers gpt-4o residual."""
     result = EvidenceReconciler().reconcile(

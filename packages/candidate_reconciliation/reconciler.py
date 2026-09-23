@@ -538,7 +538,38 @@ def _member_ids_share_digit_prefix(left: str, right: str, *, min_len: int = 3) -
     b = re.sub(r"\D", "", _canonical_member_id(right) or "")
     if len(a) < min_len or len(b) < min_len:
         return False
+    # Zero-pad / carrier-prefix cores: ``USW000179858`` vs ``000179858`` share
+    # digit core ``179858`` even though raw leading zeros diverge.
+    a_core = a.lstrip("0") or "0"
+    b_core = b.lstrip("0") or "0"
+    if len(a_core) >= min_len and a_core == b_core:
+        return True
+    if len(a_core) >= min_len and len(b_core) >= min_len and (
+        a_core.endswith(b_core) or b_core.endswith(a_core)
+    ):
+        return True
     return a[:min_len] == b[:min_len]
+
+
+def _member_id_is_digit_core_pad_fragment(primary: str, other: str) -> bool:
+    """True when ``other`` is a zero-padded / digit-only core of ``primary``.
+
+    EJGE.026: Claude ``USW000179858`` vs paddle ``000179858`` — same digit core,
+    local is pad-only; must not CONFLICT_MARGIN the vision carrier ID.
+    """
+    if not _member_ids_share_digit_prefix(primary, other, min_len=5):
+        return False
+    p_alnum = re.sub(r"[^A-Za-z0-9]", "", primary or "")
+    o_alnum = re.sub(r"[^A-Za-z0-9]", "", other or "")
+    if not p_alnum or not o_alnum:
+        return False
+    # Vision/carrier form has letters; local is digits-only pad/trunc.
+    if any(ch.isalpha() for ch in p_alnum) and o_alnum.isdigit():
+        return True
+    # Same core, primary digit run strictly longer (leading zeros kept on local).
+    p_digits = re.sub(r"\D", "", primary or "")
+    o_digits = re.sub(r"\D", "", other or "")
+    return bool(p_digits and o_digits and len(p_digits) > len(o_digits))
 
 
 def prefer_member_id_longer_authority(primary: str, competitors: list[str]) -> str | None:
@@ -1967,6 +1998,25 @@ class EvidenceReconciler:
                     supporting = items
                     early_gpt4o_id_relief = True
                     break
+            # Prefer carrier/vision ID over zero-padded digit-only core ranked first
+            # (EJGE.026: ``000179858`` paddle over ``USW000179858`` Claude).
+            if not early_gpt4o_id_relief and not early_id_relief:
+                for _norm, items in ranked[1:]:
+                    best = max(items, key=lambda row: row[1])
+                    cand, _score, _ver = best
+                    cand_val = str(cand.value or "")
+                    if not _is_azure_gpt4o_crop_engine(cand.engine):
+                        continue
+                    if not _member_id_is_shaped(cand_val):
+                        continue
+                    if _member_id_is_weak_for_gpt4o_gate(cand_val):
+                        continue
+                    if not _member_id_is_digit_core_pad_fragment(cand_val, str(value)):
+                        continue
+                    value = cand_val
+                    supporting = items
+                    early_gpt4o_id_relief = True
+                    break
             # Prefer gpt-4o + local corroboration over a lone same-length digit twin.
             if not early_gpt4o_id_relief and not early_id_relief:
                 top_canon = _canonical_member_id(str(value or ""))
@@ -2794,6 +2844,15 @@ class EvidenceReconciler:
                         and primary_strong
                         and _member_id_is_weak_for_gpt4o_gate(str(other))
                         and _member_ids_share_digit_prefix(str(value), str(other))
+                    ):
+                        gpt4o_weak_local_filtered = True
+                        continue
+                    # Carrier/vision ID vs zero-padded digit-only core (EJGE.026
+                    # ``USW000179858`` vs ``000179858``).
+                    if (
+                        primary_is_gpt4o
+                        and primary_strong
+                        and _member_id_is_digit_core_pad_fragment(str(value), str(other))
                     ):
                         gpt4o_weak_local_filtered = True
                         continue

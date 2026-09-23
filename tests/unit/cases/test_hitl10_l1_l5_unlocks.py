@@ -270,6 +270,41 @@ def test_l4_exact_di_partner_authorizes_box28_over_single_line():
     )
 
 
+def test_l4_di_partner_not_upgraded_to_digit_drop_twin():
+    """EJG7.005 live: DI+Claude 400 must not become rapid 4007 digit-drop fuller."""
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="EJG7.005-4007",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "400.00",
+            "_financial_conflict_agent": {
+                "side": "BOX28",
+                "value": "400.00",
+                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            },
+            "_box28_field_payload": {
+                "candidates": [
+                    {"engine": "azure_document_intelligence_read", "value": "400.00"},
+                    {"engine": "anthropic_claude_crop", "value": "400.00"},
+                    {"engine": "rapidocr", "value": "4007.00"},
+                ]
+            },
+        },
+        service_lines=[{"charges": "120.00"}],
+    )
+    confirmed = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+    ]
+    assert confirmed
+    assert all(str(i.value) == "400.00" for i in confirmed)
+    assert all(
+        (i.metadata or {}).get("reason") == "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK"
+        for i in confirmed
+    )
+
+
 def test_l4_scale_twin_di_does_not_authorize_inflated_box28():
     """DJKH.040: DI ×100 soup must not authorize inflated agent BOX28."""
     auth, reason = authorize_conflict_agent_charge(
@@ -400,6 +435,19 @@ def test_ejge_vision_underread_authorizes_and_mints_e4():
     )
     assert auth_bad is None
     assert reason_bad == "CONFLICT_AGENT_SOLE_AUTHORITY"
+
+    # Exact vision+local agree without underread scrap — not this path
+    # (DJKN.022 Claude+paddle 25 vs line Σ 450 must not AUTO via underread).
+    auth_agree, reason_agree = authorize_conflict_agent_charge(
+        "25.00",
+        candidates=[
+            {"engine": "anthropic_claude_crop", "value": "25.00"},
+            {"engine": "paddleocr", "value": "25.00"},
+        ],
+        service_lines=[{"charges": "450.00"}],
+    )
+    assert auth_agree is None
+    assert reason_agree == "CONFLICT_AGENT_SOLE_AUTHORITY"
 
     # DJKN.023: Claude hallucinated 45000 vs rapid 11 — extreme ratio, stay HITL.
     auth_huge, reason_huge = authorize_conflict_agent_charge(
