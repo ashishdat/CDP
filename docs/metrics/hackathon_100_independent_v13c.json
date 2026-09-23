@@ -1,0 +1,36 @@
+{
+  "cohort": "hackathon_100_independent_v13c",
+  "offset": 50,
+  "limit": 100,
+  "completed": 100,
+  "true_stp": 97,
+  "true_stp_rate": 0.97,
+  "field_hitl": 3,
+  "field_hitl_rate": 0.03,
+  "registration_hitl": 0,
+  "infra_failures": 0,
+  "median_elapsed_sec": 36.98,
+  "mean_elapsed_sec": 38.43,
+  "p90_elapsed_sec": 52.44,
+  "baseline_v13b_true_stp_rate": 0.9,
+  "baseline_v13b_median_elapsed_sec": 38.96,
+  "delta_vs_v13b_stp_pp": 7.0,
+  "delta_vs_v13b_median_sec": -1.98,
+  "hitl_blocker_fields": {
+    "total_charge": 3
+  },
+  "hitl_claim_ids": [
+    "Group A/M048DJKN.022",
+    "Group A/M048DJKN.023",
+    "Group A/M048EJG7.005"
+  ],
+  "gates": {
+    "true_stp_ge_90": "PASS",
+    "true_stp_ge_95": "PASS",
+    "true_stp_ge_96": "PASS",
+    "median_le_v13b": "PASS",
+    "median_le_35": "FAIL"
+  },
+  "finished_at": "2026-09-23T09:52:17.774302+00:00",
+  "note": "Independent-100 after latency tune + patient_name Self-twin/budget fix; keep DJKN.023 HITL"
+}
