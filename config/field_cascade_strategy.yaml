@@ -299,3 +299,8 @@ gap_classes:
       SINGLE_LINE_GPT4O_LOCAL / dual-engine corroboration; HITL if still single-engine.
   NPI_CONTAMINATED_CHARGE:
     action: Keep empty / HITL; never accept $1.00 NPI bleed as claim total.
+  SHORT_PADDED_NEEDS_CORROBORATION:
+    action: >
+      Short zero-padded member id — run gpt-4o/Claude crop to corroborate a
+      local canon (match-only, never invent). Dual-engine padded settle is
+      allowed; lone padded shell stays HITL without vision or authorized index.

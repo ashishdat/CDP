@@ -208,14 +208,25 @@ def test_gap_taxonomy_line_sum_uncorroborated_vs_truly_empty_charge():
     assert empty.gap_class == "EMPTY_FINANCIAL_INK"
 
 
-def test_gap_taxonomy_marks_header_only_dob_as_handwriting():
+def test_gap_taxonomy_marks_short_padded_id_not_handwriting():
     gap = classify_field_gap(
-        "patient_dob",
-        observed_text="Mly DD",
+        "insured_id_number",
+        observed_text="00000259054",
         accepted=False,
+        reason_codes=["SHORT_PADDED_MEMBER_ID_NEEDS_CORROBORATION", "FORMAT_VALID"],
     )
     assert gap is not None
-    assert gap.gap_class == "HANDWRITING_UNREADABLE"
+    assert gap.gap_class == "SHORT_PADDED_NEEDS_CORROBORATION"
+    # Text alone (no reason) still classifies as padded.
+    gap2 = classify_field_gap(
+        "insured_id_number",
+        observed_text="00000259610",
+        accepted=False,
+        reason_codes=["FORMAT_VALID"],
+    )
+    assert gap2 is not None
+    assert gap2.gap_class == "SHORT_PADDED_NEEDS_CORROBORATION"
+
 
 
 def test_gap_taxonomy_marks_missing_e3_as_plumbing_not_handwriting():

@@ -211,6 +211,27 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     image=image,
                     gap_class="CHARGE_LOCAL_EXHAUSTED",
                 )
+            # P1.C: execute conflict agent when router planned it or place-shift
+            # rivals remain after DI/vision (OVERLAP / CONFLICT ladders).
+            plan_tools = list(
+                ((current.get("recovery_plan") or {}).get("tools") or [])
+            )
+            need_agent = "conflict_agent" in plan_tools or force_vision
+            if need_agent and gpt4o_on not in {"0", "false", "no", "off"}:
+                try:
+                    from packages.extraction_recovery.conflict_agent import (
+                        field_needs_conflict_agent,
+                        maybe_attach_conflict_agent_to_field_row,
+                    )
+
+                    if field_needs_conflict_agent(
+                        name, current.get("candidates")
+                    ) or force_vision:
+                        current = maybe_attach_conflict_agent_to_field_row(
+                            current, image=image
+                        )
+                except Exception:  # noqa: BLE001
+                    pass
             updated.append(current)
             continue
         if key in {"insured_id_number", "member_id", "subscriber_id"}:
@@ -2586,6 +2607,10 @@ def _confirm_sole_charge_line_with_claude(image, lines):
     Multi-line paddle+rapid agreement already straight-throughs. One line does
     not. Claude must match that local amount within $1. A different read is
     recorded and does not replace the local amount.
+
+    Accuracy-first: also run when dual-local agreed on the sole line
+    (``CHARGE_GPT4O_SKIPPED_DUAL_LOCAL``) **or** when CDP_ACCURACY_FIRST_LLM
+    is on — SINGLE_LINE_GPT4O_LOCAL needs vision corroboration for empty Box28.
     """
     from packages.claim_evidence.line_sum_authority import parse_currency
     from packages.extraction_recovery.field_reader_policy import model_may_supersede
@@ -2602,7 +2627,28 @@ def _confirm_sole_charge_line_with_claude(image, lines):
         return lines
     line = observed[0]
     attempts = [a for a in (line.get("attempts") or []) if isinstance(a, dict)]
-    if not any(a.get("reason") == "CHARGE_GPT4O_SKIPPED_DUAL_LOCAL" for a in attempts):
+    skipped_dual = any(
+        a.get("reason") == "CHARGE_GPT4O_SKIPPED_DUAL_LOCAL" for a in attempts
+    )
+    already_vision = any(
+        "gpt4o" in str(a.get("engine") or "").casefold()
+        or "claude" in str(a.get("engine") or "").casefold()
+        or "anthropic" in str(a.get("engine") or "").casefold()
+        for a in attempts
+    )
+    try:
+        from packages.extraction_recovery.llm_accuracy_policy import (
+            accuracy_first_llm_enabled,
+        )
+
+        accuracy_first = accuracy_first_llm_enabled()
+    except Exception:  # noqa: BLE001
+        accuracy_first = True
+    # Accuracy-first: always corroborate the sole line once unless vision already
+    # ran. Legacy path only re-asks when dual-local skipped the crop.
+    if already_vision:
+        return lines
+    if not skipped_dual and not accuracy_first:
         return lines
     gpt4o_on = (os.environ.get("CDP_GPT4O_CROP_RESIDUAL") or "1").strip().casefold()
     if gpt4o_on in {"0", "false", "no", "off"}:
@@ -2627,7 +2673,6 @@ def _confirm_sole_charge_line_with_claude(image, lines):
     line["attempts"] = attempts
     line["router_reason"] = reason
     return lines
-
 
 
 def _dob_cell_bboxes(band):

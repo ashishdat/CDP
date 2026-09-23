@@ -144,4 +144,36 @@ def classify_field_gap(
             )
         return _pack("EMPTY_FINANCIAL_INK", "no box-28 ink and no observed line charges")
 
+    if name in {"insured_id_number", "member_id", "subscriber_id"}:
+        # Short zero-padded shells need vision/second-family — not handwriting.
+        padded_reason = any(
+            "SHORT_PADDED" in r.upper() or "UNSHAPED_MEMBER_ID" in r.upper()
+            for r in reasons
+        )
+        is_padded = False
+        try:
+            from packages.candidate_reconciliation.reconciler import (
+                _member_id_is_short_padded_shell,
+            )
+
+            is_padded = bool(text and _member_id_is_short_padded_shell(text))
+        except Exception:  # noqa: BLE001
+            is_padded = False
+        if padded_reason or is_padded:
+            return _pack(
+                "SHORT_PADDED_NEEDS_CORROBORATION",
+                f"short zero-padded member id needs multi-engine/vision ({text!r})",
+            )
+        if "CONFLICT_MARGIN_TOO_SMALL" in reasons and text:
+            return _pack(
+                "EVIDENCE_POLICY_GAP",
+                f"shaped member id with engine conflict ({text!r})",
+            )
+        if not text:
+            return _pack("HANDWRITING_UNREADABLE", "no member-id ink in ROI")
+        return _pack(
+            "HANDWRITING_UNREADABLE",
+            f"unresolved member-id ink ({text!r})",
+        )
+
     return _pack("HANDWRITING_UNREADABLE", f"unresolved field ink ({text!r})")
