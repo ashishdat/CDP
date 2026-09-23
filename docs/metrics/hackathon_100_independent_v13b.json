@@ -1,0 +1,40 @@
+{
+  "cohort": "hackathon_100_independent_v13b",
+  "offset": 50,
+  "limit": 100,
+  "completed": 100,
+  "true_stp": 90,
+  "true_stp_rate": 0.9,
+  "field_hitl": 10,
+  "field_hitl_rate": 0.1,
+  "registration_hitl": 0,
+  "infra_failures": 0,
+  "median_elapsed_sec": 38.96,
+  "mean_elapsed_sec": 40.79,
+  "p90_elapsed_sec": 56.75,
+  "baseline_v13_true_stp_rate": 0.84,
+  "delta_vs_v13_pp": 6.0,
+  "hitl_blocker_fields": {
+    "total_charge": 9,
+    "patient_dob": 1
+  },
+  "hitl_claim_ids": [
+    "Group A/M048DJJM.040",
+    "Group A/M048DJKH.023",
+    "Group A/M048DJKH.030",
+    "Group A/M048DJKH.040",
+    "Group A/M048DJKH.048",
+    "Group A/M048DJKN.022",
+    "Group A/M048DJKN.023",
+    "Group A/M048EJG7.005",
+    "Group A/M048EJG7.007",
+    "Group A/M048EJG7.009"
+  ],
+  "gates": {
+    "true_stp_ge_90": "PASS",
+    "true_stp_ge_95": "FAIL",
+    "true_stp_ge_96": "FAIL"
+  },
+  "finished_at": "2026-09-23T06:53:02.395659+00:00",
+  "note": "Fresh Independent-100 after accuracy-first LLM + P1/P2 plan"
+}
