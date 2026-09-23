@@ -165,3 +165,24 @@ def test_name_engine_conflict_forces_past_budget():
     }
     assert name_force_despite_budget(row) is True
     assert force_cloud_despite_budget("patient_name", row) is True
+
+
+def test_box28_settled_for_sole_line_skip_di_agree():
+    from packages.extraction_recovery.llm_accuracy_policy import (
+        box28_settled_for_sole_line_skip,
+    )
+
+    row = {
+        "field": "total_charge",
+        "candidates": [
+            {"engine": "paddleocr", "value": "125.00"},
+            {"engine": "azure_document_intelligence_read", "value": "125.00"},
+        ],
+        "azure_di_residual": {
+            "currency_shaped": True,
+            "review_only": False,
+            "value": "125.00",
+        },
+    }
+    assert box28_settled_for_sole_line_skip(row) is True
+    assert box28_settled_for_sole_line_skip({"candidates": []}) is False

@@ -2593,16 +2593,17 @@ def recognize_service_lines(image, router, template):
     return _confirm_sole_charge_line_with_claude(image, lines)
 
 
-def _confirm_sole_charge_line_with_claude(image, lines):
+def _confirm_sole_charge_line_with_claude(image, lines, *, box28_row=None):
     """Ask Claude to confirm the only charge line when dual-local skipped it.
 
     Multi-line paddle+rapid agreement already straight-throughs. One line does
     not. Claude must match that local amount within $1. A different read is
     recorded and does not replace the local amount.
 
-    Accuracy-first: also run when dual-local agreed on the sole line
-    (``CHARGE_GPT4O_SKIPPED_DUAL_LOCAL``) **or** when CDP_ACCURACY_FIRST_LLM
-    is on — SINGLE_LINE_GPT4O_LOCAL needs vision corroboration for empty Box28.
+    Cost-safe (default on, ``CDP_SOLE_LINE_CLAUDE_COST_SAFE=1``):
+    - Phase 1 (``box28_row is None``): defer Claude when dual-local agreed.
+    - Phase 2 (after Box28 residuals): Claude only if Box28 still unsettled.
+    Set ``CDP_SOLE_LINE_CLAUDE_COST_SAFE=0`` to always corroborate (legacy).
     """
     from packages.claim_evidence.line_sum_authority import parse_currency
     from packages.extraction_recovery.field_reader_policy import model_may_supersede
@@ -2619,32 +2620,80 @@ def _confirm_sole_charge_line_with_claude(image, lines):
         return lines
     line = observed[0]
     attempts = [a for a in (line.get("attempts") or []) if isinstance(a, dict)]
+    skip_reasons = {
+        "CHARGE_GPT4O_SKIPPED_DUAL_LOCAL",
+        "CHARGE_GPT4O_SKIPPED_DOC_BUDGET",
+        "CHARGE_GPT4O_DEFERRED_SOLE_LINE",
+        "CHARGE_GPT4O_SKIPPED_BOX28_SETTLED",
+    }
     skipped_dual = any(
         a.get("reason") == "CHARGE_GPT4O_SKIPPED_DUAL_LOCAL" for a in attempts
     )
     already_vision = any(
-        "gpt4o" in str(a.get("engine") or "").casefold()
-        or "claude" in str(a.get("engine") or "").casefold()
-        or "anthropic" in str(a.get("engine") or "").casefold()
+        (
+            "gpt4o" in str(a.get("engine") or "").casefold()
+            or "claude" in str(a.get("engine") or "").casefold()
+            or "anthropic" in str(a.get("engine") or "").casefold()
+        )
+        and str(a.get("reason") or "") not in skip_reasons
         for a in attempts
     )
     try:
         from packages.extraction_recovery.llm_accuracy_policy import (
             accuracy_first_llm_enabled,
+            box28_settled_for_sole_line_skip,
+            sole_line_claude_cost_safe,
         )
 
         accuracy_first = accuracy_first_llm_enabled()
+        cost_safe = sole_line_claude_cost_safe()
     except Exception:  # noqa: BLE001
         accuracy_first = True
-    # Accuracy-first: always corroborate the sole line once unless vision already
-    # ran. Legacy path only re-asks when dual-local skipped the crop.
+        cost_safe = True
+
+        def box28_settled_for_sole_line_skip(_row):  # type: ignore[misc]
+            return False
+
     if already_vision:
         return lines
-    if not skipped_dual and not accuracy_first:
-        return lines
+
     gpt4o_on = (os.environ.get("CDP_GPT4O_CROP_RESIDUAL") or "1").strip().casefold()
     if gpt4o_on in {"0", "false", "no", "off"}:
         return lines
+
+    def _stamp(reason: str) -> None:
+        line["attempts"] = list(attempts) + [
+            {"engine": "azure_gpt4o_crop", "reason": reason}
+        ]
+
+    if cost_safe:
+        # Dual-local sole line: defer or skip when Box28 settles; Claude only
+        # when Box28 remains empty/unsettled (empty-Box28 STP path).
+        if skipped_dual:
+            if box28_row is None:
+                _stamp("CHARGE_GPT4O_DEFERRED_SOLE_LINE")
+                return lines
+            if box28_settled_for_sole_line_skip(box28_row):
+                _stamp("CHARGE_GPT4O_SKIPPED_BOX28_SETTLED")
+                return lines
+            # Box28 unsettled → Claude below.
+        else:
+            # Mono-engine sole line: accuracy-first may still corroborate, but
+            # after residuals only when Box28 is unsettled.
+            if not accuracy_first:
+                return lines
+            if box28_row is not None and box28_settled_for_sole_line_skip(box28_row):
+                _stamp("CHARGE_GPT4O_SKIPPED_BOX28_SETTLED")
+                return lines
+            if box28_row is None:
+                # Defer mono-engine corroboration until Box28 residual pass.
+                _stamp("CHARGE_GPT4O_DEFERRED_SOLE_LINE")
+                return lines
+    else:
+        # Legacy: accuracy-first always corroborates; else only after dual skip.
+        if not skipped_dual and not accuracy_first:
+            return lines
+
     bbox = line.get("canonical_region") or line.get("bbox")
     if not bbox or len(tuple(bbox)) != 4:
         return lines
@@ -2665,6 +2714,20 @@ def _confirm_sole_charge_line_with_claude(image, lines):
     line["attempts"] = attempts
     line["router_reason"] = reason
     return lines
+
+
+def _maybe_confirm_sole_line_after_box28(image, fields, service_lines):
+    """Phase-2 sole-line Claude: only when Box28 stayed unsettled after residuals."""
+    box28 = None
+    for row in fields or []:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("field") or "").casefold() in {"total_charge", "total_charges"}:
+            box28 = row
+            break
+    return _confirm_sole_charge_line_with_claude(
+        image, service_lines, box28_row=box28
+    )
 
 
 def _dob_cell_bboxes(band):
@@ -3527,6 +3590,12 @@ def run(directory, output):
                     report['fields'],
                     canonical,
                     service_lines=report['service_lines'],
+                )
+                # Phase-2 sole-line Claude only if Box28 stayed unsettled.
+                report["service_lines"] = _maybe_confirm_sole_line_after_box28(
+                    canonical,
+                    report["fields"],
+                    report["service_lines"],
                 )
                 # OCR/model conflicts → Claude picks one rival. Box 28 ≠ Σ → BOX28/LINES.
                 from packages.extraction_recovery.conflict_agent import (

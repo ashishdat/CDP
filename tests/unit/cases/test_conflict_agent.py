@@ -199,3 +199,19 @@ def test_financial_conflict_agent_abstain_keeps_hitl(monkeypatch):
     )
     assert "financial_conflict_agent" not in out_fields[0]
     assert out_fields[0]["conflict_agent"]["resolved"] is False
+
+
+def test_field_needs_conflict_skips_when_name_locals_settled():
+    cands = [
+        {"engine": "paddleocr", "value": "SMITH, JOHN"},
+        {"engine": "rapidocr", "value": "SMITH, JOHN"},
+        {"engine": "anthropic_claude_crop", "value": "SMITH JOHN"},
+    ]
+    # Soft-equivalent locals settle → no conflict agent on names.
+    assert field_needs_conflict_agent("patient_name", cands) is False
+    # Charge rivals still need the agent.
+    charge = [
+        {"engine": "paddleocr", "value": "50.00"},
+        {"engine": "rapidocr", "value": "660.00"},
+    ]
+    assert field_needs_conflict_agent("total_charge", charge) is True

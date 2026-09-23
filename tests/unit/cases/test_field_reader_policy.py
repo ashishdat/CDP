@@ -34,6 +34,9 @@ def test_each_critical_field_has_one_reader():
 
 
 def test_sole_charge_line_claude_confirms_local_amount(monkeypatch):
+    """Legacy always-corroborate path (cost-safe off)."""
+    monkeypatch.setenv("CDP_SOLE_LINE_CLAUDE_COST_SAFE", "0")
+
     def _crop(image, bbox, *, prior_candidates=None):
         del image, bbox, prior_candidates
         return (
@@ -69,7 +72,127 @@ def test_sole_charge_line_claude_confirms_local_amount(monkeypatch):
     assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
 
 
+def test_sole_line_cost_safe_defers_without_box28(monkeypatch):
+    monkeypatch.setenv("CDP_SOLE_LINE_CLAUDE_COST_SAFE", "1")
+    called = {"n": 0}
+
+    def _crop(image, bbox, *, prior_candidates=None):
+        del image, bbox, prior_candidates
+        called["n"] += 1
+        return "200.00", "200", [{"engine": "azure_gpt4o_crop", "value": "200.00"}], "X"
+
+    monkeypatch.setattr("scripts.ocr_from_geometry._maybe_gpt4o_charge_crop", _crop)
+    lines = [
+        {
+            "charges": "200.00",
+            "raw_charges": "200",
+            "canonical_region": (10, 20, 30, 40),
+            "candidates": [
+                {"engine": "paddleocr", "value": "200.00"},
+                {"engine": "rapidocr", "value": "200.00"},
+            ],
+            "attempts": [
+                {"engine": "azure_gpt4o_crop", "reason": "CHARGE_GPT4O_SKIPPED_DUAL_LOCAL"}
+            ],
+            "router_reason": "DUAL_LOCAL",
+        }
+    ]
+    out = _confirm_sole_charge_line_with_claude(None, lines, box28_row=None)
+    assert called["n"] == 0
+    reasons = [a.get("reason") for a in out[0]["attempts"]]
+    assert "CHARGE_GPT4O_DEFERRED_SOLE_LINE" in reasons
+
+
+def test_sole_line_cost_safe_skips_when_box28_di_settled(monkeypatch):
+    monkeypatch.setenv("CDP_SOLE_LINE_CLAUDE_COST_SAFE", "1")
+    called = {"n": 0}
+
+    def _crop(image, bbox, *, prior_candidates=None):
+        del image, bbox, prior_candidates
+        called["n"] += 1
+        return "200.00", "200", [{"engine": "azure_gpt4o_crop", "value": "200.00"}], "X"
+
+    monkeypatch.setattr("scripts.ocr_from_geometry._maybe_gpt4o_charge_crop", _crop)
+    lines = [
+        {
+            "charges": "200.00",
+            "raw_charges": "200",
+            "canonical_region": (10, 20, 30, 40),
+            "candidates": [
+                {"engine": "paddleocr", "value": "200.00"},
+                {"engine": "rapidocr", "value": "200.00"},
+            ],
+            "attempts": [
+                {"engine": "azure_gpt4o_crop", "reason": "CHARGE_GPT4O_SKIPPED_DUAL_LOCAL"},
+                {"engine": "azure_gpt4o_crop", "reason": "CHARGE_GPT4O_DEFERRED_SOLE_LINE"},
+            ],
+            "router_reason": "DUAL_LOCAL",
+        }
+    ]
+    box28 = {
+        "field": "total_charge",
+        "candidates": [
+            {"engine": "paddleocr", "value": "200.00"},
+            {"engine": "rapidocr", "value": "200.00"},
+            {"engine": "azure_document_intelligence_read", "value": "200.00"},
+        ],
+        "azure_di_residual": {
+            "currency_shaped": True,
+            "review_only": False,
+            "value": "200.00",
+        },
+        "observed_line_charges": ["200.00"],
+    }
+    out = _confirm_sole_charge_line_with_claude(None, lines, box28_row=box28)
+    assert called["n"] == 0
+    reasons = [a.get("reason") for a in out[0]["attempts"]]
+    assert "CHARGE_GPT4O_SKIPPED_BOX28_SETTLED" in reasons
+
+
+def test_sole_line_cost_safe_calls_claude_when_box28_empty(monkeypatch):
+    monkeypatch.setenv("CDP_SOLE_LINE_CLAUDE_COST_SAFE", "1")
+
+    def _crop(image, bbox, *, prior_candidates=None):
+        del image, bbox, prior_candidates
+        return (
+            "200.00",
+            "200.00",
+            [{"engine": "azure_gpt4o_crop", "value": "200.00", "source_crop_id": "c3"}],
+            "CLAUDE_OK",
+        )
+
+    monkeypatch.setattr("scripts.ocr_from_geometry._maybe_gpt4o_charge_crop", _crop)
+    lines = [
+        {
+            "charges": "200.00",
+            "raw_charges": "200",
+            "canonical_region": (10, 20, 30, 40),
+            "candidates": [
+                {"engine": "paddleocr", "value": "200.00", "source_crop_id": "c1"},
+                {"engine": "rapidocr", "value": "200.00", "source_crop_id": "c2"},
+            ],
+            "attempts": [
+                {"engine": "azure_gpt4o_crop", "reason": "CHARGE_GPT4O_SKIPPED_DUAL_LOCAL"},
+                {"engine": "azure_gpt4o_crop", "reason": "CHARGE_GPT4O_DEFERRED_SOLE_LINE"},
+            ],
+            "router_reason": "DUAL_LOCAL",
+        }
+    ]
+    box28 = {
+        "field": "total_charge",
+        "candidates": [],
+        "cascade": {"accepted": False, "value": ""},
+        "observed_line_charges": ["200.00"],
+    }
+    out = _confirm_sole_charge_line_with_claude(None, lines, box28_row=box28)
+    assert "CHARGE_CLAUDE_CONFIRMS_LOCAL" in out[0]["router_reason"]
+    ok, reason = line_sum_auto_eligible(out)
+    assert ok and reason == "SINGLE_LINE_GPT4O_LOCAL"
+
+
 def test_claude_cannot_supersede_a_charge(monkeypatch):
+    monkeypatch.setenv("CDP_SOLE_LINE_CLAUDE_COST_SAFE", "0")
+
     def _crop(image, bbox, *, prior_candidates=None):
         del image, bbox, prior_candidates
         return (

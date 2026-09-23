@@ -147,7 +147,24 @@ def field_needs_conflict_agent(
     candidates: Sequence[Mapping[str, Any]] | None,
 ) -> bool:
     rivals = collect_field_rivals(field_name, candidates)
-    return len(rivals) >= 2
+    if len(rivals) < 2:
+        return False
+    key = (field_name or "").casefold()
+    # Cost-safe: soft-equivalent multi-family names are already settled — do not
+    # pay Claude to pick between OCR twins (CHANGULANI vs CHANAUICNI when locals
+    # already soft-match). Charge/ID/DOB keep conflict agent for ink fights.
+    if key in _NAME_FIELDS:
+        try:
+            from packages.extraction_recovery.cloud_stop_ladder import (
+                cloud_stop_ladder_enabled,
+                name_locals_settled,
+            )
+
+            if cloud_stop_ladder_enabled() and name_locals_settled(list(candidates or [])):
+                return False
+        except Exception:  # noqa: BLE001
+            pass
+    return True
 
 
 def _match_rival(reply: str, rivals: Sequence[str], field_name: str) -> str | None:

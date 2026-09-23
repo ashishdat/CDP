@@ -37,6 +37,77 @@ def accuracy_first_llm_enabled() -> bool:
     return _env_on("CDP_ACCURACY_FIRST_LLM", "1")
 
 
+def sole_line_claude_cost_safe() -> bool:
+    """Defer/skip sole-line Claude when Box28 DI/local can settle E4 (default on)."""
+    return _env_on("CDP_SOLE_LINE_CLAUDE_COST_SAFE", "1")
+
+
+def box28_settled_for_sole_line_skip(row: Mapping[str, Any] | None) -> bool:
+    """True when Box28 no longer needs sole-line Claude for empty-Box28 STP.
+
+    Settled means DI+local currency agreement, or dual-local charge settle that
+    the cloud stop ladder already trusts. Empty / abstained Box28 → False.
+    """
+    if not isinstance(row, Mapping):
+        return False
+    cands = list(row.get("candidates") or [])
+    di_meta = row.get("azure_di_residual") or {}
+    di_ready = bool(
+        isinstance(di_meta, Mapping)
+        and di_meta.get("currency_shaped")
+        and not di_meta.get("review_only")
+        and di_meta.get("value")
+    )
+    if di_ready:
+        try:
+            from packages.extraction_recovery.gpt4o_crop_residual import (
+                _charge_local_disagrees_with_di,
+            )
+
+            if not _charge_local_disagrees_with_di(cands):
+                return True
+        except Exception:  # noqa: BLE001
+            pass
+    try:
+        from packages.extraction_recovery.cloud_stop_ladder import (
+            charge_locals_settled,
+            cloud_stop_ladder_enabled,
+        )
+
+        lines = row.get("observed_line_charges")
+        line_list = (
+            [str(x) for x in lines if str(x).strip()]
+            if isinstance(lines, list)
+            else None
+        )
+        if cloud_stop_ladder_enabled() and charge_locals_settled(
+            cands, observed_line_charges=line_list
+        ):
+            return True
+    except Exception:  # noqa: BLE001
+        pass
+    cascade = row.get("cascade") or {}
+    if cascade.get("accepted") and parse_currency_safe(cascade.get("value")):
+        # Accepted with DI or vision local fact stamped → settled.
+        facts = row.get("evidence_facts") or row.get("authority_facts") or []
+        if isinstance(facts, (list, tuple, set)) and CHARGE_CLOUD_LOCAL_FACTS.intersection(
+            {str(x) for x in facts}
+        ):
+            return True
+        if di_ready:
+            return True
+    return False
+
+
+def parse_currency_safe(value: object) -> bool:
+    try:
+        from packages.claim_evidence.line_sum_authority import parse_currency
+
+        return parse_currency(value) is not None
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def azure_di_charge_default_on() -> bool:
     """Library default for DI charge residual (accuracy path)."""
     return _env_on("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
