@@ -284,6 +284,74 @@ def test_l4_scale_twin_di_does_not_authorize_inflated_box28():
     assert reason == "CONFLICT_AGENT_SOLE_AUTHORITY"
 
 
+def test_geometry_underread_does_not_override_agent_box28():
+    """DJKH.040: geo whole-dollar invent must not reject agent BOX28 pick."""
+    # Payload shaped so geometry underread would recover a disagreeing amount.
+    payload = {
+        "candidates": [
+            {
+                "engine": "rapidocr",
+                "value": "5.16",
+                "raw_value": "516",
+                "preprocessing_variant": "GEOMETRY_CENTS_UNDERREAD",
+            },
+            {"engine": "anthropic_claude_crop", "value": "1571.63"},
+            {"engine": "azure_document_intelligence_read", "value": "157163.00"},
+        ],
+        "attempts": [
+            {
+                "reason": "GEOMETRY_CENTS_UNDERREAD",
+                "raw_value": "516",
+                "value": "5.16",
+            }
+        ],
+    }
+    result = ClaimEvidenceBuilder.load().build(
+        claim_id="DJKH.040",
+        document_family="CMS1500",
+        claim_values={
+            "total_charge": "1571.63",
+            "_financial_conflict_agent": {
+                "side": "BOX28",
+                "value": "1571.63",
+                "reason": "CONFLICT_AGENT_FINANCIAL_RESOLVED",
+            },
+            "_box28_field_payload": payload,
+        },
+        service_lines=[{"charges": "157.00"}],
+    )
+    geo_overrides = [
+        i
+        for i in result.evidence_items
+        if i.evidence_type == "CLAIM_TOTAL_CONFIRMED"
+        and (i.metadata or {}).get("reason") == "GEOMETRY_UNDERREAD_WHOLE_DOLLAR_BOX28"
+    ]
+    assert geo_overrides == []
+
+
+def test_vision_local_inflated_scale_rival_stays_hitl():
+    """DJKH.040: vision+local 1571.63 beside DI 157163 must not AUTO."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _cand("anthropic_claude_crop", "1571.63"),
+            _cand("paddleocr", "1571.63", raw_value="157163"),
+            _cand("azure_document_intelligence_read", "157163.00"),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_VISION_LOCAL_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"1571.63"},
+    )
+    assert result.decision != Decision.ACCEPT
+    assert "CHARGE_VISION_LOCAL_SCALE_RIVAL_HITL" in result.rationale_codes
+
+
 def test_l5_unique_calendar_dob_mints_independent_e2():
     """EJG7.007: sole Claude calendar DOB still mints independent E2."""
     bundle = build_evidence_bundle(

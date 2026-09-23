@@ -1085,10 +1085,20 @@ class ClaimEvidenceBuilder:
                 agent_candidates.append(row.get("ocr_candidate") or row)
         # DJKN.009: recover GEOMETRY_CENTS_UNDERREAD whole dollar BEFORE conflict
         # agent DI+whitelist-noise can mint CLAIM_TOTAL on the truncated read.
+        # Do not let geometry invent a third total when conflict-agent already
+        # chose BOX28/LINES (DJKH.040: geo 516 rejecting agent 1571.63).
         geo_whole = box28_geometry_underread_whole_dollar(
             payload if isinstance(payload, dict) else None
         )
-        if geo_whole:
+        agent_blocks_geo = False
+        if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
+            agent_amt = parse_currency(agent.get("value"))
+            geo_amt = parse_currency(geo_whole) if geo_whole else None
+            if agent_amt is not None and (
+                geo_amt is None or not amounts_corroborate(agent_amt, geo_amt)
+            ):
+                agent_blocks_geo = True
+        if geo_whole and not agent_blocks_geo:
             agent_candidates.append(
                 {
                     "engine": "rapidocr",
@@ -1154,6 +1164,17 @@ class ClaimEvidenceBuilder:
                             values[key] = geo_whole
                     return
                 # bleed / already-locked — fall through to other FG paths
+        elif geo_whole and agent_blocks_geo:
+            # Still surface geometry as a candidate for later OS fuller checks,
+            # but never mint it over the conflict-agent financial pick.
+            agent_candidates.append(
+                {
+                    "engine": "rapidocr",
+                    "value": geo_whole,
+                    "raw_value": geo_whole,
+                    "preprocessing_variant": "GEOMETRY_CENTS",
+                }
+            )
         if isinstance(agent, dict) and agent.get("side") in {"BOX28", "LINES"}:
             chosen = str(agent.get("value") or "").strip()
             side = agent["side"]
@@ -1298,6 +1319,14 @@ class ClaimEvidenceBuilder:
         # values — prefer_* then returns None; still emit CLAIM_TOTAL when the
         # amount is the unique OS digit-drop fuller of short DI/Claude rivals.
         # DJKN.009: GEOMETRY_CENTS_UNDERREAD raw ``600`` mis-shaped as ``6.00``.
+        # When conflict-agent already chose BOX28/LINES, do not mint a disagreeing
+        # geometry underread (DJKH.040) — leave HITL / agent path authority.
+        if (
+            isinstance(agent, dict)
+            and agent.get("side") in {"BOX28", "LINES"}
+            and str(agent.get("value") or "").strip()
+        ):
+            return
         geo_whole = box28_geometry_underread_whole_dollar(
             payload if isinstance(payload, dict) else None
         )

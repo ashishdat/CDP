@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 METRICS = ROOT / "docs/metrics/hackathon_100_independent_v13b.json"
-OUT = ROOT / "evaluation_results/hackathon_100_independent_v13b_hitl10_redecide"
+OUT = ROOT / "evaluation_results/hackathon_100_independent_v13b_hitl10_redecide2"
 
 
 def main() -> int:

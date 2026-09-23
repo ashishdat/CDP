@@ -528,6 +528,7 @@ def _exact_di_partner_charge_agreement(
 
     Unlike ``box28_di_partner_confirmed``, DI scale/×100 twins do not count —
     that would AUTO inflated agent picks beside DI soup (DJKH.040).
+    Vision+local alone is not DI-partner authority (that path is separate E4).
     """
     from packages.claim_evidence.line_sum_authority import amounts_corroborate
 
@@ -550,9 +551,7 @@ def _exact_di_partner_charge_agreement(
             families.add("vision")
         elif any(tok in engine for tok in ("paddle", "rapid", "tesseract")):
             families.add("local")
-    if "di" in families and (families & {"vision", "local"}):
-        return True
-    return "vision" in families and "local" in families
+    return "di" in families and bool(families & {"vision", "local"})
 
 
 # ---------------------------------------------------------------------------

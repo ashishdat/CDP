@@ -150,6 +150,46 @@ def _di_raw_embeds_selected_charge(
     return False
 
 
+def _charge_has_inflated_scale_rival(value: object, candidates: list) -> bool:
+    """True when any candidate value is an inflated ×10/×100 twin of ``value``.
+
+    Includes implausible DI shells (``157163`` beside ``1571.63``) that may be
+    dropped from ranking but still prove the vision+local pick is contested.
+    """
+    try:
+        from decimal import Decimal
+
+        from packages.claim_evidence.line_sum_authority import (
+            is_currency_digit_drop_twin,
+            is_decimal_place_shift,
+            is_scale_shift,
+            parse_currency,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    target = parse_currency(value)
+    if target is None:
+        return False
+    for cand in candidates or []:
+        if isinstance(cand, Mapping):
+            other_raw = cand.get("value")
+        else:
+            other_raw = getattr(cand, "value", None)
+        other = parse_currency(other_raw)
+        if other is None or other <= target:
+            continue
+        if (
+            is_scale_shift(value, other_raw)
+            or is_decimal_place_shift(value, other_raw)
+            or is_currency_digit_drop_twin(value, other_raw)
+        ):
+            return True
+        for factor in (Decimal(10), Decimal(100)):
+            if abs(target * factor - other) <= Decimal("2.00"):
+                return True
+    return False
+
+
 
 def _canonical_date_digits(value: str) -> str:
     """Normalize US/ISO/compact dates to YYYYMMDD for conflict comparison."""
@@ -2370,6 +2410,20 @@ class EvidenceReconciler:
             # Box28-over-bleed swap happens earlier (BOX28_OVER_BLEED_LINE_SUM).
             decision = Decision.REVIEW
             reasons.append("BLEED_CENTS_FAIL_CLOSED")
+        elif (
+            field_name in {"total_charge", "total_charges"}
+            and "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
+            and "CHARGE_DI_LOCAL_CONFIRMED" not in deterministic
+            and "CLAIM_TOTAL_CONFIRMED" not in deterministic
+            and not _charge_vision_local_confirms_bleed(value, candidates)
+            and not _charge_cash_ruling_confirms(value, candidates)
+            and _charge_has_inflated_scale_rival(value, candidates)
+        ):
+            # L4 / DJKH.040: Claude+local on an inflated Box28 (1571.63) beside
+            # DI/raw ×100 soup must not AUTO without DI-exact or CLAIM_TOTAL.
+            # L3 printed bleed cents are exempt (Claude+local beside DI ×100).
+            decision = Decision.REVIEW
+            reasons.append("CHARGE_VISION_LOCAL_SCALE_RIVAL_HITL")
         elif reference_contradiction:
             decision = Decision.REVIEW
             reasons.append("REFERENCE_CONTRADICTION")
