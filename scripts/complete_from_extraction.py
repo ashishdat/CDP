@@ -645,10 +645,18 @@ def decide(extraction, family):
         ):
             values[charge_field] = di_fuller
             continue
-        # DJKN.005: prefer unique open-source fuller twin over DI/Claude under-read.
-        digit_alt = prefer_open_source_digit_drop_fuller_box28(
-            current_val, agent_candidates
+        agent_side = (
+            str(agent.get("side") or "")
+            if isinstance(agent, dict)
+            else ""
         )
+        # L1 / DJJM.040: do not digit-drop-upgrade agent LINES cents-column picks
+        # (2.51 → 251) before the conflict-agent authority path runs.
+        digit_alt = None
+        if agent_side != "LINES":
+            digit_alt = prefer_open_source_digit_drop_fuller_box28(
+                current_val, agent_candidates
+            )
         if (
             digit_alt
             and llm_charge_pick_has_open_source_authority(
@@ -662,31 +670,45 @@ def decide(extraction, family):
             continue
         if (
             isinstance(agent, dict)
-            and str(agent.get('side') or '') in {'BOX28', 'LINES'}
-            and llm_charge_pick_has_open_source_authority(
-                agent.get('value'), agent_candidates, service_lines
-            )
-            and not charge_conflicts_with_plausible_line_sum(
-                agent.get('value'), service_lines, agent_candidates
-            )
+            and agent_side in {"BOX28", "LINES"}
         ):
             from packages.claim_evidence.charge_total_authority import (
                 authorize_conflict_agent_charge,
+                _exact_di_partner_charge_agreement,
             )
 
-            auth, _auth_reason = authorize_conflict_agent_charge(
-                agent.get('value'),
-                candidates=agent_candidates,
-                field_payload=field_payload if isinstance(field_payload, dict) else None,
-                service_lines=service_lines,
+            agent_val = agent.get("value")
+            di_partner_ok = (
+                agent_side == "BOX28"
+                and _exact_di_partner_charge_agreement(agent_val, agent_candidates)
             )
-            if auth:
-                values[charge_field] = auth
+            os_ok = llm_charge_pick_has_open_source_authority(
+                agent_val, agent_candidates, service_lines
+            )
+            line_conflict = charge_conflicts_with_plausible_line_sum(
+                agent_val, service_lines, agent_candidates
+            )
+            # L1 LINES / L4 DI-partner BOX28: honor agent without OS digit-drop veto.
+            if agent_side == "LINES" or di_partner_ok or (
+                os_ok and not line_conflict
+            ):
+                auth, _auth_reason = authorize_conflict_agent_charge(
+                    agent_val,
+                    candidates=agent_candidates,
+                    field_payload=field_payload if isinstance(field_payload, dict) else None,
+                    service_lines=service_lines,
+                )
+                if auth:
+                    values[charge_field] = auth
+                    continue
+                # Conflict-agent sole authority / uncorroborated bleed → clear so
+                # downstream fail-closed HITL can fire (never mint AUTO alone).
+                values[charge_field] = None
                 continue
-            # Conflict-agent sole authority / uncorroborated bleed → clear so
-            # downstream fail-closed HITL can fire (never mint AUTO alone).
-            values[charge_field] = None
-            continue
+            # Uncorroborated BOX28 agent — clear for fail-closed HITL.
+            if agent_side in {"BOX28", "LINES"}:
+                values[charge_field] = None
+                continue
         # Defer band always wins over vision preserve. A gpt-4o/Claude Box28 that
         # is a place-shift / digit-soup twin of Σ must not veto should_defer —
         # that re-arms FINANCIAL_CONFLICT after we cleared the contradictory shell.

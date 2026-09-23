@@ -457,6 +457,8 @@ def authorize_conflict_agent_charge(
     Never lets Claude/conflict-agent be sole monetary authority:
       - bleed/echo cents require an OCR whole-dollar sibling (or HITL)
       - otherwise need dual open-source engine agreement OR exact line Σ
+      - L3: Claude+local printed bleed cents with DI ×100 soup may AUTO
+      - L4: exact DI + vision/local partner corroboration may AUTO
     """
     parsed = parse_currency(chosen)
     if parsed is None or is_implausible_charge_total(chosen):
@@ -471,6 +473,12 @@ def authorize_conflict_agent_charge(
     if safe_reason == "BLEED_CENTS_TO_WHOLE_DOLLAR" and safe:
         text = safe
     elif is_units_bleed_cents(text):
+        # L3: Claude/gpt-4o + local agree on printed bleed cents; DI ×100 twin
+        # is soup — do not require a .00 sibling (DJKH.030 ``251.43``).
+        if _vision_local_confirms_bleed_cents(text, candidates):
+            return text, "VISION_LOCAL_PRINTED_BLEED_CENTS"
+        if cash_ruling_confirms_amount(text, field_payload):
+            return text, "CASH_RULING_PRINTED_CENTS"
         # Observed bleed cents with no OCR .00 sibling — do not AUTO.
         return None, "BLEED_CENTS_UNCORROBORATED"
 
@@ -478,7 +486,73 @@ def authorize_conflict_agent_charge(
         return text, "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT"
     if line_sum_corroborates_charge(text, service_lines):
         return text, "LINE_SUM_CORROBORATES_CONFLICT_PICK"
+    # L4: exact DI + (vision or local) on the conflict-agent pick.
+    if _exact_di_partner_charge_agreement(text, candidates):
+        return text, "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK"
     return None, "CONFLICT_AGENT_SOLE_AUTHORITY"
+
+
+def _vision_local_confirms_bleed_cents(
+    chosen: object, candidates: list | None
+) -> bool:
+    """True when vision + local agree on bleed-cents ``chosen`` (DI may be ×100)."""
+    from packages.claim_evidence.line_sum_authority import amounts_corroborate
+
+    if not is_units_bleed_cents(chosen):
+        return False
+    has_vision = False
+    has_local = False
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        shell = (
+            cand.get("ocr_candidate")
+            if isinstance(cand.get("ocr_candidate"), dict)
+            else cand
+        )
+        engine = str(shell.get("engine") or shell.get("engine_name") or "").casefold()
+        value = shell.get("value") or shell.get("raw_value")
+        if not amounts_corroborate(chosen, value):
+            continue
+        if any(tok in engine for tok in ("claude", "gpt4o", "gpt-4o", "anthropic")):
+            has_vision = True
+        elif any(tok in engine for tok in ("paddle", "rapid", "tesseract")):
+            has_local = True
+    return has_vision and has_local
+
+
+def _exact_di_partner_charge_agreement(
+    chosen: object, candidates: list | None
+) -> bool:
+    """True when DI exact-matches ``chosen`` and vision or local also matches.
+
+    Unlike ``box28_di_partner_confirmed``, DI scale/×100 twins do not count —
+    that would AUTO inflated agent picks beside DI soup (DJKH.040).
+    """
+    from packages.claim_evidence.line_sum_authority import amounts_corroborate
+
+    families: set[str] = set()
+    for cand in candidates or []:
+        if not isinstance(cand, dict):
+            continue
+        shell = (
+            cand.get("ocr_candidate")
+            if isinstance(cand.get("ocr_candidate"), dict)
+            else cand
+        )
+        engine = str(shell.get("engine") or shell.get("engine_name") or "").casefold()
+        value = shell.get("value") or shell.get("raw_value")
+        if not amounts_corroborate(chosen, value):
+            continue
+        if "document_intelligence" in engine or "azure_di" in engine or "azure_read" in engine:
+            families.add("di")
+        elif any(tok in engine for tok in ("claude", "gpt4o", "gpt-4o", "anthropic")):
+            families.add("vision")
+        elif any(tok in engine for tok in ("paddle", "rapid", "tesseract")):
+            families.add("local")
+    if "di" in families and (families & {"vision", "local"}):
+        return True
+    return "vision" in families and "local" in families
 
 
 # ---------------------------------------------------------------------------
@@ -496,6 +570,10 @@ CONFIRM_PRIORITY: tuple[str, ...] = (
     "CLAIM_TOTAL_WITHIN_TOLERANCE",
     "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
     "LINE_SUM_CORROBORATES_CONFLICT_PICK",
+    "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK",
+    "VISION_LOCAL_PRINTED_BLEED_CENTS",
+    "CASH_RULING_PRINTED_CENTS",
+    "CONFLICT_AGENT_FINANCIAL_RESOLVED",
     "LINE_TOTALS_CORROBORATED",
 )
 

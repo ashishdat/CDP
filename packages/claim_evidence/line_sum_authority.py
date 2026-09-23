@@ -1088,6 +1088,21 @@ def charge_conflicts_with_plausible_line_sum(
     # DI+open-source Box 28 with a 2-line equal prefix (EJG7.016 2×150→600).
     if di_backed_incomplete_grid_explains_box28(chosen, service_lines, candidates):
         return False
+    # L4: exact DI+partner Box 28 vs a single under-read line is not a rival
+    # claim total (EJG7.005 agent/DI ``400`` vs line ``120``).
+    try:
+        from packages.claim_evidence.charge_total_authority import (
+            _exact_di_partner_charge_agreement,
+        )
+    except Exception:  # noqa: BLE001
+        _exact_di_partner_charge_agreement = None  # type: ignore[assignment]
+    if (
+        _exact_di_partner_charge_agreement is not None
+        and _exact_di_partner_charge_agreement(chosen, candidates)
+    ):
+        agreed, observed = dual_engine_line_fraction(service_lines)
+        if observed <= 1:
+            return False
     return True
 
 

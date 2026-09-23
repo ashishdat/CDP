@@ -67,9 +67,15 @@ def _vision_vendor_id(engine: object) -> str | None:
 
 
 def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list[OCRCandidate]) -> bool:
-    """True when some other candidate is a ×10/×100 or digit-drop twin."""
+    """True when some other candidate is an inflated ×10/×100 or fuller digit twin.
+
+    Underread scrap (``20`` beside agreed ``200``) does not block DI/vision+local
+    E4 (EJG7.009). Inflated rivals (``2001`` beside ``200``) still block — except
+    L3 printed bleed cents where a DI ×100 twin is soup beside Claude+local.
+    """
     from decimal import Decimal
 
+    from packages.claim_evidence.charge_total_authority import is_units_bleed_cents
     from packages.claim_evidence.financial_geometry_authority import (
         _digits_match_with_single_junk,
     )
@@ -83,6 +89,7 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
     target = parse_currency(agreed)
     if target is None:
         return False
+    agreed_is_bleed = is_units_bleed_cents(agreed)
     # Cash ruling-split raws (``$ 157 :07``) geometrically confirm ``agreed`` —
     # a one-digit insert soup twin (``1571.07``) is not a real place-shift rival.
     agreed_digits = re.sub(r"\D", "", agreed)
@@ -113,16 +120,30 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
             and _digits_match_with_single_junk(agreed_digits, other_digits)
         ):
             continue
+        # Only inflated / fuller rivals block E4 — underread scrap does not.
+        if other < target and (
+            is_decimal_place_shift(agreed, raw) or is_currency_digit_drop_twin(agreed, raw)
+        ):
+            continue
+        # L3: printed bleed cents beside DI ×100 twin — treat as soup, not blocker.
+        if agreed_is_bleed and abs(target * Decimal(100) - other) <= Decimal("2.00"):
+            continue
         if is_decimal_place_shift(agreed, raw) or is_currency_digit_drop_twin(agreed, raw):
             return True
         for factor in (Decimal(10), Decimal(100)):
+            # other ≈ agreed × factor → inflated rival (unless bleed×100 soup).
             if abs(target * factor - other) <= Decimal("2.00"):
+                if agreed_is_bleed and factor == Decimal(100):
+                    continue
                 return True
+            # agreed ≈ other × factor → underread scrap; do not block.
             if abs(other * factor - target) <= Decimal("2.00"):
-                return True
-            if target > 0 and other > 0:
-                ratio = other / target if other > target else target / other
+                continue
+            if target > 0 and other > target:
+                ratio = other / target
                 if abs(ratio - factor) / factor <= Decimal("0.02"):
+                    if agreed_is_bleed and factor == Decimal(100):
+                        continue
                     return True
     return False
 
@@ -377,6 +398,65 @@ def _append_dual_vision_agreement(
             )
         )
         return
+
+
+def _append_unique_calendar_dob_e2(
+    bundle: FieldEvidenceBundle,
+    field_name: str,
+    candidates: list[OCRCandidate],
+) -> None:
+    """L5: unique display-shaped calendar DOB is independent E2 (EJG7.007).
+
+    When locals exhaust empty and only Claude/vision shaped a single calendar
+    YMD (DATE_UNIQUE_CALENDAR_CORROBORATED), do not require a second OCR family.
+    """
+    name = (field_name or "").casefold()
+    if name not in {"patient_dob", "date_of_birth", "dob"} and "dob" not in name:
+        return
+    if any(
+        item.evidence_class == EvidenceClass.E2 and item.independent
+        for item in bundle.items
+    ):
+        return
+    try:
+        from packages.candidate_reconciliation.reconciler import (
+            _dob_is_display_shaped,
+            _dob_ymd,
+        )
+    except Exception:  # noqa: BLE001
+        return
+    calendar_ymds: set[tuple[str, str, str]] = set()
+    shaped: list[OCRCandidate] = []
+    for cand in candidates:
+        text = str(cand.value or "").strip()
+        if not text or not _dob_is_display_shaped(text):
+            continue
+        ymd = _dob_ymd(text)
+        if ymd is None:
+            continue
+        calendar_ymds.add(ymd)
+        shaped.append(cand)
+    if len(calendar_ymds) != 1 or not shaped:
+        return
+    primary = shaped[0]
+    bundle.items.append(
+        EvidenceItem(
+            evidence_class=EvidenceClass.E2,
+            evidence_type="OCR_AGREEMENT_INDEPENDENT",
+            evidence_family="INDEPENDENT_OCR_AGREEMENT",
+            source="evidence_builder",
+            value=str(primary.value),
+            independent=True,
+            metadata={
+                "engines": [c.engine for c in shaped],
+                "agreement_type": "DATE_UNIQUE_CALENDAR_CORROBORATED",
+                "dependency_relation": "INDEPENDENT",
+                "normalized_value": normalize_agreement_value(
+                    field_name, str(primary.value)
+                ),
+            },
+        )
+    )
 
 
 def _append_ai_local_corroboration(
@@ -645,6 +725,11 @@ def build_evidence_bundle(
             for item in bundle.items
         ):
             _append_ai_local_corroboration(bundle, field_name, populated)
+        if not any(
+            item.evidence_class == EvidenceClass.E2 and item.independent
+            for item in bundle.items
+        ):
+            _append_unique_calendar_dob_e2(bundle, field_name, populated)
     # Always run DI partner for charges: dual-local E2 alone does not mint the
     # strong E4 that C3 total_charge policy requires (EJGE.001/013 MISSING_E4).
     _append_di_partner_agreement(bundle, field_name, populated)

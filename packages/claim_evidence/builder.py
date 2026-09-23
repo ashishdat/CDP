@@ -1162,16 +1162,20 @@ class ClaimEvidenceBuilder:
             grid_alt = prefer_incomplete_grid_box28(chosen, agent_candidates, lines)
             if grid_alt:
                 chosen = grid_alt
-            digit_alt = prefer_open_source_digit_drop_fuller_box28(
-                chosen, agent_candidates
-            )
-            if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
-                chosen, agent_candidates
-            ):
-                amt = parse_currency(chosen)
-                digit_alt = format_currency(amt) if amt is not None else None
-            if digit_alt:
-                chosen = digit_alt
+            # L1 / DJJM.040: agent LINES cents-column (2.51) must not be rewritten
+            # to the unplaced Box28 fuller twin (251) via digit-drop preference.
+            digit_alt = None
+            if side != "LINES":
+                digit_alt = prefer_open_source_digit_drop_fuller_box28(
+                    chosen, agent_candidates
+                )
+                if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
+                    chosen, agent_candidates
+                ):
+                    amt = parse_currency(chosen)
+                    digit_alt = format_currency(amt) if amt is not None else None
+                if digit_alt:
+                    chosen = digit_alt
             from packages.claim_evidence.charge_total_authority import (
                 authorize_conflict_agent_charge,
                 is_units_bleed_cents,
@@ -1212,22 +1216,43 @@ class ClaimEvidenceBuilder:
                         )
             else:
                 # Plain conflict-agent pick: dual local OCR or exact Σ, never sole LLM.
+                # L1 LINES / L4 DI+partner BOX28: authorize success is enough —
+                # do not re-veto via digit-drop rivals of the unplaced Box28 twin.
+                from packages.claim_evidence.charge_total_authority import (
+                    _exact_di_partner_charge_agreement,
+                )
+
                 auth, auth_reason = authorize_conflict_agent_charge(
                     chosen,
                     candidates=agent_candidates,
                     field_payload=payload if isinstance(payload, dict) else None,
                     service_lines=lines,
                 )
-                if (
-                    auth
-                    and llm_charge_pick_has_open_source_authority(
-                        auth, agent_candidates, lines
-                    )
-                    and not charge_conflicts_with_plausible_line_sum(
-                        auth, lines, agent_candidates
+                di_partner_ok = (
+                    side == "BOX28"
+                    and auth
+                    and _exact_di_partner_charge_agreement(auth, agent_candidates)
+                )
+                lines_ok = side == "LINES" and auth is not None
+                if auth and (
+                    lines_ok
+                    or di_partner_ok
+                    or (
+                        llm_charge_pick_has_open_source_authority(
+                            auth, agent_candidates, lines
+                        )
+                        and not charge_conflicts_with_plausible_line_sum(
+                            auth, lines, agent_candidates
+                        )
                     )
                 ):
                     confirm_amount, confirm_reason = auth, auth_reason
+                    if di_partner_ok and auth_reason not in {
+                        "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK",
+                        "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
+                        "LINE_SUM_CORROBORATES_CONFLICT_PICK",
+                    }:
+                        confirm_reason = "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK"
             if confirm_amount and confirm_reason:
                 meta = {
                     "supported_fields": ["total_charge", "total_charges"],
@@ -1637,21 +1662,24 @@ class ClaimEvidenceBuilder:
                 grid_alt = prefer_incomplete_grid_box28(chosen, agent_candidates, lines)
                 if grid_alt:
                     chosen = grid_alt
-                digit_alt = prefer_open_source_digit_drop_fuller_box28(
-                    chosen, agent_candidates
-                )
-                if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
-                    chosen, agent_candidates
-                ):
-                    from packages.claim_evidence.line_sum_authority import (
-                        format_currency,
-                        parse_currency,
+                # L1: never digit-drop-upgrade an agent LINES cents-column pick.
+                digit_alt = None
+                if side != "LINES":
+                    digit_alt = prefer_open_source_digit_drop_fuller_box28(
+                        chosen, agent_candidates
                     )
+                    if digit_alt is None and _chosen_is_open_source_digit_drop_fuller(
+                        chosen, agent_candidates
+                    ):
+                        from packages.claim_evidence.line_sum_authority import (
+                            format_currency,
+                            parse_currency,
+                        )
 
-                    amt = parse_currency(chosen)
-                    digit_alt = format_currency(amt) if amt is not None else None
-                if digit_alt:
-                    chosen = digit_alt
+                        amt = parse_currency(chosen)
+                        digit_alt = format_currency(amt) if amt is not None else None
+                    if digit_alt:
+                        chosen = digit_alt
                 # Locals-agree Box 28 may disagree with a partial line Σ (EJG7.001
                 # 955 vs 835). Still block wild soup (EJG7.004 17500 vs 1031) and
                 # beyond-grid shells (EJGE.006 4200). Plain conflict-agent picks
@@ -1659,14 +1687,24 @@ class ClaimEvidenceBuilder:
                 from packages.claim_evidence.charge_total_authority import (
                     authorize_conflict_agent_charge,
                     is_units_bleed_cents,
+                    _exact_di_partner_charge_agreement,
                 )
 
                 confirm_amount = None
                 confirm_reason = None
+                # L4: exact DI+vision/local corroboration of agent BOX28 is enough
+                # authority even when a single under-read line Σ disagrees.
+                di_partner_ok = (
+                    side == "BOX28"
+                    and _exact_di_partner_charge_agreement(chosen, agent_candidates)
+                )
                 base_ok = (
                     chosen
-                    and llm_charge_pick_has_open_source_authority(
-                        chosen, agent_candidates, lines
+                    and (
+                        di_partner_ok
+                        or llm_charge_pick_has_open_source_authority(
+                            chosen, agent_candidates, lines
+                        )
                     )
                     and not chosen_exceeds_cms_uniform_line_grid(chosen, lines)
                     and not is_implausible_corroborator(chosen, decision.line_sum)

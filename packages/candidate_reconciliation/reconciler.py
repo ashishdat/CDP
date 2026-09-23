@@ -81,6 +81,29 @@ def _charge_cash_ruling_confirms(value: object, candidates: list) -> bool:
     return False
 
 
+def _charge_vision_local_confirms_bleed(value: object, candidates: list) -> bool:
+    """L3: Claude/gpt-4o + local agree on printed bleed cents (DI may be ×100)."""
+    try:
+        from packages.claim_evidence.charge_total_authority import (
+            _vision_local_confirms_bleed_cents,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    rows: list[dict] = []
+    for cand in candidates or []:
+        if isinstance(cand, Mapping):
+            rows.append(dict(cand))
+            continue
+        rows.append(
+            {
+                "engine": getattr(cand, "engine", None),
+                "value": getattr(cand, "value", None),
+                "raw_value": getattr(cand, "raw_value", None),
+            }
+        )
+    return bool(_vision_local_confirms_bleed_cents(value, rows))
+
+
 
 def _canonical_date_digits(value: str) -> str:
     """Normalize US/ISO/compact dates to YYYYMMDD for conflict comparison."""
@@ -1998,6 +2021,7 @@ class EvidenceReconciler:
             field_name in {"total_charge", "total_charges"}
             and _charge_is_units_bleed_cents(value)
             and not _charge_cash_ruling_confirms(value, candidates)
+            and not _charge_vision_local_confirms_bleed(value, candidates)
         ):
             financial_authority = False
         # Explicit Field Value Authority exception for verified financial ink /
@@ -2017,6 +2041,9 @@ class EvidenceReconciler:
                 "BLEED_CENTS_TO_WHOLE_DOLLAR",
                 "BLEED_CENTS_TO_LINE_SUM_WHOLE_DOLLAR",
                 "CASH_RULING_PRINTED_CENTS",
+                "VISION_LOCAL_PRINTED_BLEED_CENTS",
+                "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK",
+                "CONFLICT_AGENT_FINANCIAL_RESOLVED",
             }
         )
         # A verified reference is an independent E5 authority, not an OCR
@@ -2288,10 +2315,12 @@ class EvidenceReconciler:
             field_name in {"total_charge", "total_charges"}
             and _charge_is_units_bleed_cents(value)
             and not _charge_cash_ruling_confirms(value, candidates)
+            and not _charge_vision_local_confirms_bleed(value, candidates)
         ):
             # Never AUTO units/ruling bleed cents (.07/.22/.44) — conflict-agent
             # and $1 tolerance were minting TRUE_STP on contested Box 28 ink.
             # Exception: cash ruling-split raws (``$ 157 :07``) confirm printed cents.
+            # L3: Claude+local on printed bleed (``251.43``) vs DI ×100 soup.
             # Box28-over-bleed swap happens earlier (BOX28_OVER_BLEED_LINE_SUM).
             decision = Decision.REVIEW
             reasons.append("BLEED_CENTS_FAIL_CLOSED")
@@ -2440,6 +2469,11 @@ class EvidenceReconciler:
                     ):
                         if line_totals_owns_selected or financial_authority or cash_ruling_owns:
                             continue
+                        # L3: Claude+local printed bleed cents — DI ×100 twin is soup.
+                        if _charge_vision_local_confirms_bleed(
+                            value, candidates
+                        ) and is_scale_shift(value, other):
+                            continue
                         cleared.append(other)
                         continue
                     # When line Σ owns the selected total, deferred Box 28 OCR
@@ -2493,6 +2527,14 @@ class EvidenceReconciler:
                                 for i in range(len(longer))
                             ):
                                 continue
+                        # L2 / DJKH.023: DI/vision+local E4 owns the selected total —
+                        # non-place-shift rivals (``100`` beside Claude+local ``70``)
+                        # are soup. Place-shift twins already stayed genuine above.
+                        if (
+                            "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
+                            or "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
+                        ):
+                            continue
                     cleared.append(other)
                 genuine = cleared
             # Future-shaped DOB OCR is digit junk, not a genuine calendar conflict.

@@ -525,6 +525,7 @@ def test_partial_line_ocr_agent_box28_with_local_agreement_confirms():
                 "CONFLICT_AGENT_FINANCIAL_RESOLVED",
                 "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
                 "LINE_SUM_CORROBORATES_CONFLICT_PICK",
+                "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK",
             }
         )
         == "955.00"
@@ -562,6 +563,7 @@ def test_conflict_agent_confirms_when_both_locals_match():
                 "CONFLICT_AGENT_FINANCIAL_RESOLVED",
                 "DUAL_OPEN_SOURCE_CHARGE_AGREEMENT",
                 "LINE_SUM_CORROBORATES_CONFLICT_PICK",
+                "BOX28_DI_PARTNER_CONFIRMS_CONFLICT_PICK",
             }
         )
         == "400.00"
@@ -569,6 +571,11 @@ def test_conflict_agent_confirms_when_both_locals_match():
 
 
 def test_conflict_agent_place_shift_does_not_confirm():
+    """LINES + line-sum may confirm; bare CONFLICT_AGENT_FINANCIAL_RESOLVED must not.
+
+    Place-shift Box28 soup (4972) beside LINES 49.77 is cleared by line-sum
+    authority (L1 cents-column), but never by renaming to sole-agent authority.
+    """
     result = ClaimEvidenceBuilder.load().build(
         claim_id="cents",
         document_family="CMS1500",
@@ -595,6 +602,11 @@ def test_conflict_agent_place_shift_does_not_confirm():
         and (i.metadata or {}).get("reason") == "CONFLICT_AGENT_FINANCIAL_RESOLVED"
     ]
     assert agent_confirmed == []
+    # L1: line-sum corroboration of the cents-column LINES pick is allowed.
+    assert any(
+        i.evidence_type == "CLAIM_TOTAL_CONFIRMED" and str(i.value) == "49.77"
+        for i in result.evidence_items
+    )
 
 
 def test_deferred_box28_contradictory_payload_does_not_mint_financial_conflict():
