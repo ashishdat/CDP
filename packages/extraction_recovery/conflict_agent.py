@@ -452,6 +452,20 @@ def maybe_attach_conflict_agent_to_field_row(
         return updated
     if not conflict_agent_enabled():
         return updated
+    # Idempotent: residual path + end-of-OCR loop must not pay Claude twice
+    # on the same field (Independent-300 latency: ~2 CONFLICT_AGENT_RESOLVED
+    # attempts per charge on twin-rival docs).
+    prior = field_row.get("conflict_agent")
+    if isinstance(prior, Mapping) and (
+        prior.get("attempted") or prior.get("resolved")
+    ):
+        return updated
+    if any(
+        "conflict_agent" in str(a.get("engine") or "").casefold()
+        for a in (field_row.get("attempts") or [])
+        if isinstance(a, Mapping)
+    ):
+        return updated
     candidates = list(field_row.get("candidates") or [])
     rivals = collect_field_rivals(name, candidates)
     if len(rivals) < 2:

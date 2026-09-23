@@ -214,21 +214,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     image=image,
                     gap_class="CHARGE_LOCAL_EXHAUSTED",
                 )
-            # Conflict agent only on genuine twin rivals — do not re-Claude
-            # after every vision corroboration (latency).
-            if gpt4o_on not in {"0", "false", "no", "off"}:
-                try:
-                    from packages.extraction_recovery.conflict_agent import (
-                        field_needs_conflict_agent,
-                        maybe_attach_conflict_agent_to_field_row,
-                    )
-
-                    if field_needs_conflict_agent(name, current.get("candidates")):
-                        current = maybe_attach_conflict_agent_to_field_row(
-                            current, image=image
-                        )
-                except Exception:  # noqa: BLE001
-                    pass
+            # Conflict agent runs once at end-of-OCR (after all residuals), not
+            # here — calling it in both places double-paid Claude on twin
+            # Box28 rivals (~+10–15s/doc on EJGE-style charges).
             updated.append(current)
             continue
         if key in {"insured_id_number", "member_id", "subscriber_id"}:

@@ -79,14 +79,43 @@ def test_field_conflict_agent_adopts_chosen_rival(monkeypatch):
         ],
         "cascade": {"accepted": False},
     }
+    engine = _FakeEngine("495.00")
     updated = maybe_attach_conflict_agent_to_field_row(
         row,
         image=Image.new("RGB", (100, 50), "white"),
-        engine=_FakeEngine("495.00"),
+        engine=engine,
     )
     assert updated["conflict_agent"]["resolved"] is True
     assert updated["cascade"]["value"] == "495.00"
     assert updated["candidates"][0]["value"] == "495.00"
+    assert engine.calls == 1
+
+
+def test_field_conflict_agent_idempotent_skips_second_claude(monkeypatch):
+    """Residual + end-of-OCR must not pay Claude twice on the same field."""
+    monkeypatch.setenv("CDP_CONFLICT_AGENT", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    row = {
+        "field": "total_charge",
+        "ocr_region": [10, 10, 80, 40],
+        "candidates": [
+            {"engine": "paddleocr", "value": "405.00"},
+            {"engine": "azure_document_intelligence_read", "value": "495.00"},
+        ],
+        "cascade": {"accepted": False},
+    }
+    engine = _FakeEngine("495.00")
+    img = Image.new("RGB", (100, 50), "white")
+    once = maybe_attach_conflict_agent_to_field_row(row, image=img, engine=engine)
+    assert engine.calls == 1
+    twice = maybe_attach_conflict_agent_to_field_row(once, image=img, engine=engine)
+    assert engine.calls == 1
+    assert twice["conflict_agent"]["chosen"] == once["conflict_agent"]["chosen"]
+    assert sum(
+        1
+        for a in twice.get("attempts") or []
+        if "conflict_agent" in str(a.get("engine") or "").casefold()
+    ) == 1
 
 
 def test_financial_conflict_agent_prefers_box28(monkeypatch):
