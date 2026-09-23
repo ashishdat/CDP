@@ -789,6 +789,19 @@ class _AzureGpt4oCropRecognizer:
                 )
             )
         results = adapter.extract_fields(pngs, requests)
+        try:
+            from packages.recovery.vlm_token_meter import record_vlm_call
+
+            record_vlm_call(
+                provider=provider,
+                engine=self.engine_name,
+                field_names=list(crops.keys()),
+                kind="crop_residual",
+                usage=getattr(adapter, "last_usage", None) or {},
+                ok=True,
+            )
+        except Exception:  # noqa: BLE001 — metering must never break OCR
+            pass
         out: dict[str, Gpt4oCropResidualResult] = {}
         for item in results:
             raw = _normalize(item.value)

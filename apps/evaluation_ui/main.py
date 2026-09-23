@@ -153,6 +153,41 @@ def get_evaluation_report():
     return {"error": "Report file not found"}
 
 
+def _ops_usage_candidates() -> list[Path]:
+    root = Path(__file__).resolve().parents[2]
+    return [
+        DIST_DIR / "reports" / "ops_usage.json",
+        PUBLIC_DIR / "reports" / "ops_usage.json",
+        root / "docs" / "metrics" / "ops_usage_latest.json",
+        root / "evaluation_results" / "hackathon_600_independent_v13c" / "ops_usage.json",
+        root / "evaluation_results" / "hackathon_300_independent_v13c" / "ops_usage.json",
+    ]
+
+
+@app.get("/reports/ops_usage.json")
+def get_ops_usage_report():
+    for candidate in _ops_usage_candidates():
+        if candidate.is_file():
+            return FileResponse(candidate)
+    return JSONResponse({"error": "ops_usage_missing"}, status_code=404)
+
+
+@app.get("/ops-usage/progress")
+def get_ops_usage_progress():
+    """Live progress line from the active Independent-600 (or 300) run."""
+    root = Path(__file__).resolve().parents[2]
+    for name in (
+        "hackathon_600_independent_v13c",
+        "hackathon_300_independent_v13c",
+    ):
+        progress = root / "evaluation_results" / name / "progress.txt"
+        if progress.is_file():
+            text = progress.read_text(encoding="utf-8", errors="ignore").strip()
+            line = text.splitlines()[-1] if text else ""
+            return {"cohort": name, "progress": line}
+    return {"cohort": None, "progress": None}
+
+
 _MISSING_DIST_MESSAGE = (
     "Evaluation UI build unavailable: dist/index.html is missing. "
     "Run `npm run build` in apps/evaluation_ui."

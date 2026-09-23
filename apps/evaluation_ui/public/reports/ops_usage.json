@@ -1,0 +1,129 @@
+{
+  "cohort": "hackathon_300_independent_v13c",
+  "run_dir": "/workspace/evaluation_results/hackathon_300_independent_v13c",
+  "n": 300,
+  "true_stp": 284,
+  "true_stp_rate": 0.9466666666666667,
+  "hitl": 14,
+  "hitl_rate": 0.04666666666666667,
+  "registration_failed": 2,
+  "dispositions": {
+    "TRUE_STP": 284,
+    "HITL": 14,
+    "REGISTRATION_FAILED": 2
+  },
+  "median_elapsed_sec": 37.502,
+  "azure_di": {
+    "api_calls": 263,
+    "ok": 262,
+    "fail": 1,
+    "by_kind": {
+      "charge_crop": 263
+    },
+    "by_field": {
+      "charges": 17,
+      "total_charge": 246
+    },
+    "claims_with_di_charge": 245,
+    "claims_with_di_charge_rate": 0.8166666666666667
+  },
+  "vlm_tokens": {
+    "metered": false,
+    "calls": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "by_provider_total_tokens": {},
+    "note": "LLM tokens were not persisted on Independent-300. Proxy: 506 conflict-agent Claude calls across 255 claims; Claude/gpt on critical fields for 278 claims. Independent-600 meters input/output tokens via vlm_token_meter.jsonl.",
+    "proxy_conflict_agent_calls": 506
+  },
+  "cloud": {
+    "claims_with_claude_or_gpt_on_critical": 278,
+    "claims_with_claude_or_gpt_rate": 0.9266666666666666,
+    "conflict_agent_attempts": 506,
+    "conflict_agent_claims": 255
+  },
+  "local_ocr": {
+    "claims_all_critical_local_only": 9,
+    "claims_all_critical_local_only_rate": 0.03,
+    "fields": [
+      {
+        "field": "total_charge",
+        "present": 298,
+        "local_only": 41,
+        "local_only_rate": 0.13758389261744966,
+        "had_di": 245,
+        "had_cloud": 219
+      },
+      {
+        "field": "patient_name",
+        "present": 298,
+        "local_only": 212,
+        "local_only_rate": 0.7114093959731543,
+        "had_di": 0,
+        "had_cloud": 86
+      },
+      {
+        "field": "insured_name",
+        "present": 298,
+        "local_only": 188,
+        "local_only_rate": 0.6308724832214765,
+        "had_di": 0,
+        "had_cloud": 110
+      },
+      {
+        "field": "insured_id_number",
+        "present": 298,
+        "local_only": 286,
+        "local_only_rate": 0.959731543624161,
+        "had_di": 0,
+        "had_cloud": 12
+      },
+      {
+        "field": "patient_dob",
+        "present": 298,
+        "local_only": 231,
+        "local_only_rate": 0.7751677852348994,
+        "had_di": 0,
+        "had_cloud": 67
+      }
+    ],
+    "engine_attempts": {
+      "paddleocr": 1925,
+      "rapidocr": 994,
+      "tesseract_digits": 676,
+      "tesseract": 217
+    },
+    "engine_observed": {
+      "paddleocr": 1919,
+      "rapidocr": 822,
+      "tesseract": 217
+    }
+  },
+  "hitl_blockers": {
+    "total_charge": 10,
+    "insured_id_number": 2,
+    "(empty blockers)": 1,
+    "patient_dob": 1
+  },
+  "hitl_claim_ids": [
+    "Group A__M048DJKN.022",
+    "Group A__M048DJKN.023",
+    "Group A__M048EJG7.005",
+    "Group A__M048EJGE.005",
+    "Group A__M048EJGE.016",
+    "Group A__M048EJGE.017",
+    "Group A__M048EJGE.018",
+    "Group A__M048EJGE.019",
+    "Group A__M048EJGE.026",
+    "Group A__M048EJGE.032",
+    "Group A__M048EJGE.041",
+    "Group A__M048EJH6.001",
+    "Group A__M048EJI2.020",
+    "Group A__M048HJCR.004"
+  ],
+  "reg_claim_ids": [
+    "Group A__M048EJGE.014",
+    "Group A__M048EJGE.015"
+  ]
+}

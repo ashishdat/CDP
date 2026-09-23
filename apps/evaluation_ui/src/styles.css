@@ -736,3 +736,112 @@ tr:hover td {
   text-decoration: underline;
 }
 
+
+/* Ops usage report */
+.ops-panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--line-color);
+  border-radius: 12px;
+  padding: 22px 24px 28px;
+  display: grid;
+  gap: 20px;
+}
+.ops-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.ops-header h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+.ops-sub, .ops-live, .ops-empty, .ops-note, .ops-ids {
+  color: var(--text-secondary);
+  font-size: 13px;
+  margin: 0;
+}
+.ops-live {
+  color: var(--good);
+  font-weight: 600;
+}
+.ops-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.ops-stat {
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  border: 1px solid var(--line-color);
+  border-radius: 10px;
+  padding: 14px 14px 12px;
+  display: grid;
+  gap: 4px;
+}
+.ops-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  font-weight: 700;
+}
+.ops-stat-value {
+  font-size: 20px;
+  color: var(--text-primary);
+}
+.ops-stat-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.ops-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.ops-card {
+  border: 1px solid var(--line-color);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: #fff;
+}
+.ops-card h4 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.ops-card ul, .ops-engines {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+.ops-card li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  border-bottom: 1px dashed var(--line-color);
+  padding-bottom: 4px;
+}
+.ops-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.ops-table th, .ops-table td {
+  text-align: left;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line-color);
+}
+.ops-table th {
+  color: var(--text-tertiary);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}

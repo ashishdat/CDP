@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AccuracyBars, Empty, GroupAccuracy, MetricCard } from "./components";
 import { HitlInspector } from "./hitl";
+import { OpsUsagePanel } from "./opsUsage";
 import { PipelineFlow } from "./pipeline";
 import { ProcessingWorkspace } from "./process";
 import { parseReport, percent } from "./report";
 import type { EvaluationReport } from "./types";
 import "./styles.css";
 
-type ReportTab = "dashboard" | "queue" | "review" | "analytics" | "audit" | "settings";
+type ReportTab = "dashboard" | "queue" | "review" | "analytics" | "ops" | "audit" | "settings";
 
 export type AuditLogEntry = {
   timestamp: string;
@@ -455,6 +456,9 @@ export default function App() {
             <button role="tab" className={`nav-item ${activeTab === "analytics" ? "active" : ""}`} onClick={() => setActiveTab("analytics")}>
               📈 Analytics
             </button>
+            <button role="tab" className={`nav-item ${activeTab === "ops" ? "active" : ""}`} onClick={() => setActiveTab("ops")}>
+              Ops usage
+            </button>
             <button role="tab" className={`nav-item ${activeTab === "audit" ? "active" : ""}`} onClick={() => setActiveTab("audit")}>
               🛡 Audit Trail
             </button>
@@ -484,7 +488,7 @@ export default function App() {
         <header className="top-header">
           <div className="header-title-area">
             <span className="header-breadcrumbs">Claims IDP / {activeTab}</span>
-            <h2>{activeTab === "dashboard" ? "Operational Analytics Dashboard" : activeTab === "review" ? "Side-by-Side Review" : activeTab === "queue" ? "Claims Ingestion Queue" : "System Console"}</h2>
+            <h2>{activeTab === "dashboard" ? "Operational Analytics Dashboard" : activeTab === "review" ? "Side-by-Side Review" : activeTab === "queue" ? "Claims Ingestion Queue" : activeTab === "ops" ? "DI / HITL / Local OCR / Tokens" : "System Console"}</h2>
           </div>
 
           <div className="header-controls">
@@ -842,6 +846,12 @@ export default function App() {
                   <p style={{ color: "var(--text-secondary)" }}>Deploy evaluation.json under /reports to populate analytics charts</p>
                 </div>
               )}
+            </section>
+          )}
+
+          {activeTab === "ops" && (
+            <section style={{ display: "grid", gap: "20px" }}>
+              <OpsUsagePanel />
             </section>
           )}
 
