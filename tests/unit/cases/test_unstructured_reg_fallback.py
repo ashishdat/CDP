@@ -55,3 +55,76 @@ P. O. BOX 30755 SALTLAKECITY, UT 84130-0755 959298836
     fields = _heuristic_fields_from_di_text(text)
     name = (fields.get("patient_name") or "").upper()
     assert "P. O. BOX" not in name and "SALT LAKE" not in name
+
+
+def test_mailroom_separator_yields_no_fields():
+    text = """
+*00BREAK00*
+Document Separator
+Used to Separate Each Transaction
+SourceHOV, Inc 4050 South 500 West Salt Lake City, UT 84123
+Patch II
+08/13/2026 0500
+"""
+    assert _heuristic_fields_from_di_text(text) == {}
+
+
+def test_mailroom_unique_id_cover_yields_no_fields():
+    text = """
+DOCSEP
+Unique ID
+CERT161008
+Tracking No
+420841300755950011584431622266.
+Last Name
+First Name
+RecvDate
+08/18/2026
+Arrival Date
+08/18/2026
+POBox
+30755
+"""
+    assert _heuristic_fields_from_di_text(text) == {}
+
+
+def test_ub04_prefers_person_over_facility_name():
+    text = """
+UB-04 CMS-1450
+TYPE OF BILL 0212
+KAISER FOUNDATION HOS SAC 2025 MORSE AVE
+8 PATIENT NAME
+9 PATIENT ADDRESS a
+b HALL, SHELLETHA R.
+10 BIRTHDATE
+11051962
+47 TOTAL CHARGES
+2079.00
+60 INSURED'S UNIQUE ID
+958252115
+58 INSURED'S NAME
+HALL, SHELLETHA R.
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    name = (fields.get("patient_name") or "").upper()
+    assert "HALL" in name and "SHELLETHA" in name
+    assert "KAISER" not in name
+    assert fields.get("patient_dob") == "11/05/1962"
+    assert fields.get("insured_id_number") == "958252115"
+    assert "2079.00" in (fields.get("total_charge") or "")
+
+
+def test_city_state_not_treated_as_person_name():
+    text = """
+UB-04 CMS-1450
+HEMPSTEAD, NY 11550
+LOPEZRODRIGUEZ, MAYULEISI
+10 BIRTHDATE
+08061991
+112592214
+253.00
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    name = (fields.get("patient_name") or "").upper()
+    assert "LOPEZRODRIGUEZ" in name
+    assert "HEMPSTEAD" not in name

@@ -86,29 +86,187 @@ def _shape_field(field_name: str, raw: str | None) -> tuple[str | None, str]:
     return None, f"UNSHAPED:{reason}"
 
 
+_MAILROOM_SEP = re.compile(
+    r"document\s*separator|\bDOCSEP\b|\*00BREAK00\*|"
+    r"used\s+to\s+separate\s+each\s+transaction",
+    re.IGNORECASE,
+)
+_MAILROOM_COVER = re.compile(
+    r"\bunique\s*id\b|\blast\s*name\b|\bfirst\s*name\b|\brecvdate\b|"
+    r"\barrival\s*date\b|\btracking\s*no\b",
+    re.IGNORECASE,
+)
+_CLAIM_INK = re.compile(
+    r"CMS-?\s*1500|UB-?\s*04|CMS-?\s*1450|TYPE\s*OF\s*BILL|"
+    r"BIRTHDATE|PATIENT\s*NAME|TOTAL\s*CHARGE|NUCC|HCFA|"
+    r"INSURED'?S?\s*UNIQUE\s*ID|BOX\s*28",
+    re.IGNORECASE,
+)
+_BAD_NAME = re.compile(
+    r"united\s*healthcare|martin,?\s*inc|buford|p\.?\s*o\.?\s*box|salt\s*lake|"
+    r"sourcehov|tracking\s*no|recvdate|patch\s*ii|medicaid\s*resub|"
+    r"insured.?s?\s*(?:i\.?d|name|unique)|patient.?s?\s*name|"
+    r"document\s*separator|unique\s*id|fax\s*(?:image|patch)|print\s*options|"
+    r"\bof\s*b[il]{2,}\b|\bmed\.?\s*rec\b|\bmedical\s*rec|"
+    r"\b(?:hospital|hosp|medical\s*center|foundation|university|presbyterian|"
+    r"columbia|kaiser|northern\s*light|mayo|counseling\s*center|corp\.?\s*dba|"
+    r"llc|inc\.?|street|avenue|ave\b|road|rd\b|blvd|suite|floor)\b|"
+    r"\b(?:npi|cpt|hcpcs|rev\s*cd|payer\s*name|group\s*name|employer)\b",
+    re.IGNORECASE,
+)
+_NAME_STOP = {
+    "OF",
+    "BILL",
+    "BLL",
+    "THE",
+    "AND",
+    "FOR",
+    "MED",
+    "REC",
+    "TOTAL",
+    "PAGE",
+    "FROM",
+    "THROUGH",
+    "CODE",
+    "DATE",
+    "TYPE",
+    "BOX",
+    "SEE",
+    "USE",
+    "OTHER",
+    "PROCEDURE",
+    "INSURANCE",
+    "GROUP",
+    "NO",
+    "NUMBER",
+    "UNIQUE",
+    "PATIENT",
+    "INSURED",
+    "ADDRESS",
+    "BIRTHDATE",
+    "OCCURRENCE",
+    "CONDITION",
+    "PRINCIPAL",
+    "ATTENDING",
+    "OPERATING",
+    "REMARKS",
+    "VALUE",
+    "CODES",
+    "AMOUNT",
+    "PAYER",
+    "HEALTH",
+    "PLAN",
+    "TREATMENT",
+    "AUTHORIZATION",
+    "DOCUMENT",
+    "CONTROL",
+    "EMPLOYER",
+    "ADMIT",
+    "REASON",
+    "PRINT",
+    "OPTIONS",
+    "FAX",
+    "IMAGE",
+    "ORIGINAL",
+    "SOURCE",
+    "STATE",
+    "ACDT",
+    "SEX",
+    "PRO",
+    "FEE",
+    "ROOM",
+    "BOARD",
+    "SERV",
+    "UNITS",
+    "DESC",
+    "DESCRIPTION",
+}
+
+
+def _is_mailroom_only_page(di_text: str) -> bool:
+    """True for DOCSEP / Patch-II covers with no claim form ink."""
+    if _CLAIM_INK.search(di_text or ""):
+        return False
+    if _MAILROOM_SEP.search(di_text or ""):
+        return True
+    # Blank Unique-ID / Last-Name / First-Name mail covers (JJBP-class).
+    hits = len(_MAILROOM_COVER.findall(di_text or ""))
+    return hits >= 3 and not re.search(r"\b\d{2,5}\.\d{2}\b", di_text or "")
+
+
+_US_STATES = {
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL",
+    "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT",
+    "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI",
+    "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC",
+}
+
+
+def _looks_like_person_name(text: str) -> bool:
+    raw = re.sub(r"\s+", " ", (text or "")).strip(" .|`^\t#-")
+    if not raw or len(raw) < 4 or len(raw) > 60:
+        return False
+    if _BAD_NAME.search(raw):
+        return False
+    if re.search(r"\d", raw):  # any digit → not a clean person name
+        return False
+    if re.search(r"\b\d{5}(-\d{4})?\b", raw):
+        return False
+    tokens = [t.upper() for t in re.findall(r"[A-Za-z]{2,}", raw)]
+    tokens = [t for t in tokens if t not in _NAME_STOP]
+    if len(tokens) < 2:
+        return False
+    # Require LAST, FIRST (comma form) — facility OCR almost never has this.
+    if "," in raw:
+        left, _, right = raw.partition(",")
+        left_toks = [t for t in re.findall(r"[A-Za-z]{2,}", left) if t.upper() not in _NAME_STOP]
+        right_toks = [t for t in re.findall(r"[A-Za-z]{2,}", right) if t.upper() not in _NAME_STOP]
+        if not (left_toks and right_toks and len(left_toks[0]) >= 2 and len(right_toks[0]) >= 2):
+            return False
+        # ``HEMPSTEAD, NY`` / ``BRONX, NY`` city-state addresses.
+        if len(right_toks) == 1 and right_toks[0].upper() in _US_STATES:
+            return False
+        return True
+    # Non-comma: both tokens ≥3 chars (rejects ``OF BLL``).
+    return all(len(t) >= 3 for t in tokens[:2])
+
+
 def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     """Cheap first pass: line-oriented heuristics before calling the agent."""
     out: dict[str, str] = {}
+    if _is_mailroom_only_page(di_text):
+        return out
     lines = [ln.strip() for ln in di_text.splitlines() if ln.strip()]
 
-    # --- DOB: whole-line first, then inline MM DD YY / compact MMDDYY ---
+    # --- DOB: prefer lines near BIRTHDATE, then whole-line / inline / compact ---
     dob_pats = (
         r"\b\d{1,2}[\s/.\-]\d{1,2}[\s/.\-]\d{2,4}\b",
         r"\b\d{1,2}\s+\d{1,2}\s+\d{2}\b",
     )
-    for ln in lines[:60]:
+    dob_priority: list[str] = []
+    for i, ln in enumerate(lines):
+        if re.search(r"birth\s*date|birthdate|\bdob\b", ln, re.IGNORECASE):
+            dob_priority.extend(lines[i : i + 4])
+    dob_scan = dob_priority + lines[:80]
+    seen_dob: set[str] = set()
+    for ln in dob_scan:
+        if ln in seen_dob:
+            continue
+        seen_dob.add(ln)
         # Skip obvious mail/recv stamps (claim DOB is never 2025/2026).
-        if re.search(r"recv|arrival|tracking|patch\s*ii", ln, re.IGNORECASE):
+        if re.search(r"recv|arrival|tracking|patch\s*ii|creation\s*date", ln, re.IGNORECASE):
             continue
         candidates: list[str] = []
         if re.fullmatch(r"\d{1,2}[\s/.\-]\d{1,2}[\s/.\-]\d{2,4}", ln):
+            candidates.append(ln)
+        # Compact MMDDYYYY on its own line (UB-04 box 10).
+        if re.fullmatch(r"\d{8}", ln):
             candidates.append(ln)
         for pat in dob_pats:
             candidates.extend(re.findall(pat, ln))
         # Compact handwritten MMDDYY / MMDDYYYY often glued (``092767`` / ``0927671``).
         for tok in re.findall(r"\b\d{6,8}\b", ln):
             if len(tok) == 7 and tok.startswith("0"):
-                # trailing OCR junk digit — try first 6
                 candidates.append(tok[:6])
             candidates.append(tok)
         for raw in candidates:
@@ -125,67 +283,141 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         if "patient_dob" in out:
             break
 
-    id_candidates: list[str] = []
-    for ln in lines:
-        # Skip provider/tax lines; still mine mixed identity lines that mention city.
-        if re.search(r"\bnpi\b|\btax\b|buford|martin,?\s*inc|\bhealthcare\b", ln, re.IGNORECASE):
-            continue
-        for tok in re.findall(r"\b\d{7,12}\b", ln):
-            if len(tok) == 10 and (tok.startswith("1") or tok[0] in "234567"):
+    # --- ID: prefer tokens near INSURED'S UNIQUE ID; reject NPI / EIN / zip ---
+    id_priority: list[str] = []
+    for i, ln in enumerate(lines):
+        if re.search(r"unique\s*id|insured.?s?\s*i\.?d|member\s*id", ln, re.IGNORECASE):
+            id_priority.extend(lines[i : i + 5])
+    id_candidates: list[tuple[int, str]] = []  # (priority_rank, value)
+
+    def _consider_id(tok: str, rank: int) -> None:
+        # NPI is 10 digits starting 1–7; keep 0/8/9-leading member ids.
+        if len(tok) == 10 and tok[0] in "1234567":
+            return
+        if len(tok) == 9 and tok.startswith("58"):  # EIN-ish
+            return
+        if len(tok) == 7:  # truncated EIN / noise
+            return
+        shaped, _ = _shape_field("insured_id_number", tok)
+        if shaped:
+            id_candidates.append((rank, shaped))
+
+    for rank, pool in ((0, id_priority), (1, lines)):
+        for ln in pool:
+            if re.search(
+                r"\bnpi\b|\btax\b|fed\.?\s*tax|buford|martin,?\s*inc|\bhealthcare\b|"
+                r"tracking|sourcehov|patch\s*ii|"
+                r"\b(?:street|avenue|ave\b|road|rd\b|blvd|suite|bronx|brooklyn|"
+                r"sacramento|atlanta|hempstead)\b",
+                ln,
+                re.IGNORECASE,
+            ):
                 continue
-            if len(tok) == 9 and tok.startswith("58"):
-                continue
-            if len(tok) == 7:  # truncated EIN / noise
-                continue
-            shaped, _ = _shape_field("insured_id_number", tok)
-            if shaped:
-                id_candidates.append(shaped)
+            for tok in re.findall(r"\b\d{7,12}\b", ln):
+                _consider_id(tok, rank)
+    # Drop DOB-shaped digit strings that leaked into the ID pool.
+    dob_digits = re.sub(r"\D", "", out.get("patient_dob") or "")
+    dob_compact = {dob_digits, dob_digits[-6:]} if len(dob_digits) >= 6 else set()
+    id_candidates = [
+        pair
+        for pair in id_candidates
+        if re.sub(r"\D", "", pair[1]) not in dob_compact
+        and not (
+            # Compact MMDDYYYY / MMDDYY alone is a DOB, not a member id.
+            len(re.sub(r"\D", "", pair[1])) in {6, 8}
+            and re.fullmatch(r"\d{6}|\d{8}", re.sub(r"\D", "", pair[1]))
+            and int(re.sub(r"\D", "", pair[1])[:2]) <= 12
+        )
+    ]
     if id_candidates:
-        id_candidates.sort(key=lambda v: (abs(len(re.sub(r"\D", "", v)) - 9), len(v)))
-        out["insured_id_number"] = id_candidates[0]
+        id_candidates.sort(
+            key=lambda pair: (
+                pair[0],
+                abs(len(re.sub(r"\D", "", pair[1])) - 9),
+                len(pair[1]),
+            )
+        )
+        out["insured_id_number"] = id_candidates[0][1]
 
-    _BAD_NAME = re.compile(
-        r"united|healthcare|martin|buford|npi|cpt|p\.?\s*o\.?\s*box|salt\s*lake|"
-        r"\bcity\b|\but\b|\bga\b|tracking|recvdate|patch|sourcehov|medicaid|"
-        r"insured.?s?\s*i\.?d|patient.?s?\s*name",
-        re.IGNORECASE,
-    )
-    for ln in lines[:40]:
-        if "," not in ln and not re.search(r"[A-Za-z]{2,}\s+[A-Za-z]{2,}", ln):
+    # --- Name: prefer LAST, FIRST islands; never facility / form-label soup ---
+    name_priority: list[str] = []
+    for i, ln in enumerate(lines):
+        if re.search(
+            r"patient\s*name|insured'?s?\s*name|patient\s*address",
+            ln,
+            re.IGNORECASE,
+        ):
+            name_priority.extend(lines[i : i + 6])
+    name_scan = name_priority + lines[:80]
+
+    def _name_candidates(ln: str) -> list[str]:
+        cleaned = re.sub(r"^\s*[a-dA-D0-9|^`.\-]\s+", "", ln).strip()
+        cleaned = re.sub(r"^\s*[a-d]\s+", "", cleaned).strip()
+        out_c: list[str] = []
+        for m in re.finditer(
+            r"\b([A-Za-z][A-Za-z'\-]{1,24},\s*[A-Za-z][A-Za-z'\-]+(?:\s+[A-Z]\.?)?)",
+            cleaned,
+        ):
+            out_c.append(m.group(1))
+        if not out_c:
+            out_c.append(cleaned)
+        return out_c
+
+    picked_name = False
+    # Pass 1: comma-form person names only (high precision).
+    for ln in name_scan:
+        if "," not in ln:
             continue
-        if not re.search(r"[A-Za-z]{2,}", ln):
-            continue
-        if _BAD_NAME.search(ln):
-            continue
-        # Prefer short person lines over address soup.
-        if len(ln) > 80:
-            continue
-        shaped, _ = _shape_field("patient_name", ln)
-        if shaped and len(re.sub(r"\d", "", shaped)) >= 4:
-            out.setdefault("patient_name", shaped)
-            out.setdefault("insured_name", shaped)
+        for probe in _name_candidates(ln):
+            if "," not in probe or not _looks_like_person_name(probe):
+                continue
+            shaped, _ = _shape_field("patient_name", probe)
+            if shaped and _looks_like_person_name(shaped):
+                out["patient_name"] = shaped
+                out["insured_name"] = shaped
+                picked_name = True
+                break
+        if picked_name:
             break
+    # Pass 2: non-comma FIRST LAST only near patient/insured labels.
+    if not picked_name:
+        for ln in name_priority:
+            if "," in ln:
+                continue
+            for probe in _name_candidates(ln):
+                if not _looks_like_person_name(probe):
+                    continue
+                shaped, _ = _shape_field("patient_name", probe)
+                if shaped and _looks_like_person_name(shaped):
+                    out["patient_name"] = shaped
+                    out["insured_name"] = shaped
+                    break
+            if "patient_name" in out:
+                break
 
-    # Charge: prefer lines near TOTAL CHARGE / Box 28 cues, else first plausible $.
+    # Charge: prefer TOTAL CHARGE / Box 28 / UB-04 box 47 totals.
     charge_lines = [
         ln
         for ln in lines
-        if re.search(r"total\s*charge|box\s*28|\bcharge\b", ln, re.IGNORECASE)
+        if re.search(
+            r"total\s*charge|box\s*28|\bcharge\b|totals?\b",
+            ln,
+            re.IGNORECASE,
+        )
     ] + lines
     seen_charge: set[str] = set()
     for ln in charge_lines:
-        if re.search(r"\bF\d{2}|cpt\b|908\d{2}", ln, re.IGNORECASE):
-            # Still allow an explicit TOTAL on the same line.
+        if re.search(r"\bF\d{2}|cpt\b|908\d{2}|ndc\b", ln, re.IGNORECASE):
             if not re.search(r"total\s*charge", ln, re.IGNORECASE):
                 continue
-        for m in re.finditer(r"\$?\s*(\d{2,5}\.\d{2})\b", ln):
-            raw = m.group(1)
-            if raw in seen_charge:
+        # OCR often emits ``482;00`` or ``482,00`` for ``482.00``.
+        for m in re.finditer(r"\$?\s*(\d{1,5})[.,;](\d{2})\b", ln):
+            raw = f"{m.group(1)}.{m.group(2)}"
+            if raw in seen_charge or raw == "0.00":
                 continue
             seen_charge.add(raw)
             shaped, _ = _shape_field("total_charge", raw)
             if shaped:
-                # Prefer larger claim totals over single line fees when both exist.
                 prev = out.get("total_charge")
                 if prev is None:
                     out["total_charge"] = shaped
