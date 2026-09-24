@@ -90,16 +90,41 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     """Cheap first pass: line-oriented heuristics before calling the agent."""
     out: dict[str, str] = {}
     lines = [ln.strip() for ln in di_text.splitlines() if ln.strip()]
-    for ln in lines[:40]:
+
+    # --- DOB: whole-line first, then inline MM DD YY / compact MMDDYY ---
+    dob_pats = (
+        r"\b\d{1,2}[\s/.\-]\d{1,2}[\s/.\-]\d{2,4}\b",
+        r"\b\d{1,2}\s+\d{1,2}\s+\d{2}\b",
+    )
+    for ln in lines[:60]:
+        # Skip obvious mail/recv stamps (claim DOB is never 2025/2026).
+        if re.search(r"recv|arrival|tracking|patch\s*ii", ln, re.IGNORECASE):
+            continue
+        candidates: list[str] = []
         if re.fullmatch(r"\d{1,2}[\s/.\-]\d{1,2}[\s/.\-]\d{2,4}", ln):
-            shaped, reason = _shape_field("patient_dob", ln)
-            if shaped and "FUTURE" not in reason:
-                year = re.findall(r"\d{4}", shaped)
-                if year and int(year[-1]) <= 2015:
-                    out["patient_dob"] = shaped
-                    break
-                if not year:
-                    out.setdefault("patient_dob", shaped)
+            candidates.append(ln)
+        for pat in dob_pats:
+            candidates.extend(re.findall(pat, ln))
+        # Compact handwritten MMDDYY / MMDDYYYY often glued (``092767`` / ``0927671``).
+        for tok in re.findall(r"\b\d{6,8}\b", ln):
+            if len(tok) == 7 and tok.startswith("0"):
+                # trailing OCR junk digit — try first 6
+                candidates.append(tok[:6])
+            candidates.append(tok)
+        for raw in candidates:
+            shaped, reason = _shape_field("patient_dob", raw)
+            if not shaped or "FUTURE" in reason:
+                continue
+            year = re.findall(r"\d{4}", shaped)
+            if year and int(year[-1]) > 2015:
+                continue
+            if year and int(year[-1]) < 1920:
+                continue
+            out["patient_dob"] = shaped
+            break
+        if "patient_dob" in out:
+            break
+
     id_candidates: list[str] = []
     for ln in lines:
         # Skip provider/tax lines; still mine mixed identity lines that mention city.
@@ -118,25 +143,59 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     if id_candidates:
         id_candidates.sort(key=lambda v: (abs(len(re.sub(r"\D", "", v)) - 9), len(v)))
         out["insured_id_number"] = id_candidates[0]
-    for ln in lines[:25]:
-        if "," in ln and re.search(r"[A-Za-z]{2,}", ln):
-            if re.search(r"united|healthcare|martin|buford|npi|cpt", ln, re.IGNORECASE):
-                continue
-            shaped, _ = _shape_field("patient_name", ln)
-            if shaped:
-                out.setdefault("patient_name", shaped)
-                out.setdefault("insured_name", shaped)
-                break
-    for ln in lines:
-        if re.search(r"\bF\d{2}", ln, re.IGNORECASE):
+
+    _BAD_NAME = re.compile(
+        r"united|healthcare|martin|buford|npi|cpt|p\.?\s*o\.?\s*box|salt\s*lake|"
+        r"\bcity\b|\but\b|\bga\b|tracking|recvdate|patch|sourcehov|medicaid|"
+        r"insured.?s?\s*i\.?d|patient.?s?\s*name",
+        re.IGNORECASE,
+    )
+    for ln in lines[:40]:
+        if "," not in ln and not re.search(r"[A-Za-z]{2,}\s+[A-Za-z]{2,}", ln):
             continue
-        for m in re.finditer(r"\$(\d{2,5}\.\d{2})\b|(\b\d{2,4}\.00\b)", ln):
-            raw = m.group(1) or m.group(2)
+        if not re.search(r"[A-Za-z]{2,}", ln):
+            continue
+        if _BAD_NAME.search(ln):
+            continue
+        # Prefer short person lines over address soup.
+        if len(ln) > 80:
+            continue
+        shaped, _ = _shape_field("patient_name", ln)
+        if shaped and len(re.sub(r"\d", "", shaped)) >= 4:
+            out.setdefault("patient_name", shaped)
+            out.setdefault("insured_name", shaped)
+            break
+
+    # Charge: prefer lines near TOTAL CHARGE / Box 28 cues, else first plausible $.
+    charge_lines = [
+        ln
+        for ln in lines
+        if re.search(r"total\s*charge|box\s*28|\bcharge\b", ln, re.IGNORECASE)
+    ] + lines
+    seen_charge: set[str] = set()
+    for ln in charge_lines:
+        if re.search(r"\bF\d{2}|cpt\b|908\d{2}", ln, re.IGNORECASE):
+            # Still allow an explicit TOTAL on the same line.
+            if not re.search(r"total\s*charge", ln, re.IGNORECASE):
+                continue
+        for m in re.finditer(r"\$?\s*(\d{2,5}\.\d{2})\b", ln):
+            raw = m.group(1)
+            if raw in seen_charge:
+                continue
+            seen_charge.add(raw)
             shaped, _ = _shape_field("total_charge", raw)
             if shaped:
-                out.setdefault("total_charge", shaped)
-                break
-        if "total_charge" in out:
+                # Prefer larger claim totals over single line fees when both exist.
+                prev = out.get("total_charge")
+                if prev is None:
+                    out["total_charge"] = shaped
+                else:
+                    try:
+                        if float(shaped) >= float(prev):
+                            out["total_charge"] = shaped
+                    except ValueError:
+                        pass
+        if "total_charge" in out and charge_lines and ln in charge_lines[:3]:
             break
     return out
 

@@ -72,6 +72,12 @@ def main() -> int:
     parser.add_argument("--docs-file", type=Path, default=None)
     parser.add_argument("--documents", default="")
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument(
+        "--retries",
+        type=int,
+        default=2,
+        help="Extra attempts on DI timeout / empty shape (default 2).",
+    )
     args = parser.parse_args()
 
     # Force heuristics-only (no gpt-4o agent 401 latency).
@@ -81,8 +87,20 @@ def main() -> int:
     os.environ.setdefault("CDP_AZURE_DI_MIN_INTERVAL_SECONDS", "0")
     os.environ.setdefault("CDP_AZURE_DI_429_RETRIES", "1")
     os.environ.setdefault("CDP_AZURE_DI_429_WAIT_SECONDS", "8")
+    # Step-1 REG retries: DI page-read can exceed 30s on noisy scans.
+    os.environ.setdefault("CLOUD_HANDWRITING_TIMEOUT_SECONDS", "90")
+    os.environ.setdefault("CDP_CLOUD_HANDWRITING_TIMEOUT_SECONDS", "90")
 
     # Composition root: DI read engine factory (same as cascade).
+    # Clear any cached DI engine so timeout env above takes effect.
+    try:
+        from workers.cascade import azure_di_factory as _di_factory
+
+        with _di_factory._ENGINE_LOCK:
+            _di_factory._ENGINE_CACHE.clear()
+    except Exception:  # noqa: BLE001
+        pass
+
     from workers.ocr_engine_factories import wire_package_ocr_providers
 
     wire_package_ocr_providers()
@@ -135,15 +153,31 @@ def main() -> int:
                 if key is None:
                     raise FileNotFoundError(f"not in zip: {document}")
                 page = Image.open(BytesIO(zf.read(key))).convert("RGB")
+                attempts = max(1, int(args.retries) + 1)
+                fb = None
+                last_reason = ""
                 try:
-                    fb = run_unstructured_reg_fallback(page)
+                    for attempt in range(attempts):
+                        fb = run_unstructured_reg_fallback(page)
+                        last_reason = str(fb.reason or "")
+                        # Retry transient DI timeouts / empty transport errors.
+                        transient = any(
+                            tok in last_reason.upper()
+                            for tok in ("TIMEOUT", "URLERROR", "TRANSPORT", "429")
+                        )
+                        if fb.fields or not transient:
+                            break
+                        if attempt + 1 < attempts:
+                            time.sleep(2.0 * (attempt + 1))
                 finally:
                     page.close()
+                assert fb is not None
                 unstructured_meta = {
                     "attempted": fb.attempted,
                     "reason": fb.reason,
                     "agent_used": fb.agent_used,
                     "fields": dict(fb.fields),
+                    "attempts": attempts,
                 }
                 if REQUIRED.issubset(fb.fields):
                     disposition = "TRUE_STP"

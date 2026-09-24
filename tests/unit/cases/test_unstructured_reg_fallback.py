@@ -31,3 +31,27 @@ United Healthcare
     assert fields.get("insured_id_number") == "959012644"
     assert "MAINES" in (fields.get("patient_name") or "").upper()
     assert "150.00" in (fields.get("total_charge") or "")
+
+
+def test_unstructured_heuristic_inline_dob_in_mixed_line():
+    """HJHO.014-class: DOB tokens sit inside a freeform identity line."""
+    text = """
+M . Maines, Tammy L 1040 Lenox Valley Dv NE Atlanta 30324 01 08 69 United Healthcare
+959012644
+120.00
+08/17/2026 0500
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("patient_dob") == "01/08/1969"
+    assert fields.get("insured_id_number") == "959012644"
+    assert "120.00" in (fields.get("total_charge") or "")
+
+
+def test_unstructured_heuristic_skips_po_box_as_name():
+    text = """
+P. O. BOX 30755 SALTLAKECITY, UT 84130-0755 959298836
+150.00
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    name = (fields.get("patient_name") or "").upper()
+    assert "P. O. BOX" not in name and "SALT LAKE" not in name
