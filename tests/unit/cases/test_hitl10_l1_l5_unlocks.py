@@ -387,6 +387,90 @@ def test_vision_local_inflated_scale_rival_stays_hitl():
     assert "CHARGE_VISION_LOCAL_SCALE_RIVAL_HITL" in result.rationale_codes
 
 
+def test_di_printed_decimal_clears_bleed_cents_fail_closed():
+    """M0472JCM.009: DI raw ``$ 563.10`` is printed cents, not units bleed."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _cand("paddleocr", "563.10", raw_value="563.10."),
+            _cand(
+                "azure_document_intelligence_read",
+                "563.10",
+                raw_value="$ 563.10 L :",
+            ),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+            "MULTI_ENGINE_AGREEMENT",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"563.10"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "563.10"
+    assert "BLEED_CENTS_FAIL_CLOSED" not in result.rationale_codes
+
+
+def test_whole_dollar_di_place_shift_soup_not_scale_rival_hitl():
+    """M0477JCF.015: vision+local 177.00 beside DI 17700 ×100 soup may AUTO."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _cand("anthropic_claude_crop", "177.00"),
+            _cand("paddleocr", "177.00"),
+            _cand(
+                "azure_document_intelligence_read",
+                "17700.00",
+                raw_value="17700 -",
+            ),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_VISION_LOCAL_CONFIRMED",
+            "MULTI_ENGINE_AGREEMENT",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"177.00"},
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "177.00"
+    assert "CHARGE_VISION_LOCAL_SCALE_RIVAL_HITL" not in result.rationale_codes
+
+
+def test_whole_dollar_times_ten_scale_rival_stays_hitl():
+    """×10 (not ×100 place-shift) whole-dollar rivals stay SCALE_RIVAL HITL."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _cand("anthropic_claude_crop", "6000.00"),
+            _cand("paddleocr", "6000.00"),
+            _cand(
+                "azure_document_intelligence_read",
+                "60000.00",
+                raw_value="60000 $",
+            ),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_VISION_LOCAL_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"6000.00"},
+    )
+    assert result.decision != Decision.ACCEPT
+    assert "CHARGE_VISION_LOCAL_SCALE_RIVAL_HITL" in result.rationale_codes
+
+
 def test_l5_unique_calendar_dob_mints_independent_e2():
     """EJG7.007: sole Claude calendar DOB still mints independent E2."""
     bundle = build_evidence_bundle(

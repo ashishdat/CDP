@@ -81,6 +81,88 @@ def _charge_cash_ruling_confirms(value: object, candidates: list) -> bool:
     return False
 
 
+def _charge_di_printed_decimal_confirms(value: object, candidates: list) -> bool:
+    """True when Azure DI raw shows ``$ NNN.CC`` matching ``value``.
+
+    Explicit decimal ink in the DI crop (``$ 563.10 L :``) is printed Box 28
+    cents — not units-column bleed that ``is_units_bleed_cents`` would reject.
+    Distinct from ruling-split ``$ 157 :07`` (no decimal in the dollars token).
+    Requires a Document Intelligence candidate; local-only ``$`` OCR is ignored.
+    """
+    try:
+        from packages.claim_evidence.charge_total_authority import (
+            format_currency,
+            parse_currency,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    target = parse_currency(value)
+    if target is None:
+        return False
+    target_txt = format_currency(target)
+    for cand in candidates or []:
+        if isinstance(cand, Mapping):
+            engine = str(cand.get("engine") or cand.get("engine_name") or "")
+            raw = cand.get("raw_value")
+            cand_val = cand.get("value")
+        else:
+            engine = str(getattr(cand, "engine", "") or "")
+            raw = getattr(cand, "raw_value", None)
+            cand_val = getattr(cand, "value", None)
+        eng = engine.casefold()
+        if "document_intelligence" not in eng and "azure_di" not in eng:
+            continue
+        raw_text = str(raw or "")
+        if "$" not in raw_text:
+            continue
+        match = re.search(r"\$\s*(\d{1,5}\.\d{2})\b", raw_text)
+        if match and format_currency(parse_currency(match.group(1))) == target_txt:
+            return True
+        if (
+            format_currency(parse_currency(cand_val)) == target_txt
+            and re.search(r"\d+\.\d{2}", raw_text)
+        ):
+            return True
+    return False
+
+
+def _charge_inflated_rivals_are_whole_dollar_place_shift_soup(
+    value: object, candidates: list
+) -> bool:
+    """True when every inflated rival is ×100 place-shift of whole-dollar ``value``.
+
+    Vision+local ``177.00`` beside DI digit-soup ``17700`` is classic place-shift
+    soup — not DJKH.040 ``1571.63`` (non-.00) beside ``157163``. Only exempts
+    SCALE_RIVAL when *all* inflated rivals are pure decimal place-shifts.
+    """
+    try:
+        from packages.claim_evidence.charge_total_authority import (
+            format_currency,
+            parse_currency,
+        )
+        from packages.claim_evidence.line_sum_authority import is_decimal_place_shift
+    except Exception:  # noqa: BLE001
+        return False
+    target = parse_currency(value)
+    if target is None:
+        return False
+    if not format_currency(target).endswith(".00"):
+        return False
+    saw_inflated = False
+    for cand in candidates or []:
+        if isinstance(cand, Mapping):
+            other_raw = cand.get("value")
+        else:
+            other_raw = getattr(cand, "value", None)
+        other = parse_currency(other_raw)
+        if other is None or other <= target:
+            continue
+        saw_inflated = True
+        if not is_decimal_place_shift(value, other_raw):
+            return False
+    return saw_inflated
+
+
 def _charge_vision_local_confirms_bleed(value: object, candidates: list) -> bool:
     """L3: Claude/gpt-4o + local agree on printed bleed cents (DI may be ×100)."""
     try:
@@ -2214,6 +2296,7 @@ class EvidenceReconciler:
             field_name in {"total_charge", "total_charges"}
             and _charge_is_units_bleed_cents(value)
             and not _charge_cash_ruling_confirms(value, candidates)
+            and not _charge_di_printed_decimal_confirms(value, candidates)
             and not _charge_vision_local_confirms_bleed(value, candidates)
         ):
             financial_authority = False
@@ -2519,11 +2602,13 @@ class EvidenceReconciler:
             field_name in {"total_charge", "total_charges"}
             and _charge_is_units_bleed_cents(value)
             and not _charge_cash_ruling_confirms(value, candidates)
+            and not _charge_di_printed_decimal_confirms(value, candidates)
             and not _charge_vision_local_confirms_bleed(value, candidates)
         ):
             # Never AUTO units/ruling bleed cents (.07/.22/.44) — conflict-agent
             # and $1 tolerance were minting TRUE_STP on contested Box 28 ink.
             # Exception: cash ruling-split raws (``$ 157 :07``) confirm printed cents.
+            # Exception: DI raw ``$ 563.10`` with explicit decimal (printed cents).
             # L3: Claude+local on printed bleed (``251.43``) vs DI ×100 soup.
             # Box28-over-bleed swap happens earlier (BOX28_OVER_BLEED_LINE_SUM).
             decision = Decision.REVIEW
@@ -2536,10 +2621,15 @@ class EvidenceReconciler:
             and not _charge_vision_local_confirms_bleed(value, candidates)
             and not _charge_cash_ruling_confirms(value, candidates)
             and _charge_has_inflated_scale_rival(value, candidates)
+            and not _charge_inflated_rivals_are_whole_dollar_place_shift_soup(
+                value, candidates
+            )
         ):
             # L4 / DJKH.040: Claude+local on an inflated Box28 (1571.63) beside
             # DI/raw ×100 soup must not AUTO without DI-exact or CLAIM_TOTAL.
             # L3 printed bleed cents are exempt (Claude+local beside DI ×100).
+            # Whole-dollar ×100 place-shift soup (``177.00`` vs DI ``17700``) is
+            # exempt — DI digit run without a second genuine magnitude.
             decision = Decision.REVIEW
             reasons.append("CHARGE_VISION_LOCAL_SCALE_RIVAL_HITL")
         elif reference_contradiction:

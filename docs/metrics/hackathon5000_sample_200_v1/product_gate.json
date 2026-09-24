@@ -1,21 +1,21 @@
 {
   "pass": false,
-  "claim_page_stp": 0.9444,
+  "claim_page_stp": 0.9568,
   "claim_pages": 162,
-  "true_stp": 153,
-  "hitl": 9,
+  "true_stp": 155,
+  "hitl": 7,
   "registration_failed": 38,
   "false_accepts": 0,
   "accepted_field_precision": null,
   "fa_status": "SCORED",
   "residual_counts": {
-    "POLICY_HOLD": 6,
+    "POLICY_HOLD": 4,
     "INK_ABSENT": 2,
     "RECOVERABLE": 1
   },
   "reasons": [
     "RUN_PROFILE_OK:PRODUCT",
-    "CLAIM_PAGE_STP_BELOW_TARGET:0.9444<0.97"
+    "CLAIM_PAGE_STP_BELOW_TARGET:0.9568<0.97"
   ],
   "targets": {
     "claim_page_stp_min": 0.97,
@@ -40,7 +40,7 @@
   },
   "n": 200,
   "contract_version": "product-stp-accuracy-contract-v1",
-  "generated_at": "2026-09-24T15:16:52.931396+00:00",
+  "generated_at": "2026-09-24T15:40:51.543129+00:00",
   "allow_incomplete_gt": true,
   "run_manifest": {
     "profile": "PRODUCT",
