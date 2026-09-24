@@ -1,0 +1,32 @@
+{
+  "dataset": "DEVELOPMENT_DATASET_V1 / Hackathon - 1000 Claims.zip",
+  "strategy_id": "field-cascade-v12 + unstructured-reg-fast-v1",
+  "n": 1000,
+  "document_count_evaluated": 1000,
+  "true_stp": 768,
+  "hitl": 73,
+  "registration_failed": 159,
+  "true_stp_rate_of_all": 0.768,
+  "hitl_rate_of_all": 0.073,
+  "registration_failed_rate_of_all": 0.159,
+  "completed_non_reg": 841,
+  "true_stp_rate_of_completed": 0.913199,
+  "hitl_rate_of_completed": 0.086801,
+  "taxonomy": {
+    "STP_CMS": 743,
+    "REG_NO_CLAIM_INK": 159,
+    "HITL_UNSTRUCTURED": 26,
+    "STP_UNSTRUCTURED": 25,
+    "HITL_FIELD_INK": 47
+  },
+  "field_ink_hitl": 47,
+  "unstructured_hitl": 26,
+  "unstructured_stp": 25,
+  "cms_stp": 743,
+  "note": "REG_NO_CLAIM_INK is mailroom separator / fax boilerplate \u2014 not CMS-1500. Primary STP/HITL rates of completed exclude those irreducible REG pages. See docs/metrics/independent_1000_gap_analysis.md",
+  "generated_at": "2026-09-24T03:24:26.664660+00:00",
+  "sources": [
+    "evaluation_results/hackathon_600_independent_v13c/results.jsonl",
+    "evaluation_results/hackathon_400_remainder_independent_v13c/results.jsonl"
+  ]
+}
