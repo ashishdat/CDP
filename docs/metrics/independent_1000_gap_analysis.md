@@ -32,16 +32,31 @@ These pages **cannot register** to a CMS-1500 template. Treating them as HITL wa
 
 ## Current taxonomy (full 1000 coverage)
 
-After Steps 1–3 (pre-Step2c lift):
+After Steps 1–3 + unstructured HITL lift (Step 2c):
 
-- **TRUE_STP** ~762 (CMS geometry + unstructured lifts)
-- **HITL** ~79 (field-ink ~47 + unstructured ~32)
-- **REG** ~159 (mailroom/fax only — irreducible)
+| Bucket | Count | Rate of 1000 |
+|---|---|---|
+| TRUE_STP | 768 | 76.8% |
+| HITL | 73 | 7.3% |
+| REG (mailroom/fax only) | 159 | 15.9% |
+
+Of **completed** pages (non-REG, n=841): **STP 91.3%** / HITL 8.7%.
+
+Breakdown:
+- STP_CMS (geometry path): 743
+- STP_UNSTRUCTURED (DI heuristics): 25
+- HITL_FIELD_INK (registered CMS, weak field): 47
+- HITL_UNSTRUCTURED (UB-04 / freeform partial): 26
+- REG_NO_CLAIM_INK: 159
 
 Unstructured HITL blockers (precision-safe, not invent fields):
 - Missing `total_charge` (majority of UB-04)
 - Missing `patient_dob` / `insured_id_number` on noisy freeform
 
+Field-ink HITL blockers:
+- `total_charge` ~22–25 (Step 4 cascade charge residual redo)
+- `patient_dob` ~10
+- ID / multi-field / empty-blocker misc
 ## What we fixed in heuristics
 1. Reject mailroom / fax / form-label names (`IFYES, RETURN`, `FED TAX`, `STATEMENT COVERS`, city-state).
 2. UB-04: prefer `LAST, FIRST` near patient labels over facility headers.
