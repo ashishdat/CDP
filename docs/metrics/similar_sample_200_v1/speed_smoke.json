@@ -1,0 +1,22 @@
+{
+  "profile": "FAST",
+  "n": 3,
+  "elapsed_sec": [
+    30.538,
+    22.554,
+    16.578
+  ],
+  "mean_elapsed_sec": 23.223,
+  "dispositions": [
+    "HITL",
+    "TRUE_STP",
+    "HITL"
+  ],
+  "claim_ids": [
+    "Group A__M048DJJM.006",
+    "Group A__M048DJJM.007",
+    "Group A__M048DJJM.008"
+  ],
+  "vs_slow_mean_sec": 292.0,
+  "speedup_x": 12.6
+}
