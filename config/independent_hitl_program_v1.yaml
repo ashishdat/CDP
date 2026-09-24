@@ -1,0 +1,104 @@
+# Independent HITL → 97–99% program config (governance-preserving)
+# Consumed by scripts/run_independent_hitl_phase.py + score_independent_hitl_gates.py
+
+version: independent-hitl-program-v1
+
+baseline:
+  claim_pages: 841
+  true_stp: 797
+  hitl: 44
+  claim_page_stp_rate: 0.9477
+  targets:
+    p97: 0.97   # need +19 STP
+    p98: 0.98   # need +28 STP
+    p99: 0.99   # need +36 STP
+
+governance:
+  fail_closed: true
+  no_invent: true
+  no_threshold_fit_on_corpus: true
+  no_spouse_patient_twin: true
+  reg_irreducible: true
+  kill_switches:
+    - CDP_UNSTRUCTURED_REG_FALLBACK
+    - CDP_UNSTRUCTURED_REG_AGENT
+    - CDP_CLOUD_STOP_LADDER
+    - CDP_AZURE_DI_CHARGE_RESIDUAL
+    - CDP_AZURE_DI_CHARGE_ACCEPT
+    - CDP_GPT4O_CROP_RESIDUAL
+    - CDP_CONFLICT_AGENT
+  stop_phase_if:
+    false_accept_increase: true
+    stp_drop: true
+
+phases:
+  H1_CHARGE:
+    description: FIELD_INK total_charge-only — dual corroboration (DI/lineΣ/Box28)
+    hitl_track: FIELD_INK
+    critical_blockers_exact: [total_charge]
+    tools:
+      - azure_di_charge_crop
+      - charge_total_authority
+      - field_recovery_toolstack_v13
+    accept_requires:
+      - shaped_currency
+      - independent_corroboration  # Box28↔line OR DI agree OR dual-engine
+    refuse_reason_substrings:
+      - DIGIT_SOUP
+      - SCALE_RIVAL
+      - BLEED_CENTS
+      - PLACE_SHIFT
+    target_lifts: [8, 12]
+    exit_claim_stp_min: 0.96
+
+  H2_DOB:
+    description: FIELD_INK patient_dob-only — residual ladder
+    hitl_track: FIELD_INK
+    critical_blockers_exact: [patient_dob]
+    tools:
+      - trocr_dob
+      - azure_di_dob_crop
+      - vision_crop
+    accept_requires:
+      - calendar_valid_dob
+    target_lifts: [2, 4]
+    exit_claim_stp_min: 0.97
+
+  H3_INSURED_NAME:
+    description: Empty critical blockers — insured_name conflict (Spouse/Other)
+    hitl_track: FIELD_INK
+    critical_blockers_exact: []
+    tools:
+      - vision_crop_box4
+      - conflict_agent
+    accept_requires:
+      - strong_person_name_on_box4
+    forbid:
+      - patient_name_twin_when_not_self
+    target_lifts: [0, 2]
+
+  H4_MULTI:
+    description: Multi-field FIELD_INK residuals (excludes H1/H2 singles)
+    hitl_track: FIELD_INK
+    critical_blockers_any: [insured_id_number, patient_dob, total_charge, patient_name]
+    exclude_exact_singles: true
+    min_blockers: 1
+    tools:
+      - field_recovery_toolstack_v13
+    target_lifts: [1, 3]
+
+  H5_UNSTRUCTURED:
+    description: UNSTRUCTURED_DI partial criticals
+    hitl_track: UNSTRUCTURED_DI
+    tools:
+      - azure_di_page_read
+      - unstructured_heuristics
+      - optional_text_agent  # only if Azure OpenAI healthy (not 401)
+    accept_requires:
+      - all_four_criticals_shaped
+    target_lifts: [3, 6]
+
+gates:
+  score_gt: evaluation_data/hackathon_agent_gt/field_truth.json
+  max_false_accept_delta: 0
+  metric: claim_page_stp_rate
