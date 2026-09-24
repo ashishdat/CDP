@@ -1,0 +1,45 @@
+{
+  "pass": false,
+  "claim_page_stp": 0.9634,
+  "claim_pages": 164,
+  "true_stp": 158,
+  "hitl": 6,
+  "registration_failed": 36,
+  "false_accepts": 0,
+  "accepted_field_precision": 1.0,
+  "fa_status": "SCORED",
+  "residual_counts": {
+    "POLICY_HOLD": 4,
+    "INK_ABSENT": 2
+  },
+  "reasons": [
+    "CLAIM_PAGE_STP_BELOW_TARGET:0.9634<0.97"
+  ],
+  "targets": {
+    "claim_page_stp_min": 0.97,
+    "accepted_field_precision_min": 1.0,
+    "max_false_accepts": 0,
+    "gold_only": true,
+    "apply_quarantine": true
+  },
+  "fa_report": {
+    "status": "SCORED",
+    "claims_scored": 78,
+    "accepted_fields_scored": 203,
+    "false_accepts": 0,
+    "exact_matches": 203,
+    "accepted_field_precision": 1.0,
+    "gold_only": true,
+    "quarantine_applied": true,
+    "quarantined_fields": 7,
+    "false_accept_examples": []
+  },
+  "n": 200,
+  "sample": "similar_sample_200_v1",
+  "source": "Google Drive Hackathon - 1000 Claims.zip (id=1vhLhHwucY2gG6INZS3MB1MpAE1suaIJW)",
+  "selection": "stratified Groups A\u2013D (135/37/17/11)",
+  "ledger_source": "hackathon_1000_independent_v13c tip (merged 600+400 remainder)",
+  "note": "Scored selected 200 docs against Independent tip DecisionResults; live re-cascade running in similar_sample_200_v1",
+  "contract_version": "product-stp-accuracy-contract-v1",
+  "generated_at": "2026-09-24T09:07:15.179906+00:00"
+}
