@@ -2161,21 +2161,48 @@ def decide(extraction, family):
             patient_d is not None
             and insured_d is not None
             and patient_d.disposition in {_FD.AUTO_ACCEPTED, _FD.REFERENCE_CONFIRMED}
-            and insured_d.disposition not in {_FD.AUTO_ACCEPTED, _FD.REFERENCE_CONFIRMED, _FD.HUMAN_CONFIRMED}
             and rel_ok
         ):
             pval = str(patient_d.selected_value or '').strip()
             ival = str(insured_d.selected_value or '').strip()
-            if (
+            from packages.candidate_reconciliation.reconciler import (
+                _name_is_self_reference as _self_ref,
+            )
+            from packages.claim_decision.service import ClaimDecisionService as _CDS
+
+            twin_match = bool(ival) and _CDS._soft_person_name_twin(pval, ival)
+            same_marker = bool(ival) and _self_ref(ival)
+            weak_box4 = (
+                not ival
+                or _name_is_short_fragment(ival)
+                or len(ival) <= 4
+                or not _name_is_strong_person(ival)
+            )
+            should_promote = (
                 pval
                 and _name_is_strong_person(pval)
                 and (
-                    not ival
-                    or _name_is_short_fragment(ival)
-                    or len(ival) <= 4
-                    or not _name_is_strong_person(ival)
+                    same_marker
+                    or twin_match
+                    or (
+                        insured_d.disposition
+                        not in {_FD.AUTO_ACCEPTED, _FD.REFERENCE_CONFIRMED, _FD.HUMAN_CONFIRMED}
+                        and weak_box4
+                    )
                 )
+            )
+            if should_promote and (
+                insured_d.disposition
+                not in {_FD.AUTO_ACCEPTED, _FD.REFERENCE_CONFIRMED, _FD.HUMAN_CONFIRMED}
+                or same_marker
             ):
+                reason = (
+                    'INSURED_NAME_SAME_RESOLVED_TO_PATIENT'
+                    if same_marker
+                    else 'INSURED_NAME_PATIENT_TWIN_MATCH'
+                    if twin_match
+                    else 'INSURED_NAME_PATIENT_TWIN_PROMOTED'
+                )
                 idx = next(i for i, d in enumerate(decisions) if d.field_name == 'insured_name')
                 decisions[idx] = insured_d.model_copy(update={
                     'selected_value': pval,
@@ -2184,7 +2211,7 @@ def decide(extraction, family):
                     'reason_codes': list(dict.fromkeys([
                         *(insured_d.reason_codes or []),
                         'HARD_VALIDATION_PASSED',
-                        'INSURED_NAME_PATIENT_TWIN_PROMOTED',
+                        reason,
                     ])),
                     'next_action': _NA.NONE,
                     'blocks_stp': False,

@@ -109,6 +109,10 @@ class ClaimDecisionService:
                 reasons=["REQUIRED_FIELD_DECISIONS_MISSING"],
             )
 
+        # Resolve Box-4 SAME / patient-twin insured_name before accept-policy
+        # demotion. Unresolved SAME was demoted to HITL even when patient_name
+        # was already AUTO — the dominant false STP loss on Hackathon-5000.
+        context = self._resolve_insured_name_patient_twin(context)
         # Product FA=0: demote AUTO that fail accept policy before STP calc.
         context = self._apply_product_accuracy_policy(context)
 
@@ -173,6 +177,118 @@ class ClaimDecisionService:
         )
 
     @staticmethod
+    def _soft_person_name_twin(left: str, right: str) -> bool:
+        """True when two displays are the same person under OCR confusables."""
+        from packages.candidate_reconciliation.reconciler import (
+            _canonical_person_name,
+            _names_differ_by_confusable_edit,
+            _names_differ_by_confusable_insertion,
+            _names_differ_by_confusable_substitution,
+            _names_differ_by_optional_middle_initial,
+            _names_differ_by_token_order,
+            _names_differ_by_tokenwise_confusable,
+        )
+
+        a, b = _canonical_person_name(left), _canonical_person_name(right)
+        if bool(a) and a == b:
+            return True
+        return any(
+            fn(left, right)
+            for fn in (
+                _names_differ_by_confusable_substitution,
+                _names_differ_by_confusable_insertion,
+                _names_differ_by_confusable_edit,
+                _names_differ_by_tokenwise_confusable,
+                _names_differ_by_token_order,
+                _names_differ_by_optional_middle_initial,
+            )
+        )
+
+    @classmethod
+    def _resolve_insured_name_patient_twin(
+        cls,
+        context: ClaimDecisionContext,
+    ) -> ClaimDecisionContext:
+        """Promote insured_name when it is SAME or a twin of AUTO patient_name.
+
+        Precision-safe: never copies Box 2 onto a different strong Box 4 person
+        (spouse/child). Only Self / unknown relationship.
+        """
+        from packages.candidate_reconciliation.reconciler import (
+            _name_is_self_reference,
+            _name_is_short_fragment,
+            _name_is_strong_person,
+        )
+        from packages.geometry_authority.form_redundancy import relationship_is_self
+
+        by_name = {d.field_name: d for d in context.field_decisions}
+        patient = by_name.get("patient_name")
+        insured = by_name.get("insured_name")
+        if patient is None or insured is None:
+            return context
+        if patient.disposition not in _ACCEPTED:
+            return context
+        pval = str(patient.selected_value or "").strip()
+        if not pval or not _name_is_strong_person(pval):
+            return context
+
+        rel = None
+        for key in ("insured_relationship", "relationship", "rel_code"):
+            other = by_name.get(key)
+            if other is not None and str(other.selected_value or "").strip():
+                rel = other.selected_value
+                break
+        if not (relationship_is_self(rel) or not str(rel or "").strip()):
+            return context
+
+        ival = str(insured.selected_value or "").strip()
+        already_auto = insured.disposition in _ACCEPTED
+        is_same = bool(ival) and _name_is_self_reference(ival)
+        is_twin = bool(ival) and cls._soft_person_name_twin(pval, ival)
+        is_weak = (not ival) or _name_is_short_fragment(ival) or (
+            len(ival) <= 4 and not _name_is_strong_person(ival)
+        )
+
+        if already_auto and not is_same:
+            return context
+        if not (is_same or is_twin or is_weak):
+            return context
+
+        reason = (
+            "INSURED_NAME_SAME_RESOLVED_TO_PATIENT"
+            if is_same
+            else "INSURED_NAME_PATIENT_TWIN_MATCH"
+            if is_twin
+            else "INSURED_NAME_PATIENT_TWIN_PROMOTED"
+        )
+        rewritten: list[FieldDecision] = []
+        for decision in context.field_decisions:
+            if decision.field_name != "insured_name":
+                rewritten.append(decision)
+                continue
+            rewritten.append(
+                decision.model_copy(
+                    update={
+                        "selected_value": pval,
+                        "disposition": FieldDisposition.AUTO_ACCEPTED,
+                        "conflicting_evidence": [],
+                        "reason_codes": list(
+                            dict.fromkeys(
+                                [
+                                    *list(decision.reason_codes or []),
+                                    "HARD_VALIDATION_PASSED",
+                                    reason,
+                                ]
+                            )
+                        ),
+                        "next_action": NextAction.NONE,
+                        "blocks_stp": False,
+                    }
+                )
+            )
+        return context.model_copy(update={"field_decisions": rewritten})
+
+    @staticmethod
     def _apply_product_accuracy_policy(
         context: ClaimDecisionContext,
     ) -> ClaimDecisionContext:
@@ -181,7 +297,9 @@ class ClaimDecisionService:
             (
                 d.selected_value
                 for d in context.field_decisions
-                if d.field_name == "patient_name" and d.selected_value
+                if d.field_name == "patient_name"
+                and d.disposition in _ACCEPTED
+                and d.selected_value
             ),
             None,
         )

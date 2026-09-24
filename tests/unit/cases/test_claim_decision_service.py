@@ -252,3 +252,85 @@ def test_identical_contexts_produce_identical_serialized_decisions():
     runtime = service.decide(ClaimDecisionContext.model_validate(serialized))
     evaluation = service.decide(ClaimDecisionContext.model_validate(serialized))
     assert runtime.model_dump(mode="json") == evaluation.model_dump(mode="json")
+
+
+def _set_field(context, service, name, value, disposition=FieldDisposition.AUTO_ACCEPTED):
+    for decision in context.field_decisions:
+        if decision.field_name == name:
+            decision.selected_value = value
+            decision.disposition = disposition
+            decision.next_action = (
+                NextAction.NONE
+                if disposition is FieldDisposition.AUTO_ACCEPTED
+                else NextAction.HUMAN_REVIEW
+            )
+            return decision
+    # Not in required set — append (e.g. insured_name is C1 blocks_stp).
+    decision = _decision(service, context.document_family, name, disposition)
+    decision.selected_value = value
+    context.field_decisions.append(decision)
+    return decision
+
+
+def test_same_insured_name_resolves_to_auto_patient():
+    """Box-4 SAME must not HITL when patient_name is already AUTO."""
+    service = ClaimDecisionService.load()
+    context = _context(service)
+    _set_field(context, service, "patient_name", "KREPPEL MARC")
+    _set_field(
+        context,
+        service,
+        "insured_name",
+        "SAME",
+        FieldDisposition.AUTO_ACCEPTED,
+    )
+    resolved = ClaimDecisionService._resolve_insured_name_patient_twin(context)
+    insured = next(d for d in resolved.field_decisions if d.field_name == "insured_name")
+    assert insured.selected_value == "KREPPEL MARC"
+    assert insured.disposition is FieldDisposition.AUTO_ACCEPTED
+    assert "INSURED_NAME_SAME_RESOLVED_TO_PATIENT" in insured.reason_codes
+    decision = service.decide(context)
+    assert decision.disposition in {
+        ClaimDisposition.STP_SAFE,
+        ClaimDisposition.STP_STANDARD,
+    }
+    assert "insured_name" not in decision.blocking_unresolved_fields
+
+
+def test_patient_twin_insured_name_conflict_promotes():
+    """Soft twin (optional MI) clears CONFLICT_MARGIN insured_name HITL."""
+    service = ClaimDecisionService.load()
+    context = _context(service)
+    _set_field(context, service, "patient_name", "URITA. LUKE. N")
+    _set_field(
+        context,
+        service,
+        "insured_name",
+        "URITA, LUKE",
+        FieldDisposition.HUMAN_REVIEW_REQUIRED,
+    )
+    decision = service.decide(context)
+    assert decision.disposition in {
+        ClaimDisposition.STP_SAFE,
+        ClaimDisposition.STP_STANDARD,
+    }
+    assert "insured_name" not in decision.blocking_unresolved_fields
+    assert "FIELD_CONFLICT:insured_name" not in decision.contradictions
+
+
+def test_different_strong_insured_name_stays_hitl():
+    """Spouse/other strong Box-4 name must not be overwritten by patient."""
+    service = ClaimDecisionService.load()
+    context = _context(service)
+    _set_field(context, service, "patient_name", "JANE DOE")
+    _set_field(
+        context,
+        service,
+        "insured_name",
+        "JOHN SMITH",
+        FieldDisposition.HUMAN_REVIEW_REQUIRED,
+    )
+    decision = service.decide(context)
+    assert decision.disposition is ClaimDisposition.FIELD_REVIEW_REQUIRED
+    assert "insured_name" in decision.blocking_unresolved_fields
+
