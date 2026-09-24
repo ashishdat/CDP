@@ -1,0 +1,10 @@
+{
+  "seeded": 1000,
+  "missing": [],
+  "n_requested": 1000,
+  "source": [
+    "evaluation_results/hackathon_600_independent_v13c",
+    "evaluation_results/hackathon_400_remainder_independent_v13c"
+  ],
+  "selection": "full Hackathon 1000"
+}
