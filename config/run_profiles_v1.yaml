@@ -1,0 +1,72 @@
+# Run profiles — permanent separation of latency smoke vs product STP gate.
+# Enforced by packages.run_profiles + product gate (require_product_profile).
+
+version: run-profiles-v1
+
+profiles:
+  FAST:
+    purpose: latency / smoke only — NOT product-gate eligible
+    gate_eligible: false
+    description: >
+      Local OCR + unstructured DI heuristics. Cloud/VLM/TrOCR/Azure DI charge
+      residuals OFF. Use for ~20–30s/doc timing, never for STP≥97% claims.
+    env:
+      CDP_CASCADE_RESPECT_ENV: "1"
+      CDP_GPT4O_CROP_RESIDUAL: "0"
+      CDP_GPT4O_CROP_ACCEPT: "0"
+      CDP_GPT4O_EMPTY_FINANCE: "0"
+      CDP_CONFLICT_AGENT: "0"
+      CDP_AZURE_DI_CHARGE_RESIDUAL: "0"
+      CDP_AZURE_DI_CHARGE_CORROBORATE: "0"
+      CDP_AZURE_DI_CHARGE_ACCEPT: "0"
+      CDP_TROCR_DOB_RESIDUAL: "0"
+      CDP_LEARNED_MATCHER: "0"
+      CDP_VLM_CROP_TIMEOUT_SECONDS: "8"
+      CDP_DOC_LATENCY_BUDGET: "1"
+      CDP_DOC_BUDGET_SOFT_SEC: "12"
+      CDP_DOC_BUDGET_HARD_SEC: "18"
+      CDP_OCR_LOCK: "0"
+      CDP_OCR_WORKER_POOL: "1"
+      CDP_APP_WORKER_POOL: "1"
+      CDP_UNSTRUCTURED_REG_FALLBACK: "1"
+      CDP_UNSTRUCTURED_REG_AGENT: "0"
+
+  PRODUCT:
+    purpose: Independent-class product STP / FA gate
+    gate_eligible: true
+    description: >
+      Full residual ladder (gpt-4o crop, Azure DI charge, TrOCR DOB, conflict
+      agent). Required for claim-page STP ≥ 97% and FA=0 scoring.
+    env:
+      CDP_CASCADE_RESPECT_ENV: "0"
+      CDP_GPT4O_CROP_RESIDUAL: "1"
+      CDP_GPT4O_CROP_ACCEPT: "1"
+      CDP_GPT4O_EMPTY_FINANCE: "1"
+      CDP_CONFLICT_AGENT: "1"
+      CDP_AZURE_DI_CHARGE_RESIDUAL: "1"
+      CDP_AZURE_DI_CHARGE_CORROBORATE: "1"
+      CDP_AZURE_DI_CHARGE_ACCEPT: "1"
+      CDP_TROCR_DOB_RESIDUAL: "1"
+      CDP_LEARNED_MATCHER: "1"
+      CDP_UNSTRUCTURED_REG_FALLBACK: "1"
+      CDP_UNSTRUCTURED_REG_AGENT: "0"
+      CDP_DOC_LATENCY_BUDGET: "1"
+      CDP_DOC_BUDGET_SOFT_SEC: "18"
+      CDP_DOC_BUDGET_HARD_SEC: "22"
+      CDP_CLOUD_STOP_LADDER: "1"
+
+  TIP_SEED:
+    purpose: replay historical Independent tip DecisionResults
+    gate_eligible: true
+    requires_allow_tip_seed_for_gate: true
+    description: >
+      Copies prior tip ledgers. Valid for regression of a *known* tip, not a
+      live proof on a new Drive corpus (no tip for Hackathon-5000 M046/M047).
+    env: {}
+
+# Residual kill-switches that classify a live ledger as FAST (not PRODUCT).
+product_residual_flags:
+  - CDP_GPT4O_CROP_RESIDUAL
+  - CDP_AZURE_DI_CHARGE_RESIDUAL
+  - CDP_TROCR_DOB_RESIDUAL
+  - CDP_CONFLICT_AGENT

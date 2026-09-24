@@ -63,6 +63,10 @@ def evaluate_similar_sample_gate(
     *,
     contract: Mapping[str, Any] | None = None,
     allow_incomplete_gt: bool = False,
+    run_manifest: Mapping[str, Any] | None = None,
+    allow_tip_seed: bool = False,
+    allow_missing_manifest: bool = False,
+    allow_fast: bool = False,
 ) -> ProductGateResult:
     cfg = dict(contract or load_product_contract())
     targets = dict(cfg.get("targets") or {})
@@ -70,6 +74,18 @@ def evaluate_similar_sample_gate(
     precision_min = float(targets.get("accepted_field_precision_min") or 1.0)
     max_fa = int(targets.get("max_false_accepts") or 0)
     gates = dict(cfg.get("gates") or {})
+
+    profile_ok = True
+    profile_reason = "PROFILE_NOT_REQUIRED"
+    if bool(gates.get("require_product_profile", True)):
+        from packages.run_profiles.profiles import gate_allows_profile
+
+        profile_ok, profile_reason = gate_allows_profile(
+            run_manifest,
+            allow_tip_seed=allow_tip_seed,
+            allow_missing_manifest=allow_missing_manifest,
+            allow_fast=allow_fast,
+        )
 
     disp = Counter(r.get("disposition") for r in merged_rows.values())
     claim_pages = sum(
@@ -109,6 +125,11 @@ def evaluate_similar_sample_gate(
     precision = fa_report.get("accepted_field_precision")
 
     reasons: list[str] = []
+    if not profile_ok:
+        reasons.append(f"RUN_PROFILE_GATE:{profile_reason}")
+    else:
+        reasons.append(f"RUN_PROFILE_OK:{profile_reason}")
+
     stp_ok = rate + 1e-6 >= stp_min
     if not stp_ok:
         reasons.append(f"CLAIM_PAGE_STP_BELOW_TARGET:{rate:.4f}<{stp_min}")
@@ -136,7 +157,7 @@ def evaluate_similar_sample_gate(
     if not residual_counts and hitl:
         reasons.append("RESIDUAL_TAXONOMY_EMPTY_WITH_HITL")
 
-    pass_gate = bool(stp_ok and fa_ok)
+    pass_gate = bool(profile_ok and stp_ok and fa_ok)
     if pass_gate:
         reasons.append("PRODUCT_GATE_PASS")
 
@@ -158,6 +179,8 @@ def evaluate_similar_sample_gate(
             "max_false_accepts": max_fa,
             "gold_only": gold_only,
             "apply_quarantine": apply_quarantine,
+            "require_product_profile": bool(gates.get("require_product_profile", True)),
+            "run_profile": (run_manifest or {}).get("profile") if run_manifest else None,
         },
         fa_report={
             k: fa_report[k]

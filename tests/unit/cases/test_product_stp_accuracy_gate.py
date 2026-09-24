@@ -72,7 +72,7 @@ def test_product_gate_fails_below_97_without_inventing():
         }
     for i in range(159):
         rows[f"reg_{i}"] = {"disposition": "REGISTRATION_FAILED", "claim_id": f"reg_{i}"}
-    result = evaluate_similar_sample_gate(rows, allow_incomplete_gt=True)
+    result = evaluate_similar_sample_gate(rows, allow_incomplete_gt=True, allow_missing_manifest=True)
     assert result.claim_pages == 841
     assert result.claim_page_stp == 0.962
     assert result.pass_gate is False
@@ -92,7 +92,7 @@ def test_product_gate_passes_at_97_with_fa_incomplete_allowed():
             "critical_blockers": ["patient_dob"],
             "reason_codes": ["NO_NONEMPTY_CANDIDATE"],
         }
-    result = evaluate_similar_sample_gate(rows, allow_incomplete_gt=True)
+    result = evaluate_similar_sample_gate(rows, allow_incomplete_gt=True, allow_missing_manifest=True)
     assert result.claim_page_stp >= 0.97
     assert result.pass_gate is True
 

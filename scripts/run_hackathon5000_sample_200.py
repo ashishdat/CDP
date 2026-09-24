@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""FAST cascade on 200 stratified docs from Hackathon-5000 Drive zip."""
+"""Hackathon-5000 stratified 200 — FAST (latency) or PRODUCT (STP gate).
+
+Permanent rules (see docs/PRODUCT_RUN_PROFILE_AND_CORPUS_BINDING_V1.md):
+  • Always binds dataset_hackathon_5000.yaml to the 5000 Drive zip.
+  • FAST (default) is NOT product-gate eligible.
+  • --product / --full applies PRODUCT residuals and is gate-eligible.
+
+Usage:
+  python3 -u scripts/run_hackathon5000_sample_200.py           # FAST latency
+  python3 -u scripts/run_hackathon5000_sample_200.py --product # STP gate run
+  python3 -u scripts/run_hackathon5000_sample_200.py --fresh
+"""
 
 from __future__ import annotations
 
@@ -10,33 +21,15 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from packages.corpus_binding import CorpusBindingError, bind_corpus, write_corpus_binding
+from packages.run_profiles import apply_profile_env, write_run_manifest
+
 DOCS = ROOT / "docs/metrics/hackathon5000_sample_200_v1/selected_documents.txt"
 OUT = ROOT / "evaluation_results/hackathon5000_sample_200_v1"
 ZIP = ROOT / "data/Hackathon - 5000 Claims.zip"
 DATASET = ROOT / "dataset_hackathon_5000.yaml"
-
-FAST_ENV = {
-    "CDP_CASCADE_RESPECT_ENV": "1",
-    "CDP_HACKATHON_ZIP": str(ZIP),
-    "CDP_GPT4O_CROP_RESIDUAL": "0",
-    "CDP_GPT4O_CROP_ACCEPT": "0",
-    "CDP_GPT4O_EMPTY_FINANCE": "0",
-    "CDP_CONFLICT_AGENT": "0",
-    "CDP_AZURE_DI_CHARGE_RESIDUAL": "0",
-    "CDP_AZURE_DI_CHARGE_CORROBORATE": "0",
-    "CDP_AZURE_DI_CHARGE_ACCEPT": "0",
-    "CDP_TROCR_DOB_RESIDUAL": "0",
-    "CDP_LEARNED_MATCHER": "0",
-    "CDP_VLM_CROP_TIMEOUT_SECONDS": "8",
-    "CDP_DOC_LATENCY_BUDGET": "1",
-    "CDP_DOC_BUDGET_SOFT_SEC": "12",
-    "CDP_DOC_BUDGET_HARD_SEC": "18",
-    "CDP_OCR_LOCK": "0",
-    "CDP_OCR_WORKER_POOL": "1",
-    "CDP_APP_WORKER_POOL": "1",
-    "CDP_UNSTRUCTURED_REG_FALLBACK": "1",
-    "CDP_UNSTRUCTURED_REG_AGENT": "0",
-}
 
 
 def main() -> int:
@@ -45,7 +38,24 @@ def main() -> int:
     assert ZIP.is_file(), ZIP
     assert DATASET.is_file(), DATASET
     OUT.mkdir(parents=True, exist_ok=True)
-    if "--fresh" in sys.argv:
+
+    argv = set(sys.argv[1:])
+    product = "--full" in argv or "--product" in argv
+    profile_name = "PRODUCT" if product else "FAST"
+
+    try:
+        binding = bind_corpus(
+            dataset_yaml=DATASET,
+            zip_path=ZIP,
+            documents=docs,
+            require_documents=True,
+        )
+    except CorpusBindingError as exc:
+        print(f"ERROR: corpus binding failed: {exc}", flush=True)
+        return 2
+    write_corpus_binding(OUT, binding)
+
+    if "--fresh" in argv:
         ledger = OUT / "results.jsonl"
         if ledger.exists():
             ledger.unlink()
@@ -54,13 +64,22 @@ def main() -> int:
             shutil.rmtree(claims)
         print("cleared prior ledger/claims", flush=True)
 
-    env = dict(os.environ)
-    if "--full" not in sys.argv:
-        env.update(FAST_ENV)
-        print("profile=FAST", flush=True)
+    env, profile = apply_profile_env(profile_name, dict(os.environ))
+    env["CDP_HACKATHON_ZIP"] = str(ZIP)
+    write_run_manifest(
+        OUT,
+        profile=profile.name,
+        dataset_id=binding.dataset_id,
+        extra={"runner": "run_hackathon5000_sample_200", "docs": len(docs)},
+    )
+    if profile.name == "FAST":
+        print(
+            "profile=FAST — NOT product-gate eligible "
+            "(re-run with --product for STP≥97% scoring)",
+            flush=True,
+        )
     else:
-        env["CDP_HACKATHON_ZIP"] = str(ZIP)
-        print("profile=FULL", flush=True)
+        print("profile=PRODUCT — residuals on; product-gate eligible", flush=True)
 
     workers = "1"
     if "--workers" in sys.argv:
@@ -83,7 +102,11 @@ def main() -> int:
         workers,
         "--resume",
     ]
-    print(f"Running workers={workers} docs={len(docs)} dataset={DATASET.name}", flush=True)
+    print(
+        f"Running workers={workers} docs={len(docs)} dataset={DATASET.name} "
+        f"profile={profile.name}",
+        flush=True,
+    )
     return subprocess.call(cmd, env=env)
 
 

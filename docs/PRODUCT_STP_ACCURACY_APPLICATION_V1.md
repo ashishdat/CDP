@@ -26,7 +26,8 @@ These are **product gates**, not aspirational dashboards. The app refuses to pro
 3. Representation-only exact match (ISO dates, leading-zero IDs, optional middle initial, CMS `SAME` → patient).
 
 Config: `config/product_stp_accuracy_contract_v1.yaml`  
-Enforcer: `scripts/check_similar_sample_product_gate.py`
+Enforcer: `scripts/check_similar_sample_product_gate.py`  
+**Run profile (permanent):** only **PRODUCT** (or tip-seed with `--allow-tip-seed`) ledgers may pass this gate — see `docs/PRODUCT_RUN_PROFILE_AND_CORPUS_BINDING_V1.md`. FAST latency runs are refused.
 
 ---
 

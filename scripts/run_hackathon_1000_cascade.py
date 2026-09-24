@@ -1392,14 +1392,49 @@ def main() -> int:
         for part in str(args.documents or "").split(",")
         if part.strip()
     ]
+    # Permanent corpus binding: dataset.root must be the same archive as --zip,
+    # and every selected document must exist there. Prevents APP_FAILURE floods
+    # when a new Drive zip is listed via --zip but app.py still opens dataset.yaml.
+    from packages.corpus_binding import CorpusBindingError, bind_corpus, write_corpus_binding
+    from packages.run_profiles import detect_live_profile, write_run_manifest
+
+    bind_docs = doc_filter or None
+    try:
+        binding = bind_corpus(
+            dataset_yaml=args.dataset,
+            zip_path=args.zip,
+            documents=bind_docs,
+            require_documents=bool(bind_docs),
+        )
+    except CorpusBindingError as exc:
+        print(f"ERROR: corpus binding failed: {exc}", flush=True)
+        return 2
+    write_corpus_binding(out_dir, binding)
+    print(f"corpus_binding={json.dumps(binding.to_dict())}", flush=True)
+
     if doc_filter:
         wanted = set(doc_filter)
         selected = [d for d in docs if d.replace("\\", "/") in wanted]
         missing = sorted(wanted - {d.replace("\\", "/") for d in selected})
         if missing:
-            print(f"WARNING: documents not in zip: {missing}", flush=True)
+            print(f"ERROR: documents not in zip: {missing}", flush=True)
+            return 2
     else:
         selected = docs[args.offset : args.offset + args.limit]
+
+    live_profile = detect_live_profile()
+    write_run_manifest(
+        out_dir,
+        profile=live_profile,
+        dataset_id=binding.dataset_id,
+        extra={
+            "zip": str(Path(args.zip).resolve()),
+            "dataset_yaml": str(Path(args.dataset).resolve()),
+            "selected": len(selected),
+            "cascade_respect_env": _respect,
+        },
+    )
+    print(f"run_profile={live_profile} gate_note=PRODUCT_required_for_STP_gate", flush=True)
     done = _load_done(ledger) if args.resume else set()
     pending_global = [d for d in selected if _claim_slug(d) not in done]
     already_done = len(selected) - len(pending_global)

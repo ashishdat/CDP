@@ -70,6 +70,10 @@ gates:
   apply_quarantine: true
   require_gt_for_green_fa: true
   allow_incomplete_gt_env: CDP_PRODUCT_GATE_ALLOW_INCOMPLETE_GT
+  # Permanent: refuse FAST / unprofiled ledgers (see config/run_profiles_v1.yaml).
+  require_product_profile: true
+  allow_missing_run_manifest_env: CDP_PRODUCT_GATE_ALLOW_MISSING_MANIFEST
+  allow_tip_seed_env: CDP_PRODUCT_GATE_ALLOW_TIP_SEED
 
 accuracy_accept_policy:
   module: packages.product_gates.accuracy_accept_policy
