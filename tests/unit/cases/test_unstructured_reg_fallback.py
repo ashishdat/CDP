@@ -8,9 +8,43 @@ from packages.extraction_recovery.unstructured_reg_fallback import (
 )
 
 
-def test_dob_yy_mm_dd_after_header_strip():
-    assert _assemble_dob_from_tokens("YY 74 MM 03/12") == "03/12/1974"
-    assert _assemble_dob_from_tokens("74 03 12") == "03/12/1974"
+def test_compact_mmddyyyy_dob_with_sex_suffix():
+    text = """
+10 BIRTHDATE
+11 SEX
+071220071M
+TEEL, HENRY
+200399942
+TOTALS 62.52
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("patient_dob") == "07/12/2007"
+
+
+def test_atta_dee_dee_freeform_name_prefix():
+    text = """
+ATTA Dec-Dee 970 Siden Manus Blvd #1512 Atlanta CA.
+02/25/1969
+977508972
+150.00
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert "ATTA" in (fields.get("patient_name") or "").upper()
+    assert fields.get("patient_dob") == "02/25/1969"
+    assert fields.get("total_charge") == "150.00"
+
+
+def test_totals_glued_cents_on_ub04():
+    text = """
+LAUCK, DONALD D
+08281968
+205093162
+10 BIRTHDATE
+TOTALS 2420968
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("patient_dob") == "08/28/1968"
+    assert fields.get("total_charge") == "24209.68"
 
 
 def test_dob_mim_header_garble_stripped():

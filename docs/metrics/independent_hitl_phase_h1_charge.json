@@ -1,0 +1,33 @@
+{
+  "phase": "H1_CHARGE",
+  "mode": "cascade",
+  "n": 15,
+  "counts": {
+    "TRUE_STP": 3,
+    "HITL": 11,
+    "REGISTRATION_FAILED": 0,
+    "ERROR": 0,
+    "STAGE_FAILURE": 1
+  },
+  "generated_at": "2026-09-24T05:44:58.364032+00:00",
+  "governance": {
+    "fail_closed": true,
+    "no_invent": true,
+    "no_threshold_fit_on_corpus": true,
+    "no_spouse_patient_twin": true,
+    "reg_irreducible": true,
+    "kill_switches": [
+      "CDP_UNSTRUCTURED_REG_FALLBACK",
+      "CDP_UNSTRUCTURED_REG_AGENT",
+      "CDP_CLOUD_STOP_LADDER",
+      "CDP_AZURE_DI_CHARGE_RESIDUAL",
+      "CDP_AZURE_DI_CHARGE_ACCEPT",
+      "CDP_GPT4O_CROP_RESIDUAL",
+      "CDP_CONFLICT_AGENT"
+    ],
+    "stop_phase_if": {
+      "false_accept_increase": true,
+      "stp_drop": true
+    }
+  }
+}

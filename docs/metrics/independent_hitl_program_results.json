@@ -1,6 +1,6 @@
 {
-  "dataset": "Independent-1000 (hackathon 600+400)",
-  "strategy_id": "independent-case-router-v1",
+  "dataset": "Independent-1000",
+  "strategy_id": "independent-hitl-program-v1-implemented",
   "n": 1000,
   "true_stp": 809,
   "hitl": 32,
@@ -8,10 +8,29 @@
   "true_stp_rate": 0.809,
   "hitl_rate": 0.032,
   "reg_rate": 0.159,
-  "hitl_tracks": {
-    "FIELD_INK": 31,
-    "UNSTRUCTURED_DI": 13
+  "claim_pages": 841,
+  "true_stp_rate_of_claim_pages": 0.962,
+  "hitl_rate_of_claim_pages": 0.038,
+  "baseline_claim_stp": 0.9477,
+  "delta_stp_from_baseline": 12,
+  "targets": {
+    "p97": 0.97,
+    "p98": 0.98,
+    "p99": 0.99
   },
+  "lifts_needed_remaining": {
+    "p97": 7,
+    "p98": 16,
+    "p99": 24
+  },
+  "phases": {
+    "H1_CHARGE": "+4 STP (charge corroboration; 11 remain fail-closed)",
+    "H2_DOB": "+1 STP (5 remain NO_NONEMPTY / fragment)",
+    "H3_INSURED_NAME": "0 (Spouse/Other Box4 junk \u2014 keep HITL)",
+    "H4_MULTI": "0 (multi-field residual exhausted)",
+    "H5_UNSTRUCTURED": "+7 STP (compact DOB MMDDYYYY, TOTALS cents, ATTA Dee-Dee name)"
+  },
+  "honest_ceiling_note": "Remaining HITL is unread ink, scale-rival charges, spouse Box4 conflict, or missing patient name on UB-04. Do not invent to chase 97%.",
   "blocker_taxonomy": [
     {
       "hitl_track": "FIELD_INK",
@@ -102,45 +121,5 @@
       "n": 1
     }
   ],
-  "architecture": {
-    "case_router": "packages/extraction_recovery/independent_case_router.py",
-    "toolstack": "config/independent_case_toolstack_v1.yaml",
-    "field_residuals": "config/field_recovery_toolstack_v13.yaml",
-    "paths": [
-      "MAILROOM_REG",
-      "CMS_GEOMETRY",
-      "UNSTRUCTURED_DI",
-      "FIELD_INK_RESIDUAL"
-    ]
-  },
-  "generated_at": "2026-09-24T06:19:29.117823+00:00",
-  "note": "REG stays irreducible mailroom/fax. Remaining HITL is precision-held (unread ink, spouse insured_name conflict, uncorroborated charge).",
-  "claim_pages": 841,
-  "true_stp_rate_of_claim_pages": 0.962,
-  "hitl_rate_of_claim_pages": 0.038,
-  "reg_classes": {
-    "DOCUMENT_SEPARATOR": 54,
-    "FAX_PATCH": 67,
-    "UNIQUE_ID_COVER": 38
-  },
-  "reg_resolution": "ALL_159_IRREDUCIBLE_NO_CLAIM_INK",
-  "hitl_program": {
-    "doc": "docs/metrics/independent_hitl_to_99_program.md",
-    "config": "config/independent_hitl_program_v1.yaml",
-    "baseline_claim_stp": 0.9477,
-    "targets": {
-      "p97": 0.97,
-      "p98": 0.98,
-      "p99": 0.99
-    },
-    "lifts_needed": {
-      "p97": 19,
-      "p98": 28,
-      "p99": 36
-    }
-  },
-  "program_baseline_t0": true,
-  "hitl_program_status": "H1-H5 executed; claim_stp=96.20%; honest ceiling short of 97% without invent",
-  "baseline_t0_path": "docs/metrics/independent_1000_baseline_t0.json",
-  "baseline_claim_stp": 0.9477
+  "generated_at": "2026-09-24T06:19:29.117823+00:00"
 }

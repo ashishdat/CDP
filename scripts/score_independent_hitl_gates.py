@@ -89,8 +89,8 @@ def main() -> int:
             fa = {"error": f"{type(exc).__name__}:{exc}"}
 
     exit_min = float(phase_cfg.get("exit_claim_stp_min") or 0.0)
-    stp_ok = rate + 1e-9 >= base_rate  # must not lose STP
-    target_ok = (exit_min <= 0) or (rate + 1e-9 >= exit_min)
+    stp_ok = rate + 1e-6 >= base_rate  # must not lose STP (float-safe)
+    target_ok = (exit_min <= 0) or (rate + 1e-6 >= exit_min)
     fa_ok = True
     if isinstance(fa, dict) and "false_accepts" in fa and "baseline_false_accepts" in fa:
         fa_ok = int(fa["false_accepts"]) <= int(fa["baseline_false_accepts"]) + int(
@@ -124,7 +124,7 @@ def main() -> int:
     )
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report, indent=2))
-    print(f"wrote {out}")
+    print(f"wrote {out}", file=sys.stderr)
     return 0 if report["pass"] else 1
 
 

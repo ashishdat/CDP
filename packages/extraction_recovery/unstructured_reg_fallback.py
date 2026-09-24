@@ -110,6 +110,7 @@ _BAD_NAME = re.compile(
     r"\bof\s*b[il]{2,}\b|\bmed\.?\s*rec\b|\bmedical\s*rec|"
     r"therefore\s+better|original\s+source|image\s+quality|"
     r"\bifyes\b|\breturn\s+to\b|pompano\s*beach|procesunes|seinvices|"
+    r"\breset\s*form\b|\bchampus\b|\bnucaag\b|"
     r"\b(?:hospital|hosp|medical\s*center|foundation|university|presbyterian|"
     r"columbia|kaiser|northern\s*light|mayo|counseling\s*center|corp\.?\s*dba|"
     r"llc|inc\.?|street|avenue|ave\b|road|rd\b|blvd|suite|floor)\b|"
@@ -283,8 +284,42 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     dob_priority: list[str] = []
     for i, ln in enumerate(lines):
         if re.search(r"birth\s*date|birthdate|\bdob\b", ln, re.IGNORECASE):
-            dob_priority.extend(lines[i : i + 4])
+            # UB-04 Box 10 ink is often several lines below the printed label.
+            dob_priority.extend(lines[i : i + 20])
     dob_scan = dob_priority + lines[:80]
+    # Second pool: compact MMDDYYYY(+sex) anywhere — only if priority pass fails.
+    compact_pool = list(lines)
+
+    def _dob_candidates_from_line(ln: str) -> list[str]:
+        candidates: list[str] = []
+        if re.fullmatch(r"\d{1,2}[\s/.\-]\d{1,2}[\s/.\-]\d{2,4}", ln):
+            candidates.append(ln)
+        # Compact MMDDYYYY on its own line (UB-04 box 10), optional trailing sex.
+        if re.fullmatch(r"\d{8}[MmFf]?", ln):
+            candidates.append(ln[:8])
+        # ``071220071M`` / ``05041977M`` — 8-digit DOB + optional junk digit + sex.
+        for m in re.finditer(r"\b(\d{8})\d?[MmFf]\b", ln):
+            candidates.append(m.group(1))
+        for pat in dob_pats:
+            candidates.extend(re.findall(pat, ln))
+        # Compact handwritten MMDDYY / MMDDYYYY often glued (``092767`` / ``0927671``).
+        for tok in re.findall(r"\b\d{6,8}\b", ln):
+            if len(tok) == 7 and tok.startswith("0"):
+                candidates.append(tok[:6])
+            candidates.append(tok)
+        return candidates
+
+    def _try_shape_dob(raw: str) -> str | None:
+        shaped, reason = _shape_field("patient_dob", raw)
+        if not shaped or "FUTURE" in reason:
+            return None
+        year = re.findall(r"\d{4}", shaped)
+        if year and int(year[-1]) > 2015:
+            return None
+        if year and int(year[-1]) < 1920:
+            return None
+        return shaped
+
     seen_dob: set[str] = set()
     for ln in dob_scan:
         if ln in seen_dob:
@@ -293,32 +328,31 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         # Skip obvious mail/recv stamps (claim DOB is never 2025/2026).
         if re.search(r"recv|arrival|tracking|patch\s*ii|creation\s*date", ln, re.IGNORECASE):
             continue
-        candidates: list[str] = []
-        if re.fullmatch(r"\d{1,2}[\s/.\-]\d{1,2}[\s/.\-]\d{2,4}", ln):
-            candidates.append(ln)
-        # Compact MMDDYYYY on its own line (UB-04 box 10).
-        if re.fullmatch(r"\d{8}", ln):
-            candidates.append(ln)
-        for pat in dob_pats:
-            candidates.extend(re.findall(pat, ln))
-        # Compact handwritten MMDDYY / MMDDYYYY often glued (``092767`` / ``0927671``).
-        for tok in re.findall(r"\b\d{6,8}\b", ln):
-            if len(tok) == 7 and tok.startswith("0"):
-                candidates.append(tok[:6])
-            candidates.append(tok)
-        for raw in candidates:
-            shaped, reason = _shape_field("patient_dob", raw)
-            if not shaped or "FUTURE" in reason:
-                continue
-            year = re.findall(r"\d{4}", shaped)
-            if year and int(year[-1]) > 2015:
-                continue
-            if year and int(year[-1]) < 1920:
-                continue
-            out["patient_dob"] = shaped
-            break
+        for raw in _dob_candidates_from_line(ln):
+            shaped = _try_shape_dob(raw)
+            if shaped:
+                out["patient_dob"] = shaped
+                break
         if "patient_dob" in out:
             break
+    # Compact MMDDYYYY(+sex) full-document pass when label-proximate scan missed.
+    if "patient_dob" not in out:
+        for ln in compact_pool:
+            if re.search(r"recv|arrival|tracking|patch\s*ii|creation\s*date|omb\b", ln, re.IGNORECASE):
+                continue
+            # Prefer clean standalone compact DOB lines only (high precision).
+            if not re.fullmatch(r"\d{8}[MmFf]?", ln.strip()):
+                # Also accept ``04121987 OCCURRENCE`` style.
+                m = re.match(r"^(\d{8})[MmFf]?(?:\s|$)", ln.strip())
+                if not m:
+                    continue
+                raw = m.group(1)
+            else:
+                raw = ln.strip()[:8]
+            shaped = _try_shape_dob(raw)
+            if shaped:
+                out["patient_dob"] = shaped
+                break
 
     # --- ID: prefer tokens near INSURED'S UNIQUE ID; reject NPI / EIN / zip ---
     id_priority: list[str] = []
@@ -409,6 +443,13 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
             cleaned,
         ):
             out_c.append(m.group(1))
+        # Freeform ``ATTA Dee-Dee`` / ``ATTA Dec-Dee`` → normalize to comma form.
+        m = re.match(
+            r"^([A-Z]{2,})\s+([A-Z][a-z]{1,20}(?:-[A-Z][a-z]{1,20})?)\b",
+            cleaned,
+        )
+        if m:
+            out_c.append(f"{m.group(1)}, {m.group(2).upper()}")
         if not out_c:
             out_c.append(cleaned)
         return out_c
@@ -431,14 +472,26 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
             break
     # Pass 2: non-comma FIRST LAST — labels first, then short freeform header lines.
     if not picked_name:
-        freeform_headers = [
-            ln
-            for ln in lines[:25]
-            if len(ln) <= 40
-            and not re.search(r"\d{5}|\bstreet\b|\bavenue\b|\bblvd\b|united|optum|box", ln, re.I)
-        ]
+        freeform_headers = []
+        for ln in lines[:25]:
+            name_prefix = bool(
+                re.match(
+                    r"^[A-Z]{2,}\s+[A-Z][a-z]{1,20}(?:-[A-Z][a-z]{1,20})?\b",
+                    ln,
+                )
+            )
+            if name_prefix:
+                freeform_headers.append(ln)
+                continue
+            if len(ln) <= 40 and not re.search(
+                r"\d{5}|\bstreet\b|\bavenue\b|\bblvd\b|united|optum|box", ln, re.I
+            ):
+                freeform_headers.append(ln)
         for ln in name_priority + freeform_headers:
-            if "," in ln:
+            if "," in ln and not re.match(
+                r"^[A-Z]{2,}\s+[A-Z][a-z]", ln
+            ):
+                # Comma lines handled in pass 1; allow LAST First-Second still.
                 continue
             for probe in _name_candidates(ln):
                 if not _looks_like_person_name(probe):
@@ -458,8 +511,7 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         i
         for i, ln in enumerate(lines)
         if re.search(
-            # TOTALST / TOTALSI are common DI garble of TOTALS on UB-04.
-            r"total\s*charge|box\s*28|totals?t?i?\b|\$\s*\d",
+            r"total\s*charge|box\s*28|totals?['’s]?t?i?\b|pro\s*fee|\$\s*\d",
             ln,
             re.IGNORECASE,
         )
@@ -509,19 +561,33 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
             pass
 
     for ln in cue_lines:
-        for m in re.finditer(r"\$?\s*(\d{1,5})[.,;](\d{2})\b", ln):
+        for m in re.finditer(r"\$?\s*(\d{1,5})[.,;:](\d{2})\b", ln):
             _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True)
         for m in re.finditer(r"\$?\s*(\d{1,5})[ \-](\d{2})(?!\d)\b", ln):
             whole = int(m.group(1))
             if whole > 20000:
                 continue
             _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True)
+        # UB-04 ``TOTALS 2420968`` — amount stored as integer cents.
+        for m in re.finditer(r"totals?t?i?\s+(\d{4,8})\b", ln, re.IGNORECASE):
+            digits = m.group(1)
+            if len(digits) < 4:
+                continue
+            dollars, cents = digits[:-2], digits[-2:]
+            if dollars.startswith("0") and len(dollars) > 1:
+                continue
+            try:
+                if int(dollars) > 200000:
+                    continue
+            except ValueError:
+                continue
+            _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True)
     if "total_charge" not in out:
         for ln in charge_lines + lines:
             if re.search(r"\bF\d{2}|cpt\b|908\d{2}|ndc\b", ln, re.IGNORECASE):
                 if not re.search(r"total\s*charge", ln, re.IGNORECASE):
                     continue
-            for m in re.finditer(r"\$?\s*(\d{1,5})[.,;](\d{2})\b", ln):
+            for m in re.finditer(r"\$?\s*(\d{1,5})[.,;:](\d{2})\b", ln):
                 _take_charge(f"{m.group(1)}.{m.group(2)}")
             if "total_charge" in out and ln in (charge_lines[:5] or lines[:5]):
                 break

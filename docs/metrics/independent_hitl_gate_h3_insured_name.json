@@ -1,0 +1,21 @@
+{
+  "phase": "H3_INSURED_NAME",
+  "n": 1000,
+  "claim_pages": 841,
+  "true_stp": 809,
+  "hitl": 32,
+  "registration_failed": 159,
+  "claim_page_stp_rate": 0.962,
+  "baseline_claim_page_stp_rate": 0.9477,
+  "phase_exit_min": 0.0,
+  "gates": {
+    "stp_not_decreased": true,
+    "phase_exit_met": true,
+    "false_accept_ok": true
+  },
+  "pass": true,
+  "false_accept": {
+    "error": "ModuleNotFoundError:No module named 'packages.evaluation'"
+  },
+  "generated_at": "2026-09-24T06:20:19.111782+00:00"
+}

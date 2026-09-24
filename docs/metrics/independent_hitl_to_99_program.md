@@ -96,7 +96,23 @@ Steps:
 
 ---
 
-## Phase runner (ops)
+## Phase results (executed)
+
+| Phase | ΔSTP | Notes |
+|---|---|---|
+| Baseline t0 | 797 (94.77%) | frozen |
+| H1 CHARGE | **+4** | 11 remain fail-closed (scale rival / C3 / calibrated) |
+| H2 DOB | **+1** | 5 remain empty/fragment ink |
+| H3 INSURED_NAME | **0** | Spouse/Other Box4 junk — correctly HITL |
+| H4 MULTI | **0** | residual ladder exhausted |
+| H5 UNSTRUCTURED | **+7** | compact DOB, TOTALS cents, freeform name |
+| **Now** | **809 (96.20%)** | **+12** from baseline |
+
+**97% needs +7 more** without inventing. Remaining 32 HITL are unread DOB/name,
+scale-rival charges (`65` vs `6500`), or spouse Box4 conflicts. Honest ceiling
+until Azure OpenAI vision is healthy or new independent ink evidence appears.
+
+See `docs/metrics/independent_hitl_program_results.json`.
 
 ```bash
 # Phase 1 — charge cohort

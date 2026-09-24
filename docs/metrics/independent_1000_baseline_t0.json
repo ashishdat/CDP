@@ -155,5 +155,6 @@
       "p99": 36
     }
   },
-  "program_baseline_t0": true
+  "program_baseline_t0": true,
+  "claim_page_stp_rate": 0.9477
 }
