@@ -1275,10 +1275,11 @@ def main() -> int:
         "CDP_AZURE_DI_SERVICE_LINE_BUDGET": "1",
         "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",
         "CDP_OCR_NAME_CONFIRM_MIN_CONF": "0.80",
-        # Unstructured REG: DI page-read (+ optional text agent) after template miss.
-        # Kill-switch: export CDP_CASCADE_RESPECT_ENV=1 with FALLBACK=0.
+        # Unstructured REG: DI page-read after template miss. Agent off by default —
+        # Azure OpenAI 401s were crashing workers and adding latency; heuristics
+        # alone cleared freeform REG in v12.3m. Kill-switch: set AGENT=1 when keys work.
         "CDP_UNSTRUCTURED_REG_FALLBACK": "1",
-        "CDP_UNSTRUCTURED_REG_AGENT": "1",
+        "CDP_UNSTRUCTURED_REG_AGENT": "0",
         # FIELD_INK DOB/ID/charge: crop-only Claude/gpt-4o after local(+TrOCR) miss.
         "CDP_GPT4O_CROP_RESIDUAL": "1",
         "CDP_GPT4O_CROP_ACCEPT": "1",

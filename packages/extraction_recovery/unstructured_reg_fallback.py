@@ -210,7 +210,7 @@ def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> 
         response.raise_for_status()
         content = response.json()["choices"][0]["message"]["content"]
         parsed = json.loads(content)
-    except (OSError, TimeoutError, ValueError, TypeError, KeyError, IndexError, json.JSONDecodeError):
+    except Exception:  # noqa: BLE001 — 401/timeout/parse must not crash REG path
         return {}
     out: dict[str, str] = {}
     if not isinstance(parsed, dict):
@@ -295,7 +295,10 @@ def run_unstructured_reg_fallback(
     fields = _heuristic_fields_from_di_text(di_text)
     agent_used = False
     if _agent_should_run(fields):
-        agent_fields = _agent_fields_from_di_text(di_text, settings=cfg)
+        try:
+            agent_fields = _agent_fields_from_di_text(di_text, settings=cfg)
+        except Exception:  # noqa: BLE001
+            agent_fields = {}
         if agent_fields:
             agent_used = True
             # Agent wins on gaps and on suspicious phone-as-ID / tiny charge.
