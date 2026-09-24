@@ -1,0 +1,6 @@
+Google Drive id=1ohv3muiEChPU6pqR0sj7ansqUYq7odIY
+Hackathon - 5000 Claims.zip (5000 docs / 10341 pages)
+stratified 1000 alloc={'Group A': 675, 'Group B': 186, 'Group C': 86, 'Group D': 53}
+selection_seed=20260925
+profile=PRODUCT required for gate
+overlap_with_sample_200_seed_20260924=47
