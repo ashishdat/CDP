@@ -1,30 +1,35 @@
 # Hackathon-5000 sample-200 — remaining HITL review (PRODUCT)
 
-Live ledger after insured_name SAME/twin unlocks. Taxonomy of what is still HITL
-and which code paths unlock vs must stay HITL for FA=0.
+Fresh PRODUCT ledger (seed **20260924**). Insured-twin redecide flipped **0**.
+Taxonomy of what is still HITL and which paths must stay HITL for FA=0.
 
-## Unlockable (code shipped)
+## Unlockable (code already shipped; none left on this draw)
 
-| Pattern | Example | Fix |
-|---|---|---|
-| Box-4 `SAME` demoted after AUTO patient | JEB.025 `MAUS. DREW, D` | `_peel_honorific_glue` no longer strips `DR` from `DREW`; SAME resolver does not require `strong_person` when patient already AUTO |
-| Truncated Self token / soft twin | JAJ.001 `FELICIA` | `ClaimDecisionService._resolve_insured_name_patient_twin` |
-| Unique shaped ID + CONFLICT_MARGIN | JEB.004 `944808` | `UNIQUE_SHAPED_ID_CONFLICT_RELIEVED` in reconciler |
+| Pattern | Fix |
+|---|---|
+| Box-4 `SAME` / DREW peel | `_peel_honorific_glue` + SAME resolver |
+| Truncated Self / patient twin | `ClaimDecisionService._resolve_insured_name_patient_twin` |
+| Unique shaped ID + CONFLICT_MARGIN | `UNIQUE_SHAPED_ID_CONFLICT_RELIEVED` |
 
 ```bash
 python3 -u scripts/redecide_hackathon5000_insured_twin.py
 ```
 
-## Keep HITL (precision / ink)
+## Keep HITL on this 200 (precision / ink)
 
-| Pattern | Example | Why |
+| Claim | Blockers | Why |
 |---|---|---|
-| Different strong Box-4 person | JAL.002 `LOE, SEEN` ≠ `TAYLOR, JENNILEE D` | Spouse/other — never twin |
-| Empty / garbage DOB | JEB.014 empty; JEB.018 `1H`; JEB.024 `05H 91723 1` | No calendar ink |
-| Invalid charge ink | JEB.008 `--- $` | Empty financial |
-| Charge calibration, no DI/vision | JEB.010 `60.00`; JEB.013 `28500.00`; JEB.019 `145.00` | `MISSING_E4` / place-shift risk |
-| Single-line dual needs Box28 | JEB.017 / JEB.023 | Intentional FA guard in `line_sum_authority` (`SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28`) |
-| Short padded member ID | JEB.016 `00212280` | Needs multi-engine/vision corroboration |
+| `M0472JCM.009` | total_charge | Box28 `563.10` without line corroboration / strong E4 |
+| `M0473JG7.005` | insured_id_number | Short padded `0000000` needs multi-engine/vision |
+| `M0477JCF.015` | total_charge | Box28/line place-shift (`177` vs `17700`) — policy hold |
+| `M0477JJY.037` | total_charge | `MISSING_E4_DETERMINISTIC_VALIDATION` |
+| `M0477JKO.002` | patient_dob, total_charge | No DOB ink + charge E4 gap |
+| `M047AJCY.027` | patient_name, patient_dob, total_charge | Calibration name `EE SE`, empty DOB, charge `--- $` |
+| `M0471JEY.002` (C) | patient_dob | Unstructured HITL (no CMS extract) |
+| `M0473JAP.002` (C) | patient_name, total_charge | Unstructured HITL |
+| `M0473JEU.001` (C) | patient_name | Unstructured HITL |
+
+Gate residual counts: POLICY_HOLD=6 · INK_ABSENT=2 · RECOVERABLE=1.
 
 ## Code map
 
