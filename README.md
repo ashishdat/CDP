@@ -24,6 +24,12 @@ lives in `docs/ARCHITECTURE.md`. The operator redesign capability table
 (OpenCV → HITL React stack) is documented in `docs/REDESIGN_STACK.md` and
 governed by `config/architecture/redesign_stack_v1.yaml`.
 
+**Independent corpus recovery:** page-class routing lives in
+`packages/extraction_recovery/independent_case_router.py` +
+`config/independent_case_toolstack_v1.yaml` (MAILROOM → REG, CMS → geometry
+cascade, UB-04/freeform → unstructured DI, registered field-ink → residual
+ladder). See `docs/INDEPENDENT_CASE_ARCHITECTURE_V1.md`.
+
 ## What's implemented (Phase 1)
 
 - Dataset inspection of the supplied `Images & Output.zip` sample —
