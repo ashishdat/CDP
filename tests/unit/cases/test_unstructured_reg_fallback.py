@@ -128,3 +128,11 @@ LOPEZRODRIGUEZ, MAYULEISI
     name = (fields.get("patient_name") or "").upper()
     assert "LOPEZRODRIGUEZ" in name
     assert "HEMPSTEAD" not in name
+
+
+def test_fax_boilerplate_not_treated_as_person_name():
+    text = """
+FAX IMAGE - ORIGINAL SOURCE MAY BE BAD, THEREFORE BETTER IMAGE QUALITY CANNOT BE OBTAINED
+08/18/2026
+"""
+    assert _heuristic_fields_from_di_text(text) == {}

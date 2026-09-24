@@ -108,6 +108,7 @@ _BAD_NAME = re.compile(
     r"insured.?s?\s*(?:i\.?d|name|unique)|patient.?s?\s*name|"
     r"document\s*separator|unique\s*id|fax\s*(?:image|patch)|print\s*options|"
     r"\bof\s*b[il]{2,}\b|\bmed\.?\s*rec\b|\bmedical\s*rec|"
+    r"therefore\s+better|original\s+source|image\s+quality|"
     r"\b(?:hospital|hosp|medical\s*center|foundation|university|presbyterian|"
     r"columbia|kaiser|northern\s*light|mayo|counseling\s*center|corp\.?\s*dba|"
     r"llc|inc\.?|street|avenue|ave\b|road|rd\b|blvd|suite|floor)\b|"
@@ -180,6 +181,18 @@ _NAME_STOP = {
     "UNITS",
     "DESC",
     "DESCRIPTION",
+    "BAD",
+    "THEREFORE",
+    "BETTER",
+    "QUALITY",
+    "CANNOT",
+    "OBTAINED",
+    "ORIGINAL",
+    "SOURCE",
+    "MAY",
+    "BE",
+    "FAX",
+    "IMAGE",
 }
 
 
