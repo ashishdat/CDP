@@ -1,28 +1,134 @@
 {
-  "dataset": "DEVELOPMENT_DATASET_V1 / Hackathon - 1000 Claims.zip",
-  "strategy_id": "field-cascade-v12 + unstructured-reg-fast-v1",
+  "dataset": "Independent-1000 (hackathon 600+400)",
+  "strategy_id": "independent-case-router-v1",
   "n": 1000,
-  "document_count_evaluated": 1000,
-  "true_stp": 775,
-  "hitl": 66,
+  "true_stp": 797,
+  "hitl": 44,
   "registration_failed": 159,
-  "true_stp_rate_of_all": 0.775,
-  "hitl_rate_of_all": 0.066,
-  "registration_failed_rate_of_all": 0.159,
-  "completed_non_reg": 841,
-  "true_stp_rate_of_completed": 0.921522,
-  "hitl_rate_of_completed": 0.078478,
-  "taxonomy": {
-    "STP_CMS": 750,
-    "REG_NO_CLAIM_INK": 159,
-    "HITL_UNSTRUCTURED": 26,
-    "STP_UNSTRUCTURED": 25,
-    "HITL_FIELD_INK": 40
+  "true_stp_rate": 0.797,
+  "hitl_rate": 0.044,
+  "reg_rate": 0.159,
+  "hitl_tracks": {
+    "FIELD_INK": 31,
+    "UNSTRUCTURED_DI": 13
   },
-  "field_ink_hitl": 40,
-  "unstructured_hitl": 26,
-  "unstructured_stp": 25,
-  "cms_stp": 750,
-  "note": "REG_NO_CLAIM_INK is mailroom separator / fax boilerplate \u2014 not CMS-1500. Primary STP/HITL rates of completed exclude those irreducible REG pages. See docs/metrics/independent_1000_gap_analysis.md",
-  "generated_at": "2026-09-24T03:46:14.520525+00:00"
+  "blocker_taxonomy": [
+    {
+      "hitl_track": "FIELD_INK",
+      "critical_blockers": [
+        "total_charge"
+      ],
+      "n": 15
+    },
+    {
+      "hitl_track": "FIELD_INK",
+      "critical_blockers": [
+        "patient_dob"
+      ],
+      "n": 6
+    },
+    {
+      "hitl_track": "UNSTRUCTURED_DI",
+      "critical_blockers": [
+        "patient_dob"
+      ],
+      "n": 5
+    },
+    {
+      "hitl_track": "FIELD_INK",
+      "critical_blockers": [],
+      "n": 3
+    },
+    {
+      "hitl_track": "UNSTRUCTURED_DI",
+      "critical_blockers": [
+        "patient_name"
+      ],
+      "n": 3
+    },
+    {
+      "hitl_track": "UNSTRUCTURED_DI",
+      "critical_blockers": [
+        "total_charge"
+      ],
+      "n": 2
+    },
+    {
+      "hitl_track": "FIELD_INK",
+      "critical_blockers": [
+        "insured_id_number",
+        "total_charge"
+      ],
+      "n": 2
+    },
+    {
+      "hitl_track": "FIELD_INK",
+      "critical_blockers": [
+        "insured_id_number",
+        "patient_dob"
+      ],
+      "n": 2
+    },
+    {
+      "hitl_track": "FIELD_INK",
+      "critical_blockers": [
+        "insured_id_number"
+      ],
+      "n": 1
+    },
+    {
+      "hitl_track": "FIELD_INK",
+      "critical_blockers": [
+        "insured_id_number",
+        "patient_dob",
+        "patient_name"
+      ],
+      "n": 1
+    },
+    {
+      "hitl_track": "UNSTRUCTURED_DI",
+      "critical_blockers": [
+        "patient_dob",
+        "total_charge"
+      ],
+      "n": 1
+    },
+    {
+      "hitl_track": "UNSTRUCTURED_DI",
+      "critical_blockers": [
+        "patient_dob",
+        "patient_name"
+      ],
+      "n": 1
+    },
+    {
+      "hitl_track": "FIELD_INK",
+      "critical_blockers": [
+        "patient_dob",
+        "total_charge"
+      ],
+      "n": 1
+    },
+    {
+      "hitl_track": "UNSTRUCTURED_DI",
+      "critical_blockers": [
+        "insured_id_number",
+        "patient_dob"
+      ],
+      "n": 1
+    }
+  ],
+  "architecture": {
+    "case_router": "packages/extraction_recovery/independent_case_router.py",
+    "toolstack": "config/independent_case_toolstack_v1.yaml",
+    "field_residuals": "config/field_recovery_toolstack_v13.yaml",
+    "paths": [
+      "MAILROOM_REG",
+      "CMS_GEOMETRY",
+      "UNSTRUCTURED_DI",
+      "FIELD_INK_RESIDUAL"
+    ]
+  },
+  "generated_at": "2026-09-24T04:51:48.416234+00:00",
+  "note": "REG stays irreducible mailroom/fax. Remaining HITL is precision-held (unread ink, spouse insured_name conflict, uncorroborated charge)."
 }

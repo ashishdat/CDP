@@ -32,39 +32,42 @@ These pages **cannot register** to a CMS-1500 template. Treating them as HITL wa
 
 ## Current taxonomy (full 1000 coverage)
 
-After Steps 1–3 + unstructured HITL lift (Step 2c):
+After Independent case router v1 + open-HITL redo:
 
 | Bucket | Count | Rate of 1000 |
 |---|---|---|
-| TRUE_STP | 768 | 76.8% |
-| HITL | 73 | 7.3% |
+| TRUE_STP | 797 | 79.7% |
+| HITL | 44 | 4.4% |
 | REG (mailroom/fax only) | 159 | 15.9% |
 
-Of **completed** pages (non-REG, n=841): **STP 91.3%** / HITL 8.7%.
+Of **completed** pages (non-REG, n=841): **STP 94.8%** / HITL 5.2%.
 
 Breakdown:
-- STP_CMS (geometry path): 743
-- STP_UNSTRUCTURED (DI heuristics): 25
-- HITL_FIELD_INK (registered CMS, weak field): 47
-- HITL_UNSTRUCTURED (UB-04 / freeform partial): 26
+- HITL_FIELD_INK (registered CMS, weak field): 31
+- HITL_UNSTRUCTURED (UB-04 / freeform partial): 13
 - REG_NO_CLAIM_INK: 159
 
+Architecture: `docs/INDEPENDENT_CASE_ARCHITECTURE_V1.md` — case router
+(`MAILROOM_REG` / `CMS_GEOMETRY` / `UNSTRUCTURED_DI` / `FIELD_INK_RESIDUAL`)
+plus field residual toolstack v13.
+
 Unstructured HITL blockers (precision-safe, not invent fields):
-- Missing `total_charge` (majority of UB-04)
-- Missing `patient_dob` / `insured_id_number` on noisy freeform
+- Missing `patient_dob` / `patient_name` / `total_charge` on noisy freeform
 
 Field-ink HITL blockers:
-- `total_charge` ~22–25 (Step 4 cascade charge residual redo)
-- `patient_dob` ~10
-- ID / multi-field / empty-blocker misc
+- `total_charge` ~15 (line-sum uncorroborated / empty ink)
+- `patient_dob` ~6
+- Spouse/other `insured_name` conflict with unread Box 4 (~3 empty blockers)
+- ID / multi-field misc
 ## What we fixed in heuristics
 1. Reject mailroom / fax / form-label names (`IFYES, RETURN`, `FED TAX`, `STATEMENT COVERS`, city-state).
 2. UB-04: prefer `LAST, FIRST` near patient labels over facility headers.
 3. Member ID: keep leading `\d{8,12}` on address-soup lines (was dropped by blvd/ave skip).
 4. Charge: accept `780 00` / `231-00` **only** on TOTAL / `$` cue lines (+ following line).
 5. Kill-switch unchanged: `CDP_UNSTRUCTURED_REG_FALLBACK`, `CDP_UNSTRUCTURED_REG_AGENT=0`.
+6. Case router consolidates page-class → path (no ad-hoc REG vs HITL forks).
 
 ## Remaining intentional non-STP
 - **159 REG**: separators / fax covers — keep REG.
-- **Field-ink HITL (~47)**: registered CMS with weak charge/DOB/ID — needs geometry-bound OCR residual, not unstructured guessing.
-- **UB-04 HITL**: person/DOB/ID often OK; TOTALS OCR sometimes absent or ambiguous — stay HITL unless cue-line currency shapes cleanly.
+- **Field-ink HITL (~31)**: registered CMS with weak charge/DOB/ID or spouse Box4 junk — residual ladder exhausted; stay HITL.
+- **UB-04 HITL (~13)**: person/DOB/ID often OK; TOTALS OCR sometimes absent or ambiguous — stay HITL unless cue-line currency shapes cleanly.

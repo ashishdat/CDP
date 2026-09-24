@@ -42,3 +42,15 @@ python3 -u scripts/rerun_independent_open_hitl.py \
 
 Kill switches unchanged: `CDP_UNSTRUCTURED_REG_FALLBACK`, `CDP_UNSTRUCTURED_REG_AGENT`,
 `CDP_CLOUD_STOP_LADDER`.
+
+## Independent-1000 after router (v13c remixed)
+
+| Metric | Count | Rate |
+|---|---|---|
+| TRUE_STP | 797 | 79.7% |
+| HITL | 44 | 4.4% |
+| REG (mailroom/fax) | 159 | 15.9% |
+
+HITL breakdown: 31 FIELD_INK · 13 UNSTRUCTURED_DI. Remaining blockers are
+precision-held (unread DOB/charge ink, spouse `insured_name` conflict, line-sum
+uncorroborated charge). See `docs/metrics/independent_1000_v13c_summary.json`.
