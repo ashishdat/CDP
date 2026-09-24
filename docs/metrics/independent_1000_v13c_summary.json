@@ -129,6 +129,15 @@
       "FIELD_INK_RESIDUAL"
     ]
   },
-  "generated_at": "2026-09-24T04:51:48.416234+00:00",
-  "note": "REG stays irreducible mailroom/fax. Remaining HITL is precision-held (unread ink, spouse insured_name conflict, uncorroborated charge)."
+  "generated_at": "2026-09-24T05:18:58.331910+00:00",
+  "note": "REG stays irreducible mailroom/fax. Remaining HITL is precision-held (unread ink, spouse insured_name conflict, uncorroborated charge).",
+  "claim_pages": 841,
+  "true_stp_rate_of_claim_pages": 0.9477,
+  "hitl_rate_of_claim_pages": 0.0523,
+  "reg_classes": {
+    "DOCUMENT_SEPARATOR": 54,
+    "FAX_PATCH": 67,
+    "UNIQUE_ID_COVER": 38
+  },
+  "reg_resolution": "ALL_159_IRREDUCIBLE_NO_CLAIM_INK"
 }

@@ -139,6 +139,16 @@ def classify_independent_case(
 
     if _is_mailroom_only_page(text) or _fax_boilerplate(text):
         fam = classify_document_family(text, barcode_text=barcode_text)
+        # Subtype for ops: separator vs fax vs unique-id cover.
+        blob = text or ""
+        import re as _re
+
+        if _re.search(r"fax\s*image|fax\s*patch|therefore\s+better", blob, _re.I):
+            subtype = "FAX_PATCH"
+        elif _re.search(r"unique\s*id|tracking\s*no", blob, _re.I):
+            subtype = "UNIQUE_ID_COVER"
+        else:
+            subtype = "DOCUMENT_SEPARATOR"
         return CaseRoute(
             path=CasePath.MAILROOM_REG,
             family=DocumentFamily.SEPARATOR
@@ -147,8 +157,8 @@ def classify_independent_case(
             family_confidence=max(0.9, fam.confidence),
             disposition_policy=CaseDispositionPolicy.KEEP_REG,
             hitl_track=None,
-            reason="MAILROOM_OR_FAX_NO_CLAIM_INK",
-            evidence=tuple(fam.evidence) + ("mailroom_or_fax",),
+            reason=f"MAILROOM_OR_FAX_NO_CLAIM_INK:{subtype}",
+            evidence=tuple(fam.evidence) + ("mailroom_or_fax", subtype),
             finish_document_family="CMS1500",
         )
 

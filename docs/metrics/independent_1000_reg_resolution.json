@@ -1,0 +1,23 @@
+{
+  "dataset": "Independent-1000",
+  "strategy_id": "independent-case-router-v1-reg-audit",
+  "n": 1000,
+  "true_stp": 797,
+  "hitl": 44,
+  "registration_failed": 159,
+  "true_stp_rate_of_all": 0.797,
+  "hitl_rate_of_all": 0.044,
+  "reg_rate_of_all": 0.159,
+  "claim_pages": 841,
+  "true_stp_rate_of_claim_pages": 0.9477,
+  "hitl_rate_of_claim_pages": 0.0523,
+  "reg_classes": {
+    "DOCUMENT_SEPARATOR": 54,
+    "FAX_PATCH": 67,
+    "UNIQUE_ID_COVER": 38
+  },
+  "reg_resolution": "ALL_159_IRREDUCIBLE_NO_CLAIM_INK",
+  "agent_note": "Azure OpenAI text/vision agent returns 401 in this env; DI page-read + heuristics + visual sample confirm separators/fax/unique-id covers only.",
+  "recoverable_claim_forms_in_reg": 0,
+  "generated_at": "2026-09-24T05:18:58.331910+00:00"
+}

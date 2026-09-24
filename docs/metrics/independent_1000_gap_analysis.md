@@ -71,3 +71,19 @@ Field-ink HITL blockers:
 - **159 REG**: separators / fax covers — keep REG.
 - **Field-ink HITL (~31)**: registered CMS with weak charge/DOB/ID or spouse Box4 junk — residual ladder exhausted; stay HITL.
 - **UB-04 HITL (~13)**: person/DOB/ID often OK; TOTALS OCR sometimes absent or ambiguous — stay HITL unless cue-line currency shapes cleanly.
+
+## Registration-failure resolution (step-by-step)
+
+Audit of all **159 REGISTRATION_FAILED** pages (`scripts/annotate_independent_reg_classes.py`):
+
+| Step | Finding |
+|---|---|
+| 1. Inventory | All 159 on remainder-400 ledger; reason `UNSTRUCTURED_NO_SHAPED_FIELDS` |
+| 2. Live DI re-read | Cached DI text for every page |
+| 3. Classify | **54** Document Separator · **67** FAX PATCH · **38** Unique-ID cover (blank Last/First) |
+| 4. Recoverable claim forms | **0** — no CMS/UB/patient ink on any REG page |
+| 5. AI agent | Text agent on stratified samples → null fields; Azure OpenAI vision/text returns **401** in this env (kill-switch stays off) |
+| 6. Visual check | Separator / fax / unique-id covers confirmed non-claim |
+| 7. Sibling STP | 44 REG pages sit in bundles that already have a TRUE_STP claim page |
+
+**Resolution:** annotate `reg_class` + `reg_resolution=IRREDUCIBLE_NO_CLAIM_INK`. Do **not** invent patient fields. Metrics for claim pages only: STP **94.8%** / HITL **5.2%** of 841 (see `docs/metrics/independent_1000_reg_resolution.json`).
