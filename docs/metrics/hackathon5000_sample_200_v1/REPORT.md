@@ -10,43 +10,56 @@
 
 | Metric | Value | Target | Status |
 |---|---|---|---|
-| Claim-page STP | **94.44%** (153/162) | ≥ 97% | **FAIL** |
+| Claim-page STP | **95.68%** (155/162) | ≥ 97% | **FAIL** |
 | Accepted precision (GOLD) | FA=0 (0 scored fields; incomplete GT) | 1.0 / FA=0 | SCORED w/ `--allow-incomplete-gt` |
-| HITL / REG | 9 / 38 | REG excluded from STP denom | |
+| HITL / REG | 7 / 38 | REG excluded from STP denom | |
 | Run profile | PRODUCT | require_product_profile | OK |
 | Gate | **FAIL** | STP bar | |
 
-Reasons: `RUN_PROFILE_OK:PRODUCT`, `CLAIM_PAGE_STP_BELOW_TARGET:0.9444<0.97`.
+Reasons: `RUN_PROFILE_OK:PRODUCT`, `CLAIM_PAGE_STP_BELOW_TARGET:0.9568<0.97`.
 
-Gap to 97%: need **+5** claim-page AUTO lifts (158/162) without FA. Residual taxonomy on HITL: POLICY_HOLD=6, INK_ABSENT=2, RECOVERABLE=1.
+Gap to 97%: need **+3** more claim-page AUTO (158/162) without FA.
 
-Insured-twin redecide (`scripts/redecide_hackathon5000_insured_twin.py`): **0 flips** — remaining HITL is charge/DOB/ID/name policy, not SAME/twin.
+### Precision-safe unlocks applied (this iteration)
+
+| Claim | Before | Unlock | Governance |
+|---|---|---|---|
+| `M0472JCM.009` | HITL total_charge `BLEED_CENTS_FAIL_CLOSED` on `563.10` | DI raw `$ 563.10` = printed decimal cents (`_charge_di_printed_decimal_confirms`) | DI+local exact agree; no invent |
+| `M0477JCF.015` | HITL `CHARGE_VISION_LOCAL_SCALE_RIVAL_HITL` (`177` vs DI `17700`) | Whole-dollar ×100 place-shift soup exempt from SCALE_RIVAL | DJKH.040 `1571.63` and ×10 (`6000`/`60000`) still HITL |
+
+Insured-twin redecide: **2 flips** (above). Remaining HITL intentionally held for FA=0.
 
 ## Disposition
 
 | Disposition | Count | Rate |
 |---|---|---|
-| TRUE_STP | 153 | 76.5% of all / **94.4% of claim pages** |
-| HITL | 9 | 4.5% of all / 5.6% of claim pages |
+| TRUE_STP | 155 | 77.5% of all / **95.7% of claim pages** |
+| HITL | 7 | 3.5% of all / 4.3% of claim pages |
 | REGISTRATION_FAILED | 38 | 19.0% |
 
-REG reasons: `NO_TEMPLATE_ABOVE_THRESHOLD` 37 · geometry unsafe 1 (Group B/C/D unstructured / non-CMS pages).
+## Remaining HITL (keep for FA=0)
+
+See `REMAINING_HITL.md`. Summary:
+
+| Claim | Why not unlocked |
+|---|---|
+| `M0473JG7.005` | Literal insured id `0000000` |
+| `M0477JJY.037` | DI ×10 rival `6000`/`60000`; lines ≠ Box28 |
+| `M0477JKO.002` | Empty DOB ink + charge conflict |
+| `M047AJCY.027` | Garbage name / empty DOB / `--- $` |
+| `M0471JEY.002` (C) | UB04 unstructured — missing DOB only (3/4) |
+| `M0473JAP.002` (C) | UB04 — missing name+charge (2/4) |
+| `M0473JEU.001` (C) | UB04 — missing name only (3/4) |
+
+Group C near-misses need safer UB04 DI heuristics (or gated agent) — not inventable from frozen CMS extract.
 
 ## Latency & cloud cost (est.)
 
 | | |
 |---|---|
 | Mean latency | **40.0 s/doc** |
-| Azure DI | ~0.89 calls/page → **~$0.0013–$0.0089**/page |
-| Azure GPT-4o | ~1.8 calls/page → **~$0.0037**/page |
 | Azure (DI+GPT) | **~$0.005–$0.013**/page |
-| + Claude conflict | **~$0.007–$0.015**/page all-cloud |
-
-Pricing assumptions: DI $0.0015–$0.01/call; GPT-4o $2.5/$10 per 1M tok (~659/45 proxy); Claude $3/$15 (~312/97 from Independent-600 meter). No live `vlm_token_meter` on this run.
-
-## Remaining HITL (keep for FA=0)
-
-See `REMAINING_HITL.md`. Live blockers: charge (Box28↔line / MISSING_E4), empty DOB ink, short-padded ID, calibration name/`--- $`, plus 3 Group C unstructured HITL without extract.
+| All cloud (+Claude) | **~$0.007–$0.015**/page |
 
 ## Reproduce
 

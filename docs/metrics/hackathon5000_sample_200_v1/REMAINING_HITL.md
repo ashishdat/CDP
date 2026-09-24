@@ -1,39 +1,36 @@
 # Hackathon-5000 sample-200 — remaining HITL review (PRODUCT)
 
-Fresh PRODUCT ledger (seed **20260924**). Insured-twin redecide flipped **0**.
-Taxonomy of what is still HITL and which paths must stay HITL for FA=0.
+Fresh PRODUCT ledger (seed **20260924**) after precision-safe charge unlocks.
+Insured-twin + charge redecide flipped **2** (`JCM.009`, `JCF.015`). **7** remain.
 
-## Unlockable (code already shipped; none left on this draw)
+## Unlocked this iteration (FA-safe)
 
-| Pattern | Fix |
-|---|---|
-| Box-4 `SAME` / DREW peel | `_peel_honorific_glue` + SAME resolver |
-| Truncated Self / patient twin | `ClaimDecisionService._resolve_insured_name_patient_twin` |
-| Unique shaped ID + CONFLICT_MARGIN | `UNIQUE_SHAPED_ID_CONFLICT_RELIEVED` |
+| Claim | Was | Fix |
+|---|---|---|
+| `M0472JCM.009` | `BLEED_CENTS_FAIL_CLOSED` on DI+local `563.10` | `_charge_di_printed_decimal_confirms` — DI raw `$ 563.10` is printed cents |
+| `M0477JCF.015` | `CHARGE_VISION_LOCAL_SCALE_RIVAL_HITL` (`177` vs `17700`) | Whole-dollar ×100 place-shift soup exempt; ×10 and non-`.00` (DJKH.040) still HITL |
 
 ```bash
 python3 -u scripts/redecide_hackathon5000_insured_twin.py
 ```
 
-## Keep HITL on this 200 (precision / ink)
+## Keep HITL (accuracy governance)
 
 | Claim | Blockers | Why |
 |---|---|---|
-| `M0472JCM.009` | total_charge | Box28 `563.10` without line corroboration / strong E4 |
-| `M0473JG7.005` | insured_id_number | Short padded `0000000` needs multi-engine/vision |
-| `M0477JCF.015` | total_charge | Box28/line place-shift (`177` vs `17700`) — policy hold |
-| `M0477JJY.037` | total_charge | `MISSING_E4_DETERMINISTIC_VALIDATION` |
-| `M0477JKO.002` | patient_dob, total_charge | No DOB ink + charge E4 gap |
-| `M047AJCY.027` | patient_name, patient_dob, total_charge | Calibration name `EE SE`, empty DOB, charge `--- $` |
-| `M0471JEY.002` (C) | patient_dob | Unstructured HITL (no CMS extract) |
-| `M0473JAP.002` (C) | patient_name, total_charge | Unstructured HITL |
-| `M0473JEU.001` (C) | patient_name | Unstructured HITL |
+| `M0473JG7.005` | insured_id_number | Literal `0000000` — never AUTO |
+| `M0477JJY.037` | total_charge | DI ×10 (`6000`/`60000`); line Σ ≠ Box28 |
+| `M0477JKO.002` | patient_dob, total_charge | No DOB ink; charge `25094` vs DI `250.94` vs line `250` |
+| `M047AJCY.027` | patient_name, patient_dob, total_charge | `EE SE` / empty DOB / `--- $` |
+| `M0471JEY.002` (C) | patient_dob | UB04 unstructured 3/4 — DOB not shaped |
+| `M0473JAP.002` (C) | patient_name, total_charge | UB04 unstructured 2/4 |
+| `M0473JEU.001` (C) | patient_name | UB04 unstructured 3/4 — name not shaped |
 
-Gate residual counts: POLICY_HOLD=6 · INK_ABSENT=2 · RECOVERABLE=1.
+Do **not**: accept all-zero IDs, invent DOB/name, relax `SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28`, or AUTO ×10 DI magnitude contests without line Σ.
 
 ## Code map
 
+- `packages/candidate_reconciliation/reconciler.py` — `_charge_di_printed_decimal_confirms`, `_charge_inflated_rivals_are_whole_dollar_place_shift_soup`
 - `packages/claim_decision/service.py` — `_resolve_insured_name_patient_twin`
-- `packages/candidate_reconciliation/reconciler.py` — `_peel_honorific_glue`, `UNIQUE_SHAPED_ID_CONFLICT_RELIEVED`
-- `packages/claim_evidence/line_sum_authority.py` — single-line dual gate (do not relax without FA proof)
+- `packages/claim_evidence/line_sum_authority.py` — single-line dual gate
 - `scripts/redecide_hackathon5000_insured_twin.py` — frozen-extract redecide
