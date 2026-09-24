@@ -77,6 +77,10 @@ def main() -> int:
     # Force heuristics-only (no gpt-4o agent 401 latency).
     os.environ["CDP_UNSTRUCTURED_REG_FALLBACK"] = "1"
     os.environ["CDP_UNSTRUCTURED_REG_AGENT"] = "0"
+    # cdp43 is paid tier — do not apply F0 60s spacing.
+    os.environ.setdefault("CDP_AZURE_DI_MIN_INTERVAL_SECONDS", "0")
+    os.environ.setdefault("CDP_AZURE_DI_429_RETRIES", "1")
+    os.environ.setdefault("CDP_AZURE_DI_429_WAIT_SECONDS", "8")
 
     # Composition root: DI read engine factory (same as cascade).
     from workers.ocr_engine_factories import wire_package_ocr_providers
