@@ -1,0 +1,5 @@
+dataset_id: DEVELOPMENT_DATASET_HACKATHON_5000_V1
+root: data/Hackathon - 5000 Claims.zip
+pages: 10341
+documents: 5000
+description: 'Hackathon 5000 Claims Drive corpus (id=1ohv3muiEChPU6pqR0sj7ansqUYq7odIY); not ENGINEERING_BENCHMARK_V1.'

@@ -47,6 +47,19 @@ REGISTRY = MappingProxyType({
         description="Hackathon claims development corpus; not ENGINEERING_BENCHMARK_V1.",
         source="Hackathon - 1000 Claims.zip",
     ),
+    "DEVELOPMENT_DATASET_HACKATHON_5000_V1": DatasetMetadata(
+        dataset_id="DEVELOPMENT_DATASET_HACKATHON_5000_V1",
+        version=1,
+        type=DatasetType.DEVELOPMENT,
+        pages=10341,
+        documents=5000,
+        hash="af745a75d730fc0da38c036401c804c3812b0d2db9217f39068e6685c0b1eaa1",
+        description=(
+            "Hackathon 5000 Claims Drive corpus "
+            "(id=1ohv3muiEChPU6pqR0sj7ansqUYq7odIY); not ENGINEERING_BENCHMARK_V1."
+        ),
+        source="Hackathon - 5000 Claims.zip",
+    ),
     # Hash is pack-time specific; YAML must supply the concrete SHA-256.
     "OPERATIONAL_E2E_100_V1": DatasetMetadata(
         dataset_id="OPERATIONAL_E2E_100_V1",
