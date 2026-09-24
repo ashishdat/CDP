@@ -318,6 +318,26 @@ def test_patient_twin_insured_name_conflict_promotes():
     assert "FIELD_CONFLICT:insured_name" not in decision.contradictions
 
 
+def test_truncated_self_insured_token_resolves_to_patient():
+    """Single-token Box-4 (FELICIA) under Self → full AUTO patient_name."""
+    service = ClaimDecisionService.load()
+    context = _context(service)
+    _set_field(context, service, "patient_name", "JADCZAK FELICIA A")
+    _set_field(
+        context,
+        service,
+        "insured_name",
+        "FELICIA",
+        FieldDisposition.AUTO_ACCEPTED,
+    )
+    decision = service.decide(context)
+    assert decision.disposition in {
+        ClaimDisposition.STP_SAFE,
+        ClaimDisposition.STP_STANDARD,
+    }
+    assert "insured_name" not in decision.blocking_unresolved_fields
+
+
 def test_different_strong_insured_name_stays_hitl():
     """Spouse/other strong Box-4 name must not be overwritten by patient."""
     service = ClaimDecisionService.load()

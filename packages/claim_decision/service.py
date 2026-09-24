@@ -248,15 +248,29 @@ class ClaimDecisionService:
         is_weak = (not ival) or _name_is_short_fragment(ival) or (
             len(ival) <= 4 and not _name_is_strong_person(ival)
         )
+        # Accept-policy TRUNCATED_INSURED_NAME_VS_PATIENT: single Box-4 token
+        # while patient is multi-token Self → resolve to full patient ink.
+        import re as _re
 
-        if already_auto and not is_same:
+        patient_tokens = [t for t in _re.split(r"[^A-Za-z]+", pval) if t]
+        insured_tokens = [t for t in _re.split(r"[^A-Za-z]+", ival) if t]
+        is_truncated_self = (
+            bool(ival)
+            and len(patient_tokens) >= 2
+            and len(insured_tokens) == 1
+            and len(insured_tokens[0]) <= 12
+        )
+
+        if already_auto and not is_same and not is_truncated_self:
             return context
-        if not (is_same or is_twin or is_weak):
+        if not (is_same or is_twin or is_weak or is_truncated_self):
             return context
 
         reason = (
             "INSURED_NAME_SAME_RESOLVED_TO_PATIENT"
             if is_same
+            else "INSURED_NAME_TRUNCATED_SELF_RESOLVED_TO_PATIENT"
+            if is_truncated_self and not is_twin
             else "INSURED_NAME_PATIENT_TWIN_MATCH"
             if is_twin
             else "INSURED_NAME_PATIENT_TWIN_PROMOTED"
