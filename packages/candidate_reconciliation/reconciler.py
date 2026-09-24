@@ -661,11 +661,21 @@ _NAME_HONORIFICS = frozenset({"MRS", "MR", "MS", "MISS", "DR"})
 
 
 def _peel_honorific_glue(token: str) -> str:
-    """Peel glued CMS honorifics (BEAUDOINMRS → BEAUDOIN, MRSCHERYL → CHERYL)."""
+    """Peel glued CMS honorifics (BEAUDOINMRS → BEAUDOIN, MRSCHERYL → CHERYL).
+
+    Never peel ``DR`` as a *prefix* — it false-positives on given names
+    (``DREW`` → ``EW``, ``DRAKE`` → ``AKE``) and breaks patient-twin / SAME
+    resolution when Box 2 is otherwise AUTO.
+    """
     tok = (token or "").upper()
     if not tok or tok in _NAME_HONORIFICS:
         return tok
     for honor in sorted(_NAME_HONORIFICS, key=len, reverse=True):
+        if honor == "DR":
+            # Suffix-only (JOHNDR rare); prefix peel destroys DREW/DRAKE/…
+            if tok.endswith(honor) and len(tok) > len(honor) + 1:
+                return tok[: -len(honor)]
+            continue
         if tok.startswith(honor) and len(tok) > len(honor) + 1:
             return tok[len(honor) :]
         if tok.endswith(honor) and len(tok) > len(honor) + 1:
@@ -3075,6 +3085,20 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("DATE_CONFLICT_FRAGMENTS_RELIEVED")
+                elif (
+                    is_id_field
+                    and unique_shaped_id
+                    and "HARD_VALIDATION_PASSED" in deterministic
+                    and "FORMAT_VALID" in deterministic
+                ):
+                    # Unique shaped member ID already corroborated — rival OCR
+                    # fragments must not force CONFLICT_MARGIN HITL (JEB.004).
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("UNIQUE_SHAPED_ID_CONFLICT_RELIEVED")
                 else:
                     decision = Decision.REVIEW
                     reasons.append("CONFLICT_MARGIN_TOO_SMALL")

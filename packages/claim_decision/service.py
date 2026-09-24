@@ -229,7 +229,7 @@ class ClaimDecisionService:
         if patient.disposition not in _ACCEPTED:
             return context
         pval = str(patient.selected_value or "").strip()
-        if not pval or not _name_is_strong_person(pval):
+        if not pval:
             return context
 
         rel = None
@@ -244,6 +244,10 @@ class ClaimDecisionService:
         ival = str(insured.selected_value or "").strip()
         already_auto = insured.disposition in _ACCEPTED
         is_same = bool(ival) and _name_is_self_reference(ival)
+        # SAME marker: AUTO patient ink is enough (already claim-validated).
+        # Twin/weak/truncated still require a strong multi-token patient.
+        if not is_same and not _name_is_strong_person(pval):
+            return context
         is_twin = bool(ival) and cls._soft_person_name_twin(pval, ival)
         is_weak = (not ival) or _name_is_short_fragment(ival) or (
             len(ival) <= 4 and not _name_is_strong_person(ival)

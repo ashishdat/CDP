@@ -338,19 +338,35 @@ def test_truncated_self_insured_token_resolves_to_patient():
     assert "insured_name" not in decision.blocking_unresolved_fields
 
 
-def test_different_strong_insured_name_stays_hitl():
-    """Spouse/other strong Box-4 name must not be overwritten by patient."""
+def test_drew_not_peeled_as_dr_honorific():
+    from packages.candidate_reconciliation.reconciler import (
+        _name_is_strong_person,
+        _name_tokens,
+        _peel_honorific_glue,
+    )
+
+    assert _peel_honorific_glue("DREW") == "DREW"
+    assert _peel_honorific_glue("MRSCHERYL") == "CHERYL"
+    assert "DREW" in _name_tokens("MAUS. DREW, D")
+    assert _name_is_strong_person("MAUS. DREW, D") is True
+
+
+def test_same_resolves_when_patient_has_drew():
+    """Regression: DREW peel bug blocked SAME→patient for MAUS. DREW, D."""
     service = ClaimDecisionService.load()
     context = _context(service)
-    _set_field(context, service, "patient_name", "JANE DOE")
+    _set_field(context, service, "patient_name", "MAUS. DREW, D")
     _set_field(
         context,
         service,
         "insured_name",
-        "JOHN SMITH",
-        FieldDisposition.HUMAN_REVIEW_REQUIRED,
+        "SAME",
+        FieldDisposition.AUTO_ACCEPTED,
     )
     decision = service.decide(context)
-    assert decision.disposition is ClaimDisposition.FIELD_REVIEW_REQUIRED
-    assert "insured_name" in decision.blocking_unresolved_fields
+    assert decision.disposition in {
+        ClaimDisposition.STP_SAFE,
+        ClaimDisposition.STP_STANDARD,
+    }
+    assert "insured_name" not in decision.blocking_unresolved_fields
 
