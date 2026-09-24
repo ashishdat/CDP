@@ -43,3 +43,13 @@ def test_lineage_bypass_attempt_name_in_register_source():
     assert "enforce_compatibility_precheck=False" in src
     assert "orientation_recovery_early" in src
     assert "bypass_lineage_precheck" in src
+
+
+def test_selector_lineage_soft_path_in_source():
+    """Guard: template selector retries alignment without lineage precheck."""
+    from pathlib import Path
+
+    src = Path("workers/page_detection/template_selector.py").read_text(encoding="utf-8")
+    assert "lineage_precheck_bypass" in src
+    assert "template_lineage_mismatch" in src
+    assert "enforce_compatibility_precheck=False" in src

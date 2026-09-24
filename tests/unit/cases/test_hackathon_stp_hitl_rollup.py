@@ -12,14 +12,18 @@ def _row(
     completed: bool = False,
     registration_ok: bool = False,
     hitl_track: str | None = None,
+    unstructured_reg_fallback: dict | None = None,
 ) -> dict:
-    return {
+    row = {
         "disposition": disposition,
         "true_stp": true_stp,
         "completed": completed,
         "registration_ok": registration_ok,
         "hitl_track": hitl_track,
     }
+    if unstructured_reg_fallback is not None:
+        row["unstructured_reg_fallback"] = unstructured_reg_fallback
+    return row
 
 
 def test_rollup_primary_rates_use_completed_denominator() -> None:
@@ -67,7 +71,7 @@ def test_rollup_excludes_unstructured_reg_from_field_hitl() -> None:
             completed=True,
             registration_ok=True,
         ),
-        # Legacy bug: unstructured DI marked disposition=HITL + completed.
+        # Legacy bug row without fallback meta — must not inflate completed.
         _row(
             disposition="HITL",
             completed=True,
@@ -82,6 +86,58 @@ def test_rollup_excludes_unstructured_reg_from_field_hitl() -> None:
     assert roll["field_ink_hitl"] == 0
     assert roll["true_stp_rate"] == 1.0
     assert roll["hitl_rate"] == 0.0
+
+
+def test_rollup_counts_unstructured_reg_stp_recovery() -> None:
+    """v12.3m: DI page-read that shapes all critical fields clears REG → STP."""
+    fields = {
+        "patient_name": "DOE JOHN",
+        "patient_dob": "01/01/1980",
+        "insured_id_number": "123456789",
+        "total_charge": "100.00",
+    }
+    rows = [
+        _row(
+            disposition="TRUE_STP",
+            true_stp=True,
+            completed=True,
+            registration_ok=True,
+        ),
+        _row(
+            disposition="TRUE_STP",
+            true_stp=True,
+            completed=True,
+            registration_ok=False,
+            unstructured_reg_fallback={
+                "attempted": True,
+                "reason": "UNSTRUCTURED_REG_FALLBACK_OK",
+                "fields": fields,
+            },
+        ),
+        _row(
+            disposition="HITL",
+            completed=True,
+            registration_ok=False,
+            hitl_track="UNSTRUCTURED_DI",
+            unstructured_reg_fallback={
+                "attempted": True,
+                "reason": "UNSTRUCTURED_REG_FALLBACK_OK",
+                "fields": {"patient_name": "DOE JOHN"},
+            },
+        ),
+        _row(disposition="REGISTRATION_FAILED"),
+    ]
+    roll = _rollup_scope(rows)
+    assert roll["completed"] == 3
+    assert roll["true_stp"] == 2
+    assert roll["cms_true_stp"] == 1
+    assert roll["unstructured_reg_stp"] == 1
+    assert roll["unstructured_reg_hitl"] == 1
+    assert roll["field_ink_hitl"] == 0
+    assert roll["registration_hitl"] == 1
+    assert roll["true_stp"] + roll["field_ink_hitl"] + roll["unstructured_reg_hitl"] == (
+        roll["completed"]
+    )
 
 
 def test_rollup_stp_plus_field_hitl_equals_completed() -> None:
@@ -108,4 +164,6 @@ def test_rollup_stp_plus_field_hitl_equals_completed() -> None:
         _row(disposition="INCOMPLETE", registration_ok=True),
     ]
     roll = _rollup_scope(rows)
-    assert roll["true_stp"] + roll["field_ink_hitl"] == roll["completed"]
+    assert roll["true_stp"] + roll["field_ink_hitl"] + roll["unstructured_reg_hitl"] == (
+        roll["completed"]
+    )

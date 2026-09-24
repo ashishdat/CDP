@@ -157,11 +157,37 @@ class TemplateSelector:
                 with registration_context(template_id=template.template_id, page_number=candidate["page_number"]):
                     result = align_to_reference(image, reference, family=template.form_type.value,
                                                 enforce_compatibility_precheck=True)
+                    # Ops ladder offers LINEAGE_PRECHECK_BYPASS after selection.
+                    # Selector must soft-retry lineage misses so CMS pages that
+                    # fail only the cheap lineage gate still reach registration.
+                    lineage_miss = (
+                        not result.accepted
+                        and result.evidence is not None
+                        and "template_lineage_mismatch"
+                        in str(result.evidence.rejection_reason or "")
+                    )
+                    if lineage_miss:
+                        if result.warped is not None:
+                            result.warped.close()
+                        result = align_to_reference(
+                            image,
+                            reference,
+                            family=template.form_type.value,
+                            enforce_compatibility_precheck=False,
+                        )
+                        candidate["diagnostics"]["lineage_precheck_bypass"] = True
                 try:
                     score = result.alignment_score
                     candidate["scores"]["registration"] = score if isfinite(score) else None
                     compatible = (result.compatibility is not None
                                   and result.compatibility.status.value != "INCOMPATIBLE")
+                    # After lineage bypass, cheap compatibility may still say
+                    # INCOMPATIBLE — geometric gates alone decide acceptance.
+                    lineage_bypassed = bool(
+                        candidate["diagnostics"].get("lineage_precheck_bypass")
+                    )
+                    if lineage_bypassed:
+                        compatible = True
                     candidate["diagnostics"].update(
                         registration_policy=asdict(DEFAULT_REGISTRATION_POLICY),
                         cheap_registration_evidence=(result.cheap_evidence.model_dump(mode="json")

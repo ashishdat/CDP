@@ -2682,6 +2682,22 @@ class EvidenceReconciler:
                             value, candidates
                         ) and is_scale_shift(value, other):
                             continue
+                        # EJI2.041 / HJE5.019: DI+Claude or Claude+local own the
+                        # amount; pure decimal place-shift / ×100 soup from the
+                        # dissenting engine is not a second total. Digit-drop
+                        # twins (DJKN.005: 200 vs 2001) stay genuine.
+                        if (
+                            other_amt is not None
+                            and primary_amt is not None
+                            and other_amt > primary_amt
+                            and is_decimal_place_shift(value, other)
+                            and not is_currency_digit_drop_twin(value, other)
+                            and (
+                                "CHARGE_DI_LOCAL_CONFIRMED" in deterministic
+                                or "CHARGE_VISION_LOCAL_CONFIRMED" in deterministic
+                            )
+                        ):
+                            continue
                         # L2: underread scrap of DI/vision-local fuller amount is soup
                         # (``14`` / ``20`` beside ``140`` / ``200``). Inflated rivals
                         # (``2001`` beside ``200``) stay genuine.

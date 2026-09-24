@@ -578,3 +578,71 @@ def test_ejge_inflated_digit_drop_twin_still_hitl_under_di_local():
     assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes or (
         result.decision != Decision.ACCEPT
     )
+
+
+def test_eji2041_di_claude_mints_e4_despite_local_place_shift():
+    """EJI2.041: DI+Claude 780 clears paddle 78000 ×100 place-shift for E4."""
+    bundle = build_evidence_bundle(
+        field_name="total_charge",
+        candidates=[
+            _cand("azure_document_intelligence_read", "780.00"),
+            _cand("anthropic_claude_crop", "780.00"),
+            _cand("paddleocr", "78000.00"),
+        ],
+        registration_confidence=0.9,
+        wrong_crop_suspected=False,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        hard_validation_passed=True,
+    )
+    facts = {
+        (item.metadata or {}).get("fact")
+        for item in bundle.items
+        if item.metadata
+    }
+    assert "CHARGE_DI_LOCAL_CONFIRMED" in facts
+
+
+def test_eji2041_di_claude_accepts_over_local_place_shift():
+    """EJI2.041: reconciler AUTO on DI+Claude 780 beside paddle 78000."""
+    result = EvidenceReconciler(allow_authoritative_financial_e6=True).reconcile(
+        "total_charge",
+        [
+            _cand("azure_document_intelligence_read", "780.00"),
+            _cand("anthropic_claude_crop", "780.00"),
+            _cand("paddleocr", "78000.00"),
+        ],
+        CriticalityLevel.C3,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "CHARGE_DI_LOCAL_CONFIRMED",
+        },
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+        independent_agreement_values={"780", "780.00"},
+    )
+    assert result.selected_value == "780.00"
+    assert result.decision == Decision.ACCEPT
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
+
+
+def test_hje5019_vision_local_mints_e4_despite_di_place_shift():
+    """HJE5.019-class: Claude+paddle 960 clears DI 96000 ×100 for E4."""
+    bundle = build_evidence_bundle(
+        field_name="total_charge",
+        candidates=[
+            _cand("anthropic_claude_crop", "960.00"),
+            _cand("paddleocr", "960.00"),
+            _cand("azure_document_intelligence_read", "96000.00"),
+        ],
+        registration_confidence=0.9,
+        wrong_crop_suspected=False,
+        deterministic_evidence={"HARD_VALIDATION_PASSED", "FORMAT_VALID"},
+        hard_validation_passed=True,
+    )
+    facts = {
+        (item.metadata or {}).get("fact")
+        for item in bundle.items
+        if item.metadata
+    }
+    assert "CHARGE_VISION_LOCAL_CONFIRMED" in facts

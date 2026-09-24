@@ -71,7 +71,10 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
 
     Underread scrap (``20`` beside agreed ``200``) does not block DI/vision+local
     E4 (EJG7.009). Inflated rivals (``2001`` beside ``200``) still block — except
-    L3 printed bleed cents where a DI ×100 twin is soup beside Claude+local.
+    L3 printed bleed cents where a DI ×100 twin is soup beside Claude+local, and
+    EJI2.041 where DI+Claude (or Claude+local) agree and the only inflated rival
+    is a pure decimal place-shift / ×100 shell (not a digit-drop twin like
+    DJKN.005 ``200`` vs ``2001``).
     """
     from decimal import Decimal
 
@@ -107,6 +110,25 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
             geometric_confirmed = True
             break
 
+    # Strong dual agreement on ``agreed``: DI+Claude or Claude+local.
+    # Pure ×100 place-shift soup from the dissenting family is not a blocker.
+    families_on_agreed: set[str] = set()
+    for cand in candidates:
+        raw = str(cand.value or "")
+        amt = parse_currency(raw)
+        if amt is None or abs(amt - target) > Decimal("0.01"):
+            continue
+        families_on_agreed.add(independence_group(cand.engine))
+    di_vision_agree = (
+        "AZURE_READ_FAMILY" in families_on_agreed
+        and "CLOUD_AI_FAMILY" in families_on_agreed
+    )
+    vision_local_agree = "CLOUD_AI_FAMILY" in families_on_agreed and bool(
+        families_on_agreed
+        & {"RAPIDOCR_FAMILY", "PADDLE_FAMILY", "TESSERACT_FAMILY"}
+    )
+    allow_pure_place_shift_soup = di_vision_agree or vision_local_agree
+
     for cand in candidates:
         raw = str(cand.value or "")
         other = parse_currency(raw)
@@ -120,14 +142,28 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
             and _digits_match_with_single_junk(agreed_digits, other_digits)
         ):
             continue
-        # Only inflated / fuller rivals block E4 — underread scrap does not.
-        if other < target and (
-            is_decimal_place_shift(agreed, raw) or is_currency_digit_drop_twin(agreed, raw)
+        # Only inflated / fuller rivals block E4 — underread digit-drop scrap
+        # does not (EJG7.009 ``20`` beside ``200``). Pure decimal place-shift
+        # underreads (``49.72`` beside DI+rapid ``4972``) DO block — partner
+        # must not mint E4 on the inflated shell.
+        if other < target and is_currency_digit_drop_twin(agreed, raw) and not (
+            is_decimal_place_shift(agreed, raw)
         ):
             continue
         # L3: printed bleed cents beside DI ×100 twin — treat as soup, not blocker.
         if agreed_is_bleed and abs(target * Decimal(100) - other) <= Decimal("2.00"):
             continue
+        # EJI2.041 / HJE5.019: pure decimal place-shift / ×100 beside DI+Claude
+        # or Claude+local. Digit-drop twins (200 vs 2001) still block.
+        if allow_pure_place_shift_soup and other > target:
+            if is_decimal_place_shift(agreed, raw) and not is_currency_digit_drop_twin(
+                agreed, raw
+            ):
+                continue
+            if abs(target * Decimal(100) - other) <= Decimal("2.00") and not (
+                is_currency_digit_drop_twin(agreed, raw)
+            ):
+                continue
         if is_decimal_place_shift(agreed, raw) or is_currency_digit_drop_twin(agreed, raw):
             return True
         for factor in (Decimal(10), Decimal(100)):
@@ -135,14 +171,29 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
             if abs(target * factor - other) <= Decimal("2.00"):
                 if agreed_is_bleed and factor == Decimal(100):
                     continue
+                if (
+                    allow_pure_place_shift_soup
+                    and factor == Decimal(100)
+                    and not is_currency_digit_drop_twin(agreed, raw)
+                ):
+                    continue
                 return True
-            # agreed ≈ other × factor → underread scrap; do not block.
+            # agreed ≈ other × factor → underread of agreed. ×100 place-shift
+            # means agreed is the inflated shell — block. ×10 scrap does not.
             if abs(other * factor - target) <= Decimal("2.00"):
+                if factor == Decimal(100) and is_decimal_place_shift(agreed, raw):
+                    return True
                 continue
             if target > 0 and other > target:
                 ratio = other / target
                 if abs(ratio - factor) / factor <= Decimal("0.02"):
                     if agreed_is_bleed and factor == Decimal(100):
+                        continue
+                    if (
+                        allow_pure_place_shift_soup
+                        and factor == Decimal(100)
+                        and not is_currency_digit_drop_twin(agreed, raw)
+                    ):
                         continue
                     return True
     return False

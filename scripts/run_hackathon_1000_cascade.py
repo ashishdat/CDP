@@ -658,11 +658,26 @@ def _process_one(
                         "agent_used": fb.agent_used,
                         "fields": dict(fb.fields),
                     }
-                    # Extraction is not acceptance. Keep REGISTRATION_FAILED —
-                    # unstructured DI text has not passed ClaimDecision gates and
-                    # must not inflate completed / field-ink HITL rates.
+                    # Precision-safe promotion (v12.3m): shaped critical fields via
+                    # semantic_accept may clear REG. Partial shapes → unstructured HITL
+                    # (excluded from field-ink HITL). Empty → stay REGISTRATION_FAILED.
+                    required = {
+                        "patient_name",
+                        "patient_dob",
+                        "insured_id_number",
+                        "total_charge",
+                    }
+                    if required.issubset(fb.fields):
+                        disposition = "TRUE_STP"
+                    elif fb.fields:
+                        disposition = "HITL"
                     with contextlib.suppress(OSError, AttributeError, ValueError):
                         page_image.close()
+        unstructured_hitl = (
+            disposition == "HITL"
+            and unstructured_meta is not None
+            and bool((unstructured_meta or {}).get("fields"))
+        )
         row = {
             "finished": True,
             "claim_id": claim_id,
@@ -670,13 +685,27 @@ def _process_one(
             "bundle_id": _bundle_id(document),
             "group_id": _group_id(document),
             "registration_ok": False,
-            # Infra / registration failures are never "completed" field outcomes.
-            "completed": False,
-            "true_stp": False,
+            "allows_cms_geometry": False,
+            # Unstructured recoveries are completed without CMS geometry.
+            "completed": disposition in {"TRUE_STP", "HITL"},
+            "true_stp": disposition == "TRUE_STP",
             "disposition": disposition,
             "registration_reason": reason,
-            "hitl_track": None,
-            "critical_blockers": None,
+            "hitl_track": "UNSTRUCTURED_DI" if unstructured_hitl else None,
+            "critical_blockers": (
+                [
+                    f
+                    for f in (
+                        "patient_name",
+                        "patient_dob",
+                        "insured_id_number",
+                        "total_charge",
+                    )
+                    if f not in (unstructured_meta or {}).get("fields", {})
+                ]
+                if unstructured_hitl
+                else None
+            ),
             "unstructured_reg_fallback": unstructured_meta,
             "app_returncode": rc,
             "error": tail if disposition == "APP_FAILURE" else None,
@@ -827,15 +856,26 @@ def _process_one(
     return row
 
 
+def _is_unstructured_reg_recovery(row: dict[str, Any]) -> bool:
+    """True when REG was cleared via DI page-read fallback (no CMS geometry)."""
+    meta = row.get("unstructured_reg_fallback")
+    if not isinstance(meta, dict):
+        return False
+    if not meta.get("attempted") and not meta.get("fields"):
+        return False
+    return row.get("disposition") in {"TRUE_STP", "HITL"} and row.get("completed")
+
+
 def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Operational STP / HITL rollup.
 
     Definitions (fail-closed, mutually exclusive dispositions):
-      - TRUE_STP: registration_ok ∧ completed ∧ ¬review_required
-      - HITL (field-ink): registration_ok ∧ completed ∧ review_required
+      - TRUE_STP: (CMS registration_ok ∨ unstructured REG recovery) ∧ completed
+      - HITL (field-ink): registration_ok ∧ completed ∧ field review
+      - HITL (unstructured): REG fallback shaped some but not all critical fields
       - REGISTRATION_FAILED / STAGE_FAILURE / …: infra — NOT field HITL
 
-    Primary rates use the completed denominator:
+    Primary rates use the completed denominator (CMS + unstructured recoveries):
       true_stp_rate = true_stp / completed
       hitl_rate     = field_ink_hitl / completed
 
@@ -844,12 +884,22 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """
     n = len(rows)
     reg_ok = sum(1 for r in rows if r.get("registration_ok"))
-    completed = sum(1 for r in rows if r.get("completed") and r.get("registration_ok"))
-    true_stp = sum(
+    cms_completed = sum(1 for r in rows if r.get("completed") and r.get("registration_ok"))
+    unstructured_completed = sum(1 for r in rows if _is_unstructured_reg_recovery(r))
+    completed = cms_completed + unstructured_completed
+    cms_true_stp = sum(
         1
         for r in rows
         if r.get("true_stp") and r.get("completed") and r.get("registration_ok")
     )
+    unstructured_stp = sum(
+        1
+        for r in rows
+        if r.get("true_stp")
+        and _is_unstructured_reg_recovery(r)
+        and not r.get("registration_ok")
+    )
+    true_stp = cms_true_stp + unstructured_stp
     # Field-ink HITL only — requires completed CMS-geometry extraction.
     # disposition==HITL alone is not enough (legacy unstructured-reg rows).
     field_hitl = sum(
@@ -859,6 +909,13 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
         and r.get("completed")
         and r.get("registration_ok")
         and r.get("hitl_track") != "UNSTRUCTURED_DI"
+    )
+    unstructured_hitl = sum(
+        1
+        for r in rows
+        if r.get("disposition") == "HITL"
+        and r.get("hitl_track") == "UNSTRUCTURED_DI"
+        and _is_unstructured_reg_recovery(r)
     )
     hitl = field_hitl
     reg_hitl = sum(1 for r in rows if r.get("disposition") == "REGISTRATION_FAILED")
@@ -876,7 +933,7 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
             "INCOMPLETE",
         }
     )
-    # Invariant: among completed rows, STP + field HITL == completed.
+    # Invariant: among completed rows, STP + field HITL + unstructured HITL == completed.
     return {
         "n": n,
         "registration_ok": reg_ok,
@@ -884,6 +941,9 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "completed": completed,
         "completion_rate": round(completed / n, 6) if n else 0.0,
         "true_stp": true_stp,
+        "cms_true_stp": cms_true_stp,
+        "unstructured_reg_stp": unstructured_stp,
+        "unstructured_reg_hitl": unstructured_hitl,
         # Primary operational STP: share of completed claims that auto-accept.
         "true_stp_rate": round(true_stp / completed, 6) if completed else 0.0,
         "true_stp_rate_of_completed": round(true_stp / completed, 6) if completed else 0.0,
@@ -1215,9 +1275,10 @@ def main() -> int:
         "CDP_AZURE_DI_SERVICE_LINE_BUDGET": "1",
         "CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED": "1",
         "CDP_OCR_NAME_CONFIRM_MIN_CONF": "0.80",
-        # Unstructured REG page-read path is DI-backed — off while DI is parked.
-        "CDP_UNSTRUCTURED_REG_FALLBACK": "0",
-        "CDP_UNSTRUCTURED_REG_AGENT": "0",
+        # Unstructured REG: DI page-read (+ optional text agent) after template miss.
+        # Kill-switch: export CDP_CASCADE_RESPECT_ENV=1 with FALLBACK=0.
+        "CDP_UNSTRUCTURED_REG_FALLBACK": "1",
+        "CDP_UNSTRUCTURED_REG_AGENT": "1",
         # FIELD_INK DOB/ID/charge: crop-only Claude/gpt-4o after local(+TrOCR) miss.
         "CDP_GPT4O_CROP_RESIDUAL": "1",
         "CDP_GPT4O_CROP_ACCEPT": "1",
