@@ -1,0 +1,63 @@
+# Independent case toolstack v1 — page-class → recovery path
+# Consumed by packages.extraction_recovery.independent_case_router
+#
+# Field residual ladders remain in field_recovery_toolstack_v13.yaml
+# (MISSING_INK / OVERLAP / CONFLICT) and run only on CMS_GEOMETRY /
+# FIELD_INK_RESIDUAL paths after registration.
+
+version: independent-case-toolstack-v1
+
+critical_fields:
+  - patient_name
+  - patient_dob
+  - insured_id_number
+  - total_charge
+
+# document_finance.DocumentFamily → CasePath
+family_paths:
+  CMS1500: CMS_GEOMETRY
+  UB04: UNSTRUCTURED_DI
+  REIMBURSEMENT_SUPERBILL: UNSTRUCTURED_DI
+  RUNNING_ACCOUNT_STATEMENT: UNSTRUCTURED_DI
+  EOB: MAILROOM_REG
+  SEPARATOR: MAILROOM_REG
+  ATTACHMENT: MAILROOM_REG
+  UNKNOWN: CMS_GEOMETRY
+
+paths:
+  MAILROOM_REG:
+    description: Document separator / fax boilerplate / non-claim attachment
+    disposition: KEEP_REG
+    hitl_track: null
+    tools: []
+  CMS_GEOMETRY:
+    description: CMS-1500 template registration + OCR cascade + field residuals
+    disposition: CMS_CLAIM_DECISION
+    hitl_track: null  # FIELD_INK only when claim_decision requires review
+    tools:
+      - sift_register
+      - dual_local_ocr
+      - field_recovery_toolstack_v13
+      - claim_decision
+  UNSTRUCTURED_DI:
+    description: Full-page Azure DI + precision-safe heuristics (UB-04 / freeform)
+    disposition: UNSTRUCTURED_PROMOTE
+    hitl_track: UNSTRUCTURED_DI
+    tools:
+      - azure_di_page_read
+      - unstructured_heuristics
+      - optional_text_agent  # kill-switched via CDP_UNSTRUCTURED_REG_AGENT
+  FIELD_INK_RESIDUAL:
+    description: Registered CMS with weak critical field — residual ladder only
+    disposition: CMS_CLAIM_DECISION
+    hitl_track: FIELD_INK
+    tools:
+      - field_recovery_toolstack_v13
+      - insured_name_patient_twin
+      - claim_decision
+
+kill_switches:
+  unstructured_fallback: CDP_UNSTRUCTURED_REG_FALLBACK
+  unstructured_agent: CDP_UNSTRUCTURED_REG_AGENT
+  cloud_stop_ladder: CDP_CLOUD_STOP_LADDER
+  field_recovery_v13: CDP_FIELD_RECOVERY_V13

@@ -1148,9 +1148,29 @@ def decide(extraction, family):
                 or values.get('relationship')
                 or values.get('rel_code')
             )
+            # values[] may not hold patient_name yet (set late); seed from field list.
             patient_val = str(values.get('patient_name') or '').strip()
+            if not patient_val:
+                for pf in fields:
+                    if pf.get('field_name') != 'patient_name':
+                        continue
+                    win = pf.get('ranked_candidate') or {}
+                    ocr = win.get('ocr_candidate') or {}
+                    patient_val = str(
+                        pf.get('normalized_value')
+                        or ocr.get('value')
+                        or ocr.get('raw_value')
+                        or ''
+                    ).strip()
+                    break
+            # Self checkbox OR missing relationship with weak Box-4 OCR: when
+            # Box 2 is a strong person and Box 4 is short junk (``DADC`` / ``2``),
+            # inject patient ink. Never borrow when Box 4 already looks like a
+            # different strong person name (spouse/child).
+            rel_self = relationship_is_self(relationship)
+            rel_unknown = not str(relationship or '').strip()
             if (
-                relationship_is_self(relationship)
+                (rel_self or rel_unknown)
                 and patient_val
                 and _name_is_strong_person(patient_val)
             ):
@@ -1204,7 +1224,9 @@ def decide(extraction, family):
                     # Box 4 printed SAME. Copying Box 2 over it is a different
                     # name, not fragment relief.
                     box4_says_same = any(_name_is_self_reference(v) for v in insured_vals)
-                    if not box4_says_same and (
+                    # Unknown relationship: only fragment/weak/label paths —
+                    # never soft_twin alone (could be a real different insured).
+                    allow = (
                         soft_twin
                         or fragment_pair
                         or all_weak
@@ -1212,7 +1234,12 @@ def decide(extraction, family):
                         or top_weak
                         or top_label
                         or not insured_vals
+                    )
+                    if rel_unknown and not (
+                        fragment_pair or all_weak or all_label or top_weak or top_label or not insured_vals
                     ):
+                        allow = False
+                    if not box4_says_same and allow:
                         from packages.domain.common import BoundingBox
                         base_box = candidates[0].bounding_box if candidates else None
                         candidates.append(OCRCandidate(
@@ -2108,6 +2135,64 @@ def decide(extraction, family):
         reference_authority_meta = []
 
     decisions = [_seal_accepted_value(d, deterministic) for d in decisions]
+
+    # Independent case (after seal): insured_name short junk while patient_name AUTO.
+    try:
+        from packages.candidate_reconciliation.reconciler import (
+            _name_is_short_fragment,
+            _name_is_strong_person,
+        )
+        from packages.evidence_decision.contracts import (
+            FieldDisposition as _FD,
+            NextAction as _NA,
+        )
+        from packages.geometry_authority.form_redundancy import relationship_is_self
+
+        by_name = {d.field_name: d for d in decisions}
+        patient_d = by_name.get('patient_name')
+        insured_d = by_name.get('insured_name')
+        rel = (
+            values.get('insured_relationship')
+            or values.get('relationship')
+            or values.get('rel_code')
+        )
+        rel_ok = relationship_is_self(rel) or not str(rel or '').strip()
+        if (
+            patient_d is not None
+            and insured_d is not None
+            and patient_d.disposition in {_FD.AUTO_ACCEPTED, _FD.REFERENCE_CONFIRMED}
+            and insured_d.disposition not in {_FD.AUTO_ACCEPTED, _FD.REFERENCE_CONFIRMED, _FD.HUMAN_CONFIRMED}
+            and rel_ok
+        ):
+            pval = str(patient_d.selected_value or '').strip()
+            ival = str(insured_d.selected_value or '').strip()
+            if (
+                pval
+                and _name_is_strong_person(pval)
+                and (
+                    not ival
+                    or _name_is_short_fragment(ival)
+                    or len(ival) <= 4
+                    or not _name_is_strong_person(ival)
+                )
+            ):
+                idx = next(i for i, d in enumerate(decisions) if d.field_name == 'insured_name')
+                decisions[idx] = insured_d.model_copy(update={
+                    'selected_value': pval,
+                    'disposition': _FD.AUTO_ACCEPTED,
+                    'conflicting_evidence': [],
+                    'reason_codes': list(dict.fromkeys([
+                        *(insured_d.reason_codes or []),
+                        'HARD_VALIDATION_PASSED',
+                        'INSURED_NAME_PATIENT_TWIN_PROMOTED',
+                    ])),
+                    'next_action': _NA.NONE,
+                    'blocks_stp': False,
+                })
+                values['insured_name'] = pval
+    except Exception as _twin_exc:  # noqa: BLE001
+        print(f"[insured_twin_promote] skipped: {_twin_exc}", flush=True)
+
     claim = services.claim_decision.decide(ClaimDecisionContext(
         claim_id=claim_id, document_family=family, field_decisions=decisions,
         claim_evidence=facts.evidence_items, contradictions=facts.contradictions,

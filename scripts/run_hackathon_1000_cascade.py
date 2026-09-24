@@ -652,25 +652,58 @@ def _process_one(
                     page_image = None
                 if page_image is not None:
                     fb = run_unstructured_reg_fallback(page_image)
-                    unstructured_meta = {
-                        "attempted": fb.attempted,
-                        "reason": fb.reason,
-                        "agent_used": fb.agent_used,
-                        "fields": dict(fb.fields),
-                    }
-                    # Precision-safe promotion (v12.3m): shaped critical fields via
-                    # semantic_accept may clear REG. Partial shapes → unstructured HITL
-                    # (excluded from field-ink HITL). Empty → stay REGISTRATION_FAILED.
-                    required = {
-                        "patient_name",
-                        "patient_dob",
-                        "insured_id_number",
-                        "total_charge",
-                    }
-                    if required.issubset(fb.fields):
-                        disposition = "TRUE_STP"
-                    elif fb.fields:
-                        disposition = "HITL"
+                    try:
+                        from packages.extraction_recovery.independent_case_router import (
+                            classify_independent_case,
+                            promote_unstructured_fields,
+                        )
+                    except ImportError:
+                        classify_independent_case = None  # type: ignore
+                        promote_unstructured_fields = None  # type: ignore
+                    route_meta: dict[str, Any] | None = None
+                    if classify_independent_case is not None:
+                        route = classify_independent_case(
+                            fb.di_text or "",
+                            registration_ok=False,
+                        )
+                        route_meta = route.to_dict()
+                        if route.path.value == "MAILROOM_REG":
+                            disposition = "REGISTRATION_FAILED"
+                            unstructured_meta = {
+                                "attempted": fb.attempted,
+                                "reason": "MAILROOM_OR_FAX",
+                                "agent_used": fb.agent_used,
+                                "fields": {},
+                                "route": route_meta,
+                            }
+                        else:
+                            disposition, blockers = promote_unstructured_fields(fb.fields)
+                            unstructured_meta = {
+                                "attempted": fb.attempted,
+                                "reason": fb.reason,
+                                "agent_used": fb.agent_used,
+                                "fields": dict(fb.fields),
+                                "route": route_meta,
+                                "critical_blockers": blockers if disposition == "HITL" else None,
+                            }
+                    else:
+                        # Legacy promotion if router unavailable.
+                        unstructured_meta = {
+                            "attempted": fb.attempted,
+                            "reason": fb.reason,
+                            "agent_used": fb.agent_used,
+                            "fields": dict(fb.fields),
+                        }
+                        required = {
+                            "patient_name",
+                            "patient_dob",
+                            "insured_id_number",
+                            "total_charge",
+                        }
+                        if required.issubset(fb.fields):
+                            disposition = "TRUE_STP"
+                        elif fb.fields:
+                            disposition = "HITL"
                     with contextlib.suppress(OSError, AttributeError, ValueError):
                         page_image.close()
         unstructured_hitl = (
@@ -693,16 +726,19 @@ def _process_one(
             "registration_reason": reason,
             "hitl_track": "UNSTRUCTURED_DI" if unstructured_hitl else None,
             "critical_blockers": (
-                [
-                    f
-                    for f in (
-                        "patient_name",
-                        "patient_dob",
-                        "insured_id_number",
-                        "total_charge",
-                    )
-                    if f not in (unstructured_meta or {}).get("fields", {})
-                ]
+                list(
+                    (unstructured_meta or {}).get("critical_blockers")
+                    or [
+                        f
+                        for f in (
+                            "patient_name",
+                            "patient_dob",
+                            "insured_id_number",
+                            "total_charge",
+                        )
+                        if f not in (unstructured_meta or {}).get("fields", {})
+                    ]
+                )
                 if unstructured_hitl
                 else None
             ),
@@ -711,7 +747,7 @@ def _process_one(
             "error": tail if disposition == "APP_FAILURE" else None,
             "elapsed_sec": round(time.time() - started, 3),
             "ts": _utc_now(),
-            "strategy_id": "field-cascade-v12+unstructured-reg-fallback"
+            "strategy_id": "independent-case-router-v1"
             if unstructured_meta and unstructured_meta.get("attempted")
             else "field-cascade-v12",
         }

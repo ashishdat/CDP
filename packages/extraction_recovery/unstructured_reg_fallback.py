@@ -458,14 +458,19 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         i
         for i, ln in enumerate(lines)
         if re.search(
-            r"total\s*charge|box\s*28|\btotals?\b|\$\s*\d",
+            # TOTALST / TOTALSI are common DI garble of TOTALS on UB-04.
+            r"total\s*charge|box\s*28|totals?t?i?\b|\$\s*\d",
             ln,
             re.IGNORECASE,
         )
     ]
+    # CMS freeform: service-line totals like ``315 00 0 00 315 00``.
+    for i, ln in enumerate(lines):
+        if re.search(r"\b\d{2,5}\s+00\s+0\s+00\s+\d{2,5}\s+00\b", ln):
+            cue_idx.append(i)
     cue_lines: list[str] = []
     seen_cue: set[str] = set()
-    for i in cue_idx:
+    for i in sorted(set(cue_idx)):
         for ln in lines[i : i + 3]:  # TOTALS often on its own line above amount
             if ln not in seen_cue:
                 seen_cue.add(ln)
@@ -475,12 +480,22 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     ]
     seen_charge: set[str] = set()
 
-    def _take_charge(raw: str) -> None:
+    def _take_charge(raw: str, *, allow_tiny: bool = False) -> None:
         nonlocal out
         if raw in seen_charge or raw == "0.00":
             return
         seen_charge.add(raw)
-        shaped, _ = _shape_field("total_charge", raw)
+        shaped, reason = _shape_field("total_charge", raw)
+        if not shaped and allow_tiny and reason.startswith("UNSHAPED:"):
+            # UB-04 session fees ($1–$12) on TOTALS cue — semantic_accept rejects
+            # as TINY / POS_LIKE without geometry; cue corroboration is enough.
+            if "TINY" in reason or "POS_LIKE" in reason:
+                try:
+                    amt = float(raw)
+                except ValueError:
+                    amt = None
+                if amt is not None and 0.01 <= amt <= 500.0:
+                    shaped, reason = raw, f"SHAPED:UNSTRUCTURED_TOTALS_CUE:{reason}"
         if not shaped:
             return
         prev = out.get("total_charge")
@@ -495,12 +510,12 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
 
     for ln in cue_lines:
         for m in re.finditer(r"\$?\s*(\d{1,5})[.,;](\d{2})\b", ln):
-            _take_charge(f"{m.group(1)}.{m.group(2)}")
+            _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True)
         for m in re.finditer(r"\$?\s*(\d{1,5})[ \-](\d{2})(?!\d)\b", ln):
             whole = int(m.group(1))
             if whole > 20000:
                 continue
-            _take_charge(f"{m.group(1)}.{m.group(2)}")
+            _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True)
     if "total_charge" not in out:
         for ln in charge_lines + lines:
             if re.search(r"\bF\d{2}|cpt\b|908\d{2}|ndc\b", ln, re.IGNORECASE):
