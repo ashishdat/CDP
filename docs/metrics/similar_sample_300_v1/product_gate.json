@@ -1,0 +1,49 @@
+{
+  "pass": true,
+  "claim_page_stp": 0.984,
+  "claim_pages": 250,
+  "true_stp": 246,
+  "hitl": 4,
+  "registration_failed": 50,
+  "false_accepts": 0,
+  "accepted_field_precision": 1.0,
+  "fa_status": "SCORED",
+  "residual_counts": {
+    "POLICY_HOLD": 3,
+    "INK_ABSENT": 1
+  },
+  "reasons": [
+    "PRODUCT_GATE_PASS"
+  ],
+  "targets": {
+    "claim_page_stp_min": 0.97,
+    "accepted_field_precision_min": 1.0,
+    "max_false_accepts": 0,
+    "gold_only": true,
+    "apply_quarantine": true
+  },
+  "fa_report": {
+    "status": "SCORED",
+    "claims_scored": 127,
+    "accepted_fields_scored": 287,
+    "false_accepts": 0,
+    "exact_matches": 287,
+    "accepted_field_precision": 1.0,
+    "gold_only": true,
+    "quarantine_applied": true,
+    "quarantined_fields": 21,
+    "false_accept_examples": []
+  },
+  "n": 300,
+  "sample": "similar_sample_300_v1",
+  "source": "Google Drive Hackathon - 1000 Claims.zip (id=1vhLhHwucY2gG6INZS3MB1MpAE1suaIJW)",
+  "selection": "holdout stratified 300 excluding similar_sample_200_v1 (A202/B56/C26/D16)",
+  "ledger_source": "hackathon_600+400_remainder independent tip seed",
+  "reg_classes": {
+    "FAX_PATCH": 22,
+    "DOCUMENT_SEPARATOR": 22,
+    "UNIQUE_ID_COVER": 6
+  },
+  "contract_version": "product-stp-accuracy-contract-v1",
+  "generated_at": "2026-09-24T09:45:39.100500+00:00"
+}

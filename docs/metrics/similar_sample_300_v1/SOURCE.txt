@@ -1,0 +1,4 @@
+Google Drive file id=1vhLhHwucY2gG6INZS3MB1MpAE1suaIJW
+Hackathon - 1000 Claims.zip
+Holdout stratified 300 excluding similar_sample_200_v1 selection
+alloc={'Group A': 202, 'Group B': 56, 'Group C': 26, 'Group D': 16}

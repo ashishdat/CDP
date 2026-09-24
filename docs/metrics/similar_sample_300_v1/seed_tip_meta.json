@@ -1,0 +1,10 @@
+{
+  "seeded": 300,
+  "missing": [],
+  "n_requested": 300,
+  "source": [
+    "evaluation_results/hackathon_600_independent_v13c",
+    "evaluation_results/hackathon_400_remainder_independent_v13c"
+  ],
+  "selection": "holdout stratified excluding similar_sample_200_v1"
+}
