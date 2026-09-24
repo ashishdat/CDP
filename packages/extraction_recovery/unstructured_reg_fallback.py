@@ -109,6 +109,7 @@ _BAD_NAME = re.compile(
     r"document\s*separator|unique\s*id|fax\s*(?:image|patch)|print\s*options|"
     r"\bof\s*b[il]{2,}\b|\bmed\.?\s*rec\b|\bmedical\s*rec|"
     r"therefore\s+better|original\s+source|image\s+quality|"
+    r"\bifyes\b|\breturn\s+to\b|pompano\s*beach|procesunes|seinvices|"
     r"\b(?:hospital|hosp|medical\s*center|foundation|university|presbyterian|"
     r"columbia|kaiser|northern\s*light|mayo|counseling\s*center|corp\.?\s*dba|"
     r"llc|inc\.?|street|avenue|ave\b|road|rd\b|blvd|suite|floor)\b|"
@@ -193,6 +194,27 @@ _NAME_STOP = {
     "BE",
     "FAX",
     "IMAGE",
+    "IFYES",
+    "RETURN",
+    "YES",
+    "POMPANO",
+    "BEACH",
+    "COMPLETE",
+    "ITEM",
+    "PLACE",
+    "BELAREL",
+    "FED",
+    "TAX",
+    "OMB",
+    "NUCC",
+    "HCFA",
+    "CMS",
+    "STATEMENT",
+    "COVERS",
+    "PERIOD",
+    "SERVICES",
+    "RESERVED",
+    "LOCAL",
 }
 
 
@@ -240,7 +262,9 @@ def _looks_like_person_name(text: str) -> bool:
         if len(right_toks) == 1 and right_toks[0].upper() in _US_STATES:
             return False
         return True
-    # Non-comma: both tokens ≥3 chars (rejects ``OF BLL``).
+    # Non-comma: both tokens ≥3 chars; reject long label phrases.
+    if len(tokens) > 3:
+        return False
     return all(len(t) >= 3 for t in tokens[:2])
 
 
@@ -319,14 +343,27 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         for ln in pool:
             if re.search(
                 r"\bnpi\b|\btax\b|fed\.?\s*tax|buford|martin,?\s*inc|\bhealthcare\b|"
-                r"tracking|sourcehov|patch\s*ii|"
-                r"\b(?:street|avenue|ave\b|road|rd\b|blvd|suite|bronx|brooklyn|"
-                r"sacramento|atlanta|hempstead)\b",
+                r"tracking|sourcehov|patch\s*ii|salt\s*lake|p\.?\s*o\.?\s*box|"
+                r"optum|united\s*behavioral",
                 ln,
                 re.IGNORECASE,
             ):
                 continue
-            for tok in re.findall(r"\b\d{7,12}\b", ln):
+            address_line = bool(
+                re.search(
+                    r"\b(?:street|avenue|ave\b|road|rd\b|blvd|suite|bronx|brooklyn|"
+                    r"sacramento|atlanta|hempstead)\b",
+                    ln,
+                    re.IGNORECASE,
+                )
+            )
+            toks = re.findall(r"\b\d{7,12}\b", ln)
+            if address_line:
+                # Freeform CMS notes put member id at the start of an address soup line.
+                if toks and ln.lstrip().startswith(toks[0]):
+                    _consider_id(toks[0], rank)
+                continue
+            for tok in toks:
                 _consider_id(tok, rank)
     # Drop DOB-shaped digit strings that leaked into the ID pool.
     dob_digits = re.sub(r"\D", "", out.get("patient_dob") or "")
@@ -392,9 +429,15 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 break
         if picked_name:
             break
-    # Pass 2: non-comma FIRST LAST only near patient/insured labels.
+    # Pass 2: non-comma FIRST LAST — labels first, then short freeform header lines.
     if not picked_name:
-        for ln in name_priority:
+        freeform_headers = [
+            ln
+            for ln in lines[:25]
+            if len(ln) <= 40
+            and not re.search(r"\d{5}|\bstreet\b|\bavenue\b|\bblvd\b|united|optum|box", ln, re.I)
+        ]
+        for ln in name_priority + freeform_headers:
             if "," in ln:
                 continue
             for probe in _name_candidates(ln):
@@ -409,39 +452,64 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 break
 
     # Charge: prefer TOTAL CHARGE / Box 28 / UB-04 box 47 totals.
-    charge_lines = [
-        ln
-        for ln in lines
+    # DI often emits ``780 00`` / ``231-00`` / ``$ 780 00`` instead of ``780.00``.
+    # Space/dash decimals are ONLY accepted on total/$ cue lines (never on DOB soup).
+    cue_idx = [
+        i
+        for i, ln in enumerate(lines)
         if re.search(
-            r"total\s*charge|box\s*28|\bcharge\b|totals?\b",
+            r"total\s*charge|box\s*28|\btotals?\b|\$\s*\d",
             ln,
             re.IGNORECASE,
         )
-    ] + lines
+    ]
+    cue_lines: list[str] = []
+    seen_cue: set[str] = set()
+    for i in cue_idx:
+        for ln in lines[i : i + 3]:  # TOTALS often on its own line above amount
+            if ln not in seen_cue:
+                seen_cue.add(ln)
+                cue_lines.append(ln)
+    charge_lines = cue_lines + [
+        ln for ln in lines if re.search(r"\bcharge\b", ln, re.IGNORECASE)
+    ]
     seen_charge: set[str] = set()
-    for ln in charge_lines:
-        if re.search(r"\bF\d{2}|cpt\b|908\d{2}|ndc\b", ln, re.IGNORECASE):
-            if not re.search(r"total\s*charge", ln, re.IGNORECASE):
-                continue
-        # OCR often emits ``482;00`` or ``482,00`` for ``482.00``.
+
+    def _take_charge(raw: str) -> None:
+        nonlocal out
+        if raw in seen_charge or raw == "0.00":
+            return
+        seen_charge.add(raw)
+        shaped, _ = _shape_field("total_charge", raw)
+        if not shaped:
+            return
+        prev = out.get("total_charge")
+        if prev is None:
+            out["total_charge"] = shaped
+            return
+        try:
+            if float(shaped) >= float(prev):
+                out["total_charge"] = shaped
+        except ValueError:
+            pass
+
+    for ln in cue_lines:
         for m in re.finditer(r"\$?\s*(\d{1,5})[.,;](\d{2})\b", ln):
-            raw = f"{m.group(1)}.{m.group(2)}"
-            if raw in seen_charge or raw == "0.00":
+            _take_charge(f"{m.group(1)}.{m.group(2)}")
+        for m in re.finditer(r"\$?\s*(\d{1,5})[ \-](\d{2})(?!\d)\b", ln):
+            whole = int(m.group(1))
+            if whole > 20000:
                 continue
-            seen_charge.add(raw)
-            shaped, _ = _shape_field("total_charge", raw)
-            if shaped:
-                prev = out.get("total_charge")
-                if prev is None:
-                    out["total_charge"] = shaped
-                else:
-                    try:
-                        if float(shaped) >= float(prev):
-                            out["total_charge"] = shaped
-                    except ValueError:
-                        pass
-        if "total_charge" in out and charge_lines and ln in charge_lines[:3]:
-            break
+            _take_charge(f"{m.group(1)}.{m.group(2)}")
+    if "total_charge" not in out:
+        for ln in charge_lines + lines:
+            if re.search(r"\bF\d{2}|cpt\b|908\d{2}|ndc\b", ln, re.IGNORECASE):
+                if not re.search(r"total\s*charge", ln, re.IGNORECASE):
+                    continue
+            for m in re.finditer(r"\$?\s*(\d{1,5})[.,;](\d{2})\b", ln):
+                _take_charge(f"{m.group(1)}.{m.group(2)}")
+            if "total_charge" in out and ln in (charge_lines[:5] or lines[:5]):
+                break
     return out
 
 

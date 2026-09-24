@@ -136,3 +136,43 @@ FAX IMAGE - ORIGINAL SOURCE MAY BE BAD, THEREFORE BETTER IMAGE QUALITY CANNOT BE
 08/18/2026
 """
     assert _heuristic_fields_from_di_text(text) == {}
+
+
+def test_space_separated_total_charge_near_box28():
+    text = """
+NAKACHE, SHELLEY
+05211974
+985321153
+28. TOTAL CHARGE
+$ 780 00 $
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("patient_name", "").upper().startswith("NAKACHE")
+    assert fields.get("insured_id_number") == "985321153"
+    assert fields.get("patient_dob") == "05/21/1974"
+    assert "780.00" in (fields.get("total_charge") or "")
+
+
+def test_member_id_kept_when_leading_address_soup_line():
+    text = """
+ATTA, Dee-Dee
+02 21 69
+977508972 ATTA De-Die 970 Sidney Haus Blvd #1512 Atlanta GA 30324
+300.00
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("insured_id_number") == "977508972"
+    assert "ATTA" in (fields.get("patient_name") or "").upper()
+
+
+def test_ifyes_return_form_instruction_rejected():
+    text = """
+IFyes, return to and completoliem 9a-d,
+LUTH, LAURA
+959298836
+150.00
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    name = (fields.get("patient_name") or "").upper()
+    assert "IFYES" not in name and "RETURN" not in name
+    assert "LUTH" in name
