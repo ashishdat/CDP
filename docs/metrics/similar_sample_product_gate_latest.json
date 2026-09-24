@@ -1,0 +1,41 @@
+{
+  "pass": false,
+  "claim_page_stp": 0.962,
+  "claim_pages": 841,
+  "true_stp": 809,
+  "hitl": 32,
+  "registration_failed": 159,
+  "false_accepts": 0,
+  "accepted_field_precision": 1.0,
+  "fa_status": "SCORED",
+  "residual_counts": {
+    "POLICY_HOLD": 21,
+    "INK_ABSENT": 11
+  },
+  "reasons": [
+    "CLAIM_PAGE_STP_BELOW_TARGET:0.9620<0.97"
+  ],
+  "targets": {
+    "claim_page_stp_min": 0.97,
+    "accepted_field_precision_min": 1.0,
+    "max_false_accepts": 0,
+    "gold_only": true,
+    "apply_quarantine": true
+  },
+  "fa_report": {
+    "status": "SCORED",
+    "claims_scored": 213,
+    "accepted_fields_scored": 513,
+    "false_accepts": 0,
+    "exact_matches": 513,
+    "accepted_field_precision": 1.0,
+    "gold_only": true,
+    "quarantine_applied": true,
+    "quarantined_fields": 30,
+    "false_accept_examples": []
+  },
+  "n": 1000,
+  "contract_version": "product-stp-accuracy-contract-v1",
+  "generated_at": "2026-09-24T07:45:25.357544+00:00",
+  "allow_incomplete_gt": false
+}

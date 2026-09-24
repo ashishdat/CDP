@@ -30,6 +30,15 @@ governed by `config/architecture/redesign_stack_v1.yaml`.
 cascade, UB-04/freeform → unstructured DI, registered field-ink → residual
 ladder). See `docs/INDEPENDENT_CASE_ARCHITECTURE_V1.md`.
 
+**Going-forward product targets (similar samples):** claim-page STP ≥ **97%**
+and accepted-field accuracy **100%** (FA=0). Contract:
+`config/product_stp_accuracy_contract_v1.yaml`. Design:
+`docs/PRODUCT_STP_ACCURACY_APPLICATION_V1.md`. Gate:
+`make product-gate` → `scripts/check_similar_sample_product_gate.py`
+(FA scored on GOLD GT + quarantine; accept policy fail-closes placeholder AUTO).
+Independent-1000 tip: accuracy **PASS** (FA=0), STP **96.2%** (honest ceiling;
+no inventable recoverables).
+
 ## What's implemented (Phase 1)
 
 - Dataset inspection of the supplied `Images & Output.zip` sample —

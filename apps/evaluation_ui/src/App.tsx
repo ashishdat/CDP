@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AccuracyBars, Empty, GroupAccuracy, MetricCard } from "./components";
 import { HitlInspector } from "./hitl";
 import { OpsUsagePanel } from "./opsUsage";
+import { ProductGatePanel } from "./productGate";
 import { ScalePanel } from "./scale";
 import { PipelineFlow } from "./pipeline";
 import { ProcessingWorkspace } from "./process";
@@ -855,6 +856,7 @@ export default function App() {
 
           {activeTab === "ops" && (
             <section style={{ display: "grid", gap: "20px" }}>
+              <ProductGatePanel />
               <OpsUsagePanel />
             </section>
           )}

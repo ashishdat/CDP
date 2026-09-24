@@ -776,12 +776,30 @@ def run_unstructured_reg_fallback(
             di_text=di_text,
             agent_used=agent_used,
         )
+    # Product FA=0: drop placeholder / form-junk before promote.
+    try:
+        from packages.product_gates.accuracy_accept_policy import filter_auto_fields
+
+        fields, blocked = filter_auto_fields(fields)
+        if blocked and not fields:
+            return UnstructuredRegFallbackResult(
+                attempted=True,
+                configured=True,
+                reason="PRODUCT_ACCURACY_ACCEPT_POLICY:" + ",".join(blocked),
+                di_text=di_text,
+                agent_used=agent_used,
+            )
+    except Exception:  # noqa: BLE001
+        blocked = ()
+    reasons = {k: "UNSTRUCTURED_DI_SHAPED" for k in fields}
+    for code in blocked:
+        reasons[f"_policy:{code}"] = code
     return UnstructuredRegFallbackResult(
         attempted=True,
         configured=True,
         reason="UNSTRUCTURED_REG_FALLBACK_OK",
         di_text=di_text,
         fields=fields,
-        field_reasons={k: "UNSTRUCTURED_DI_SHAPED" for k in fields},
+        field_reasons=reasons,
         agent_used=agent_used,
     )

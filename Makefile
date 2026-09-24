@@ -1,7 +1,7 @@
 .PHONY: setup test test-unit test-integration test-golden test-performance \
 	architecture lint quality run down logs clean clean-runtime-data evaluation \
 	prod-smoke prod-check prod-closeout-init ui-up ui-down ui-seed ui-up-local ui-down-local \
-	geo-accuracy-gate
+	geo-accuracy-gate product-gate
 
 setup:
 	@if [ ! -f .env ]; then cp .env.example .env; echo "created .env from .env.example"; fi
@@ -101,6 +101,13 @@ prod-closeout-init:
 
 geo-accuracy-gate:
 	python3 scripts/check_geometry_accuracy_gate.py
+
+# Similar-sample product gate: claim-page STP ≥ 97% and FA=0 (GOLD GT).
+product-gate:
+	python3 -u scripts/check_similar_sample_product_gate.py \
+		--ledger-a evaluation_results/hackathon_600_independent_v13c \
+		--ledger-b evaluation_results/hackathon_400_remainder_independent_v13c \
+		--write docs/metrics/similar_sample_product_gate_latest.json
 
 prod-check: prod-smoke
 	@python3 scripts/check_production_closeout.py; status=$$?; \

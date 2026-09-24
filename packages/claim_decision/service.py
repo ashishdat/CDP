@@ -10,8 +10,9 @@ from packages.claim_decision.contracts import (
     ClaimDisposition,
 )
 from packages.criticality import CriticalityLevel
-from packages.evidence_decision import FieldDecision, FieldDisposition
+from packages.evidence_decision import FieldDecision, FieldDisposition, NextAction
 from packages.field_policy import FieldPolicyRegistry
+from packages.product_gates.accuracy_accept_policy import evaluate_critical_accept
 
 DEFAULT_CLAIM_POLICY_PATH = (
     Path(__file__).resolve().parents[2] / "config" / "claim_decision_policies.yaml"
@@ -108,6 +109,9 @@ class ClaimDecisionService:
                 reasons=["REQUIRED_FIELD_DECISIONS_MISSING"],
             )
 
+        # Product FA=0: demote AUTO that fail accept policy before STP calc.
+        context = self._apply_product_accuracy_policy(context)
+
         blocking: list[FieldDecision] = []
         nonblocking: list[FieldDecision] = []
         for decision in context.field_decisions:
@@ -167,6 +171,56 @@ class ClaimDecisionService:
                 else "ALL_BLOCKING_FIELDS_RESOLVED_STANDARD"
             ],
         )
+
+    @staticmethod
+    def _apply_product_accuracy_policy(
+        context: ClaimDecisionContext,
+    ) -> ClaimDecisionContext:
+        """Fail-closed: placeholder / form-junk AUTO → HUMAN_REVIEW (HITL)."""
+        patient_name = next(
+            (
+                d.selected_value
+                for d in context.field_decisions
+                if d.field_name == "patient_name" and d.selected_value
+            ),
+            None,
+        )
+        rewritten: list[FieldDecision] = []
+        changed = False
+        for decision in context.field_decisions:
+            if decision.disposition not in _ACCEPTED:
+                rewritten.append(decision)
+                continue
+            verdict = evaluate_critical_accept(
+                decision.field_name,
+                decision.selected_value,
+                patient_name=patient_name,
+            )
+            if verdict.allow_auto:
+                rewritten.append(decision)
+                continue
+            changed = True
+            rewritten.append(
+                decision.model_copy(
+                    update={
+                        "disposition": FieldDisposition.HUMAN_REVIEW_REQUIRED,
+                        "next_action": NextAction.HUMAN_REVIEW,
+                        "reason_codes": list(
+                            dict.fromkeys(
+                                [
+                                    *list(decision.reason_codes or []),
+                                    "PRODUCT_ACCURACY_ACCEPT_POLICY",
+                                    *list(verdict.reason_codes),
+                                ]
+                            )
+                        ),
+                        "blocks_stp": True,
+                    }
+                )
+            )
+        if not changed:
+            return context
+        return context.model_copy(update={"field_decisions": rewritten})
 
     def _qualifies_safe(self, context: ClaimDecisionContext) -> bool:
         critical_blocking: list[FieldDecision] = []

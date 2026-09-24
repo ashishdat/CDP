@@ -1,0 +1,85 @@
+# Product STP + accepted-accuracy contract (similar samples)
+# Enforced by packages.product_gates.similar_sample_gate
+# Design: docs/PRODUCT_STP_ACCURACY_APPLICATION_V1.md
+
+version: product-stp-accuracy-contract-v1
+
+product_name: independent_class_claims
+description: >
+  Going-forward targets for Independent-class claim pages (CMS-1500, UB-04/freeform,
+  mailroom separators). Claim-page STP is the attack metric. Accepted-field accuracy
+  is 100% (FA=0) — HITL/REG abstentions are not accuracy failures.
+
+targets:
+  claim_page_stp_min: 0.97
+  accepted_field_precision_min: 1.0
+  max_false_accepts: 0
+  # Secondary (tip / scored fields) — does not replace FA=0
+  exact_accuracy_min: 0.95
+
+denominators:
+  claim_page_stp: exclude_registration_failed
+  all_page_stp: include_all  # report only; never the promotion gate
+  accuracy: accepted_critical_fields_vs_gt
+
+critical_fields:
+  - patient_name
+  - patient_dob
+  - insured_id_number
+  - total_charge
+  - insured_name
+
+similar_sample_profile:
+  families:
+    - CMS1500
+    - UB04
+    - REIMBURSEMENT_SUPERBILL
+    - SEPARATOR
+    - UNKNOWN
+  case_paths:
+    - MAILROOM_REG
+    - CMS_GEOMETRY
+    - UNSTRUCTURED_DI
+    - FIELD_INK_RESIDUAL
+
+governance:
+  fail_closed: true
+  no_invent: true
+  no_threshold_fit_on_corpus: true
+  no_spouse_patient_twin: true
+  reg_irreducible: true
+  kill_switches:
+    - CDP_UNSTRUCTURED_REG_FALLBACK
+    - CDP_UNSTRUCTURED_REG_AGENT
+    - CDP_CLOUD_STOP_LADDER
+    - CDP_AZURE_DI_CHARGE_RESIDUAL
+    - CDP_AZURE_DI_CHARGE_ACCEPT
+    - CDP_GPT4O_CROP_RESIDUAL
+    - CDP_CONFLICT_AGENT
+
+residual_classes:
+  RECOVERABLE: dual_corroboration_or_calendar_dob
+  INK_ABSENT: keep_hitl
+  POLICY_HOLD: keep_hitl  # calibrated / C3 / scale rival without DI agree
+  REL_CONFLICT: keep_hitl  # spouse/other Box4 ≠ patient
+
+gates:
+  score_gt: evaluation_data/hackathon_agent_gt/field_truth.json
+  # SILVER labels echo prior AUTO — product FA uses GOLD only.
+  gold_only: true
+  apply_quarantine: true
+  require_gt_for_green_fa: true
+  allow_incomplete_gt_env: CDP_PRODUCT_GATE_ALLOW_INCOMPLETE_GT
+
+accuracy_accept_policy:
+  module: packages.product_gates.accuracy_accept_policy
+  reject_placeholder_names: true
+  reject_unresolved_same: true
+  reject_form_label_ids: true
+  reject_truncated_self_insured_name: true
+
+promotion:
+  claim_page_stp_ok: true
+  false_accept_ok: true
+  residual_taxonomy_published: true
+  holdout_required: true  # config/production_holdout_policy.yaml

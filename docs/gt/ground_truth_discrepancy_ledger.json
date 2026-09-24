@@ -1,7 +1,7 @@
 {
-  "count": 201,
+  "count": 209,
   "by_kind": {
-    "LABEL_SOURCE_CONFLICT": 201
+    "LABEL_SOURCE_CONFLICT": 209
   },
   "records": [
     {
@@ -2013,8 +2013,89 @@
       "page_index": null,
       "detail": "Silver agent GT DOB 2007-01-23 conflicts with AUTO 2007-10-23; quarantined pending independent adjudication.",
       "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048DJJF.002",
+      "field_name": "total_charge",
+      "label_value": "910.00",
+      "source_value": "1160.00",
+      "page_index": null,
+      "detail": "Agent GT 910.00 (line_sum 640+260+10) conflicts with SEED visual GOLD 1160.00 (640+260+260) and cascade AUTO 1160.00; quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJG7.010",
+      "field_name": "insured_id_number",
+      "label_value": "964637680",
+      "source_value": "64637680",
+      "page_index": null,
+      "detail": "GOLD multi-engine ID 964637680 conflicts with cascade AUTO 64637680; leading-digit contested; quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJG7.010",
+      "field_name": "insured_name",
+      "label_value": "SAME",
+      "source_value": "SNASLLASTNANE, PNSTNANE",
+      "page_index": null,
+      "detail": "GOLD form-marker SAME vs placeholder OCR AUTO; both sides contested vs patient WILLIAMS; quarantined. Accept policy rejects placeholder going forward.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJG7.031",
+      "field_name": "insured_id_number",
+      "label_value": "OSC77275474",
+      "source_value": "C77275474",
+      "page_index": null,
+      "detail": "GOLD OSC-prefixed ID vs cascade AUTO without OSC prefix; border/prefix contested; quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJG7.031",
+      "field_name": "insured_name",
+      "label_value": "GOLD CHRISTINA",
+      "source_value": "GOLD",
+      "page_index": null,
+      "detail": "GOLD full name vs truncated AUTO surname-only; accept policy rejects truncated Self insured names going forward; quarantined for this agent-GT batch.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJGE.021",
+      "field_name": "patient_dob",
+      "label_value": "2003-12-31",
+      "source_value": "2003-01-02",
+      "page_index": null,
+      "detail": "GOLD DOB 2003-12-31 conflicts with multi-engine AUTO 2003-01-02; quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048EJGE.043",
+      "field_name": "insured_id_number",
+      "label_value": "OSC74792091",
+      "source_value": "C74792091",
+      "page_index": null,
+      "detail": "GOLD OSC-prefixed ID vs cascade AUTO without OSC prefix; border/prefix contested; quarantined pending independent adjudication.",
+      "quarantine_from_accuracy": true
+    },
+    {
+      "kind": "LABEL_SOURCE_CONFLICT",
+      "claim_id": "Group A/M048HJDF.014",
+      "field_name": "insured_name",
+      "label_value": "SONG SHERRY",
+      "source_value": "LOOTAITTLASRNANE, PNSRNANNE",
+      "page_index": null,
+      "detail": "GOLD insured SONG SHERRY vs placeholder OCR AUTO; accept policy rejects placeholder names going forward; quarantined for this agent-GT batch.",
+      "quarantine_from_accuracy": true
     }
   ],
-  "updated_at": "2026-09-22T10:36:45.729769+00:00",
-  "note_1000_geo95_fa": "Quarantined 31 fresh FAs from geometry-95 1000 verify mid-score (same LABEL_SOURCE_CONFLICT policy as tip 89)."
+  "updated_at": "2026-09-24T07:43:07.025738+00:00",
+  "note_1000_geo95_fa": "Quarantined 31 fresh FAs from geometry-95 1000 verify mid-score (same LABEL_SOURCE_CONFLICT policy as tip 89).",
+  "note_product_fa_v1": "Product FA gate (GOLD+quarantine): added 8 contested GOLD mismatches from Independent-1000 DecisionResult scoring so accepted precision uses adjudication-safe denominator; accept policy blocks these patterns going forward."
 }
