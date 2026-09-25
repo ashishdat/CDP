@@ -277,8 +277,11 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     lines = [ln.strip() for ln in di_text.splitlines() if ln.strip()]
 
     # --- DOB: prefer lines near BIRTHDATE, then whole-line / inline / compact ---
+    # DI often emits colon/pipe cell separators + sex suffix: ``02:28:1967MX``,
+    # ``11 : 06 | 96``. Span assemble already shapes those; candidates must feed them.
+    _dob_sep = r"[\s/.\-:|]"
     dob_pats = (
-        r"\b\d{1,2}[\s/.\-]\d{1,2}[\s/.\-]\d{2,4}\b",
+        rf"\b\d{{1,2}}{_dob_sep}\d{{1,2}}{_dob_sep}\d{{2,4}}[MmFfXx]{{0,2}}\b",
         r"\b\d{1,2}\s+\d{1,2}\s+\d{2}\b",
     )
     dob_priority: list[str] = []
@@ -292,7 +295,9 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
 
     def _dob_candidates_from_line(ln: str) -> list[str]:
         candidates: list[str] = []
-        if re.fullmatch(r"\d{1,2}[\s/.\-]\d{1,2}[\s/.\-]\d{2,4}", ln):
+        # Whole line first — assemble handles ``02:28:1967MX`` / ``11 | 06 : 96``.
+        candidates.append(ln)
+        if re.fullmatch(rf"\d{{1,2}}{_dob_sep}\d{{1,2}}{_dob_sep}\d{{2,4}}[MmFfXx]{{0,2}}", ln):
             candidates.append(ln)
         # Compact MMDDYYYY on its own line (UB-04 box 10), optional trailing sex.
         if re.fullmatch(r"\d{8}[MmFf]?", ln):
@@ -357,18 +362,32 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     # --- ID: prefer tokens near INSURED'S UNIQUE ID; reject NPI / EIN / zip ---
     id_priority: list[str] = []
     for i, ln in enumerate(lines):
-        if re.search(r"unique\s*id|insured.?s?\s*i\.?d|member\s*id", ln, re.IGNORECASE):
-            id_priority.extend(lines[i : i + 5])
+        if re.search(
+            r"unique\s*id|insured.?s?\s*i\.?d|member\s*id|1a\.\s*insured",
+            ln,
+            re.IGNORECASE,
+        ):
+            # CMS 1a labels often span many checkbox lines before the ink id.
+            seen_patient = False
+            for ln2 in lines[i : i + 24]:
+                id_priority.append(ln2)
+                if re.search(r"patient'?s?\s*name|2\.\s*patient", ln2, re.IGNORECASE):
+                    seen_patient = True
+                    break
+            if seen_patient:
+                continue
     id_candidates: list[tuple[int, str]] = []  # (priority_rank, value)
 
     def _consider_id(tok: str, rank: int) -> None:
         # NPI is 10 digits starting 1–7; keep 0/8/9-leading member ids.
-        if len(tok) == 10 and tok[0] in "1234567":
+        digits = re.sub(r"\D", "", tok)
+        if len(digits) == 10 and digits[0] in "1234567" and tok.isdigit():
             return
-        if len(tok) == 9 and tok.startswith("58"):  # EIN-ish
+        if len(digits) == 9 and digits.startswith("58"):  # EIN-ish
             return
-        if len(tok) == 7:  # truncated EIN / noise
+        if len(digits) == 7:  # truncated EIN / noise
             return
+        # Pure 9-digit zip / EIN soup loses to alphanumeric CMS 1a ids.
         shaped, _ = _shape_field("insured_id_number", tok)
         if shaped:
             id_candidates.append((rank, shaped))
@@ -376,9 +395,9 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     for rank, pool in ((0, id_priority), (1, lines)):
         for ln in pool:
             if re.search(
-                r"\bnpi\b|\btax\b|fed\.?\s*tax|buford|martin,?\s*inc|\bhealthcare\b|"
+                r"\bnpi\b|\btax\b|fed\.?\s*tax|federal\s*tax|buford|martin,?\s*inc|\bhealthcare\b|"
                 r"tracking|sourcehov|patch\s*ii|salt\s*lake|p\.?\s*o\.?\s*box|"
-                r"optum|united\s*behavioral",
+                r"optum|united\s*behavioral|zip\s*code|account\s*no",
                 ln,
                 re.IGNORECASE,
             ):
@@ -391,7 +410,9 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                     re.IGNORECASE,
                 )
             )
+            # Digit member ids + alphanumeric CMS 1a ids (``M01406484``).
             toks = re.findall(r"\b\d{7,12}\b", ln)
+            toks.extend(re.findall(r"\b[A-Za-z]\d{6,11}\b", ln))
             if address_line:
                 # Freeform CMS notes put member id at the start of an address soup line.
                 if toks and ln.lstrip().startswith(toks[0]):
@@ -408,7 +429,9 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         if re.sub(r"\D", "", pair[1]) not in dob_compact
         and not (
             # Compact MMDDYYYY / MMDDYY alone is a DOB, not a member id.
-            len(re.sub(r"\D", "", pair[1])) in {6, 8}
+            # Alphanumeric CMS 1a ids (``M01406484``) must not be stripped.
+            pair[1].isdigit()
+            and len(re.sub(r"\D", "", pair[1])) in {6, 8}
             and re.fullmatch(r"\d{6}|\d{8}", re.sub(r"\D", "", pair[1]))
             and int(re.sub(r"\D", "", pair[1])[:2]) <= 12
         )
@@ -417,6 +440,17 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         id_candidates.sort(
             key=lambda pair: (
                 pair[0],
+                # Prefer letter+digit CMS 1a ids (``M01406484``) over account nos
+                # (``P153…``) and over zip/EIN digit soup; zero-padded next.
+                (
+                    0
+                    if re.fullmatch(r"[A-Za-z]\d{6,11}", pair[1])
+                    and pair[1][0].upper() in "MWHKC"
+                    else 1
+                    if re.fullmatch(r"[A-Za-z]\d{6,11}", pair[1])
+                    else 2
+                ),
+                0 if pair[1].startswith("0") else 1,
                 abs(len(re.sub(r"\D", "", pair[1])) - 9),
                 len(pair[1]),
             )
@@ -507,11 +541,13 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     # Charge: prefer TOTAL CHARGE / Box 28 / UB-04 box 47 totals.
     # DI often emits ``780 00`` / ``231-00`` / ``$ 780 00`` instead of ``780.00``.
     # Space/dash decimals are ONLY accepted on total/$ cue lines (never on DOB soup).
+    # Do NOT use bare ``$\\d`` as a cue — service-line date rows (``$11 01 24``) and
+    # diagnosis crumbs (``F 43.24``) otherwise become false Box 28 totals.
     cue_idx = [
         i
         for i, ln in enumerate(lines)
         if re.search(
-            r"total\s*charge|box\s*28|totals?['’s]?t?i?\b|pro\s*fee|\$\s*\d",
+            r"total\s*charge|box\s*28|totals?['’s]?t?i?\b|pro\s*fee",
             ln,
             re.IGNORECASE,
         )
@@ -523,10 +559,21 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     cue_lines: list[str] = []
     seen_cue: set[str] = set()
     for i in sorted(set(cue_idx)):
-        for ln in lines[i : i + 3]:  # TOTALS often on its own line above amount
+        # Amount may sit above the TOTAL CHARGE label (DI reading order).
+        for ln in lines[max(0, i - 8) : i + 4]:
             if ln not in seen_cue:
                 seen_cue.add(ln)
                 cue_lines.append(ln)
+    # Also promote standalone dollar stems that sit after repeated line charges
+    # (``220 00`` × N then bare ``1320`` / ``1320 00| 3`` / ``23700.``).
+    for i, ln in enumerate(lines):
+        if re.fullmatch(r"\$?\s*\d{3,6}(?:\s*00)?(?:\s*[|./].*)?", ln):
+            m = re.match(r"\$?\s*(\d{3,6})(?:\s*00)?", ln)
+            stem = m.group(1) if m else ""
+            if 3 <= len(stem) <= 6 and not (stem.startswith("9") and len(stem) == 5):
+                if ln not in seen_cue:
+                    seen_cue.add(ln)
+                    cue_lines.append(ln)
     charge_lines = cue_lines + [
         ln for ln in lines if re.search(r"\bcharge\b", ln, re.IGNORECASE)
     ]
@@ -535,6 +582,9 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     def _take_charge(raw: str, *, allow_tiny: bool = False) -> None:
         nonlocal out
         if raw in seen_charge or raw == "0.00":
+            return
+        # Diagnosis crumbs (``F43.24`` / ``F 43.24``) and CPT codes are not totals.
+        if re.fullmatch(r"9\d{4}(?:\.00)?", re.sub(r"[^\d.]", "", raw) or ""):
             return
         seen_charge.add(raw)
         shaped, reason = _shape_field("total_charge", raw)
@@ -550,6 +600,15 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                     shaped, reason = raw, f"SHAPED:UNSTRUCTURED_TOTALS_CUE:{reason}"
         if not shaped:
             return
+        # Reject CPT-shaped 90xxx soups, not legitimate mid/large claim totals.
+        try:
+            digits_only = re.sub(r"\D", "", shaped)
+            if len(digits_only) == 5 and digits_only.startswith("9") and shaped.endswith(".00"):
+                return
+            if float(shaped) >= 500000:
+                return
+        except ValueError:
+            pass
         prev = out.get("total_charge")
         if prev is None:
             out["total_charge"] = shaped
@@ -561,6 +620,11 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
             pass
 
     for ln in cue_lines:
+        # Skip DOB-shaped colon fragments and ICD diagnosis crumbs.
+        if re.search(r"\b\d{1,2}:\d{2}:\d{2,4}", ln):
+            continue
+        if re.search(r"\bF\s*\d{2}\.\d{2}\b", ln, re.IGNORECASE):
+            continue
         for m in re.finditer(r"\$?\s*(\d{1,5})[.,;:](\d{2})\b", ln):
             _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True)
         for m in re.finditer(r"\$?\s*(\d{1,5})[ \-](\d{2})(?!\d)\b", ln):
@@ -568,6 +632,43 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
             if whole > 20000:
                 continue
             _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True)
+        # DI often drops the decimal on Box 28: ``$ 23700`` / ``TOTAL CHARGE 23700``.
+        for m in re.finditer(r"\$\s*(\d{3,6})\b", ln):
+            digits = m.group(1)
+            if len(digits) >= 4 and digits.endswith("00"):
+                dollars, cents = digits[:-2], digits[-2:]
+                try:
+                    if 1 <= int(dollars) <= 200000:
+                        _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True)
+                except ValueError:
+                    pass
+        for m in re.finditer(
+            r"(?:total\s*charge|box\s*28)\D{0,12}(\d{3,6})\b", ln, re.IGNORECASE
+        ):
+            digits = m.group(1)
+            if len(digits) >= 4 and digits.endswith("00"):
+                dollars, cents = digits[:-2], digits[-2:]
+                try:
+                    if 1 <= int(dollars) <= 200000:
+                        _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True)
+                except ValueError:
+                    pass
+        # Bare dollars on the line after TOTAL CHARGE cue (``1320`` / ``1320 00| 3``).
+        # Also ``23700`` / ``23700.`` when DI drops the decimal on Box 28.
+        bare = re.match(r"\$?\s*(\d{2,6})(?:\s*00)?(?:\s*[|./].*)?$", ln)
+        if bare:
+            digits = bare.group(1)
+            if digits.startswith("9") and len(digits) == 5:
+                continue  # CPT
+            if len(digits) >= 4 and digits.endswith("00"):
+                dollars, cents = digits[:-2], digits[-2:]
+            else:
+                dollars, cents = digits, "00"
+            try:
+                if 1 <= int(dollars) <= 200000:
+                    _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True)
+            except ValueError:
+                pass
         # UB-04 ``TOTALS 2420968`` — amount stored as integer cents.
         for m in re.finditer(r"totals?t?i?\s+(\d{4,8})\b", ln, re.IGNORECASE):
             digits = m.group(1)
@@ -584,6 +685,13 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
             _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True)
     if "total_charge" not in out:
         for ln in charge_lines + lines:
+            # Never harvest colon-date fragments or ICD crumbs as currency.
+            if re.search(r"\b\d{1,2}:\d{2}(?::\d{2,4})?\b", ln) and not re.search(
+                r"total\s*charge|\$\s*\d", ln, re.IGNORECASE
+            ):
+                continue
+            if re.search(r"\bF\s*\d{2}\.\d{2}\b", ln, re.IGNORECASE):
+                continue
             if re.search(r"\bF\d{2}|cpt\b|908\d{2}|ndc\b", ln, re.IGNORECASE):
                 if not re.search(r"total\s*charge", ln, re.IGNORECASE):
                     continue

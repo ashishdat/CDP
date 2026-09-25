@@ -468,6 +468,17 @@ def test_cash_ruling_split_colon_and_pipe_with_scrap():
     assert _ruling_split_amount("J $ 228 |32") == "228.32"
 
 
+def test_leading_one_cents_bleed_reconstructs_decimal():
+    """``523\\n156`` for printed ``523.56`` — drop leading-1 cents bleed, not ``523.00``."""
+    from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+
+    assert _ruling_split_amount("523\n156\nS") == "523.56"
+    assert _ruling_split_amount("523 156") == "523.56"
+    # Still keep classic dollars|cents and units-bleed behaviors.
+    assert _ruling_split_amount("34\n25") == "34.25"
+    assert _ruling_split_amount("212\n100") == "212.00"
+
+
 def test_units_bleed_tail_keeps_leading_dollars():
     """``212\\n100`` is dollars 212 with units bleed, not dual-local 100.00."""
     line = {

@@ -380,6 +380,26 @@ def _ruling_split_amount(raw: object) -> str | None:
                 return format_currency(parse_currency(f"{int(tail)}.00"))
             except (TypeError, ValueError):
                 return None
+        # Decimal lost + leading-1 cents bleed: ``523\\n156`` / ``523 156`` for
+        # printed ``523.56``. Prefer dollars.(tail[1:]) over inventing ``.00``.
+        if (
+            split_mark
+            and 1 <= len(dollars) <= 5
+            and len(tail) == 3
+            and tail[0] == "1"
+            and tail[1:].isdigit()
+        ):
+            try:
+                alt = format_currency(parse_currency(f"{int(dollars)}.{tail[1:]}"))
+            except (TypeError, ValueError):
+                alt = None
+            if alt is not None:
+                from packages.claim_evidence.line_sum_authority import (
+                    is_implausible_charge_total,
+                )
+
+                if not is_implausible_charge_total(alt):
+                    return alt
         # Dollars stem + units/ruling bleed (``212\\n100``, ``346 !04`` with
         # a longer junk tail): keep the leading dollars as whole dollars when
         # the tail is not a clean two-digit cents read.

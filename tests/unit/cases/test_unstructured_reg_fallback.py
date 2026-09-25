@@ -210,3 +210,72 @@ LUTH, LAURA
     name = (fields.get("patient_name") or "").upper()
     assert "IFYES" not in name and "RETURN" not in name
     assert "LUTH" in name
+
+
+def test_cms_colon_pipe_dob_and_glued_box28_total():
+    """DI cell separators ``02:28:1967MX`` + ``$ 23700`` must not miss DOB/charge."""
+    text = """
+OTHER 1a. INSURED'S I.D. NUMBER
+(Member ID#)
+M01406484
+2. PATIENT'S NAME (Last Name, First Name, Middle Initial)
+SEKIYA, FAIRES A
+3. PATIENT'S BIRTH DATE
+02:28:1967MX
+SEX
+ZIP CODE
+601377057
+25. FEDERAL TAX I.D. NUMBER 362169147
+28. TOTAL CHARGE $ 23700
+23700.
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("patient_dob") == "02/28/1967"
+    assert fields.get("insured_id_number") == "M01406484"
+    assert fields.get("total_charge") == "237.00"
+    assert "SEKIYA" in (fields.get("patient_name") or "").upper()
+
+
+def test_cms_pipe_yy_dob_member_id_and_line_sum_total():
+    """``11 : 06 | 96`` DOB + zero-padded 1a id + bare ``1320`` after line charges."""
+    text = """
+(Member ID#)
+0000548763
+2. PATIENT'S NAME (Last Name, First Name, Middle Initial)
+Urita, Luke, N.
+3. PATIENT'S BIRTH DATE
+11 : 06 | 96
+SEX
+B IF 43.24
+220 00
+220 00
+220 00
+220 00
+220 00
+220 00
+1320
+25 FEDERAL TAX I.D. NUMBER 569295610
+28 TOTAL CHARGE
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("patient_dob") == "11/06/1996"
+    assert fields.get("insured_id_number") == "0000548763"
+    assert fields.get("total_charge") == "1320.00"
+    assert "URITA" in (fields.get("patient_name") or "").upper()
+
+
+def test_cms_bare_total_with_pipe_junk_suffix():
+    text = """
+(Member ID#)
+0000548763
+Urita, Luke, N.
+3. PATIENT'S BIRTH DATE
+11 | 06 : 96
+220 00
+1320 00| 3
+28 TOTAL CHARGE
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("patient_dob") == "11/06/1996"
+    assert fields.get("insured_id_number") == "0000548763"
+    assert fields.get("total_charge") == "1320.00"
