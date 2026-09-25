@@ -1368,8 +1368,37 @@ def main() -> int:
             flush=True,
         )
 
+    # Run the OCR probe in a child process so a Paddle/ONNX SIGSEGV cannot
+    # kill the cascade parent (seen on fresh 2000-doc PRODUCT boots).
     try:
-        engine_probe = _probe_ocr_engines()
+        import subprocess as _sp
+
+        _probe_code = (
+            "import json,sys; sys.path.insert(0,%r); "
+            "from scripts.run_hackathon_1000_cascade import _probe_ocr_engines; "
+            "print(json.dumps(_probe_ocr_engines()))"
+            % (str(ROOT),)
+        )
+        _probe_run = _sp.run(
+            [sys.executable, "-c", _probe_code],
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=dict(os.environ),
+        )
+        if _probe_run.returncode == 0 and _probe_run.stdout.strip():
+            engine_probe = json.loads(_probe_run.stdout.strip().splitlines()[-1])
+        else:
+            engine_probe = {
+                "paddleocr": "ERROR",
+                "rapidocr": "ERROR",
+                "tesseract": "ERROR",
+                "all_observed": False,
+                "error": (
+                    f"probe_exit={_probe_run.returncode} "
+                    f"stderr={(_probe_run.stderr or '')[-400:]}"
+                ),
+            }
     except Exception as exc:  # noqa: BLE001
         engine_probe = {
             "paddleocr": "ERROR",
