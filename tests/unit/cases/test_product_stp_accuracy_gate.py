@@ -103,6 +103,18 @@ def test_accept_policy_rejects_placeholder_insured_name():
     assert "PLACEHOLDER_INSURED_NAME" in verdict.reason_codes
 
 
+def test_accept_policy_allows_fillingim_not_fill_in_placeholder():
+    """FILL\\s*IN must not match the surname FILLINGIM (false HITL)."""
+    for value in ("FILLINGIM, CARMEN G", "FILLINGIM. CARMEN G"):
+        verdict = evaluate_insured_name_accept(
+            value, patient_name="FILLINGIM, CARMEN G"
+        )
+        assert verdict.allow_auto is True, value
+    junk = evaluate_insured_name_accept("PLEASE FILL IN")
+    assert junk.allow_auto is False
+    assert "PLACEHOLDER_INSURED_NAME" in junk.reason_codes
+
+
 def test_accept_policy_rejects_unresolved_same():
     verdict = evaluate_insured_name_accept("SAME")
     assert verdict.allow_auto is False

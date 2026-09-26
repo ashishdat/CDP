@@ -12,9 +12,10 @@ from dataclasses import dataclass
 from typing import Sequence
 
 
+# Word-bounded FILL IN — bare FILL\s*IN falsely matched surnames like FILLINGIM.
 _PLACEHOLDER_NAME = re.compile(
     r"(LAST\s*NAME|FIRST\s*NAME|LAS[RT]?NANE|PNSTNANE|PNSRNANNE|"
-    r"LOOTAITT|SNASLLAST|FILL\s*IN|PATIENT\s*NAME|INSURED\s*NAME|"
+    r"LOOTAITT|SNASLLAST|\bFILL\s*IN\b|PATIENT\s*NAME|INSURED\s*NAME|"
     r"SPONSOR.?S?\s*SSN|SOCIAL\s*SECURITY)",
     re.IGNORECASE,
 )

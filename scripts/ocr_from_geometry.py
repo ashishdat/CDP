@@ -3560,11 +3560,38 @@ def run(directory, output):
                             page_text = "HEALTH INSURANCE CLAIM FORM"
                     except Exception:  # noqa: BLE001
                         qr_meta = {"detected": False, "reasons": ["QR_DECODE_SKIPPED"]}
+                    # Geometry already resolved on the cms1500 template — when
+                    # cheap page-text OCR stays UNKNOWN, prefer CMS1500 so
+                    # document_finance is not WRONG_DOCUMENT_FAMILY while Box
+                    # 24F/28 ROIs were already measured (FA-safe plumbing).
+                    geo_ok = str(geometry.get("status") or "").upper() in {
+                        "SUCCESS",
+                        "GEOMETRY_RESOLVED",
+                        "OK",
+                    }
+                    geo_fields = geometry.get("fields") or []
+                    cms_geo_hints = {
+                        "patient_last",
+                        "patient_first",
+                        "total_charge",
+                        "insured_id_number",
+                        "patient_dob",
+                    }
+                    geo_field_names = {
+                        str(f.get("field") or "").casefold()
+                        for f in geo_fields
+                        if isinstance(f, dict)
+                    }
+                    form_family_hint = (
+                        "CMS1500"
+                        if geo_ok and (geo_field_names & cms_geo_hints)
+                        else None
+                    )
                     page = classify_page_signals(
                         page_index=int(geometry.get("page_number") or 1) - 1,
                         ocr_text=page_text,
                         barcode_text=barcode_text,
-                        form_family=None,
+                        form_family=form_family_hint,
                         router_label=None,
                         confidence=0.85,
                     )
