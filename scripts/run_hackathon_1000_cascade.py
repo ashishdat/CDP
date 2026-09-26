@@ -21,7 +21,12 @@ import threading
 import time
 import zipfile
 from collections import Counter
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from concurrent.futures import (
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    TimeoutError as FuturesTimeoutError,
+    as_completed,
+)
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -55,6 +60,54 @@ def _ocr_pool_enabled() -> bool:
 def _app_pool_enabled() -> bool:
     raw = (os.environ.get("CDP_APP_WORKER_POOL") or "1").strip().casefold()
     return raw not in {"0", "false", "no", "off"}
+
+
+def _app_pool_timeout_sec() -> float:
+    """Wall-clock cap for one registration job in the app worker pool.
+
+    1620×1500 mailroom/fax pages have been observed to hang inside app.py
+    (empty application/logs dirs, no GeometryResult) and wedge the spawn pool
+    forever. Timeout keeps PRODUCT moving and still allows unstructured REG
+    fallback. Override with CDP_APP_POOL_TIMEOUT_SECONDS (0 disables).
+    """
+    raw = (os.environ.get("CDP_APP_POOL_TIMEOUT_SECONDS") or "180").strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        return 180.0
+    return value
+
+
+def _ocr_pool_timeout_sec() -> float:
+    raw = (os.environ.get("CDP_OCR_POOL_TIMEOUT_SECONDS") or "300").strip()
+    try:
+        value = float(raw)
+    except ValueError:
+        return 300.0
+    return value
+
+
+def _executor_from_holder(holder: Any) -> ProcessPoolExecutor | None:
+    if holder is None:
+        return None
+    if isinstance(holder, dict):
+        return holder.get("executor")
+    return holder
+
+
+def _reset_executor_holder(holder: Any) -> None:
+    """Terminate wedged spawn workers and replace the pool (timeout recovery)."""
+    if not isinstance(holder, dict):
+        return
+    lock = holder.get("lock")
+    workers = int(holder.get("workers") or 1)
+    if lock is None:
+        _shutdown_process_pool(holder.get("executor"))
+        holder["executor"] = _spawn_pool(workers)
+        return
+    with lock:
+        _shutdown_process_pool(holder.get("executor"))
+        holder["executor"] = _spawn_pool(workers)
 
 
 def _ocr_pool_job(geometry_dir: str, output_dir: str) -> tuple[int, str]:
@@ -562,15 +615,27 @@ def _process_one(
     logs.mkdir(parents=True, exist_ok=True)
     app_out = claim_out / "application"
 
-    if app_executor is not None:
+    app_pool_timed_out = False
+    app_pool = _executor_from_holder(app_executor)
+    if app_pool is not None:
+        app_timeout = _app_pool_timeout_sec()
         try:
-            rc, tail = app_executor.submit(
+            fut = app_pool.submit(
                 _app_pool_job,
                 str(dataset_yaml),
                 document,
                 document_type,
                 str(app_out),
-            ).result()
+            )
+            if app_timeout > 0:
+                rc, tail = fut.result(timeout=app_timeout)
+            else:
+                rc, tail = fut.result()
+        except FuturesTimeoutError:
+            app_pool_timed_out = True
+            rc, tail = 1, f"TimeoutError: CDP_APP_POOL_TIMEOUT after {app_timeout:.0f}s"
+            # Wedged registration worker holds the slot forever — respawn pool.
+            _reset_executor_holder(app_executor)
         except Exception as exc:  # noqa: BLE001
             rc, tail = 1, f"{type(exc).__name__}: {exc}"
         try:
@@ -620,7 +685,12 @@ def _process_one(
             _prune_document_json(app_out)
             _prune_trace(app_out)
         disposition = "REGISTRATION_FAILED"
-        if rc != 0 and reason == "geometry_missing":
+        # App-pool timeouts leave no geometry but are not app crashes — keep
+        # REGISTRATION_FAILED so unstructured_reg_fallback (DI→heuristics→agent)
+        # still runs (MAILROOM_OR_FAX / TRUE_STP). APP_FAILURE skips that path.
+        if app_pool_timed_out:
+            reason = "CLAIM_APP_POOL_TIMEOUT"
+        elif rc != 0 and reason == "geometry_missing":
             disposition = "APP_FAILURE"
         # Hard blind: some REG pages are freeform (no CMS grid). Template
         # geometry cannot recover — fall back to Azure DI page text (+ optional
@@ -801,16 +871,26 @@ def _process_one(
         ),
     ]
     for stage_name, cmd in stages:
-        if stage_name == "ocr" and ocr_executor is not None:
+        if stage_name == "ocr" and _executor_from_holder(ocr_executor) is not None:
             logs.mkdir(parents=True, exist_ok=True)
             log_path = logs / "ocr.log"
+            ocr_timeout = _ocr_pool_timeout_sec()
             try:
                 with _ocr_process_lock():
-                    rc, tail = ocr_executor.submit(
+                    ocr_pool = _executor_from_holder(ocr_executor)
+                    assert ocr_pool is not None
+                    fut = ocr_pool.submit(
                         _ocr_pool_job,
                         str(geometry_dir),
                         str(claim_out / "ocr"),
-                    ).result()
+                    )
+                    if ocr_timeout > 0:
+                        rc, tail = fut.result(timeout=ocr_timeout)
+                    else:
+                        rc, tail = fut.result()
+            except FuturesTimeoutError:
+                rc, tail = 1, f"TimeoutError: CDP_OCR_POOL_TIMEOUT after {ocr_timeout:.0f}s"
+                _reset_executor_holder(ocr_executor)
             except Exception as exc:  # noqa: BLE001
                 rc, tail = 1, f"{type(exc).__name__}: {exc}"
             try:
@@ -1569,22 +1649,34 @@ def main() -> int:
     ocr_pool_workers = pool_workers
     if ocr_pool_cap_raw.isdigit():
         ocr_pool_workers = max(1, min(pool_workers, int(ocr_pool_cap_raw)))
-    ocr_executor: ProcessPoolExecutor | None = None
-    app_executor: ProcessPoolExecutor | None = None
+    ocr_executor: dict[str, Any] | None = None
+    app_executor: dict[str, Any] | None = None
     if _app_pool_enabled() and pending:
+        app_timeout = _app_pool_timeout_sec()
         print(
             f"app_worker_pool=on workers={pool_workers} "
-            f"(amortize registration imports + template SIFT)",
+            f"(amortize registration imports + template SIFT; "
+            f"timeout_s={app_timeout if app_timeout > 0 else 'off'})",
             flush=True,
         )
-        app_executor = _spawn_pool(pool_workers)
+        app_executor = {
+            "executor": _spawn_pool(pool_workers),
+            "workers": pool_workers,
+            "lock": threading.Lock(),
+        }
     if _ocr_pool_enabled() and pending:
+        ocr_timeout = _ocr_pool_timeout_sec()
         print(
             f"ocr_worker_pool=on workers={ocr_pool_workers} "
-            f"(claim_workers={pool_workers}; amortize Paddle/Rapid cold start)",
+            f"(claim_workers={pool_workers}; amortize Paddle/Rapid cold start; "
+            f"timeout_s={ocr_timeout if ocr_timeout > 0 else 'off'})",
             flush=True,
         )
-        ocr_executor = _spawn_pool(ocr_pool_workers)
+        ocr_executor = {
+            "executor": _spawn_pool(ocr_pool_workers),
+            "workers": ocr_pool_workers,
+            "lock": threading.Lock(),
+        }
     try:
         with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
             futures = {
@@ -1642,8 +1734,8 @@ def main() -> int:
                         pass
                     print(msg, flush=True)
     finally:
-        _shutdown_process_pool(ocr_executor)
-        _shutdown_process_pool(app_executor)
+        _shutdown_process_pool(_executor_from_holder(ocr_executor))
+        _shutdown_process_pool(_executor_from_holder(app_executor))
 
     all_rows: list[dict[str, Any]] = []
     if ledger.exists():
