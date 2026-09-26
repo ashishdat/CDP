@@ -421,9 +421,11 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                     re.IGNORECASE,
                 )
             )
-            # Digit member ids + alphanumeric CMS 1a ids (``M01406484``, ``OSC76422826``).
+            # Digit member ids + alphanumeric CMS 1a ids (``M01406484``, ``OSC76422826``)
+            # + hyphenated SSN-shaped 1a ink (``569-90-4716``).
             toks = re.findall(r"\b\d{7,12}\b", ln)
             toks.extend(re.findall(r"\b[A-Za-z]{1,3}\d{6,11}\b", ln))
+            toks.extend(re.findall(r"\b\d{3}-\d{2}-\d{4}\b", ln))
             if address_line:
                 # Freeform CMS notes put member id at the start of an address soup line.
                 if toks and ln.lstrip().startswith(toks[0]):
@@ -614,6 +616,11 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 if ln not in seen_cue:
                     seen_cue.add(ln)
                     cue_lines.append(ln)
+        # ``$ 300 100`` / ``$ 300`` far from Box 28 label (DI reading-order drift).
+        if re.fullmatch(r"\$\s*\d{1,5}(?:\s+\d{2,4})?\s*\$?", ln):
+            if ln not in seen_cue:
+                seen_cue.add(ln)
+                cue_lines.append(ln)
     charge_lines = cue_lines + [
         ln for ln in lines if re.search(r"\bcharge\b", ln, re.IGNORECASE)
     ]
@@ -692,7 +699,8 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         rank = 0 if labeled else 1
         for m in re.finditer(r"\$?\s*(\d{1,5})[.,;:](\d{2})\b", ln):
             _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True, rank=rank)
-        for m in re.finditer(r"\$?\s*(\d{1,5})[ \-](\d{2})(?!\d)\b", ln):
+        for m in re.finditer(r"\$?\s*(\d{1,5})[ \-](\d{2})(?![\d-])\b", ln):
+            # Reject SSN-shaped ``569-90-4716`` (dash then more digits).
             whole = int(m.group(1))
             if whole > 20000:
                 continue
@@ -710,6 +718,14 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                         )
                 except ValueError:
                     pass
+        # ``$ 300 100`` — dollars + OCR junk trail (≥100), not space-cents / glued.
+        for m in re.finditer(r"\$\s*(\d{1,5})\s+(\d{3,4})\b", ln):
+            dollars = int(m.group(1))
+            try:
+                if 1 <= dollars <= 200000:
+                    _take_charge(f"{dollars}.00", allow_tiny=True, rank=0)
+            except ValueError:
+                pass
         for m in re.finditer(
             r"(?:total\s*charge|box\s*28)\D{0,12}(\d{3,6})\b", ln, re.IGNORECASE
         ):

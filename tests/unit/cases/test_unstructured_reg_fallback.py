@@ -346,3 +346,37 @@ ZIP CODE
     assert fields.get("total_charge") == "304.04"
     # Blank/partial DOB must stay HITL — do not invent a year.
     assert "patient_dob" not in fields
+
+
+def test_hyphenated_1a_id_not_harvested_as_charge():
+    """JGK.011-class: ``569-90-4716`` on 1a is member id, not Box 28."""
+    text = """
+OTHER| 1a. INSURED'S I.D. NUMBER 569-90-4716
+2. PATIENT'S NAME
+YEE, TRUDY
+3. PATIENT'S BIRTH DATE
+10/10/2000
+28. TOTAL CHARGE
+200.00
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("insured_id_number") == "569-90-4716"
+    assert fields.get("total_charge") == "200.00"
+    assert fields.get("patient_dob") == "10/10/2000"
+
+
+def test_dollar_amount_with_ocr_junk_trail_as_box28():
+    """JHK.001-class: ``$ 300 100`` far from TOTAL CHARGE label → 300.00."""
+    text = """
+SERVIDEO NICKOLAS
+06/27/1977
+226141920
+28. TOTAL CHARGE
+29. AMOUNT PAID
+$ 300 100
+$
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("total_charge") == "300.00"
+    assert fields.get("insured_id_number") == "226141920"
+    assert fields.get("patient_dob") == "06/27/1977"
