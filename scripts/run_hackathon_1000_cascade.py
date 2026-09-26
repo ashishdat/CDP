@@ -694,6 +694,11 @@ def _process_one(
             _reset_executor_holder(app_executor)
         except Exception as exc:  # noqa: BLE001
             rc, tail = 1, f"{type(exc).__name__}: {exc}"
+            # Sibling timeout SIGKILLs the shared app pool → BrokenProcessPool on
+            # the other in-flight claim. Respawn and keep the REG/unstructured path.
+            if "BrokenProcessPool" in type(exc).__name__ or "BrokenProcessPool" in str(exc):
+                app_pool_timed_out = True
+                _reset_executor_holder(app_executor)
         try:
             (logs / "app.log").write_text(tail or "", encoding="utf-8")
         except OSError:
@@ -741,13 +746,22 @@ def _process_one(
             _prune_document_json(app_out)
             _prune_trace(app_out)
         disposition = "REGISTRATION_FAILED"
-        # App-pool timeouts leave no geometry but are not app crashes — keep
-        # REGISTRATION_FAILED so unstructured_reg_fallback (DI→heuristics→agent)
-        # still runs (MAILROOM_OR_FAX / TRUE_STP). APP_FAILURE skips that path.
+        # App-pool timeouts / BrokenProcessPool leave no geometry but are not
+        # app crashes — keep REGISTRATION_FAILED so unstructured_reg_fallback
+        # (DI→heuristics→agent) still runs (MAILROOM_OR_FAX / TRUE_STP).
+        # APP_FAILURE skips that path and was regressing mailroom siblings.
         if app_pool_timed_out:
-            reason = "CLAIM_APP_POOL_TIMEOUT"
+            if reason == "geometry_missing" or not reason:
+                reason = "CLAIM_APP_POOL_TIMEOUT"
+            if "BrokenProcessPool" in (tail or ""):
+                reason = "CLAIM_APP_POOL_BROKEN"
         elif rc != 0 and reason == "geometry_missing":
-            disposition = "APP_FAILURE"
+            # Still prefer unstructured over opaque APP_FAILURE when the app
+            # worker died without writing geometry (common under pool resets).
+            if "BrokenProcessPool" in (tail or "") or "TimeoutError" in (tail or ""):
+                reason = "CLAIM_APP_POOL_BROKEN"
+            else:
+                disposition = "APP_FAILURE"
         # Hard blind: some REG pages are freeform (no CMS grid). Template
         # geometry cannot recover — fall back to Azure DI page text (+ optional
         # gpt-4o text agent) for critical fields instead of a geometry VLM.
