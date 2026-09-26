@@ -1518,22 +1518,37 @@ def _merge_gpt4o_line_charge(
     if lock_local:
         # Dual-local already chose the amount. Claude may confirm it (exact / $1)
         # so a single line can AUTO. It may not replace that amount.
+        # Scale twin (``1300`` vs ``130.00``) is a lost-decimal read of the same
+        # ink — attach the cand so LINE_TOTALS can corroborate empty-Box28
+        # sole lines (M0471JEB.008) without superseding the local amount.
         from decimal import Decimal
 
-        from packages.claim_evidence.line_sum_authority import amounts_within_tolerance
+        from packages.claim_evidence.line_sum_authority import (
+            amounts_within_tolerance,
+            is_scale_shift,
+        )
 
-        agrees = bool(
+        exact = bool(
             g_value
             and value
             and amounts_within_tolerance(
                 value, g_value, absolute=Decimal('1'), relative=Decimal('0')
             )
         )
+        scale_twin = bool(
+            g_value and value and not exact and is_scale_shift(value, g_value)
+        )
+        agrees = exact or scale_twin
         if agrees and g_cands:
             candidates = list(candidates or []) + list(g_cands)
-        tag = 'CHARGE_CLAUDE_CONFIRMS_LOCAL' if agrees else 'CHARGE_CLAUDE_SUPERSEDE_BLOCKED'
         if not g_value:
             tag = 'CHARGE_CLAUDE_ABSTAIN'
+        elif exact:
+            tag = 'CHARGE_CLAUDE_CONFIRMS_LOCAL'
+        elif scale_twin:
+            tag = 'CHARGE_CLAUDE_SCALE_TWIN_LOCAL'
+        else:
+            tag = 'CHARGE_CLAUDE_SUPERSEDE_BLOCKED'
         reason = f'{reason}|{g_reason}|{tag}' if reason else f'{g_reason}|{tag}'
         return value, raw, candidates, attempts, reason
     if not g_value:

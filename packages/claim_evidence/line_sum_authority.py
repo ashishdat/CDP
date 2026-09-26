@@ -1601,6 +1601,37 @@ def line_has_dual_engine_agreement(line: dict) -> bool:
     return _exact_or_dollar_agree(format_currency(target), format_currency(primary))
 
 
+def _sole_line_vision_scale_twin_of_dual_local(line: dict) -> bool:
+    """True when dual-local selected amount has a Claude/gpt ×10/×100 twin.
+
+    M0471JEB.008: paddle+rapid ``130.00``, Claude ``1300`` (lost decimal) with
+    empty Box 28 — vision confirms the digit stem without superseding local.
+    """
+    if not isinstance(line, dict) or not line_has_dual_engine_agreement(line):
+        return False
+    target = parse_currency(line.get("charges") or line.get("charge_amount"))
+    if target is None:
+        return False
+    target_txt = format_currency(target)
+    for cand in line.get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        eng = str(cand.get("engine") or "").casefold()
+        if not (
+            "gpt4o" in eng
+            or "gpt-4o" in eng
+            or "claude" in eng
+            or "anthropic" in eng
+        ):
+            continue
+        other = parse_currency(cand.get("value") or cand.get("raw_value"))
+        if other is None:
+            continue
+        if is_scale_shift(target_txt, format_currency(other)):
+            return True
+    return False
+
+
 def line_has_gpt4o_local_consensus(line: dict) -> bool:
     """gpt-4o + ≥1 independent usable local agree with the selected charge.
 
@@ -1924,6 +1955,20 @@ def line_sum_auto_eligible(
         # an under-read Box 28 twin or DI — bare single local stays closed.
         if selected_digit_drop_fuller_line_total(service_lines) == total:
             return False, "SINGLE_LINE_DIGIT_DROP_NEEDS_BOX28_UNDERREAD"
+        # Dual-local + Claude lost-decimal twin (130 vs 1300) with empty Box 28
+        # — same digit stem, not a second total (M0471JEB.008).
+        if agreed >= 1 and parse_currency(box28_value) is None:
+            sole = next(
+                (
+                    ln
+                    for ln in (service_lines or [])
+                    if isinstance(ln, dict)
+                    and any(parse_currency(ln.get(k)) is not None for k in _CHARGE_FIELDS)
+                ),
+                None,
+            )
+            if sole is not None and _sole_line_vision_scale_twin_of_dual_local(sole):
+                return True, "SINGLE_LINE_DUAL_LOCAL_VISION_SCALE_TWIN"
         # Single-line paddle+rapid alone is insufficient without Box 28 / gpt-4o.
         if agreed >= 1:
             return False, "SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28"
