@@ -644,8 +644,22 @@ def _process_one(
 
                     from PIL import Image as _PILImage
 
-                    zip_path = Path(os.environ.get("CDP_HACKATHON_ZIP") or ROOT / "data" / "Hackathon - 1000 Claims.zip")
-                    if zip_path.exists():
+                    # Prefer CDP_HACKATHON_ZIP (set from --zip in main). Also
+                    # accept the 5000 archive name — the 1000 default silently
+                    # skipped fallback when only Hackathon-5000 is present.
+                    zip_candidates = []
+                    env_zip = os.environ.get("CDP_HACKATHON_ZIP")
+                    if env_zip:
+                        zip_candidates.append(Path(env_zip))
+                    zip_candidates.extend(
+                        [
+                            ROOT / "data" / "Hackathon - 5000 Claims.zip",
+                            ROOT / "data" / "Hackathon - 1000 Claims.zip",
+                            DEFAULT_ZIP,
+                        ]
+                    )
+                    zip_path = next((p for p in zip_candidates if p.exists()), None)
+                    if zip_path is not None:
                         with ZipFile(zip_path) as zf:
                             page_image = _PILImage.open(BytesIO(zf.read(document))).convert("RGB")
                 except (OSError, ValueError, KeyError, RuntimeError):
@@ -1414,6 +1428,11 @@ def main() -> int:
             "WARNING: OCR engine probe incomplete — cascade fill may degrade",
             flush=True,
         )
+
+    # Unstructured REG fallback loads page bytes via CDP_HACKATHON_ZIP.
+    # --zip alone used to leave the env unset → wrong default archive →
+    # page_image=None → unstructured_reg_fallback never ran (HITL/REG stuck).
+    os.environ["CDP_HACKATHON_ZIP"] = str(Path(args.zip).resolve())
 
     docs = _list_documents(args.zip)
     doc_filter = [
