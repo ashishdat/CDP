@@ -470,13 +470,30 @@ def test_cash_ruling_split_colon_and_pipe_with_scrap():
 
 def test_leading_one_cents_bleed_reconstructs_decimal():
     """``523\\n156`` for printed ``523.56`` — drop leading-1 cents bleed, not ``523.00``."""
-    from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+    from packages.claim_evidence.line_charge_selector import (
+        _ruling_split_amount,
+        is_ruling_split_digit_glue,
+        promote_ruling_split_candidate_value,
+    )
 
     assert _ruling_split_amount("523\n156\nS") == "523.56"
     assert _ruling_split_amount("523 156") == "523.56"
     # Still keep classic dollars|cents and units-bleed behaviors.
     assert _ruling_split_amount("34\n25") == "34.25"
     assert _ruling_split_amount("212\n100") == "212.00"
+    assert is_ruling_split_digit_glue("523.56", "523156")
+    assert is_ruling_split_digit_glue("523.56", "523156.00")
+    assert is_ruling_split_digit_glue("34.25", "3425")
+    assert not is_ruling_split_digit_glue("523.56", "500.00")
+    # RapidOCR cents-only span must promote to the ruled total.
+    cand = {
+        "engine": "rapidocr",
+        "value": "156.00",
+        "raw_value": "523\n156\nS",
+        "preprocessing_variant": "CURRENCY_DECIMAL_V2",
+    }
+    assert promote_ruling_split_candidate_value(cand) == "523.56"
+    assert cand["value"] == "523.56"
 
 
 def test_units_bleed_tail_keeps_leading_dollars():

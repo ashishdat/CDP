@@ -158,8 +158,8 @@ class AzureDocumentIntelligenceReadBackend:
         api_version: str = "2024-11-30",
         model_id: str = "prebuilt-read",
         timeout_seconds: float = 30.0,
-        poll_interval_seconds: float = 0.2,
-        max_polls: int = 30,
+        poll_interval_seconds: float | None = None,
+        max_polls: int | None = None,
         opener=None,
         rate_limit_retries: int | None = None,
         rate_limit_wait_seconds: float | None = None,
@@ -174,8 +174,17 @@ class AzureDocumentIntelligenceReadBackend:
         self._api_version = api_version
         self._model_id = model_id
         self._timeout = timeout_seconds
-        self._poll_interval = poll_interval_seconds
-        self._max_polls = max_polls
+        # Full-page unstructured REG reads often need >6s; default 150×0.35s ≈ 50s.
+        self._poll_interval = (
+            float(poll_interval_seconds)
+            if poll_interval_seconds is not None
+            else _env_float("CDP_AZURE_DI_POLL_INTERVAL_SECONDS", 0.35)
+        )
+        self._max_polls = (
+            int(max_polls)
+            if max_polls is not None
+            else _env_int("CDP_AZURE_DI_MAX_POLLS", 150)
+        )
         self._opener = opener or urlopen
         # Default 2 retries ⇒ up to 3 attempts (initial + 2 waits) for F0 429.
         self._rate_limit_retries = (

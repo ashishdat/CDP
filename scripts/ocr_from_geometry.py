@@ -1792,6 +1792,20 @@ def _currency_value_from_candidates(raw_text, candidates) -> str | None:
     import re as _re
 
     shaped_vals: list[str] = []
+    # Prefer dollars|cents / leading-1 cents ruling reconstruction before
+    # space-split whole-dollar recovery (``523\\n156`` → 523.56, not 523.00).
+    try:
+        from packages.claim_evidence.line_charge_selector import _ruling_split_amount
+
+        for seed_raw in [raw_text] + [
+            c.get('raw_value') for c in (candidates or []) if isinstance(c, dict)
+        ]:
+            ruled = _ruling_split_amount(seed_raw)
+            if ruled:
+                shaped_vals.append(ruled)
+                break
+    except Exception:  # noqa: BLE001
+        pass
     for c in candidates or []:
         try:
             from packages.ocr_portfolio import recover_dollars_from_split_raw

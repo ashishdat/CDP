@@ -768,24 +768,31 @@ def box28_di_partner_confirmed(amount: object, candidates: list | None) -> bool:
             value = str(getattr(cand, "value", "") or "")
             raw = str(getattr(cand, "raw_value", "") or "")
         charge_value = value
-        if "$" in raw and re.search(r"[:|/]", raw):
-            try:
-                from packages.claim_evidence.line_charge_selector import (
-                    _ruling_split_amount,
-                )
+        di_glue_of_target = False
+        try:
+            from packages.claim_evidence.line_charge_selector import (
+                _ruling_split_amount,
+                is_ruling_split_digit_glue,
+            )
 
-                ruled = _ruling_split_amount(raw)
-                if ruled:
-                    charge_value = ruled
-            except Exception:  # noqa: BLE001
-                pass
+            ruled = _ruling_split_amount(raw)
+            if ruled:
+                charge_value = ruled
+            di_glue_of_target = is_ruling_split_digit_glue(
+                target_txt, value
+            ) or is_ruling_split_digit_glue(target_txt, raw)
+            if di_glue_of_target:
+                # DI/paddle glued ``523156`` corroborates ruled local ``523.56``.
+                charge_value = target_txt
+        except Exception:  # noqa: BLE001
+            di_glue_of_target = False
         amt = parse_currency(charge_value)
         if amt is None:
             continue
         amt_txt = format_currency(amt)
         eng = engine.casefold()
         if "document_intelligence" in eng or "azure_di" in eng or "azure_read" in eng:
-            if amt_txt == target_txt or is_scale_shift(target_txt, amt_txt):
+            if amt_txt == target_txt or is_scale_shift(target_txt, amt_txt) or di_glue_of_target:
                 families.add("di")
         elif "claude" in eng or "gpt4o" in eng or "anthropic" in eng:
             if amt_txt == target_txt:

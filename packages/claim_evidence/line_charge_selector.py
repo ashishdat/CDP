@@ -321,6 +321,70 @@ _CASH_RULED_CENTS = re.compile(
 )
 
 
+def is_ruling_split_digit_glue(ruled_amount: object, other: object) -> bool:
+    """True when ``other`` is digit-concat of the ruling groups for ``ruled_amount``.
+
+    Local raw ``523\\n156`` shapes to ``523.56`` (leading-1 cents bleed). DI/paddle
+    often emit the same ink as bare ``523156`` / ``523156.00`` with the decimal
+    dropped — that is not a second Box 28 total. Classic ``34\\n25`` → ``34.25``
+    similarly glues to ``3425``.
+    """
+    ruled = parse_currency(ruled_amount)
+    if ruled is None:
+        return False
+    ruled_txt = format_currency(ruled)
+    other_digits = re.sub(r"\D", "", str(other or ""))
+    if not other_digits:
+        return False
+    dollars, _, cents = ruled_txt.partition(".")
+    if not dollars or len(cents) != 2:
+        return False
+    classic = f"{dollars}{cents}"
+    leading1 = f"{dollars}1{cents}"
+    glue_forms = {
+        classic,
+        leading1,
+        f"{classic}00",
+        f"{leading1}00",
+    }
+    return other_digits in glue_forms
+
+
+def promote_ruling_split_candidate_value(cand: dict) -> str | None:
+    """Rewrite ``cand['value']`` when raw ruling-split proves a better amount.
+
+    RapidOCR often spans only the cents token (``156.00`` from ``523\\n156``).
+    Promoting to the ruled amount keeps financial conflict / DI-partner paths
+    on the printed total without inventing ink.
+    """
+    if not isinstance(cand, dict):
+        return None
+    ruled = _ruling_split_amount(cand.get("raw_value"))
+    if ruled is None or _is_selection_noise(ruled):
+        return None
+    current = parse_currency(cand.get("value"))
+    current_txt = format_currency(current) if current is not None else None
+    if current_txt == ruled:
+        return None
+    # Promote when value is missing, a cents/group fragment, or digit-glue of ruled.
+    if (
+        current_txt is None
+        or is_ruling_split_digit_glue(ruled, cand.get("value"))
+        or is_ruling_split_digit_glue(ruled, cand.get("raw_value"))
+        or (
+            current is not None
+            and current < parse_currency(ruled)
+            and any(
+                g == re.sub(r"\D", "", current_txt.split(".", 1)[0])
+                for g in re.findall(r"\d+", str(cand.get("raw_value") or ""))
+            )
+        )
+    ):
+        cand["value"] = ruled
+        return ruled
+    return None
+
+
 def _ruling_split_amount(raw: object) -> str | None:
     """Reconstruct dollars|cents ruling splits and dollars+units-bleed raws."""
     text = str(raw or "")
