@@ -205,20 +205,31 @@ def _shutdown_process_pool(pool: ProcessPoolExecutor | None) -> None:
     App-pool timeouts previously called terminate() only; wedged workers kept
     running tesseract children, and each respawn leaked ~300MB until the host
     OOM'd and PRODUCT stalled mid-mailroom cluster.
+
+    Capture PIDs before shutdown() — some Python builds clear ``_processes``
+    during shutdown(wait=False), which previously skipped the kill loop.
     """
     if pool is None:
         return
-    try:
-        pool.shutdown(wait=False, cancel_futures=True)
-    except TypeError:
-        pool.shutdown(wait=False)
+    pids: list[int] = []
     processes = getattr(pool, "_processes", None) or {}
     for proc in list(processes.values()):
         try:
             pid = getattr(proc, "pid", None)
             if pid:
-                _kill_pid_tree(int(pid))
-            elif proc.is_alive():
+                pids.append(int(pid))
+        except Exception:  # noqa: BLE001, S110
+            pass
+    try:
+        pool.shutdown(wait=False, cancel_futures=True)
+    except TypeError:
+        pool.shutdown(wait=False)
+    for pid in pids:
+        _kill_pid_tree(pid)
+    # Fallback if PID capture missed workers still marked alive.
+    for proc in list(processes.values()):
+        try:
+            if proc.is_alive():
                 proc.kill()
         except Exception:  # noqa: BLE001, S110
             pass
