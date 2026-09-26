@@ -933,7 +933,11 @@ def test_di_cent_glue_place_shift_unlocks_single_line_sum():
     Box 28 is deferred as a contradiction shell, but the glue corroborator must
     still mint SCALE_TWIN_BOX28_DEFERRED — not SINGLE_LINE_REQUIRES_DI.
     """
-    from packages.claim_evidence.line_sum_authority import _di_agrees_on_charge_amount
+    from packages.claim_evidence.line_sum_authority import (
+        _di_agrees_on_charge_amount,
+        is_implausible_charge_total,
+        is_implausible_corroborator,
+    )
 
     lines = [
         {
@@ -944,6 +948,9 @@ def test_di_cent_glue_place_shift_unlocks_single_line_sum():
     ]
     assert is_decimal_place_shift("182500.00", "1825.00")
     assert should_defer_box28_to_line_sum("182500.00", lines)
+    # complete_from_extraction._charge_corroborators must not drop glue as ≥$100k.
+    assert is_implausible_charge_total("182500.00")
+    assert not is_implausible_corroborator("182500.00", "1825.00")
     ok, reason = line_sum_auto_eligible(
         lines,
         box28_value=None,

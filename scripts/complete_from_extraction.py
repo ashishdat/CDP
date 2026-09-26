@@ -989,10 +989,13 @@ def decide(extraction, family):
             if parsed is None:
                 return
             from packages.claim_evidence.line_sum_authority import (
-                is_implausible_charge_total,
+                is_implausible_corroborator,
             )
 
-            if is_implausible_charge_total(text):
+            # Use line-Σ-aware filter: bare is_implausible_charge_total drops
+            # DI ×100 digit-glue (182500.00 vs Σ 1825.00) as ≥$100k junk and
+            # starves SCALE_TWIN_BOX28_DEFERRED → SINGLE_LINE_REQUIRES_DI (JB9.037).
+            if is_implausible_corroborator(text, line_sum_total(service_lines)):
                 return
             # Caption bleed / DI multi-token soup must not conflict with Σ.
             if format_currency(parsed) in junk:
