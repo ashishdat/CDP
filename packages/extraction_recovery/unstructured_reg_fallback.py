@@ -696,9 +696,25 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 if not re.search(r"total\s*charge", ln, re.IGNORECASE):
                     continue
             for m in re.finditer(r"\$?\s*(\d{1,5})[.,;:](\d{2})\b", ln):
+                dollars, cents = int(m.group(1)), int(m.group(2))
+                # Without a TOTAL CHARGE cue, MM.DD DOB fragments (``02.28``)
+                # must not become Box 28 — keep HITL rather than false STP.
+                if not cue_lines and dollars <= 12 and 1 <= cents <= 31:
+                    continue
                 _take_charge(f"{m.group(1)}.{m.group(2)}")
             if "total_charge" in out and ln in (charge_lines[:5] or lines[:5]):
                 break
+    # FA=0: if DOB never shaped, drop tiny MM.DD-like charges that leaked from
+    # birthdate ink (``02.28``) even when a weak cue admitted them.
+    charge = out.get("total_charge")
+    if charge and "patient_dob" not in out:
+        m = re.fullmatch(r"(\d{1,2})\.(\d{2})", charge)
+        if m and int(m.group(1)) <= 12 and 1 <= int(m.group(2)) <= 31:
+            try:
+                if float(charge) < 13.0:
+                    del out["total_charge"]
+            except ValueError:
+                pass
     return out
 
 

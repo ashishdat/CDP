@@ -3705,6 +3705,13 @@ def run(directory, output):
                                 "field": "total_charge",
                                 "value": fin.accepted_total,
                                 "status": "FIELD_ACCEPTED",
+                                # Telemetry / cascade expect attempts on every row.
+                                "attempts": [
+                                    {
+                                        "engine": "document_family_finance",
+                                        "reason": "FAMILY_FINANCE_LINE_TOTALS",
+                                    }
+                                ],
                                 "cascade": {
                                     "accepted": True,
                                     "accept_reason": "FAMILY_FINANCE:"
@@ -3762,8 +3769,9 @@ def run(directory, output):
         tel.write(output / 'stage_wiring.json')
         (output / 'ocr_telemetry.json').write_text(json.dumps({
             'status': report['status'], 'fields_completed': len(report['fields']),
-            'provider_attempts': [{'field': r['field'], 'attempts': [
-                {k: a[k] for k in ('engine', 'reason', 'latency_ms') if k in a} for a in r['attempts']]}
+            'provider_attempts': [{'field': r.get('field'), 'attempts': [
+                {k: a[k] for k in ('engine', 'reason', 'latency_ms') if k in a}
+                for a in (r.get('attempts') or [])]}
                 for r in report['fields']], 'stop_after': 'ocr',
             'runtime_wiring': wiring,
             'doc_latency_budget': report.get('doc_latency_budget'),

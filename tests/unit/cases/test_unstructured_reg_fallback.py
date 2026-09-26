@@ -279,3 +279,15 @@ Urita, Luke, N.
     assert fields.get("patient_dob") == "11/06/1996"
     assert fields.get("insured_id_number") == "0000548763"
     assert fields.get("total_charge") == "1320.00"
+
+
+def test_dob_fragment_not_promoted_as_total_charge_without_cue():
+    """Sparse DI miss: ``02.28`` birthdate ink must stay HITL, not Box 28."""
+    text = """
+SEKIYA, FAIRES A
+601377057
+02.28
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("total_charge") != "02.28"
+    assert "patient_dob" not in fields or fields.get("patient_dob") != "02/28"
