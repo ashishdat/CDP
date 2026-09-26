@@ -106,6 +106,7 @@ _BAD_NAME = re.compile(
     r"united\s*healthcare|martin,?\s*inc|buford|p\.?\s*o\.?\s*box|salt\s*lake|"
     r"sourcehov|tracking\s*no|recvdate|patch\s*ii|medicaid\s*resub|"
     r"insured.?s?\s*(?:i\.?d|name|unique)|patient.?s?\s*name|"
+    r"illness|injury|pregnancy|\blmp\b|current\s*illness|"
     r"document\s*separator|unique\s*id|fax\s*(?:image|patch)|print\s*options|"
     r"\bof\s*b[il]{2,}\b|\bmed\.?\s*rec\b|\bmedical\s*rec|"
     r"therefore\s+better|original\s+source|image\s+quality|"
@@ -471,7 +472,7 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     name_priority: list[str] = []
     for i, ln in enumerate(lines):
         if re.search(
-            r"patient\s*name|insured'?s?\s*name|patient\s*address",
+            r"patient'?s?\s*name|insured'?s?\s*name|patient\s*address",
             ln,
             re.IGNORECASE,
         ):
@@ -1027,12 +1028,17 @@ def run_unstructured_reg_fallback(
             agent_fields = {}
         if agent_fields:
             agent_used = True
-            # Agent wins on gaps and on suspicious phone-as-ID / tiny charge.
+            # Agent wins on gaps, form-junk names, suspicious phone-as-ID / tiny charge.
             for key, value in agent_fields.items():
                 if key not in fields:
                     fields[key] = value
                     continue
-                if key == "insured_id_number":
+                if key in {"patient_name", "insured_name"} and (
+                    _BAD_NAME.search(fields[key] or "")
+                    or not _looks_like_person_name(fields[key])
+                ):
+                    fields[key] = value
+                elif key == "insured_id_number":
                     cur = re.sub(r"\D", "", fields[key])
                     if len(cur) in {7, 10} or not (8 <= len(cur) <= 12):
                         fields[key] = value

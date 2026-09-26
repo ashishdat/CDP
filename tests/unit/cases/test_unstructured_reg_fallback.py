@@ -320,3 +320,29 @@ AMBER HASSINONE COOPER PLAZA CAMDEN NJ 081031461
     assert fields.get("insured_id_number") == "OSC76422826"
     assert fields.get("total_charge") == "233.00"
     assert "CANNULI" in (fields.get("patient_name") or "").upper()
+
+
+def test_patients_apostrophe_label_not_illness_injury_name():
+    """JFQ.032-class: PATIENT'S NAME + reject form label ILLNESS, INJURY."""
+    text = """
+2. PATIENT'S NAME (Last Name, First Name, Middle Initial)
+VOLK MAVERICK
+3. PATIENT'S BIRTH DATE 09 --
+18 M X
+F
+4. INSURED'S NAME (Last Name, First Name. Middle Initial)
+SONG SHERRY
+14. DATE OF CURRENT ILLNESS, INJURY, or PREGNANCY (LMP)
+20987802
+28. TOTAL CHARGE $ 304 04
+ZIP CODE
+34275
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    name = (fields.get("patient_name") or "").upper()
+    assert "VOLK" in name and "MAVERICK" in name
+    assert "ILLNESS" not in name and "INJURY" not in name
+    assert fields.get("insured_id_number") == "20987802"
+    assert fields.get("total_charge") == "304.04"
+    # Blank/partial DOB must stay HITL — do not invent a year.
+    assert "patient_dob" not in fields
