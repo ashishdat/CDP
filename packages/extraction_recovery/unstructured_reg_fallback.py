@@ -19,12 +19,15 @@ import contextlib
 import json
 import os
 import re
+import subprocess
+import tempfile
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date
 from io import BytesIO
 from typing import Any
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 from packages.extraction_recovery.field_cascade import semantic_accept
 from packages.extraction_recovery.span_selection import select_field_span
@@ -280,7 +283,8 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
     # --- DOB: prefer lines near BIRTHDATE, then whole-line / inline / compact ---
     # DI often emits colon/pipe cell separators + sex suffix: ``02:28:1967MX``,
     # ``11 : 06 | 96``. Span assemble already shapes those; candidates must feed them.
-    _dob_sep = r"[\s/.\-:|]"
+    # ``!`` is a common OCR sub for ``/`` on handwritten Box 3 (``06:09! 18``).
+    _dob_sep = r"[\s/.\-:|!]"
     dob_pats = (
         rf"\b\d{{1,2}}{_dob_sep}\d{{1,2}}{_dob_sep}\d{{2,4}}[MmFfXx]{{0,2}}\b",
         r"\b\d{1,2}\s+\d{1,2}\s+\d{2}\b",
@@ -290,7 +294,6 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         if re.search(r"birth\s*date|birthdate|\bdob\b", ln, re.IGNORECASE):
             # UB-04 Box 10 ink is often several lines below the printed label.
             dob_priority.extend(lines[i : i + 20])
-    dob_scan = dob_priority + lines[:80]
     # Second pool: compact MMDDYYYY(+sex) anywhere — only if priority pass fails.
     compact_pool = list(lines)
 
@@ -325,32 +328,49 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
             candidates.append(tok)
         return candidates
 
-    def _try_shape_dob(raw: str) -> str | None:
+    def _try_shape_dob(raw: str, *, max_year: int) -> str | None:
         shaped, reason = _shape_field("patient_dob", raw)
         if not shaped or "FUTURE" in reason:
             return None
         year = re.findall(r"\d{4}", shaped)
-        if year and int(year[-1]) > 2015:
+        if year and int(year[-1]) > max_year:
             return None
         if year and int(year[-1]) < 1920:
             return None
         return shaped
 
-    seen_dob: set[str] = set()
-    for ln in dob_scan:
-        if ln in seen_dob:
-            continue
-        seen_dob.add(ln)
-        # Skip obvious mail/recv stamps (claim DOB is never 2025/2026).
-        if re.search(r"recv|arrival|tracking|patch\s*ii|creation\s*date", ln, re.IGNORECASE):
-            continue
-        for raw in _dob_candidates_from_line(ln):
-            shaped = _try_shape_dob(raw)
-            if shaped:
-                out["patient_dob"] = shaped
-                break
-        if "patient_dob" in out:
-            break
+    # Birthdate-proximate lines may be pediatric (through current year). Unlabeled
+    # general scan keeps a stricter cap so fax/claim dates (``08/18/2026``) stay out.
+    _year_now = date.today().year
+    _year_labeled = _year_now
+    _year_general = min(2015, _year_now)
+
+    def _scan_dob_lines(pool: list[str], *, max_year: int) -> str | None:
+        seen: set[str] = set()
+        for ln in pool:
+            if ln in seen:
+                continue
+            seen.add(ln)
+            if re.search(
+                r"recv|arrival|tracking|patch\s*ii|creation\s*date|\bfax\b",
+                ln,
+                re.IGNORECASE,
+            ):
+                continue
+            for raw in _dob_candidates_from_line(ln):
+                shaped = _try_shape_dob(raw, max_year=max_year)
+                if shaped:
+                    return shaped
+        return None
+
+    if dob_priority:
+        got = _scan_dob_lines(dob_priority, max_year=_year_labeled)
+        if got:
+            out["patient_dob"] = got
+    if "patient_dob" not in out:
+        got = _scan_dob_lines(lines[:80], max_year=_year_general)
+        if got:
+            out["patient_dob"] = got
     # Compact MMDDYYYY(+sex) full-document pass when label-proximate scan missed.
     if "patient_dob" not in out:
         for ln in compact_pool:
@@ -365,7 +385,8 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 raw = m.group(1)
             else:
                 raw = ln.strip()[:8]
-            shaped = _try_shape_dob(raw)
+            # Compact 8-digit lines are high precision — allow pediatric years.
+            shaped = _try_shape_dob(raw, max_year=_year_labeled)
             if shaped:
                 out["patient_dob"] = shaped
                 break
@@ -955,6 +976,68 @@ def _agent_fields_via_claude(di_text: str, cfg: Any) -> dict[str, str]:
         return {}
 
 
+def _local_ocr_cms_box3_text(image: Image.Image) -> str:
+    """Tesseract a CMS-1500 Box 2–3 crop when DI leaves DOB blank.
+
+    Azure DI sometimes splits handwritten ``06/09/18`` into ``09 --`` + ``18 M``
+    and drops the month. Include patient-name columns — MM digits OCR more
+    reliably next to the name than in a DOB-only slice.
+    """
+    try:
+        rgb = image.convert("RGB")
+        # Bi-level WhiteIsZero scans need inversion for Tesseract.
+        extrema = rgb.convert("L").getextrema()
+        work = (
+            ImageOps.invert(rgb)
+            if extrema and extrema[0] < 32 and extrema[1] > 220
+            else rgb
+        )
+        w, h = work.size
+        if w < 80 or h < 80:
+            return ""
+        # Patient name (Box 2) through DOB/sex (Box 3).
+        box = (
+            int(w * 0.02),
+            int(h * 0.10),
+            int(w * 0.72),
+            int(h * 0.24),
+        )
+        crop = work.crop(box)
+        crop = crop.resize((max(1, crop.width * 2), max(1, crop.height * 2)))
+        texts: list[str] = []
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=True) as tmp:
+            crop.save(tmp.name, format="PNG")
+            for psm in ("6", "11"):
+                proc = subprocess.run(
+                    ["tesseract", tmp.name, "stdout", "--psm", psm],
+                    capture_output=True,
+                    text=True,
+                    timeout=20,
+                    check=False,
+                )
+                chunk = (proc.stdout or "").strip()
+                if chunk:
+                    texts.append(chunk)
+        return "\n".join(texts)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _dob_from_local_box3(image: Image.Image) -> str | None:
+    """Return a shaped patient_dob from local Box 3 OCR, or None."""
+    text = _local_ocr_cms_box3_text(image)
+    if not text:
+        return None
+    # Prefer birthdate-labeled fragment; otherwise scan the crop text alone.
+    labeled = "3. PATIENT'S BIRTH DATE\n" + text
+    fields = _heuristic_fields_from_di_text(labeled)
+    dob = fields.get("patient_dob")
+    if dob:
+        return dob
+    fields = _heuristic_fields_from_di_text(text)
+    return fields.get("patient_dob")
+
+
 def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> dict[str, str]:
     """Text JSON extract from DI ink (Azure gpt-4o, then Claude if needed)."""
     try:
@@ -1062,6 +1145,13 @@ def run_unstructured_reg_fallback(
                     r"\$?\d{1,2}\.\d{2}", fields[key]
                 ):
                     fields[key] = value
+
+    # DI often blanks handwritten Box 3 (``09 --`` / ``18 M``). Local crop OCR
+    # recovers month+day+year from ink when the text agent still has no DOB.
+    if "patient_dob" not in fields:
+        local_dob = _dob_from_local_box3(image)
+        if local_dob:
+            fields["patient_dob"] = local_dob
 
     if not fields:
         return UnstructuredRegFallbackResult(

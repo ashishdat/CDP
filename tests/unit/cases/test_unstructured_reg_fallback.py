@@ -344,8 +344,20 @@ ZIP CODE
     assert "ILLNESS" not in name and "INJURY" not in name
     assert fields.get("insured_id_number") == "20987802"
     assert fields.get("total_charge") == "304.04"
-    # Blank/partial DOB must stay HITL — do not invent a year.
+    # Blank/partial DOB must stay HITL — do not invent a month/year from ``09 --``.
     assert "patient_dob" not in fields
+
+
+def test_pediatric_dob_bang_separator_from_local_ocr_text():
+    """JFQ.032 ink: local OCR ``06:09! 18`` → pediatric 06/09/2018 (not year>2015 drop)."""
+    text = """
+3. PATIENT'S BIRTH DATE SEX
+06:09! 18 mX|
+4. INSURED'S NAME
+SONG SHERRY
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("patient_dob") == "06/09/2018"
 
 
 def test_hyphenated_1a_id_not_harvested_as_charge():
