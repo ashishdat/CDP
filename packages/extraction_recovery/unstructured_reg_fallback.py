@@ -305,6 +305,16 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         # ``071220071M`` / ``05041977M`` — 8-digit DOB + optional junk digit + sex.
         for m in re.finditer(r"\b(\d{8})\d?[MmFf]\b", ln):
             candidates.append(m.group(1))
+        # CMS Box 3 DI garble: checkbox/stem digit between MM and DD then year —
+        # ``06113 /1992MX`` → 06/13/1992; also clean ``0613 /1992MX``.
+        for m in re.finditer(
+            r"\b(\d{2})1(\d{2})\s*/\s*(\d{4})[MmFfXx]{0,2}\b", ln
+        ):
+            candidates.append(f"{m.group(1)}/{m.group(2)}/{m.group(3)}")
+        for m in re.finditer(
+            r"\b(\d{2})(\d{2})\s*/\s*(\d{4})[MmFfXx]{0,2}\b", ln
+        ):
+            candidates.append(f"{m.group(1)}/{m.group(2)}/{m.group(3)}")
         for pat in dob_pats:
             candidates.extend(re.findall(pat, ln))
         # Compact handwritten MMDDYY / MMDDYYYY often glued (``092767`` / ``0927671``).
@@ -410,9 +420,9 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                     re.IGNORECASE,
                 )
             )
-            # Digit member ids + alphanumeric CMS 1a ids (``M01406484``).
+            # Digit member ids + alphanumeric CMS 1a ids (``M01406484``, ``OSC76422826``).
             toks = re.findall(r"\b\d{7,12}\b", ln)
-            toks.extend(re.findall(r"\b[A-Za-z]\d{6,11}\b", ln))
+            toks.extend(re.findall(r"\b[A-Za-z]{1,3}\d{6,11}\b", ln))
             if address_line:
                 # Freeform CMS notes put member id at the start of an address soup line.
                 if toks and ln.lstrip().startswith(toks[0]):
@@ -440,14 +450,14 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         id_candidates.sort(
             key=lambda pair: (
                 pair[0],
-                # Prefer letter+digit CMS 1a ids (``M01406484``) over account nos
-                # (``P153…``) and over zip/EIN digit soup; zero-padded next.
+                # Prefer letter+digit CMS 1a ids (``M01406484``, ``OSC76422826``)
+                # over account nos (``P153…``) and over zip/EIN digit soup.
                 (
                     0
-                    if re.fullmatch(r"[A-Za-z]\d{6,11}", pair[1])
+                    if re.fullmatch(r"[A-Za-z]{1,3}\d{6,11}", pair[1])
                     and pair[1][0].upper() in "MWHKC"
                     else 1
-                    if re.fullmatch(r"[A-Za-z]\d{6,11}", pair[1])
+                    if re.fullmatch(r"[A-Za-z]{1,3}\d{6,11}", pair[1])
                     else 2
                 ),
                 0 if pair[1].startswith("0") else 1,
@@ -566,7 +576,36 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 cue_lines.append(ln)
     # Also promote standalone dollar stems that sit after repeated line charges
     # (``220 00`` × N then bare ``1320`` / ``1320 00| 3`` / ``23700.``).
+    # Never promote DOB soup (``06113 /1992MX`` / bare ``11992`` year fragments).
+    dob_line_idx = {
+        i
+        for i, ln in enumerate(lines)
+        if re.search(r"birth\s*date|birthdate|\bdob\b", ln, re.IGNORECASE)
+    }
+    dob_near: set[str] = set()
+    for i in dob_line_idx:
+        dob_near.update(lines[max(0, i - 1) : i + 12])
+
+    def _is_date_like_charge_line(ln: str) -> bool:
+        if re.search(r"/\s*(?:19|20)\d{2}|[MmFfXx]{1,2}\s*$", ln):
+            return True
+        if ln in dob_near and re.fullmatch(r"\d{4,5}", ln):
+            # Bare year / year-with-leading-stem next to DOB labels (``11992``).
+            # Do not reject legitimate bare totals like ``1320`` in the same window.
+            try:
+                n = int(ln)
+            except ValueError:
+                return False
+            if 1900 <= n <= 2099:
+                return True
+            if len(ln) == 5 and 1900 <= int(ln[1:]) <= 2099:
+                return True
+        return False
+
+    labeled_charge_locked = False
     for i, ln in enumerate(lines):
+        if _is_date_like_charge_line(ln):
+            continue
         if re.fullmatch(r"\$?\s*\d{3,6}(?:\s*00)?(?:\s*[|./].*)?", ln):
             m = re.match(r"\$?\s*(\d{3,6})(?:\s*00)?", ln)
             stem = m.group(1) if m else ""
@@ -578,9 +617,13 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         ln for ln in lines if re.search(r"\bcharge\b", ln, re.IGNORECASE)
     ]
     seen_charge: set[str] = set()
+    # 0 = labeled Box 28 / TOTAL CHARGE; 1 = opportunistic bare stem / scan.
+    best_charge_rank = 99
 
-    def _take_charge(raw: str, *, allow_tiny: bool = False) -> None:
-        nonlocal out
+    def _take_charge(
+        raw: str, *, allow_tiny: bool = False, rank: int = 1
+    ) -> None:
+        nonlocal out, best_charge_rank, labeled_charge_locked
         if raw in seen_charge or raw == "0.00":
             return
         # Diagnosis crumbs (``F43.24`` / ``F 43.24``) and CPT codes are not totals.
@@ -612,6 +655,21 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
         prev = out.get("total_charge")
         if prev is None:
             out["total_charge"] = shaped
+            best_charge_rank = rank
+            if rank == 0:
+                labeled_charge_locked = True
+            return
+        # Labeled Box 28 / TOTAL CHARGE wins over larger opportunistic stems
+        # (``11992`` DOB year must not beat ``$ 23300`` → 233.00).
+        if rank < best_charge_rank:
+            out["total_charge"] = shaped
+            best_charge_rank = rank
+            if rank == 0:
+                labeled_charge_locked = True
+            return
+        if labeled_charge_locked and rank > 0:
+            return
+        if rank > best_charge_rank:
             return
         try:
             if float(shaped) >= float(prev):
@@ -625,13 +683,19 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
             continue
         if re.search(r"\bF\s*\d{2}\.\d{2}\b", ln, re.IGNORECASE):
             continue
+        if _is_date_like_charge_line(ln):
+            continue
+        labeled = bool(
+            re.search(r"total\s*charge|box\s*28|totals?['’s]?t?i?\b", ln, re.I)
+        )
+        rank = 0 if labeled else 1
         for m in re.finditer(r"\$?\s*(\d{1,5})[.,;:](\d{2})\b", ln):
-            _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True)
+            _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True, rank=rank)
         for m in re.finditer(r"\$?\s*(\d{1,5})[ \-](\d{2})(?!\d)\b", ln):
             whole = int(m.group(1))
             if whole > 20000:
                 continue
-            _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True)
+            _take_charge(f"{m.group(1)}.{m.group(2)}", allow_tiny=True, rank=rank)
         # DI often drops the decimal on Box 28: ``$ 23700`` / ``TOTAL CHARGE 23700``.
         for m in re.finditer(r"\$\s*(\d{3,6})\b", ln):
             digits = m.group(1)
@@ -639,7 +703,10 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 dollars, cents = digits[:-2], digits[-2:]
                 try:
                     if 1 <= int(dollars) <= 200000:
-                        _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True)
+                        # Dollar stem on cue lines is strong Box 28 evidence.
+                        _take_charge(
+                            f"{int(dollars)}.{cents}", allow_tiny=True, rank=0
+                        )
                 except ValueError:
                     pass
         for m in re.finditer(
@@ -650,13 +717,16 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 dollars, cents = digits[:-2], digits[-2:]
                 try:
                     if 1 <= int(dollars) <= 200000:
-                        _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True)
+                        _take_charge(
+                            f"{int(dollars)}.{cents}", allow_tiny=True, rank=0
+                        )
                 except ValueError:
                     pass
         # Bare dollars on the line after TOTAL CHARGE cue (``1320`` / ``1320 00| 3``).
         # Also ``23700`` / ``23700.`` when DI drops the decimal on Box 28.
+        # Never treat form labels (``28. TOTAL CHARGE``) as the amount itself.
         bare = re.match(r"\$?\s*(\d{2,6})(?:\s*00)?(?:\s*[|./].*)?$", ln)
-        if bare:
+        if bare and not re.search(r"[A-Za-z]{3,}", ln):
             digits = bare.group(1)
             if digits.startswith("9") and len(digits) == 5:
                 continue  # CPT
@@ -666,7 +736,9 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                 dollars, cents = digits, "00"
             try:
                 if 1 <= int(dollars) <= 200000:
-                    _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True)
+                    _take_charge(
+                        f"{int(dollars)}.{cents}", allow_tiny=True, rank=rank
+                    )
             except ValueError:
                 pass
         # UB-04 ``TOTALS 2420968`` — amount stored as integer cents.
@@ -682,7 +754,7 @@ def _heuristic_fields_from_di_text(di_text: str) -> dict[str, str]:
                     continue
             except ValueError:
                 continue
-            _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True)
+            _take_charge(f"{int(dollars)}.{cents}", allow_tiny=True, rank=0)
     if "total_charge" not in out:
         for ln in charge_lines + lines:
             # Never harvest colon-date fragments or ICD crumbs as currency.
@@ -733,23 +805,22 @@ def _agent_should_run(fields: dict[str, str]) -> bool:
     return bool(re.fullmatch(r"\$?\d{1,2}\.\d{2}", charge))
 
 
-def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> dict[str, str]:
-    """gpt-4o text JSON extract from DI ink (no geometry, no invented pixels)."""
-    try:
-        from packages.settings import get_settings
-    except ImportError:
-        return {}
-    if _build_azure_review_adapter is None:
-        return {}
-    cfg = settings or get_settings()
-    if not getattr(cfg, "azure_ai_evaluation_enabled", False):
-        return {}
-    try:
-        adapter = _build_azure_review_adapter(cfg)
-    except (OSError, ValueError, RuntimeError, TypeError, AttributeError, KeyError):
-        return {}
+def _shape_agent_json(parsed: Any) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if not isinstance(parsed, dict):
+        return out
+    for key in _CRITICAL:
+        raw = parsed.get(key)
+        if raw is None:
+            continue
+        shaped, _ = _shape_field(key, str(raw))
+        if shaped:
+            out[key] = shaped
+    return out
 
-    prompt = (
+
+def _agent_prompt(di_text: str) -> str:
+    return (
         "Extract CMS-1500 critical claim fields from the OCR text of a medical "
         "claim page that may be freeform (not a filled form grid). "
         "Return strict JSON with keys: patient_name, insured_name, patient_dob, "
@@ -759,6 +830,17 @@ def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> 
         "total_charge is the claim total (not a diagnosis code).\n\nOCR text:\n"
         f"{di_text[:6000]}"
     )
+
+
+def _agent_fields_via_azure(di_text: str, cfg: Any) -> dict[str, str]:
+    if _build_azure_review_adapter is None:
+        return {}
+    if not getattr(cfg, "azure_ai_evaluation_enabled", False):
+        return {}
+    try:
+        adapter = _build_azure_review_adapter(cfg)
+    except (OSError, ValueError, RuntimeError, TypeError, AttributeError, KeyError):
+        return {}
     client = getattr(adapter, "_client", None)
     endpoint = getattr(adapter, "_endpoint", None)
     deployment = getattr(adapter, "_deployment", None) or getattr(
@@ -778,7 +860,7 @@ def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> 
                 "role": "system",
                 "content": "You extract claim fields. Reply with JSON only.",
             },
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": _agent_prompt(di_text)},
         ],
         "response_format": {"type": "json_object"},
     }
@@ -786,20 +868,87 @@ def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> 
         response = client.post(url, json=payload)
         response.raise_for_status()
         content = response.json()["choices"][0]["message"]["content"]
-        parsed = json.loads(content)
+        return _shape_agent_json(json.loads(content))
     except Exception:  # noqa: BLE001 — 401/timeout/parse must not crash REG path
         return {}
-    out: dict[str, str] = {}
-    if not isinstance(parsed, dict):
+
+
+def _agent_fields_via_claude(di_text: str, cfg: Any) -> dict[str, str]:
+    """Text-only Claude fallback when Azure OpenAI review key is unavailable."""
+    api_key = (
+        getattr(cfg, "anthropic_api_key", None)
+        or os.environ.get("ANTHROPIC_API_KEY")
+        or ""
+    ).strip()
+    if not api_key:
+        return {}
+    model = (
+        getattr(cfg, "anthropic_model", None)
+        or os.environ.get("ANTHROPIC_MODEL")
+        or "claude-sonnet-4-6"
+    )
+    endpoint = (
+        getattr(cfg, "anthropic_messages_endpoint", None)
+        or os.environ.get("ANTHROPIC_MESSAGES_ENDPOINT")
+        or "https://api.anthropic.com/v1/messages"
+    )
+    try:
+        import httpx
+    except ImportError:
+        return {}
+    payload = {
+        "model": model,
+        "max_tokens": 512,
+        "temperature": 0,
+        "messages": [
+            {
+                "role": "user",
+                "content": (
+                    "You extract claim fields. Reply with JSON only.\n\n"
+                    + _agent_prompt(di_text)
+                ),
+            }
+        ],
+    }
+    try:
+        with httpx.Client(timeout=45.0) as client:
+            response = client.post(
+                endpoint.rstrip("/"),
+                json=payload,
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+            )
+            response.raise_for_status()
+            body = response.json()
+        text_parts = [
+            block.get("text") or ""
+            for block in (body.get("content") or [])
+            if isinstance(block, dict) and block.get("type") == "text"
+        ]
+        raw = "\n".join(text_parts).strip()
+        # Tolerate optional markdown fences.
+        if raw.startswith("```"):
+            raw = re.sub(r"^```(?:json)?\s*", "", raw)
+            raw = re.sub(r"\s*```$", "", raw)
+        return _shape_agent_json(json.loads(raw))
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> dict[str, str]:
+    """Text JSON extract from DI ink (Azure gpt-4o, then Claude if needed)."""
+    try:
+        from packages.settings import get_settings
+    except ImportError:
+        return {}
+    cfg = settings or get_settings()
+    out = _agent_fields_via_azure(di_text, cfg)
+    if out:
         return out
-    for key in _CRITICAL:
-        raw = parsed.get(key)
-        if raw is None:
-            continue
-        shaped, _ = _shape_field(key, str(raw))
-        if shaped:
-            out[key] = shaped
-    return out
+    return _agent_fields_via_claude(di_text, cfg)
 
 
 def run_unstructured_reg_fallback(

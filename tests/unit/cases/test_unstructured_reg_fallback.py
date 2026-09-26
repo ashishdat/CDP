@@ -291,3 +291,32 @@ SEKIYA, FAIRES A
     fields = _heuristic_fields_from_di_text(text)
     assert fields.get("total_charge") != "02.28"
     assert "patient_dob" not in fields or fields.get("patient_dob") != "02/28"
+
+
+def test_cms_checkbox_dob_garble_and_labeled_box28_beats_year_stem():
+    """JF1.005-class: ``06113 /1992MX`` DOB + ``$ 23300`` must beat bare ``11992``."""
+    text = """
+OTHER| 1a. INSURED'S I.D. NUMBER
+(Member ID#)
+(ID#)
+OSC76422826
+2. PATIENT'S NAME (Last Name, First Name, Middle Initial)
+CANNULI, DAVID MICHAEL
+3. PATIENT'S BIRTH DATE
+06113 /1992MX
+F
+a. INSURED'S DATE OF BIRTH MM 06
+SEX
+1º3
+11992
+M
+99232 GC
+23300
+28. TOTAL CHARGE $ 23300
+AMBER HASSINONE COOPER PLAZA CAMDEN NJ 081031461
+"""
+    fields = _heuristic_fields_from_di_text(text)
+    assert fields.get("patient_dob") == "06/13/1992"
+    assert fields.get("insured_id_number") == "OSC76422826"
+    assert fields.get("total_charge") == "233.00"
+    assert "CANNULI" in (fields.get("patient_name") or "").upper()
