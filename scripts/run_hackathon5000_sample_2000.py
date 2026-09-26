@@ -90,10 +90,13 @@ def main() -> int:
     else:
         print("profile=PRODUCT — residuals on; product-gate eligible", flush=True)
 
-    workers = "1"
+    # Default 2 claim workers on multi-CPU hosts; keep a single OCR spawn
+    # (~4 GiB Paddle) so parallel claims overlap DI/VLM without OOM.
+    workers = "2"
     if "--workers" in sys.argv:
         i = sys.argv.index("--workers")
         workers = sys.argv[i + 1]
+    env.setdefault("CDP_OCR_POOL_WORKERS", "1")
 
     cmd = [
         sys.executable,
@@ -112,8 +115,8 @@ def main() -> int:
         "--resume",
     ]
     print(
-        f"Running workers={workers} docs={len(docs)} dataset={DATASET.name} "
-        f"profile={profile.name}",
+        f"Running workers={workers} ocr_pool={env.get('CDP_OCR_POOL_WORKERS')} "
+        f"docs={len(docs)} dataset={DATASET.name} profile={profile.name}",
         flush=True,
     )
     return subprocess.call(cmd, env=env)

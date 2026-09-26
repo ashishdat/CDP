@@ -1544,6 +1544,12 @@ def main() -> int:
     for key, value in _stage_env().items():
         os.environ[key] = value
     pool_workers = max(1, min(int(args.workers), len(pending))) if pending else 1
+    # Cap heavy OCR spawn processes independently of claim fan-out so we can
+    # overlap Azure DI / VLM / registration without 2× Paddle RSS (~4 GiB each).
+    ocr_pool_cap_raw = (os.environ.get("CDP_OCR_POOL_WORKERS") or "").strip()
+    ocr_pool_workers = pool_workers
+    if ocr_pool_cap_raw.isdigit():
+        ocr_pool_workers = max(1, min(pool_workers, int(ocr_pool_cap_raw)))
     ocr_executor: ProcessPoolExecutor | None = None
     app_executor: ProcessPoolExecutor | None = None
     if _app_pool_enabled() and pending:
@@ -1555,11 +1561,11 @@ def main() -> int:
         app_executor = _spawn_pool(pool_workers)
     if _ocr_pool_enabled() and pending:
         print(
-            f"ocr_worker_pool=on workers={pool_workers} "
-            f"(amortize Paddle/Rapid cold start across claims)",
+            f"ocr_worker_pool=on workers={ocr_pool_workers} "
+            f"(claim_workers={pool_workers}; amortize Paddle/Rapid cold start)",
             flush=True,
         )
-        ocr_executor = _spawn_pool(pool_workers)
+        ocr_executor = _spawn_pool(ocr_pool_workers)
     try:
         with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
             futures = {
