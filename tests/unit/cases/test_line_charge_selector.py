@@ -485,6 +485,17 @@ def test_leading_one_cents_bleed_reconstructs_decimal():
     assert is_ruling_split_digit_glue("523.56", "523156.00")
     assert is_ruling_split_digit_glue("34.25", "3425")
     assert not is_ruling_split_digit_glue("523.56", "500.00")
+    # M0463JEM.017: ruling tick OCR'd as junk ``8`` before ``156``.
+    assert _ruling_split_amount("LAL\n523\n8156\nS") == "523.56"
+    assert _ruling_split_amount("523\n8156") == "523.56"
+    cand_corrupt = {
+        "engine": "paddleocr",
+        "value": "8156.00",
+        "raw_value": "LAL\n523\n8156\nS",
+        "preprocessing_variant": "CURRENCY_DECIMAL_V2",
+    }
+    assert promote_ruling_split_candidate_value(cand_corrupt) == "523.56"
+    assert cand_corrupt["value"] == "523.56"
     # RapidOCR cents-only span must promote to the ruled total.
     cand = {
         "engine": "rapidocr",

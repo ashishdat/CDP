@@ -196,9 +196,15 @@ def rank_saved(source, output):
                     'field_id':name, 'candidate_id':cid, 'winner':ranked.selected_candidate_id,
                     'is_winner':cid == ranked.selected_candidate_id,
                     'alternatives':[i for i in ranked.ranked_candidate_ids if i != ranked.selected_candidate_id],
-                    'confidence':original['raw_confidence'], 'ranking_score':scores[cid],
-                    'ranking_reason':list(ranked.reason_codes), 'provider':original['engine'],
-                    'telemetry_reference':reference, 'ocr_candidate':original})
+                    # Family-finance / synthetic cands may omit raw_confidence
+                    # (M0471JEQ.013 STAGE KeyError). Prefer explicit 0 over crash.
+                    'confidence': original.get('raw_confidence'),
+                    'ranking_score': scores[cid],
+                    'ranking_reason': list(ranked.reason_codes),
+                    'provider': original['engine'],
+                    'telemetry_reference': reference,
+                    'ocr_candidate': original,
+                })
             telemetry['events'].append({'field_id':name,'status':'SUCCESS',
                 'latency_ms':(perf_counter()-started)*1000,
                 'candidate_ids':[o.candidate_id for o in observations],

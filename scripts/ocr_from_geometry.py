@@ -325,11 +325,13 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
         )
         gap_class = gap.gap_class if gap is not None else "HANDWRITING_UNREADABLE"
         current = row
-        # TrOCR is local but cold-load heavy — treat as optional after soft when
-        # we still have DI/Claude path for unsettled DOB.
-        if trocr_on not in {"0", "false", "no", "off"} and allow_optional(
-            "trocr_dob_optional", field_name=name
-        ):
+        # TrOCR is local but cold-load heavy. Skip after hard only when locals
+        # already date-shaped; unsettled DOB (``1`` / empty) always continues
+        # (M0471JEH.036 HARD skip left Claude on an 18px year strip).
+        trocr_allowed = True
+        if local_date_shaped:
+            trocr_allowed = allow_optional("trocr_dob_optional", field_name=name)
+        if trocr_on not in {"0", "false", "no", "off"} and trocr_allowed:
             current = maybe_attach_dob_trocr_to_field_row(
                 current, image=image, gap_class=gap_class
             )
@@ -3720,6 +3722,8 @@ def run(directory, output):
                             "value": fin.accepted_total,
                             "engine": "document_family_finance",
                             "raw_value": fin.accepted_total,
+                            "raw_confidence": 0.95,
+                            "preprocessing_variant": "family_finance_line_totals",
                         }
                         finance_attempt = {
                             "engine": "document_family_finance",
