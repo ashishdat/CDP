@@ -166,6 +166,13 @@ def test_accept_policy_rejects_leading_zero_dob_year():
     assert sparse.allow_auto is False
     clean = evaluate_patient_dob_accept("1995-09-03")
     assert clean.allow_auto is True
+    # MMDDYYYY with month 0X must not be treated as 0YYYMMDD junk.
+    mmdd = evaluate_patient_dob_accept("08/16/1993")
+    assert mmdd.allow_auto is True
+    mmdd_compact = evaluate_patient_dob_accept("08161993")
+    assert mmdd_compact.allow_auto is True
+    glued_junk = evaluate_patient_dob_accept("01950903")
+    assert glued_junk.allow_auto is False
 
 
 def test_exact_match_leading_zeros_and_middle_initial():

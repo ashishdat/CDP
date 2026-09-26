@@ -95,7 +95,11 @@ def evaluate_insured_id_accept(value: str | None) -> AcceptVerdict:
 
 
 def evaluate_patient_dob_accept(value: str | None) -> AcceptVerdict:
-    """Reject leading-zero / sub-1880 year shells (``0195-09-03``) — not AUTO."""
+    """Reject leading-zero / sub-1880 year shells (``0195-09-03``) — not AUTO.
+
+    Do **not** treat MMDDYYYY with month ``0X`` (``08/16/1993`` → ``08161993``)
+    as junk — that falsely stripped unstructured REG DOBs into HITL.
+    """
     text = (value or "").strip()
     if not text:
         return AcceptVerdict(False, ("EMPTY_PATIENT_DOB",))
@@ -107,8 +111,14 @@ def evaluate_patient_dob_accept(value: str | None) -> AcceptVerdict:
     if 0 < len(digits) <= 3:
         return AcceptVerdict(False, ("JUNK_DOB_YEAR",))
     if len(digits) == 8 and digits[0] == "0":
-        # 0YYYMMDD glue (01950903) — not a human DOB year.
-        return AcceptVerdict(False, ("JUNK_DOB_YEAR",))
+        # 0YYYMMDD glue (01950903) is junk. MMDDYYYY with month 01-09
+        # (08161993 = 08/16/1993) must still AUTO when the year is plausible.
+        mmddyyyy_year = int(digits[4:8])
+        yyyymmdd_year = int(digits[0:4])
+        if 1880 <= mmddyyyy_year <= 2100:
+            return AcceptVerdict(True, ())
+        if yyyymmdd_year < 1000:
+            return AcceptVerdict(False, ("JUNK_DOB_YEAR",))
     return AcceptVerdict(True, ())
 
 
