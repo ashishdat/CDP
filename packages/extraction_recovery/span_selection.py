@@ -45,10 +45,19 @@ _LABELS = (
     "INSUREDS ID",
     "INSURED ID",
     "1NSURED'S ID",
+    "INSURED'S I.D. NUMBER",
+    "INSURED'S 1.D. NUMBER",
+    "INSUREDS I.D. NUMBER",
+    "INSUREDS 1.D. NUMBER",
+    "FOR PROGRAM IN ITEM 1",
+    "FOR PROGRAM IN ITEM",
     "ID NUMBER",
     "ID, NUMBER",
     "I.D. NUMBER",
     "I.D NUMBER",
+    "1.D. NUMBER",
+    "1.D NUMBER",
+    "L.D. NUMBER",
 )
 
 _CMS_BOX_HEADER = re.compile(
@@ -482,6 +491,17 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             got = _valid(compact[:2], compact[2:4], compact[4:])
             if got:
                 return got
+            # Leading-zero ISO year OCR (01950903 → 09/03/1995): keep MM/DD,
+            # century-repair YY from the last two year digits. Never invent day/month.
+            if compact[0] == "0":
+                got = _valid(
+                    compact[4:6], compact[6:8], _yy_to_yyyy(compact[2:4])
+                )
+                if got:
+                    return got
+                peeled = _parse_compact(compact[1:])
+                if peeled:
+                    return peeled
             # Leading-1 loss on 19xx years: MMDD9911 → MMDD1991 (observed ink only).
             year = compact[4:]
             if int(year) > 2100 and year[0] == "9":
@@ -848,6 +868,26 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
                     "FIELD_SEMANTIC_SPAN",
                     "LABELS_REMOVED" if removed_labels else "NO_LABELS_REMOVED",
                 )
+            # Pure Box-1a header / form-label crops — emit empty so gpt-4o/DI
+            # can re-read ink instead of locking the label as the member id.
+            if field_name in {"insured_id_number", "member_id", "subscriber_id"}:
+                try:
+                    from packages.product_gates.accuracy_accept_policy import (
+                        evaluate_insured_id_accept,
+                    )
+
+                    if not evaluate_insured_id_accept(raw).allow_auto:
+                        return _result(
+                            raw,
+                            "",
+                            "span-v1-member-id-form-label",
+                            [],
+                            0.0,
+                            "FORM_LABEL_INSURED_ID",
+                            "LABELS_REMOVED",
+                        )
+                except Exception:  # noqa: BLE001
+                    pass
             patterns = [
                 ("member-id", r"[A-Z]\d{2}-\d{7}", "last"),
                 ("generic-id", r"\b[A-Z0-9]{2,8}-[A-Z0-9-]{3,20}\b", "last"),

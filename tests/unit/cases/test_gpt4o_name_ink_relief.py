@@ -76,3 +76,25 @@ def test_genuine_name_conflict_without_gpt4o_stays_hitl():
     assert result.decision == Decision.REVIEW
     assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
     assert "GPT4O_NAME_INK_CONFLICT_RELIEVED" not in result.rationale_codes
+
+
+def test_box2_box4_name_relieves_conflict_margin():
+    """Box 2↔4 Self agreement outranks OCR margin fights (JC7.034-class)."""
+    result = EvidenceReconciler().reconcile(
+        "patient_name",
+        [
+            _candidate("RAYADAM HEATH", "paddleocr", 0.93),
+            _candidate("HEATH RAY", "rapidocr", 0.91),
+        ],
+        CriticalityLevel.C1,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "BOX2_BOX4_NAME_CONFIRMED",
+        },
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision == Decision.ACCEPT
+    assert result.selected_value == "RAYADAM HEATH"
+    assert "BOX2_BOX4_NAME_CONFLICT_RELIEVED" in result.rationale_codes
+    assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes

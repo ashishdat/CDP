@@ -31,6 +31,10 @@ _CHARGE_GAPS = frozenset(
         "CHARGE_DIGIT_CONFLICT",
         "AMBIGUOUS_DIGIT_FRAGMENTS",
         "AMBIGUOUS_CHARGE_DIGITS",
+        # Line-Σ / E4 misses must still fire Box-28 DI (sample-2000 HITL bucket).
+        "LINE_SUM_UNCORROBORATED",
+        "EVIDENCE_POLICY_GAP",
+        "CALIBRATION_HITL",
     }
 )
 

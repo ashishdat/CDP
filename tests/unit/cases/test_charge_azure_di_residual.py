@@ -63,6 +63,17 @@ def test_is_charge_local_residual_gates():
         gap_class="CHARGE_LOCAL_EXHAUSTED",
         local_accepted=False,
     )
+    # sample-2000 HITL gaps must still fire Box-28 DI
+    for gap in (
+        "LINE_SUM_UNCORROBORATED",
+        "EVIDENCE_POLICY_GAP",
+        "CALIBRATION_HITL",
+    ):
+        assert is_charge_local_residual(
+            field_name="total_charge",
+            gap_class=gap,
+            local_accepted=False,
+        ), gap
 
 
 def test_planner_selects_azure_di_for_charge_crop(monkeypatch):

@@ -129,9 +129,15 @@ class DeterministicEvidenceService:
             )
         elif any(token in name for token in ("member_id", "insured_id", "subscriber_id")):
             # Box-1a header crops ("INSURED'S I.D. NUMBER (For Program in Item 1)")
-            # are labels, not subscriber ids.
-            if re.search(r"INSUR|PROGRAM|ITEM\s*1|ID\.?\s*NUMBER|NUMBER", raw, re.IGNORECASE):
+            # are labels, not subscriber ids. OCR often reads I.D. as 1.D / L.D.
+            if re.search(
+                r"INSUR|PROGRAM|ITEM\s*1|[I1L]D\.?\s*,?\s*NUMBER|NUMBER\s*\(",
+                raw,
+                re.IGNORECASE,
+            ):
                 failures.append("LABEL_CONTAMINATION")
+            elif re.fullmatch(r"0+", re.sub(r"[^0-9]", "", raw) or ""):
+                failures.append("INVALID_MEMBER_IDENTIFIER")
             else:
                 # OCR often inserts spaces/dots/dashes between glyphs
                 # ("4E80 VH6 HJ14", "907.549 6.30 -00"). Validate the compact

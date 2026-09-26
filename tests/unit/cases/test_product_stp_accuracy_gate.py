@@ -8,7 +8,9 @@ from packages.extraction_recovery.residual_taxonomy import (
     classify_hitl_residual,
 )
 from packages.product_gates.accuracy_accept_policy import (
+    evaluate_insured_id_accept,
     evaluate_insured_name_accept,
+    evaluate_patient_dob_accept,
     filter_auto_fields,
 )
 from packages.product_gates.similar_sample_gate import evaluate_similar_sample_gate
@@ -142,6 +144,28 @@ def test_filter_auto_fields_keeps_clean_values():
     )
     assert blocked == ()
     assert "insured_name" in kept
+
+
+def test_accept_policy_rejects_form_label_and_all_zeros_id():
+    label = "1a. INSURED'S 1.D. NUMBER (For Program in item 1)"
+    verdict = evaluate_insured_id_accept(label)
+    assert verdict.allow_auto is False
+    assert "FORM_LABEL_INSURED_ID" in verdict.reason_codes
+    zeros = evaluate_insured_id_accept("0000000")
+    assert zeros.allow_auto is False
+    assert "ALL_ZEROS_INSURED_ID" in zeros.reason_codes
+    clean = evaluate_insured_id_accept("900265865")
+    assert clean.allow_auto is True
+
+
+def test_accept_policy_rejects_leading_zero_dob_year():
+    junk = evaluate_patient_dob_accept("0195-09-03")
+    assert junk.allow_auto is False
+    assert "JUNK_DOB_YEAR" in junk.reason_codes
+    sparse = evaluate_patient_dob_accept("1 1 1")
+    assert sparse.allow_auto is False
+    clean = evaluate_patient_dob_accept("1995-09-03")
+    assert clean.allow_auto is True
 
 
 def test_exact_match_leading_zeros_and_middle_initial():

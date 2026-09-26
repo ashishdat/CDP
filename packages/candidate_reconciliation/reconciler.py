@@ -611,12 +611,15 @@ def _member_id_is_weak_for_gpt4o_gate(value: str) -> bool:
     if not text:
         return True
     if re.search(
-        r"INSURED|NUMBER|PROGRAM|ITEM\s*1|1A\.|FOR\s*PROGRAM|PICA",
+        r"INSURED|NUMBER|PROGRAM|ITEM\s*1|1A\.|FOR\s*PROGRAM|PICA|"
+        r"[I1L]\.?D\.?\s*,?\s*NUMBER",
         text,
         re.IGNORECASE,
     ):
         return True
     alnum = re.sub(r"[^A-Za-z0-9]", "", text)
+    if alnum and re.fullmatch(r"0+", alnum):
+        return True
     if len(alnum) < 7:
         return True
     return bool(alnum.isalpha())
@@ -1960,6 +1963,24 @@ class EvidenceReconciler:
                     early_name_relief = True
                     break
 
+        # Prefer a real member-id over Box-1a form-label soup (``INSURED'S 1.D.
+        # NUMBER …``) when ranking was poisoned by header OCR.
+        if (
+            field_name in {"insured_id_number", "member_id", "subscriber_id"}
+            and len(ranked) > 1
+            and _member_id_is_weak_for_gpt4o_gate(str(value or ""))
+        ):
+            for _norm, items in ranked[1:]:
+                cand_val = str(max(items, key=lambda row: row[1])[0].value or "")
+                if (
+                    _member_id_is_shaped(cand_val)
+                    and not _member_id_is_weak_for_gpt4o_gate(cand_val)
+                ):
+                    value = cand_val
+                    supporting = items
+                    early_id_relief = True
+                    break
+
         # Prefer gpt-4o crop residual as person-name ink arbitrator when local
         # engines disagree (or the ranked primary is weak/chrome). Cascade only
         # attaches azure_gpt4o_crop for NAME_ENGINE_CONFLICT / unread ink — that
@@ -3197,6 +3218,42 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("UNIQUE_SHAPED_ID_CONFLICT_RELIEVED")
+                elif (
+                    is_name_field
+                    and "BOX2_BOX4_NAME_CONFIRMED" in deterministic
+                    and "HARD_VALIDATION_PASSED" in deterministic
+                    and "FORMAT_VALID" in deterministic
+                    and _name_is_strong_person(str(value or ""))
+                    and not _name_is_short_fragment(str(value or ""))
+                    and not _name_label_contaminated(str(value or ""))
+                ):
+                    # Box 2↔4 Self agreement already confirmed this person name —
+                    # rival OCR margin fights must not override form redundancy.
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("BOX2_BOX4_NAME_CONFLICT_RELIEVED")
+                elif (
+                    is_id_field
+                    and "MEMBER_RELATIONSHIP_CONFIRMED" in deterministic
+                    and "IDENTITY_CORROBORATED_THRESHOLD_RELIEF" in (
+                        relief_reason or ""
+                    )
+                    and "HARD_VALIDATION_PASSED" in deterministic
+                    and "FORMAT_VALID" in deterministic
+                    and _member_id_is_shaped(str(value or ""))
+                    and not _member_id_is_weak_for_gpt4o_gate(str(value or ""))
+                ):
+                    # Relationship-backed shaped ID near-miss: length fragments
+                    # beside the authority canon stay HITL-free (JB2.045-class).
+                    decision = (
+                        Decision.REFERENCE_CONFIRMED
+                        if reference_match
+                        else Decision.ACCEPT
+                    )
+                    reasons.append("IDENTITY_CORROBORATED_ID_CONFLICT_RELIEVED")
                 else:
                     decision = Decision.REVIEW
                     reasons.append("CONFLICT_MARGIN_TOO_SMALL")
