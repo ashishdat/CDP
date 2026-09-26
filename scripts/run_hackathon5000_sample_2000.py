@@ -90,13 +90,15 @@ def main() -> int:
     else:
         print("profile=PRODUCT — residuals on; product-gate eligible", flush=True)
 
-    # Default 3 claim workers on multi-CPU hosts; keep a single OCR spawn
-    # (~4 GiB Paddle) so parallel claims overlap DI/VLM without OOM.
+    # Default 3 claim workers on multi-CPU hosts. Two OCR pool workers
+    # (~3.5–4 GiB each) cut the serial OCR queue that capped ~110 docs/hr
+    # when claim workers=3 shared a single Paddle/Rapid spawn; needs ~9 GiB
+    # free at resume (reclaim PPID=1 orphans first if soft-stopping).
     workers = "3"
     if "--workers" in sys.argv:
         i = sys.argv.index("--workers")
         workers = sys.argv[i + 1]
-    env.setdefault("CDP_OCR_POOL_WORKERS", "1")
+    env.setdefault("CDP_OCR_POOL_WORKERS", "2")
 
     cmd = [
         sys.executable,
