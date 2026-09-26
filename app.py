@@ -735,6 +735,9 @@ def register_classified_document(images, routing, registry, selection=None):
             from packages.recovery.azure_di_meter import learned_matcher_enabled
 
             if learned_matcher_enabled():
+                # Only clear prior SIFT/near-miss buffers when LightGlue can
+                # actually run. Missing optional deps used to wipe a usable
+                # warp and stamp learned_matcher_unavailable → UNSTRUCTURED HITL.
                 if aligned is not None:
                     _preserve_corroboration_candidate(aligned, evidence)
                     if (
@@ -751,11 +754,20 @@ def register_classified_document(images, routing, registry, selection=None):
                         reference,
                         family=template.form_type.value,
                     )
-                _apply_alignment_result(
-                    learned,
-                    "learned_matcher",
-                    "LEARNED_MATCHER",
+                # Skip applying ImportError/unavailable failures — keep prior trail.
+                unavailable = (
+                    learned.evidence is not None
+                    and "learned_matcher_unavailable"
+                    in str(getattr(learned.evidence, "rejection_reason", "") or "")
                 )
+                if not unavailable:
+                    _apply_alignment_result(
+                        learned,
+                        "learned_matcher",
+                        "LEARNED_MATCHER",
+                    )
+                else:
+                    recovery_strategies.append("LEARNED_MATCHER_SKIPPED_UNAVAILABLE")
 
         # Catastrophic Step 7: Azure DI page corners (billable — opt-in).
         if (

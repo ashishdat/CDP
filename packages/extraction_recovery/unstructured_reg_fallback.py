@@ -1152,6 +1152,17 @@ def run_unstructured_reg_fallback(
         local_dob = _dob_from_local_box3(image)
         if local_dob:
             fields["patient_dob"] = local_dob
+    # Second-pass agent when heuristics+local still miss DOB (common after REG
+    # failure on CMS pages where DI ink has birthdate digits without labels).
+    if "patient_dob" not in fields and _agent_enabled():
+        try:
+            agent_fields = _agent_fields_from_di_text(di_text, settings=cfg)
+        except Exception:  # noqa: BLE001
+            agent_fields = {}
+        dob = (agent_fields or {}).get("patient_dob")
+        if dob:
+            fields["patient_dob"] = dob
+            agent_used = True
 
     if not fields:
         return UnstructuredRegFallbackResult(

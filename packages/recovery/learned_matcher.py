@@ -28,6 +28,22 @@ class CorrespondenceExtractor(Protocol):
     ) -> LearnedCorrespondences | None: ...
 
 
+def learned_matcher_deps_available() -> bool:
+    """True when SuperPoint+LightGlue optional deps import cleanly.
+
+    PRODUCT hosts without ``.[learned-match]`` must skip this ladder step —
+    treating ImportError as a registration failure wiped prior SIFT near-misses
+    and forced UNSTRUCTURED_DI HITL on DOB (sample-2000 ~27 docs).
+    """
+    try:
+        import lightglue  # noqa: F401
+        import torch  # noqa: F401
+        from lightglue import LightGlue, SuperPoint  # noqa: F401
+    except Exception:  # noqa: BLE001
+        return False
+    return True
+
+
 class SuperPointLightGlueExtractor:
     """Lazy SuperPoint detector + LightGlue matcher (cvg/LightGlue)."""
 

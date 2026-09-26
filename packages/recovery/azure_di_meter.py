@@ -85,4 +85,11 @@ def azure_di_page_corners_enabled() -> bool:
 
 def learned_matcher_enabled() -> bool:
     env = (os.environ.get("CDP_LEARNED_MATCHER") or "1").strip().casefold()
-    return env not in {"0", "false", "no", "off"}
+    if env in {"0", "false", "no", "off"}:
+        return False
+    try:
+        from packages.recovery.learned_matcher import learned_matcher_deps_available
+
+        return learned_matcher_deps_available()
+    except Exception:  # noqa: BLE001
+        return False
