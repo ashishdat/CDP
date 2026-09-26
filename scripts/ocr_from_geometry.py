@@ -3707,40 +3707,70 @@ def run(directory, output):
                     )
                     inv.outputs = fin.to_dict()
                     report["financial_reconciliation"] = fin.to_dict()
-                    # Promote family-accepted total onto the total_charge field row
-                    # when CMS geometry was intentionally skipped.
+                    # Promote family-accepted total onto the existing total_charge
+                    # row when CMS geometry was intentionally skipped. Never append
+                    # a second total_charge — rank_from_ocr hard-fails on dup IDs
+                    # (M0471JED.013 STAGE_FAILURE).
                     if (
                         fin.accepted_total
                         and fin.disposition.value == "LINE_TOTALS_RECONCILED"
                         and not report.get("allows_cms_geometry", True)
                     ):
-                        report["fields"] = list(report.get("fields") or []) + [
-                            {
-                                "field": "total_charge",
-                                "value": fin.accepted_total,
-                                "status": "FIELD_ACCEPTED",
-                                # Telemetry / cascade expect attempts on every row.
-                                "attempts": [
-                                    {
-                                        "engine": "document_family_finance",
-                                        "reason": "FAMILY_FINANCE_LINE_TOTALS",
-                                    }
-                                ],
-                                "cascade": {
-                                    "accepted": True,
-                                    "accept_reason": "FAMILY_FINANCE:"
-                                    + ",".join(fin.reasons[:3]),
+                        finance_cand = {
+                            "value": fin.accepted_total,
+                            "engine": "document_family_finance",
+                            "raw_value": fin.accepted_total,
+                        }
+                        finance_attempt = {
+                            "engine": "document_family_finance",
+                            "reason": "FAMILY_FINANCE_LINE_TOTALS",
+                        }
+                        fields = list(report.get("fields") or [])
+                        idx = next(
+                            (
+                                i
+                                for i, row in enumerate(fields)
+                                if str(row.get("field") or "").casefold()
+                                in {"total_charge", "total_charges"}
+                            ),
+                            None,
+                        )
+                        if idx is None:
+                            fields.append(
+                                {
+                                    "field": "total_charge",
                                     "value": fin.accepted_total,
-                                },
-                                "candidates": [
-                                    {
+                                    "status": "FIELD_ACCEPTED",
+                                    "attempts": [finance_attempt],
+                                    "cascade": {
+                                        "accepted": True,
+                                        "accept_reason": "FAMILY_FINANCE:"
+                                        + ",".join(fin.reasons[:3]),
                                         "value": fin.accepted_total,
-                                        "engine": "document_family_finance",
-                                        "raw_value": fin.accepted_total,
-                                    }
-                                ],
-                            }
-                        ]
+                                    },
+                                    "candidates": [finance_cand],
+                                }
+                            )
+                        else:
+                            existing = dict(fields[idx])
+                            existing["value"] = fin.accepted_total
+                            existing["status"] = "FIELD_ACCEPTED"
+                            attempts = list(existing.get("attempts") or [])
+                            attempts.append(finance_attempt)
+                            existing["attempts"] = attempts
+                            cascade = dict(existing.get("cascade") or {})
+                            cascade["accepted"] = True
+                            cascade["accept_reason"] = "FAMILY_FINANCE:" + ",".join(
+                                fin.reasons[:3]
+                            )
+                            cascade["value"] = fin.accepted_total
+                            existing["cascade"] = cascade
+                            existing["candidates"] = [
+                                finance_cand,
+                                *list(existing.get("candidates") or []),
+                            ]
+                            fields[idx] = existing
+                        report["fields"] = fields
                         save(report["fields"])
             with tel.track(
                 "claim_decision",

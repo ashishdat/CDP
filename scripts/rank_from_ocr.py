@@ -92,6 +92,42 @@ def rank_saved(source, output):
                  'confidence_basis': 'Original raw OCR confidence, not calibrated ranking confidence',
                  'upstream_rerun': False, 'validators_called': False,
                  'decision_called': False, 'evidence_called': False}
+    # Collapse duplicate field rows (family-finance promote used to append a
+    # second total_charge). Keep the richer / accepted row.
+    deduped_fields = []
+    by_name = {}
+    for field in saved['fields']:
+        name = field['field']
+        prev_i = by_name.get(name)
+        if prev_i is None:
+            by_name[name] = len(deduped_fields)
+            deduped_fields.append(field)
+            continue
+        prev = deduped_fields[prev_i]
+        prev_score = (
+            (2 if prev.get('status') == 'FIELD_ACCEPTED' else 0)
+            + (1 if prev.get('value') not in (None, '') else 0)
+            + len(prev.get('candidates') or [])
+        )
+        cur_score = (
+            (2 if field.get('status') == 'FIELD_ACCEPTED' else 0)
+            + (1 if field.get('value') not in (None, '') else 0)
+            + len(field.get('candidates') or [])
+        )
+        if cur_score >= prev_score:
+            # Merge candidates from the displaced row so evidence is not lost.
+            merged = dict(field)
+            merged['candidates'] = list(field.get('candidates') or []) + [
+                c for c in (prev.get('candidates') or [])
+                if c not in (field.get('candidates') or [])
+            ]
+            if prev.get('canonical_region') and not merged.get('canonical_region'):
+                merged['canonical_region'] = prev.get('canonical_region')
+                merged['ocr_region'] = prev.get('ocr_region') or merged.get('ocr_region')
+            deduped_fields[prev_i] = merged
+    saved = dict(saved)
+    saved['fields'] = deduped_fields
+
     seen = set()
     try:
         for field in saved['fields']:
