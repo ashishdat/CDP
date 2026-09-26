@@ -90,9 +90,9 @@ def main() -> int:
     else:
         print("profile=PRODUCT — residuals on; product-gate eligible", flush=True)
 
-    # Default 2 claim workers on multi-CPU hosts; keep a single OCR spawn
+    # Default 3 claim workers on multi-CPU hosts; keep a single OCR spawn
     # (~4 GiB Paddle) so parallel claims overlap DI/VLM without OOM.
-    workers = "2"
+    workers = "3"
     if "--workers" in sys.argv:
         i = sys.argv.index("--workers")
         workers = sys.argv[i + 1]
