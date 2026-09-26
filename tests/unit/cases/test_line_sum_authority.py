@@ -927,6 +927,50 @@ def test_decimal_place_shift_box28_is_deferrable_against_line_sum():
     assert not is_implausible_corroborator("45000.00", "450.00")
 
 
+def test_di_cent_glue_place_shift_unlocks_single_line_sum():
+    """JB9.037: DI raw 182500 (×100 glue) beside line Σ 1825.00 must AUTO.
+
+    Box 28 is deferred as a contradiction shell, but the glue corroborator must
+    still mint SCALE_TWIN_BOX28_DEFERRED — not SINGLE_LINE_REQUIRES_DI.
+    """
+    from packages.claim_evidence.line_sum_authority import _di_agrees_on_charge_amount
+
+    lines = [
+        {
+            "charges": "1825.00",
+            "producing_engine": "paddleocr",
+            "candidates": [{"value": "1825.00", "engine": "paddleocr"}],
+        }
+    ]
+    assert is_decimal_place_shift("182500.00", "1825.00")
+    assert should_defer_box28_to_line_sum("182500.00", lines)
+    ok, reason = line_sum_auto_eligible(
+        lines,
+        box28_value=None,
+        corroborating_values=["182500.00"],
+    )
+    assert ok and reason == "SCALE_TWIN_BOX28_DEFERRED"
+    # Non-glue rival (825 vs 1825) still CONFLICT / REQUIRES_DI — not unlocked.
+    ok_noise, reason_noise = line_sum_auto_eligible(
+        lines,
+        box28_value=None,
+        corroborating_values=["825.00"],
+    )
+    assert not ok_noise
+    assert reason_noise in {"BOX28_OR_DI_CONFLICT", "SINGLE_LINE_REQUIRES_DI"}
+    # DI digit-glue without decimal in raw agrees on the deflated line amount.
+    assert _di_agrees_on_charge_amount(
+        "1825.00",
+        [
+            {
+                "engine": "azure_document_intelligence_read",
+                "value": "182500.00",
+                "raw_value": "182500",
+            }
+        ],
+    )
+
+
 def test_same_stem_cents_twin_box28_corroborates_line_sum():
     """157.07 beside Σ 157.00 is OCR twin noise — corroborate, do not CONFLICT."""
     from packages.claim_evidence.line_sum_authority import (

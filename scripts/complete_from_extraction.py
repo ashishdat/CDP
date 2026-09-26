@@ -1034,12 +1034,29 @@ def decide(extraction, family):
         # re-enter as a corroborator (825.00 vs Σ 450.00 → false CONFLICT).
         corr = _charge_corroborators(field_payload)
         if values.get(field_name) in (None, ''):
-            corr = [
-                v
-                for v in corr
-                if parse_currency(v) is not None
-                and not should_defer_box28_to_line_sum(v, service_lines)
-            ]
+            # Drop deferred contradiction shells (825 vs Σ 450), but keep exact
+            # ×100 DI/Box28 digit-glue of Σ (182500 vs 1825.00) so line-sum can
+            # mint SCALE_TWIN_BOX28_DEFERRED instead of SINGLE_LINE_REQUIRES_DI.
+            from packages.claim_evidence.line_sum_authority import (
+                is_decimal_place_shift,
+                line_sum_total as _line_sum_total_for_glue,
+            )
+
+            line_total_for_glue = _line_sum_total_for_glue(service_lines)
+            kept_corr = []
+            for v in corr:
+                if parse_currency(v) is None:
+                    continue
+                if not should_defer_box28_to_line_sum(v, service_lines):
+                    kept_corr.append(v)
+                    continue
+                if (
+                    line_total_for_glue
+                    and is_decimal_place_shift(v, line_total_for_glue)
+                    and parse_currency(v) > parse_currency(line_total_for_glue)
+                ):
+                    kept_corr.append(v)
+            corr = kept_corr
         eligible, reason = line_sum_auto_eligible(
             service_lines,
             box28_value=values.get(field_name),
