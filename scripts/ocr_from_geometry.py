@@ -2621,11 +2621,17 @@ def _confirm_sole_charge_line_with_claude(image, lines, *, box28_row=None):
     - Phase 2 (after Box28 residuals): Claude only if Box28 still unsettled.
     Set ``CDP_SOLE_LINE_CLAUDE_COST_SAFE=0`` to always corroborate (legacy).
     """
-    from packages.claim_evidence.line_sum_authority import parse_currency
+    from packages.claim_evidence.line_sum_authority import (
+        hydrate_service_line_charges,
+        parse_currency,
+    )
     from packages.extraction_recovery.field_reader_policy import model_may_supersede
 
     if model_may_supersede("charges"):
         return lines
+    # M0471JEB.008: dual-local 130.00 lived only on candidates; null charges
+    # skipped this sole-line Claude path and left LINE_SUM uncorroborated.
+    hydrate_service_line_charges(lines)
     observed = [
         line
         for line in lines or []
@@ -3718,12 +3724,64 @@ def run(directory, output):
                         and fin.disposition.value == "LINE_TOTALS_RECONCILED"
                         and not report.get("allows_cms_geometry", True)
                     ):
+                        # Full OCRCandidate shape — finish_from_ocr validates
+                        # via pydantic (M0471JED.013 STAGE on sparse finance cand).
+                        peer_box = None
+                        peer_img = {"image_width": 1.0, "image_height": 1.0}
+                        fields_peek = list(report.get("fields") or [])
+                        for row in fields_peek:
+                            if str(row.get("field") or "").casefold() not in {
+                                "total_charge",
+                                "total_charges",
+                            }:
+                                continue
+                            for peer in row.get("candidates") or []:
+                                if isinstance(peer, dict) and peer.get("bounding_box"):
+                                    peer_box = dict(peer["bounding_box"])
+                                    peer_img = {
+                                        "image_width": float(
+                                            peer_box.get("image_width") or 1.0
+                                        ),
+                                        "image_height": float(
+                                            peer_box.get("image_height") or 1.0
+                                        ),
+                                    }
+                                    break
+                            if peer_box is None and row.get("canonical_region"):
+                                cr = row["canonical_region"]
+                                if len(cr) == 4:
+                                    peer_box = {
+                                        "x0": float(cr[0]),
+                                        "y0": float(cr[1]),
+                                        "x1": float(cr[2]),
+                                        "y1": float(cr[3]),
+                                        **peer_img,
+                                    }
+                            break
+                        if peer_box is None:
+                            peer_box = {
+                                "x0": 0.0,
+                                "y0": 0.0,
+                                "x1": 1.0,
+                                "y1": 1.0,
+                                **peer_img,
+                            }
                         finance_cand = {
                             "value": fin.accepted_total,
                             "engine": "document_family_finance",
                             "raw_value": fin.accepted_total,
-                            "raw_confidence": 0.95,
+                            "model_name": "document_family_finance",
+                            "model_version": "family-v1",
                             "preprocessing_variant": "family_finance_line_totals",
+                            "preprocessing_version": "cascade-v12-family-finance",
+                            "raw_confidence": 0.95,
+                            "calibrated_confidence": 0.95,
+                            "bounding_box": peer_box,
+                            "latency_ms": 0.0,
+                            "validation_results": [],
+                            "evidence_reference": None,
+                            "estimated_cost_usd": 0.0,
+                            "actual_cost_usd": None,
                         }
                         finance_attempt = {
                             "engine": "document_family_finance",

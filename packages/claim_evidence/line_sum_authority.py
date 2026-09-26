@@ -64,14 +64,52 @@ def format_currency(amount: Decimal) -> str:
     return format(amount.quantize(Decimal("0.01")), "f")
 
 
+def _hydrate_line_charge_from_candidates(line: dict) -> Decimal | None:
+    """Fill charges/charge_amount from a unique candidate amount when keys null."""
+    for key in _CHARGE_FIELDS:
+        parsed = parse_currency(line.get(key))
+        if parsed is not None and parsed >= 0:
+            return parsed
+    cand_vals: list[Decimal] = []
+    for cand in line.get("candidates") or []:
+        if not isinstance(cand, dict):
+            continue
+        shaped = parse_currency(cand.get("value") or cand.get("raw_value"))
+        if shaped is not None and shaped >= 0:
+            cand_vals.append(shaped)
+    parsed = None
+    if len(set(cand_vals)) == 1:
+        parsed = cand_vals[0]
+    elif line.get("raw_charges") is not None:
+        parsed = parse_currency(line.get("raw_charges"))
+    if parsed is None or parsed < 0:
+        return None
+    text = format_currency(parsed)
+    line["charges"] = text
+    line["charge_amount"] = text
+    if line.get("raw_charges") in (None, ""):
+        line["raw_charges"] = text
+    return parsed
+
+
+def hydrate_service_line_charges(service_lines: list[dict] | None) -> list[dict]:
+    """In-place hydrate null charge keys from unique candidate ink."""
+    out: list[dict] = []
+    for line in service_lines or []:
+        if isinstance(line, dict):
+            _hydrate_line_charge_from_candidates(line)
+            out.append(line)
+    return out
+
+
 def observed_line_charges(service_lines: list[dict] | None) -> list[Decimal]:
     charges: list[Decimal] = []
     for line in service_lines or []:
-        for key in _CHARGE_FIELDS:
-            parsed = parse_currency(line.get(key))
-            if parsed is not None and parsed >= 0:
-                charges.append(parsed)
-                break
+        if not isinstance(line, dict):
+            continue
+        parsed = _hydrate_line_charge_from_candidates(line)
+        if parsed is not None and parsed >= 0:
+            charges.append(parsed)
     return charges
 
 
@@ -1715,6 +1753,7 @@ def line_sum_auto_eligible(
     Never invents Box 28 from Σ — this only gates line-sum E6 when Box 28 is
     empty/absent or independently corroborates.
     """
+    hydrate_service_line_charges(service_lines)
     total = line_sum_total(service_lines)
     if total is None:
         return False, "NO_LINE_CHARGES"
