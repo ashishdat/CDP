@@ -15,6 +15,7 @@ import contextlib
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -162,8 +163,49 @@ def _app_pool_job(
         return (1, f"{type(exc).__name__}: {exc}")
 
 
+def _kill_pid_tree(pid: int) -> None:
+    """SIGKILL a worker and its descendants (tesseract children survive terminate)."""
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return
+    if pid <= 1:
+        return
+    children: list[int] = []
+    try:
+        for entry in Path("/proc").iterdir():
+            if not entry.name.isdigit():
+                continue
+            try:
+                status = (entry / "status").read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            ppid = None
+            for line in status.splitlines():
+                if line.startswith("PPid:"):
+                    ppid = int(line.split()[1])
+                    break
+            if ppid == pid:
+                children.append(int(entry.name))
+    except OSError:
+        children = []
+    for child in children:
+        _kill_pid_tree(child)
+    try:
+        os.kill(pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    except OSError:
+        pass
+
+
 def _shutdown_process_pool(pool: ProcessPoolExecutor | None) -> None:
-    """Terminate pool workers — Paddle/ORT atexit finalizers can hang on join."""
+    """Kill pool workers hard — Paddle/ORT atexit finalizers can hang on join.
+
+    App-pool timeouts previously called terminate() only; wedged workers kept
+    running tesseract children, and each respawn leaked ~300MB until the host
+    OOM'd and PRODUCT stalled mid-mailroom cluster.
+    """
     if pool is None:
         return
     try:
@@ -173,8 +215,11 @@ def _shutdown_process_pool(pool: ProcessPoolExecutor | None) -> None:
     processes = getattr(pool, "_processes", None) or {}
     for proc in list(processes.values()):
         try:
-            if proc.is_alive():
-                proc.terminate()
+            pid = getattr(proc, "pid", None)
+            if pid:
+                _kill_pid_tree(int(pid))
+            elif proc.is_alive():
+                proc.kill()
         except Exception:  # noqa: BLE001, S110
             pass
 
