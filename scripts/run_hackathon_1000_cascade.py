@@ -71,12 +71,136 @@ def _app_pool_timeout_sec() -> float:
     forever. Timeout keeps PRODUCT moving and still allows unstructured REG
     fallback. Override with CDP_APP_POOL_TIMEOUT_SECONDS (0 disables).
     """
-    raw = (os.environ.get("CDP_APP_POOL_TIMEOUT_SECONDS") or "180").strip()
+    raw = (os.environ.get("CDP_APP_POOL_TIMEOUT_SECONDS") or "20").strip()
     try:
         value = float(raw)
     except ValueError:
-        return 180.0
+        return 20.0
     return value
+
+
+def _unstructured_first_enabled() -> bool:
+    """Skip template registration when DI/mailroom can decide the claim first.
+
+    Mailroom stretches were burning ~60s/claim waiting for app-pool timeout
+    before unstructured. With this on: DI→router first; only fall back to
+    app.py when the page still looks like a CMS claim needing geometry.
+    """
+    raw = (os.environ.get("CDP_UNSTRUCTURED_FIRST") or "0").strip().casefold()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _load_claim_page_image(document: str) -> Any | None:
+    try:
+        from io import BytesIO
+        from zipfile import ZipFile
+
+        from PIL import Image as _PILImage
+    except ImportError:
+        return None
+    zip_candidates: list[Path] = []
+    env_zip = os.environ.get("CDP_HACKATHON_ZIP")
+    if env_zip:
+        zip_candidates.append(Path(env_zip))
+    zip_candidates.extend(
+        [
+            ROOT / "data" / "Hackathon - 5000 Claims.zip",
+            ROOT / "data" / "Hackathon - 1000 Claims.zip",
+            DEFAULT_ZIP,
+        ]
+    )
+    zip_path = next((p for p in zip_candidates if p.exists()), None)
+    if zip_path is None:
+        return None
+    try:
+        with ZipFile(zip_path) as zf:
+            return _PILImage.open(BytesIO(zf.read(document))).convert("RGB")
+    except (OSError, ValueError, KeyError, RuntimeError):
+        return None
+
+
+def _try_unstructured_decision(
+    page_image: Any,
+) -> tuple[str, dict[str, Any] | None, str] | None:
+    """Return (disposition, unstructured_meta, reason) when DI path is decisive.
+
+    Decisive = MAILROOM_OR_FAX, TRUE_STP, or HITL with shaped fields.
+    Returns None when the caller should continue with template registration.
+    """
+    try:
+        from packages.extraction_recovery.unstructured_reg_fallback import (
+            run_unstructured_reg_fallback,
+            unstructured_reg_fallback_enabled,
+        )
+    except ImportError:
+        return None
+    if not unstructured_reg_fallback_enabled():
+        return None
+    fb = run_unstructured_reg_fallback(page_image)
+    try:
+        from packages.extraction_recovery.independent_case_router import (
+            classify_independent_case,
+            promote_unstructured_fields,
+        )
+    except ImportError:
+        classify_independent_case = None  # type: ignore
+        promote_unstructured_fields = None  # type: ignore
+
+    if classify_independent_case is not None:
+        route = classify_independent_case(fb.di_text or "", registration_ok=False)
+        route_meta = route.to_dict()
+        if route.path.value == "MAILROOM_REG":
+            return (
+                "REGISTRATION_FAILED",
+                {
+                    "attempted": fb.attempted,
+                    "reason": "MAILROOM_OR_FAX",
+                    "agent_used": fb.agent_used,
+                    "fields": {},
+                    "route": route_meta,
+                },
+                "UNSTRUCTURED_FIRST_MAILROOM",
+            )
+        disposition, blockers = promote_unstructured_fields(fb.fields)
+        if disposition in {"TRUE_STP", "HITL"} and fb.fields:
+            return (
+                disposition,
+                {
+                    "attempted": fb.attempted,
+                    "reason": fb.reason,
+                    "agent_used": fb.agent_used,
+                    "fields": dict(fb.fields),
+                    "route": route_meta,
+                    "critical_blockers": blockers if disposition == "HITL" else None,
+                },
+                "UNSTRUCTURED_FIRST_OK",
+            )
+        return None
+
+    required = {"patient_name", "patient_dob", "insured_id_number", "total_charge"}
+    if required.issubset(fb.fields or {}):
+        return (
+            "TRUE_STP",
+            {
+                "attempted": fb.attempted,
+                "reason": fb.reason,
+                "agent_used": fb.agent_used,
+                "fields": dict(fb.fields),
+            },
+            "UNSTRUCTURED_FIRST_OK",
+        )
+    if fb.fields:
+        return (
+            "HITL",
+            {
+                "attempted": fb.attempted,
+                "reason": fb.reason,
+                "agent_used": fb.agent_used,
+                "fields": dict(fb.fields),
+            },
+            "UNSTRUCTURED_FIRST_OK",
+        )
+    return None
 
 
 def _ocr_pool_timeout_sec() -> float:
@@ -670,6 +794,63 @@ def _process_one(
     logs = claim_out / "logs"
     logs.mkdir(parents=True, exist_ok=True)
     app_out = claim_out / "application"
+
+    # Fast path: DI/mailroom before template registration. Avoids ~60s app-pool
+    # hangs on fax/cover sheets that never produce GeometryResult.
+    if _unstructured_first_enabled():
+        page_image = _load_claim_page_image(document)
+        if page_image is not None:
+            try:
+                decided = _try_unstructured_decision(page_image)
+            finally:
+                with contextlib.suppress(OSError, AttributeError, ValueError):
+                    page_image.close()
+            if decided is not None:
+                disposition, unstructured_meta, reason = decided
+                unstructured_hitl = (
+                    disposition == "HITL"
+                    and unstructured_meta is not None
+                    and bool((unstructured_meta or {}).get("fields"))
+                )
+                row = {
+                    "finished": True,
+                    "claim_id": claim_id,
+                    "document": document,
+                    "bundle_id": _bundle_id(document),
+                    "group_id": _group_id(document),
+                    "registration_ok": False,
+                    "allows_cms_geometry": False,
+                    "completed": disposition in {"TRUE_STP", "HITL"},
+                    "true_stp": disposition == "TRUE_STP",
+                    "disposition": disposition,
+                    "registration_reason": reason,
+                    "hitl_track": "UNSTRUCTURED_DI" if unstructured_hitl else None,
+                    "critical_blockers": (
+                        list(
+                            (unstructured_meta or {}).get("critical_blockers")
+                            or [
+                                f
+                                for f in (
+                                    "patient_name",
+                                    "patient_dob",
+                                    "insured_id_number",
+                                    "total_charge",
+                                )
+                                if f not in (unstructured_meta or {}).get("fields", {})
+                            ]
+                        )
+                        if unstructured_hitl
+                        else None
+                    ),
+                    "unstructured_reg_fallback": unstructured_meta,
+                    "app_returncode": None,
+                    "error": None,
+                    "elapsed_sec": round(time.time() - started, 3),
+                    "ts": _utc_now(),
+                    "strategy_id": "independent-case-router-v1",
+                }
+                _write_json(claim_out / "result.json", row)
+                return row
 
     app_pool_timed_out = False
     app_pool = _executor_from_holder(app_executor)
