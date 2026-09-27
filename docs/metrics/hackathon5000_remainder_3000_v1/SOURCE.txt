@@ -1,0 +1,7 @@
+Google Drive id=1ohv3muiEChPU6pqR0sj7ansqUYq7odIY
+Hackathon - 5000 Claims.zip (5000 docs / 10341 pages)
+remainder after hackathon5000_sample_2000_v1 (seed=20260925)
+remainder_alloc={'Group A': 2025, 'Group B': 558, 'Group C': 258, 'Group D': 159}
+profile=PRODUCT required for gate
+corpus_groups={'Group A': 3375, 'Group B': 930, 'Group C': 430, 'Group D': 265}
+unstructured_first=1 app_pool_timeout_s=20
