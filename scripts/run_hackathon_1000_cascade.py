@@ -1907,7 +1907,8 @@ def main() -> int:
         print(
             f"app_worker_pool=on workers={pool_workers} "
             f"(amortize registration imports + template SIFT; "
-            f"timeout_s={app_timeout if app_timeout > 0 else 'off'})",
+            f"timeout_s={app_timeout if app_timeout > 0 else 'off'}; "
+            f"unstructured_first={_unstructured_first_enabled()})",
             flush=True,
         )
         app_executor = {
