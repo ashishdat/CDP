@@ -12,5 +12,7 @@
     "accepted_field_precision": null,
     "gt_path": "/workspace/docs/gt/hackathon_agent_field_truth.json",
     "note": "Shared field truth is present but no run claims overlap labeled documents (or no accepted criticals to score). Do not treat as FA=0."
-  }
+  },
+  "run_status": "COMPLETE",
+  "n": 3000
 }

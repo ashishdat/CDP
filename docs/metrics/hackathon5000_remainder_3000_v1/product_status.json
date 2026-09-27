@@ -1,0 +1,57 @@
+{
+  "generated_at": "2026-09-27T04:30:31.902183+00:00",
+  "run_dir": "evaluation_results/hackathon5000_remainder_3000_v1",
+  "profile": "PRODUCT",
+  "unstructured_first": true,
+  "n": 3000,
+  "target": 3000,
+  "remaining": 0,
+  "run_status": "COMPLETE",
+  "process_alive": false,
+  "jsonl_idle_s": 1574.0,
+  "disposition_counts": {
+    "TRUE_STP": 2102,
+    "HITL": 21,
+    "REGISTRATION_FAILED": 877
+  },
+  "completed": 2123,
+  "true_stp": 2102,
+  "stp_pct_of_completed": 99.01,
+  "hitl": 21,
+  "hitl_tracks": {
+    "UNSTRUCTURED_DI": 21
+  },
+  "hitl_blockers": [
+    [
+      "patient_name",
+      9
+    ],
+    [
+      "insured_id_number",
+      8
+    ],
+    [
+      "total_charge",
+      4
+    ]
+  ],
+  "registration_failed": 877,
+  "registration_reasons": [
+    [
+      "UNSTRUCTURED_FIRST_MAILROOM",
+      877
+    ]
+  ],
+  "agent_used_true": 446,
+  "agent_used_rate_pct": 14.87,
+  "vs_stp95": "PASS",
+  "sample2000_stp_pct_of_completed": 97.12,
+  "fa": {
+    "status": "NO_OVERLAP",
+    "claims_scored": 0,
+    "false_accepts": null,
+    "accepted_field_precision": null,
+    "note": "Shared field truth is present but no run claims overlap labeled documents (or no accepted criticals to score). Do not treat as FA=0."
+  },
+  "summary_json_present": true
+}
