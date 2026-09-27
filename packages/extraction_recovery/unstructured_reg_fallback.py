@@ -1094,7 +1094,29 @@ def run_unstructured_reg_fallback(
             )
         stream = BytesIO()
         image.convert("RGB").save(stream, format="PNG")
-        payload = backend.analyze_raw(stream.getvalue())
+        image_bytes = stream.getvalue()
+        # PRODUCT mailroom clusters were hanging 10–15m inside analyze_raw after
+        # app-pool timeout. Cap wall clock so REG can finish as MAILROOM/empty.
+        try:
+            di_timeout = float(
+                (os.environ.get("CDP_UNSTRUCTURED_DI_TIMEOUT_SECONDS") or "90").strip()
+            )
+        except ValueError:
+            di_timeout = 90.0
+        if di_timeout > 0:
+            from concurrent.futures import ThreadPoolExecutor
+            from concurrent.futures import TimeoutError as FuturesTimeoutError
+
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                fut = pool.submit(backend.analyze_raw, image_bytes)
+                try:
+                    payload = fut.result(timeout=di_timeout)
+                except FuturesTimeoutError as exc:
+                    raise TimeoutError(
+                        f"CDP_UNSTRUCTURED_DI_TIMEOUT after {di_timeout:.0f}s"
+                    ) from exc
+        else:
+            payload = backend.analyze_raw(image_bytes)
         record_azure_di_call(kind="other", ok=True, detail="UNSTRUCTURED_REG_PAGE_READ")
     except Exception as exc:  # noqa: BLE001
         with contextlib.suppress(Exception):
