@@ -48,6 +48,13 @@ run:
 	@echo "Production/staging: docs/PRODUCTION_OPERATOR_RUNBOOK.md (Helm + secrets)"
 	@echo "Fail-closed smoke:  make prod-smoke"
 
+# One-shot local Docker deploy (env + build + up + migrate). See docs/DOCKER_LOCAL.md
+docker-local:
+	bash scripts/docker_local_up.sh
+
+docker-local-prod:
+	bash scripts/docker_local_up.sh --prod
+
 # Evaluation / HITL console with live API proxies (ingest + review).
 UI_SERVICES = mysql minio redpanda redis \
 	ingestion-api human-review-api human-review-task-worker \
