@@ -2,6 +2,7 @@
 	architecture lint quality run down logs clean clean-runtime-data evaluation \
 	prod-smoke prod-check prod-closeout-init ui-up ui-down ui-seed ui-up-local ui-down-local \
 	geo-accuracy-gate product-gate \
+	docker-local docker-local-prod \
 	docker-prod-build docker-prod-up docker-prod-down docker-prod-migrate docker-prod-ps
 
 COMPOSE_PROD = docker compose --env-file .env.production \
