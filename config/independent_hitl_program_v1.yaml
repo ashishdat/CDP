@@ -99,6 +99,6 @@ phases:
     target_lifts: [3, 6]
 
 gates:
-  score_gt: evaluation_data/hackathon_agent_gt/field_truth.json
+  score_gt: docs/gt/hackathon_agent_field_truth.json
   max_false_accept_delta: 0
   metric: claim_page_stp_rate

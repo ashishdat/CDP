@@ -1,0 +1,16 @@
+{
+  "shared_field_truth": "docs/gt/hackathon_agent_field_truth.json",
+  "corpus": "Hackathon-1000 M048* (78 claims)",
+  "hackathon_5000_overlap": 0,
+  "fa_certification": "NOT_POSSIBLE_ON_THIS_CORPUS",
+  "rule": "NO_OVERLAP \u21d2 false_accepts=null; never report FA=0 for Hackathon-5000 runs",
+  "fa_score": {
+    "status": "NO_OVERLAP",
+    "claims_scored": 0,
+    "accepted_fields_scored": 0,
+    "false_accepts": null,
+    "accepted_field_precision": null,
+    "gt_path": "/workspace/docs/gt/hackathon_agent_field_truth.json",
+    "note": "Shared field truth is present but no run claims overlap labeled documents (or no accepted criticals to score). Do not treat as FA=0."
+  }
+}

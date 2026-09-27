@@ -105,7 +105,8 @@ def evaluate_similar_sample_gate(
         residual_counts[classify_row(row).value] += 1
 
     fa_report: dict[str, Any] = {"status": "SKIPPED"}
-    gt_path = ROOT / str(gates.get("score_gt") or "")
+    configured = str(gates.get("score_gt") or "").strip()
+    gt_path = (ROOT / configured) if configured else None
     gold_only = bool(gates.get("gold_only", True))
     apply_quarantine = bool(gates.get("apply_quarantine", True))
     try:
@@ -135,6 +136,7 @@ def evaluate_similar_sample_gate(
         reasons.append(f"CLAIM_PAGE_STP_BELOW_TARGET:{rate:.4f}<{stp_min}")
 
     fa_ok = True
+    incomplete_statuses = {"GT_MISSING", "NO_OVERLAP"}
     if fa_status == "SCORED":
         fa_ok = int(false_accepts or 0) <= max_fa and (
             precision is None or float(precision) + 1e-9 >= precision_min
@@ -143,12 +145,22 @@ def evaluate_similar_sample_gate(
             reasons.append(
                 f"FALSE_ACCEPT_GATE:fa={false_accepts},precision={precision}"
             )
-    elif fa_status == "GT_MISSING":
+    elif fa_status in incomplete_statuses:
+        # Shared GT may exist but label a different corpus (e.g. M048* vs 5000).
+        reason_key = (
+            "GT_NO_OVERLAP_FA_INCOMPLETE"
+            if fa_status == "NO_OVERLAP"
+            else "GT_MISSING_FA_INCOMPLETE"
+        )
         if gates.get("require_gt_for_green_fa", True) and not allow_incomplete_gt:
             fa_ok = False
-            reasons.append("GT_MISSING_FA_INCOMPLETE")
+            reasons.append(reason_key)
         else:
-            reasons.append("GT_MISSING_ALLOWED")
+            reasons.append(
+                "GT_NO_OVERLAP_ALLOWED"
+                if fa_status == "NO_OVERLAP"
+                else "GT_MISSING_ALLOWED"
+            )
     elif fa_status == "ERROR":
         fa_ok = False
         reasons.append(f"FA_SCORE_ERROR:{fa_report.get('error')}")

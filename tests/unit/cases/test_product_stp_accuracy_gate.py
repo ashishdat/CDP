@@ -191,3 +191,60 @@ def test_exact_match_leading_zeros_and_middle_initial():
         "SAME",
         patient_name="WILLIAMS JOYCE",
     )
+
+
+def test_shared_field_truth_resolves_canonical_docs_gt():
+    from packages.evaluation.agent_gt_paths import (
+        CANONICAL_FIELD_TRUTH,
+        resolve_field_truth_path,
+    )
+
+    path = resolve_field_truth_path()
+    assert path is not None
+    assert path == CANONICAL_FIELD_TRUTH or path.name == "field_truth.json"
+    assert path.is_file()
+
+
+def test_fa_no_overlap_is_not_scored_as_fa_zero():
+    """Hackathon-5000 (M046*) must not green FA against M048* shared GT."""
+    from packages.evaluation.agent_gt_score import score_merged_against_agent_gt
+
+    rows = {
+        "Group A__M0463JEM.001": {
+            "disposition": "TRUE_STP",
+            "claim_id": "Group A__M0463JEM.001",
+            "fields": {
+                "patient_name": {"value": "ANYONE", "disp": "AUTO_ACCEPTED"},
+                "total_charge": {"value": "100.00", "disp": "AUTO_ACCEPTED"},
+            },
+        }
+    }
+    report = score_merged_against_agent_gt(rows, gold_only=True)
+    assert report["status"] == "NO_OVERLAP"
+    assert report["false_accepts"] is None
+    assert report["accepted_field_precision"] is None
+
+
+def test_product_gate_fails_fa_on_no_overlap_unless_allowed():
+    rows = {
+        f"stp_{i}": {
+            "disposition": "TRUE_STP",
+            "claim_id": f"Group A__M0463JEM.{i:03d}",
+            "fields": {
+                "patient_name": {"value": "X", "disp": "AUTO_ACCEPTED"},
+            },
+        }
+        for i in range(100)
+    }
+    blocked = evaluate_similar_sample_gate(
+        rows, allow_incomplete_gt=False, allow_missing_manifest=True
+    )
+    assert blocked.fa_status == "NO_OVERLAP"
+    assert blocked.pass_gate is False
+    assert any("GT_NO_OVERLAP" in r for r in blocked.reasons)
+
+    allowed = evaluate_similar_sample_gate(
+        rows, allow_incomplete_gt=True, allow_missing_manifest=True
+    )
+    assert allowed.fa_status == "NO_OVERLAP"
+    assert any("GT_NO_OVERLAP_ALLOWED" in r for r in allowed.reasons)

@@ -1348,29 +1348,31 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def _agent_gt_accuracy_block(run_dir: Path | None) -> dict[str, Any]:
-    """Score cascade results against agent-confirmed labels when present.
+    """Score cascade results against shared agent field truth when present.
 
-    Hackathon ZIP has no vendor field GT. Confirmed SILVER/GOLD labels live in
-    ``evaluation_data/hackathon_agent_gt/field_truth.json``.
+    Canonical labels: ``docs/gt/hackathon_agent_field_truth.json`` (Hackathon-1000
+    M048*). Runtime mirror under ``evaluation_data/hackathon_agent_gt/`` is OK.
+    Zero document overlap (e.g. Hackathon-5000) is reported as NO_OVERLAP — not FA=0.
     """
     unavailable = {
         "status": "UNAVAILABLE_NO_GROUND_TRUTH",
         "end_to_end_correct_completion_rate": None,
         "field_accuracy": None,
+        "false_accepts": None,
         "note": (
-            "Hackathon 1000 ZIP has no vendor field-level labels. Provide "
-            "evaluation_data/hackathon_agent_gt/field_truth.json to enable "
-            "agent-confirmed accuracy scoring."
+            "Hackathon ZIPs have no vendor field-level labels. Shared agent GT "
+            "lives at docs/gt/hackathon_agent_field_truth.json."
         ),
     }
     if run_dir is None:
         return unavailable
-    gt_path = ROOT / "evaluation_data" / "hackathon_agent_gt" / "field_truth.json"
-    if not gt_path.exists():
-        return unavailable
     try:
+        from packages.evaluation.agent_gt_paths import resolve_field_truth_path
         from scripts.score_hackathon_gt_accuracy import score as score_agent_gt
 
+        gt_path = resolve_field_truth_path()
+        if gt_path is None:
+            return unavailable
         gt = json.loads(gt_path.read_text(encoding="utf-8"))
         scored = score_agent_gt(Path(run_dir), gt)
     except Exception as exc:  # noqa: BLE001
@@ -1379,9 +1381,34 @@ def _agent_gt_accuracy_block(run_dir: Path | None) -> dict[str, Any]:
             "status": "AGENT_GT_SCORE_FAILED",
             "note": f"Agent GT present but scoring failed: {type(exc).__name__}: {exc}",
         }
+    claims_scored = int(scored.get("claims_scored") or 0)
+    accepted_scored = int(scored.get("accepted_fields_scored") or 0)
+    try:
+        rel = str(gt_path.relative_to(ROOT))
+    except ValueError:
+        rel = str(gt_path)
+    if claims_scored == 0 or accepted_scored == 0:
+        return {
+            "status": "NO_OVERLAP_WITH_FIELD_TRUTH",
+            "gt_path": rel,
+            "gt_claims_labeled": len(gt.get("claims") or {}),
+            "claims_scored": claims_scored,
+            "accepted_fields_scored": accepted_scored,
+            "false_accepts": None,
+            "accepted_field_precision": None,
+            "false_accept_rate": None,
+            "end_to_end_correct_completion_rate": None,
+            "field_accuracy": None,
+            "release_gate_eligible": False,
+            "note": (
+                "Shared field truth present (Hackathon-1000 M048*) but this run "
+                "has no overlapping labeled claims. FA cannot be certified — "
+                "do not report FA=0."
+            ),
+        }
     return {
         "status": "SCORED_VS_AGENT_CONFIRMED_LABELS",
-        "gt_path": str(gt_path.relative_to(ROOT)),
+        "gt_path": rel,
         "claims_scored": scored.get("claims_scored"),
         "field_count": scored.get("field_count"),
         "exact_accuracy": scored.get("exact_accuracy"),
@@ -1508,9 +1535,10 @@ def _summarize(
                 "SUMMARY_ERROR | WORKER_ERROR | OCR_MISSING | INCOMPLETE"
             ),
             "accuracy": (
-                "When agent-confirmed labels exist: exact_accuracy / "
+                "When shared field truth overlaps the run: exact_accuracy / "
                 "accepted_field_precision / false_accepts vs "
-                "evaluation_data/hackathon_agent_gt/field_truth.json"
+                "docs/gt/hackathon_agent_field_truth.json. Zero overlap → "
+                "NO_OVERLAP_WITH_FIELD_TRUTH (not FA=0)."
             ),
             "note": (
                 "Primary STP/HITL rates use the completed denominator. "
@@ -1520,8 +1548,9 @@ def _summarize(
         "note": (
             "Operational metrics under field-cascade-v12 with paddle+rapid confirmation "
             "cascade, name/ID value-band-first, and label-contamination relief. "
-            "Accuracy uses agent-confirmed labels when "
-            "evaluation_data/hackathon_agent_gt/field_truth.json is present."
+            "Accuracy uses shared field truth at "
+            "docs/gt/hackathon_agent_field_truth.json when the run overlaps "
+            "labeled claims; otherwise reports NO_OVERLAP (not FA=0)."
         ),
         "generated_at": _utc_now(),
         "run_status": "PARTIAL" if n < limit else "COMPLETE",

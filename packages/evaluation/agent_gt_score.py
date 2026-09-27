@@ -335,14 +335,36 @@ def _accepted_values_from_row(
 
 def score_merged_against_agent_gt(
     merged_rows: Mapping[str, Mapping[str, Any]],
-    gt_path: Path,
+    gt_path: Path | None = None,
     *,
     critical_only: bool = True,
     claim_roots: Sequence[Path] | None = None,
     gold_only: bool = True,
     apply_quarantine: bool = True,
 ) -> dict[str, Any]:
-    """Score accepted critical fields vs agent GT. FA=0 is the product bar."""
+    """Score accepted critical fields vs agent GT. FA=0 is the product bar.
+
+    When GT exists but no run claim overlaps labeled documents, status is
+    ``NO_OVERLAP`` (not SCORED with FA=0). Hackathon-5000 vs M048* GT is the
+    common case.
+    """
+    from packages.evaluation.agent_gt_paths import resolve_field_truth_path
+
+    resolved = resolve_field_truth_path(gt_path)
+    if resolved is None:
+        return {
+            "status": "GT_MISSING",
+            "gt_path": str(gt_path or ""),
+            "claims_scored": 0,
+            "accepted_fields_scored": 0,
+            "false_accepts": None,
+            "exact_matches": 0,
+            "accepted_field_precision": None,
+            "baseline_false_accepts": 0,
+            "gold_only": gold_only,
+            "quarantine_applied": apply_quarantine,
+        }
+    gt_path = resolved
     gt = load_agent_gt(Path(gt_path), gold_only=gold_only)
     if not gt:
         return {
@@ -350,7 +372,7 @@ def score_merged_against_agent_gt(
             "gt_path": str(gt_path),
             "claims_scored": 0,
             "accepted_fields_scored": 0,
-            "false_accepts": 0,
+            "false_accepts": None,
             "exact_matches": 0,
             "accepted_field_precision": None,
             "baseline_false_accepts": 0,
@@ -422,6 +444,26 @@ def score_merged_against_agent_gt(
     precision = (
         (accepted_scored - false_accepts) / accepted_scored if accepted_scored else None
     )
+    # Zero overlap / zero accepted fields scored against GT is not FA=0.
+    if claims_touched == 0 or accepted_scored == 0:
+        return {
+            "status": "NO_OVERLAP",
+            "gt_path": str(gt_path),
+            "claims_scored": claims_touched,
+            "accepted_fields_scored": accepted_scored,
+            "false_accepts": None,
+            "exact_matches": exact,
+            "accepted_field_precision": None,
+            "baseline_false_accepts": 0,
+            "false_accept_examples": [],
+            "gold_only": gold_only,
+            "quarantine_applied": apply_quarantine,
+            "quarantined_fields": quarantined,
+            "note": (
+                "Shared field truth is present but no run claims overlap labeled "
+                "documents (or no accepted criticals to score). Do not treat as FA=0."
+            ),
+        }
     return {
         "status": "SCORED",
         "gt_path": str(gt_path),

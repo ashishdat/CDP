@@ -17,6 +17,10 @@ python3 scripts/check_production_closeout.py --init
 python3 scripts/smoke_production_fail_closed.py
 ```
 
+**Docker production images / Compose overlay:** `docs/DOCKER_PRODUCTION.md`
+(`make docker-prod-build`, `make docker-prod-up`). Shared field truth for FA
+scoring: `docs/gt/FIELD_TRUTH.md` (Hackathon-1000 `M048*` only — not 5000).
+
 This repository is being built phase by phase (see
 `docs/IMPLEMENTATION_PLAN.md`). **This README reflects what is actually
 implemented today, not the end-state design** — the end-state architecture

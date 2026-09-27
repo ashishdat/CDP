@@ -1,0 +1,174 @@
+# Production-oriented Compose overlay (staging / single-node prod).
+#
+#   cp .env.production.example .env.production   # fill secrets
+#   make docker-prod-build
+#   make docker-prod-up
+#
+# Does NOT authorize PHI. See docs/PRODUCTION_READINESS.md.
+# Requires non-default object-store credentials (fail-closed).
+
+name: cdp-prod
+
+x-prod-env: &prod-env
+  env_file:
+    - .env.production
+  environment:
+    CDP_ENV: production
+    CDP_PIPELINE_RELEASE: ${CDP_PIPELINE_RELEASE:-extraction-v2}
+    CDP_RUNTIME_PROFILE: ${CDP_RUNTIME_PROFILE:-config/runtime_profiles/production_runtime_v1.yaml}
+    USE_IN_MEMORY_BUS: "false"
+    VLM_ENABLED: "false"
+    AI_GATEWAY_ENABLED: "false"
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: "50m"
+      max-file: "5"
+
+services:
+  mysql:
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
+  minio:
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env.production}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env.production}
+
+  ingestion-api:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-app:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/app.Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1g
+        reservations:
+          memory: 256m
+
+  human-review-api:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-app:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/app.Dockerfile
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1g
+
+  output-api:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-app:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/app.Dockerfile
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512m
+
+  document-preparation-worker:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-app:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/app.Dockerfile
+
+  human-review-task-worker:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-app:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/app.Dockerfile
+
+  retry-worker:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-app:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/app.Dockerfile
+
+  validation-worker:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-app:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/app.Dockerfile
+
+  output-generation-worker:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-app:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/app.Dockerfile
+
+  page-detection-worker:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-routing:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/routing.Dockerfile
+
+  standard-form-extraction-worker:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-ocr:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/ocr.Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 3g
+        reservations:
+          memory: 1g
+
+  unstructured-extraction-worker:
+    <<: *prod-env
+    image: ${CDP_IMAGE_REGISTRY:-}cdp-ocr:${CDP_IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: deploy/docker/ocr.Dockerfile
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 3g
+
+  # Optional surfaces — enable with: --profile ui
+  evaluation-ui:
+    profiles: ["ui"]
+
+  transformation-ui:
+    profiles: ["ui"]
+
+  # Dev-only / shadow profiles stay off in prod overlay
+  handwriting-ocr:
+    profiles: ["ml"]
+
+  ppocr-v5:
+    profiles: ["ppocr-v5"]
+
+  ocr-shadow-ppocr-next:
+    profiles: ["ocr-shadow"]
+
+  table-shadow:
+    profiles: ["table-shadow"]
+
+  trusted-claims-mysql:
+    profiles: ["trusted-source"]
+
+  postgres:
+    profiles: ["legacy-postgres"]

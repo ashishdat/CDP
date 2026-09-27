@@ -1,7 +1,11 @@
 .PHONY: setup test test-unit test-integration test-golden test-performance \
 	architecture lint quality run down logs clean clean-runtime-data evaluation \
 	prod-smoke prod-check prod-closeout-init ui-up ui-down ui-seed ui-up-local ui-down-local \
-	geo-accuracy-gate product-gate
+	geo-accuracy-gate product-gate \
+	docker-prod-build docker-prod-up docker-prod-down docker-prod-migrate docker-prod-ps
+
+COMPOSE_PROD = docker compose --env-file .env.production \
+	-f docker-compose.yml -f docker-compose.prod.yml
 
 setup:
 	@if [ ! -f .env ]; then cp .env.example .env; echo "created .env from .env.example"; fi
@@ -114,3 +118,37 @@ prod-check: prod-smoke
 	echo "Status remains production-hardened until closeout PROMOTE_TO_PRODUCTION."; \
 	echo "See docs/PRODUCTION_READINESS.md and docs/PRODUCTION_OPERATOR_RUNBOOK.md"; \
 	exit $$status
+
+# --- Docker production / staging (see docs/DOCKER_PRODUCTION.md) ---
+# Requires .env.production (from .env.production.example). Not PHI-authorized.
+
+docker-prod-build:
+	@test -f .env.production.example || true
+	bash scripts/docker_build_prod.sh
+
+docker-prod-up:
+	@if [ ! -f .env.production ]; then \
+		echo "Missing .env.production — copy .env.production.example and set secrets"; \
+		exit 1; \
+	fi
+	@if grep -qE 'OBJECT_STORE_ACCESS_KEY=minioadmin|MINIO_ROOT_USER=minioadmin|CHANGE_ME_' .env.production; then \
+		echo "ERROR: .env.production still has placeholders or minioadmin — refuse to start"; \
+		exit 1; \
+	fi
+	$(COMPOSE_PROD) up -d --build --wait
+	@echo "Ingestion:     http://localhost:8000/health"
+	@echo "Human review:  http://localhost:8100/health"
+	@echo "Output API:    http://localhost:8102/health"
+	@echo "Gateway:       http://localhost:8080"
+	@echo "Next: make docker-prod-migrate && make prod-smoke"
+
+docker-prod-migrate:
+	@if [ ! -f .env.production ]; then echo "Missing .env.production"; exit 1; fi
+	$(COMPOSE_PROD) exec -T ingestion-api \
+		python scripts/apply_mysql_migrations.py
+
+docker-prod-ps:
+	$(COMPOSE_PROD) ps
+
+docker-prod-down:
+	$(COMPOSE_PROD) down

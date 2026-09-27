@@ -64,7 +64,9 @@ residual_classes:
   REL_CONFLICT: keep_hitl  # spouse/other Box4 ≠ patient
 
 gates:
-  score_gt: evaluation_data/hackathon_agent_gt/field_truth.json
+  # Canonical shared field truth (Hackathon-1000 M048*). Runtime mirror under
+  # evaluation_data/ is optional; resolver falls back automatically.
+  score_gt: docs/gt/hackathon_agent_field_truth.json
   # SILVER labels echo prior AUTO — product FA uses GOLD only.
   gold_only: true
   apply_quarantine: true

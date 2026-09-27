@@ -6,8 +6,9 @@ GT sources (observed ink only — never invented):
   2. Multi-engine OCR consensus on the same crops
   3. Service-line Σ for empty box-28 totals
 
-Writes:
-  evaluation_data/hackathon_agent_gt/field_truth.json
+Writes / reads:
+  docs/gt/hackathon_agent_field_truth.json  (canonical, git-tracked)
+  evaluation_data/hackathon_agent_gt/field_truth.json  (runtime mirror)
   evaluation_results/hackathon_gt_accuracy/summary.json
 """
 
@@ -24,7 +25,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ZIP = ROOT / "data" / "Hackathon - 1000 Claims.zip"
 DEFAULT_RUN = ROOT / "evaluation_results" / "hackathon_1000_cascade_v9"
-DEFAULT_GT = ROOT / "evaluation_data" / "hackathon_agent_gt" / "field_truth.json"
+DEFAULT_GT = ROOT / "docs" / "gt" / "hackathon_agent_field_truth.json"
 DEFAULT_OUT = ROOT / "evaluation_results" / "hackathon_gt_accuracy"
 
 CRITICAL = (
@@ -368,22 +369,28 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
         by_bundle[str(row["bundle_id"])].append(row)
 
     n_fields = sum(field_total.values())
+    # No overlapping claims ⇒ FA is unknown (not zero).
+    fa_value: int | None = false_accepts if claim_scored and accepted_scored else None
     summary = {
         "run_dir": str(run_dir),
         "claims_scored": claim_scored,
         "field_count": n_fields,
-        "exact_accuracy": round(sum(field_exact.values()) / n_fields, 6) if n_fields else 0.0,
+        "exact_accuracy": round(sum(field_exact.values()) / n_fields, 6) if n_fields else None,
         "perfect_claim_exact_rate": (
-            round(claim_perfect / claim_scored, 6) if claim_scored else 0.0
+            round(claim_perfect / claim_scored, 6) if claim_scored else None
         ),
-        "false_accepts": false_accepts,
+        "false_accepts": fa_value,
         "accepted_fields_scored": accepted_scored,
         "accepted_field_precision": (
             round((accepted_scored - false_accepts) / accepted_scored, 6)
             if accepted_scored else None
         ),
-        "false_accept_rate": round(false_accepts / accepted_scored, 6) if accepted_scored else None,
-        "false_accepts_per_scored_field": round(false_accepts / n_fields, 6) if n_fields else None,
+        "false_accept_rate": (
+            round(false_accepts / accepted_scored, 6) if accepted_scored else None
+        ),
+        "false_accepts_per_scored_field": (
+            round(false_accepts / n_fields, 6) if n_fields else None
+        ),
         "quarantined_fields": quarantined_fields,
         "missing_claim_results": missing_results,
         "incomplete_claim_results": incomplete_results,
@@ -421,7 +428,7 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-dir", type=Path, default=DEFAULT_RUN)
-    parser.add_argument("--gt", type=Path, default=DEFAULT_GT)
+    parser.add_argument("--gt", type=Path, default=None)
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
     parser.add_argument(
         "--write-seed-gt",
@@ -429,11 +436,28 @@ def main() -> int:
         help="Overwrite GT with SEED_VISUAL_GT only (destructive). Default: load existing GT.",
     )
     args = parser.parse_args()
-    if args.write_seed_gt or not args.gt.exists():
-        gt = write_gt(args.gt)
+    from packages.evaluation.agent_gt_paths import (
+        resolve_field_truth_path,
+        sync_runtime_field_truth,
+    )
+
+    gt_path = resolve_field_truth_path(args.gt) or DEFAULT_GT
+    if args.write_seed_gt or not gt_path.exists():
+        gt = write_gt(gt_path)
     else:
-        gt = json.loads(args.gt.read_text(encoding="utf-8"))
+        gt = json.loads(gt_path.read_text(encoding="utf-8"))
+    sync_runtime_field_truth()
     summary = score(args.run_dir, gt)
+    if int(summary.get("claims_scored") or 0) == 0:
+        summary["status"] = "NO_OVERLAP"
+        summary["false_accepts"] = None
+        summary["accepted_field_precision"] = None
+        summary["note"] = (
+            "Shared field truth present but no overlapping claim results in run_dir. "
+            "Do not treat as FA=0."
+        )
+    else:
+        summary["status"] = "SCORED"
     args.out_dir.mkdir(parents=True, exist_ok=True)
     (args.out_dir / "summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8"

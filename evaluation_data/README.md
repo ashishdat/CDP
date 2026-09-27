@@ -5,10 +5,16 @@ commit claim images or PHI-bearing vendor labels. Split documents into
 `calibration`, `validation`, and blind `holdout` sets; never tune thresholds
 against the holdout set.
 
-Checked-in agent GT (Hackathon ZIP has no vendor labels):
+Shared agent field truth (Hackathon ZIP has no vendor labels):
 
-- `hackathon_agent_gt/field_truth.json` — full agent consensus GT
+- **Canonical (git-tracked):** `docs/gt/hackathon_agent_field_truth.json`
+  — 78 Hackathon-1000 claims (`M048*`). See `docs/gt/FIELD_TRUTH.md`.
+- **Runtime mirror (gitignored):** `hackathon_agent_gt/field_truth.json`
+  — sync with `python3 scripts/sync_hackathon_agent_gt.py`
 - `hard15_v12_3o/` — frozen 15-doc hold-500 gate set + 46 field labels
+
+Hackathon-5000 (`M046*`/`M047*`) does not overlap this GT. Product FA
+scoring reports `NO_OVERLAP` there — not FA=0.
 
 Run:
 
