@@ -939,10 +939,13 @@ def _process_one(
         elif rc != 0 and reason == "geometry_missing":
             # Still prefer unstructured over opaque APP_FAILURE when the app
             # worker died without writing geometry (common under pool resets).
+            # geometry_missing must stay REGISTRATION_FAILED so unstructured
+            # (Azure DI or local full-page OCR) can classify mailroom / recover
+            # fields — APP_FAILURE skips that path and floods the ledger.
             if "BrokenProcessPool" in (tail or "") or "TimeoutError" in (tail or ""):
                 reason = "CLAIM_APP_POOL_BROKEN"
             else:
-                disposition = "APP_FAILURE"
+                reason = reason or "geometry_missing"
         # Hard blind: some REG pages are freeform (no CMS grid). Template
         # geometry cannot recover — fall back to Azure DI page text (+ optional
         # gpt-4o text agent) for critical fields instead of a geometry VLM.

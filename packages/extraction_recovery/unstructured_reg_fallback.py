@@ -1038,6 +1038,138 @@ def _dob_from_local_box3(image: Image.Image) -> str | None:
     return fields.get("patient_dob")
 
 
+def _local_full_page_text(image: Image.Image) -> str:
+    """Full-page ink via RapidOCR/Paddle when Azure DI is not configured.
+
+    Same heuristic / mailroom router consume this text as DI ``content``.
+    Prefer RapidOCR (lighter); fall back to PaddleOCR 2.x.
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        return ""
+    rgb = np.asarray(image.convert("RGB"))
+    lines: list[str] = []
+    try:
+        from rapidocr_onnxruntime import RapidOCR
+
+        engine = RapidOCR()
+        result, _ = engine(rgb)
+        for item in result or []:
+            # RapidOCR rows: [box, text, score]
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                text = str(item[1] or "").strip()
+                if text:
+                    lines.append(text)
+        if lines:
+            return "\n".join(lines)
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from paddleocr import PaddleOCR
+
+        engine = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
+        raw = engine.ocr(rgb, cls=True)
+        for block in raw or []:
+            for item in block or []:
+                if isinstance(item, (list, tuple)) and len(item) >= 2:
+                    payload = item[1]
+                    text = (
+                        str(payload[0] if isinstance(payload, (list, tuple)) else payload)
+                        .strip()
+                    )
+                    if text:
+                        lines.append(text)
+    except Exception:  # noqa: BLE001
+        return "\n".join(lines)
+    return "\n".join(lines)
+
+
+def _fields_from_page_text(
+    di_text: str,
+    image: Image.Image,
+    *,
+    settings: Any | None = None,
+    source: str,
+) -> UnstructuredRegFallbackResult:
+    """Shared heuristic (+ optional agent) shaping after page text is obtained."""
+    fields = _heuristic_fields_from_di_text(di_text)
+    agent_used = False
+    if _agent_should_run(fields):
+        try:
+            agent_fields = _agent_fields_from_di_text(di_text, settings=settings)
+        except Exception:  # noqa: BLE001
+            agent_fields = {}
+        if agent_fields:
+            agent_used = True
+            for key, value in agent_fields.items():
+                if key not in fields:
+                    fields[key] = value
+                    continue
+                if key in {"patient_name", "insured_name"} and (
+                    _BAD_NAME.search(fields[key] or "")
+                    or not _looks_like_person_name(fields[key])
+                ):
+                    fields[key] = value
+                elif key == "insured_id_number":
+                    cur = re.sub(r"\D", "", fields[key])
+                    if len(cur) in {7, 10} or not (8 <= len(cur) <= 12):
+                        fields[key] = value
+                elif key == "total_charge" and re.fullmatch(
+                    r"\$?\d{1,2}\.\d{2}", fields[key]
+                ):
+                    fields[key] = value
+
+    if "patient_dob" not in fields:
+        local_dob = _dob_from_local_box3(image)
+        if local_dob:
+            fields["patient_dob"] = local_dob
+    if "patient_dob" not in fields and _agent_enabled():
+        try:
+            agent_fields = _agent_fields_from_di_text(di_text, settings=settings)
+        except Exception:  # noqa: BLE001
+            agent_fields = {}
+        dob = (agent_fields or {}).get("patient_dob")
+        if dob:
+            fields["patient_dob"] = dob
+            agent_used = True
+
+    if not fields:
+        return UnstructuredRegFallbackResult(
+            attempted=True,
+            configured=True,
+            reason=f"UNSTRUCTURED_NO_SHAPED_FIELDS:{source}",
+            di_text=di_text,
+            agent_used=agent_used,
+        )
+    try:
+        from packages.product_gates.accuracy_accept_policy import filter_auto_fields
+
+        fields, blocked = filter_auto_fields(fields)
+        if blocked and not fields:
+            return UnstructuredRegFallbackResult(
+                attempted=True,
+                configured=True,
+                reason="PRODUCT_ACCURACY_ACCEPT_POLICY:" + ",".join(blocked),
+                di_text=di_text,
+                agent_used=agent_used,
+            )
+    except Exception:  # noqa: BLE001
+        blocked = ()
+    reasons = {k: f"UNSTRUCTURED_{source}_SHAPED" for k in fields}
+    for code in blocked:
+        reasons[f"_policy:{code}"] = code
+    return UnstructuredRegFallbackResult(
+        attempted=True,
+        configured=True,
+        reason=f"UNSTRUCTURED_REG_FALLBACK_OK:{source}",
+        di_text=di_text,
+        fields=fields,
+        field_reasons=reasons,
+        agent_used=agent_used,
+    )
+
+
 def _agent_fields_from_di_text(di_text: str, *, settings: Any | None = None) -> dict[str, str]:
     """Text JSON extract from DI ink (Azure gpt-4o, then Claude if needed)."""
     try:
@@ -1078,10 +1210,20 @@ def run_unstructured_reg_fallback(
         )
     cfg = settings or get_settings()
     if not azure_document_intelligence_configured(cfg):
-        return UnstructuredRegFallbackResult(
-            attempted=False,
-            configured=False,
-            reason="AZURE_DI_NOT_CONFIGURED",
+        # Local full-page OCR so PRODUCT runs can still score STP/HITL/latency
+        # when Azure DI credentials are absent (mailroom + freeform recovery).
+        local_text = _local_full_page_text(image)
+        if not local_text.strip():
+            return UnstructuredRegFallbackResult(
+                attempted=True,
+                configured=False,
+                reason="AZURE_DI_NOT_CONFIGURED_LOCAL_OCR_EMPTY",
+            )
+        return _fields_from_page_text(
+            local_text,
+            image,
+            settings=cfg,
+            source="LOCAL_OCR",
         )
     try:
         engine = build_azure_read_engine(cfg)
