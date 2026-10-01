@@ -69,6 +69,17 @@ def main() -> int:
     env.setdefault("CDP_APP_POOL_TIMEOUT_SECONDS", "20")
     env.setdefault("CDP_UNSTRUCTURED_DI_TIMEOUT_SECONDS", "90")
     env.setdefault("CDP_OCR_POOL_TIMEOUT_SECONDS", "300")
+    # Without Azure/OpenAI/Anthropic keys the text agent cannot run — skip it
+    # so LOCAL_OCR heuristics decide without per-doc cloud timeouts.
+    azure_key = (env.get("AZURE_DOCUMENT_INTELLIGENCE_API_KEY") or "").strip()
+    openai_key = (env.get("AZURE_OPENAI_API_KEY") or env.get("OPENAI_API_KEY") or "").strip()
+    anthropic_key = (env.get("ANTHROPIC_API_KEY") or "").strip()
+    if not (azure_key or openai_key or anthropic_key):
+        env["CDP_UNSTRUCTURED_REG_AGENT"] = "0"
+        print(
+            "cloud keys absent — CDP_UNSTRUCTURED_REG_AGENT=0 (local OCR heuristics)",
+            flush=True,
+        )
     write_run_manifest(
         OUT,
         profile=profile.name,
