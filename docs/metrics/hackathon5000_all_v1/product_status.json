@@ -1,38 +1,38 @@
 {
-  "generated_at": "2026-10-01T19:15:02.081913+00:00",
+  "generated_at": "2026-10-01T19:36:08.861623+00:00",
   "run_dir": "evaluation_results/hackathon5000_all_v1",
   "profile": "PRODUCT",
   "unstructured_first": true,
-  "n": 849,
+  "n": 1092,
   "target": 5000,
-  "remaining": 4151,
+  "remaining": 3908,
   "run_status": "RUNNING",
   "disposition_counts": {
-    "TRUE_STP": 830,
-    "HITL": 19
+    "TRUE_STP": 1070,
+    "HITL": 22
   },
-  "completed": 849,
-  "true_stp": 830,
-  "stp_pct_of_completed": 97.76,
-  "hitl": 19,
+  "completed": 1092,
+  "true_stp": 1070,
+  "stp_pct_of_completed": 97.99,
+  "hitl": 22,
   "hitl_tracks": {
-    "UNSTRUCTURED_DI": 19
+    "UNSTRUCTURED_DI": 22
   },
   "hitl_blockers": [
     [
       "patient_dob",
-      12
+      14
     ],
     [
       "total_charge",
       6
     ],
     [
-      "patient_name",
-      1
+      "insured_id_number",
+      2
     ],
     [
-      "insured_id_number",
+      "patient_name",
       1
     ]
   ],
@@ -52,30 +52,30 @@
   "latency": {
     "all_docs": {
       "cohort": "all",
-      "n": 849,
-      "mean_sec": 5.664,
-      "p50_sec": 3.973,
-      "p95_sec": 4.734,
+      "n": 1092,
+      "mean_sec": 5.562,
+      "p50_sec": 3.917,
+      "p95_sec": 4.701,
       "max_sec": 1238.89,
-      "min_sec": 1.811
+      "min_sec": 1.485
     },
     "true_stp": {
       "cohort": "TRUE_STP",
-      "n": 830,
-      "mean_sec": 5.707,
-      "p50_sec": 3.977,
-      "p95_sec": 4.737,
+      "n": 1070,
+      "mean_sec": 5.601,
+      "p50_sec": 3.922,
+      "p95_sec": 4.704,
       "max_sec": 1238.89,
-      "min_sec": 1.811
+      "min_sec": 1.485
     },
     "hitl": {
       "cohort": "HITL",
-      "n": 19,
-      "mean_sec": 3.763,
-      "p50_sec": 3.637,
-      "p95_sec": 4.575,
+      "n": 22,
+      "mean_sec": 3.683,
+      "p50_sec": 3.682,
+      "p95_sec": 4.572,
       "max_sec": 4.594,
-      "min_sec": 2.724
+      "min_sec": 1.661
     },
     "definition": "wall-clock elapsed_sec per document from cascade ledger"
   },
