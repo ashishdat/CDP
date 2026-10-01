@@ -101,13 +101,15 @@ def main() -> int:
     else:
         print("profile=PRODUCT — residuals on; product-gate eligible", flush=True)
 
-    # 15 GiB hosts: 2 claim workers + 1 OCR pool (~3.5–4 GiB) stays under OOM.
-    # Raise to 3/2 only when free RAM ≥ ~9 GiB (see sample_2000 runner notes).
-    workers = "2"
+    # 15 GiB hosts with unstructured-first local OCR: keep claim workers at 1
+    # unless the caller passes --workers. App-pool + OCR-pool + RapidOCR in the
+    # parent previously OOMed the cascade before the first ledger write.
+    workers = "1"
     if "--workers" in sys.argv:
         i = sys.argv.index("--workers")
         workers = sys.argv[i + 1]
     env.setdefault("CDP_OCR_POOL_WORKERS", "1")
+    env.setdefault("CDP_APP_WORKER_POOL", "0")
 
     cmd = [
         sys.executable,
