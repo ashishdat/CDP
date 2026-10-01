@@ -1,0 +1,3 @@
+Union of sample_2000_v1 + remainder_3000_v1 (seed=20260925)
+n=5000 disjoint=5000
+profile=PRODUCT unstructured_first=1

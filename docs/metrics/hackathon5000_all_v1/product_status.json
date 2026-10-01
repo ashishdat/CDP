@@ -1,0 +1,61 @@
+{
+  "generated_at": "2026-10-01T17:41:27.518084+00:00",
+  "run_dir": "evaluation_results/hackathon5000_all_v1",
+  "profile": "PRODUCT",
+  "unstructured_first": true,
+  "n": 0,
+  "target": 5000,
+  "remaining": 5000,
+  "run_status": "PENDING",
+  "disposition_counts": {},
+  "completed": 0,
+  "true_stp": 0,
+  "stp_pct_of_completed": 0.0,
+  "hitl": 0,
+  "hitl_tracks": {},
+  "hitl_blockers": [],
+  "registration_failed": 0,
+  "registration_reasons": [],
+  "agent_used_true": 0,
+  "agent_used_rate_pct": 0.0,
+  "vs_stp95": "PENDING",
+  "fa": {
+    "status": "NO_OVERLAP",
+    "claims_scored": 0,
+    "false_accepts": null,
+    "accepted_field_precision": null,
+    "exact_accuracy": null,
+    "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6."
+  },
+  "latency": {
+    "all_docs": {
+      "cohort": "all",
+      "n": 0,
+      "mean_sec": null,
+      "p50_sec": null,
+      "p95_sec": null,
+      "max_sec": null,
+      "min_sec": null
+    },
+    "true_stp": {
+      "cohort": "TRUE_STP",
+      "n": 0,
+      "mean_sec": null,
+      "p50_sec": null,
+      "p95_sec": null,
+      "max_sec": null,
+      "min_sec": null
+    },
+    "hitl": {
+      "cohort": "HITL",
+      "n": 0,
+      "mean_sec": null,
+      "p50_sec": null,
+      "p95_sec": null,
+      "max_sec": null,
+      "min_sec": null
+    },
+    "definition": "wall-clock elapsed_sec per document from cascade ledger"
+  },
+  "summary_json_present": false
+}
