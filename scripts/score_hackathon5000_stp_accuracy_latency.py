@@ -228,11 +228,14 @@ def score(
     }
 
     remaining = max(0, target - n)
-    run_status = "COMPLETE" if remaining == 0 and n >= target else (
-        "COMPLETE" if summary and summary.get("run_status") == "COMPLETE" else "RUNNING"
-    )
     if n == 0:
         run_status = "PENDING"
+    elif n >= target and remaining == 0:
+        run_status = "COMPLETE"
+    elif summary and summary.get("run_status") == "COMPLETE" and n >= target:
+        run_status = "COMPLETE"
+    else:
+        run_status = "RUNNING"
 
     manifest_path = run_dir / "run_manifest.json"
     profile = "PRODUCT"
