@@ -1,39 +1,39 @@
 {
-  "generated_at": "2026-10-01T21:03:41.563024+00:00",
+  "generated_at": "2026-10-01T21:39:33.365349+00:00",
   "run_dir": "evaluation_results/hackathon5000_all_v1",
   "profile": "PRODUCT",
   "unstructured_first": true,
-  "n": 1820,
+  "n": 2057,
   "target": 5000,
-  "remaining": 3180,
+  "remaining": 2943,
   "run_status": "RUNNING",
   "disposition_counts": {
-    "TRUE_STP": 1790,
-    "HITL": 30
+    "TRUE_STP": 2023,
+    "HITL": 34
   },
-  "completed": 1820,
-  "true_stp": 1790,
+  "completed": 2057,
+  "true_stp": 2023,
   "stp_pct_of_completed": 98.35,
-  "hitl": 30,
+  "hitl": 34,
   "hitl_tracks": {
-    "UNSTRUCTURED_DI": 30
+    "UNSTRUCTURED_DI": 34
   },
   "hitl_blockers": [
     [
       "patient_dob",
-      22
+      25
     ],
     [
       "total_charge",
-      6
+      7
+    ],
+    [
+      "patient_name",
+      2
     ],
     [
       "insured_id_number",
       2
-    ],
-    [
-      "patient_name",
-      1
     ]
   ],
   "registration_failed": 0,
@@ -52,28 +52,28 @@
   "latency": {
     "all_docs": {
       "cohort": "all",
-      "n": 1820,
-      "mean_sec": 6.223,
-      "p50_sec": 3.837,
-      "p95_sec": 4.59,
+      "n": 2057,
+      "mean_sec": 6.552,
+      "p50_sec": 3.843,
+      "p95_sec": 4.539,
       "max_sec": 1238.89,
       "min_sec": 1.485
     },
     "true_stp": {
       "cohort": "TRUE_STP",
-      "n": 1790,
-      "mean_sec": 6.267,
-      "p50_sec": 3.84,
-      "p95_sec": 4.59,
+      "n": 2023,
+      "mean_sec": 6.601,
+      "p50_sec": 3.844,
+      "p95_sec": 4.539,
       "max_sec": 1238.89,
       "min_sec": 1.485
     },
     "hitl": {
       "cohort": "HITL",
-      "n": 30,
-      "mean_sec": 3.644,
+      "n": 34,
+      "mean_sec": 3.613,
       "p50_sec": 3.638,
-      "p95_sec": 4.56,
+      "p95_sec": 4.555,
       "max_sec": 4.594,
       "min_sec": 1.661
     },
