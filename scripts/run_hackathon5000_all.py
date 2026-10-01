@@ -110,6 +110,10 @@ def main() -> int:
         workers = sys.argv[i + 1]
     env.setdefault("CDP_OCR_POOL_WORKERS", "1")
     env.setdefault("CDP_APP_WORKER_POOL", "0")
+    # Spawn OCR pool + unstructured RapidOCR in-parent OOMs ~15 GiB hosts.
+    env.setdefault("CDP_OCR_WORKER_POOL", "0")
+    # Keep runner overrides (agent=0, pool=0) — cascade PRODUCT stamp would reset them.
+    env["CDP_CASCADE_RESPECT_ENV"] = "1"
 
     cmd = [
         sys.executable,
@@ -121,8 +125,8 @@ def main() -> int:
         str(DATASET),
         "--out-dir",
         str(OUT),
-        "--documents",
-        ",".join(docs),
+        "--documents-file",
+        str(DOCS),
         "--workers",
         workers,
         "--resume",

@@ -1657,6 +1657,13 @@ def main() -> int:
         help="Comma-separated document paths to run (e.g. 'Group A/M048DJJM.036'). "
         "When set, offset/limit are ignored.",
     )
+    parser.add_argument(
+        "--documents-file",
+        type=Path,
+        default=None,
+        help="Newline-separated document paths (preferred for large corpora; "
+        "avoids ARG_MAX / huge argv). Combined with --documents if both set.",
+    )
     parser.add_argument("--document-type", default="CMS1500")
     parser.add_argument("--keep-heavy", action="store_true")
     parser.add_argument("--resume", action="store_true", default=True)
@@ -1803,6 +1810,18 @@ def main() -> int:
         for part in str(args.documents or "").split(",")
         if part.strip()
     ]
+    if args.documents_file is not None:
+        doc_path = (
+            args.documents_file
+            if args.documents_file.is_absolute()
+            else ROOT / args.documents_file
+        )
+        file_docs = [
+            ln.strip().replace("\\", "/")
+            for ln in doc_path.read_text(encoding="utf-8").splitlines()
+            if ln.strip() and not ln.strip().startswith("#")
+        ]
+        doc_filter.extend(file_docs)
     # Permanent corpus binding: dataset.root must be the same archive as --zip,
     # and every selected document must exist there. Prevents APP_FAILURE floods
     # when a new Drive zip is listed via --zip but app.py still opens dataset.yaml.
@@ -1962,9 +1981,17 @@ def main() -> int:
             "lock": threading.Lock(),
         }
     try:
-        with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
-            futures = {
-                pool.submit(
+        # Sliding window: never pre-submit thousands of futures (OOM on 15 GiB).
+        max_workers = max(1, int(args.workers))
+        in_flight_cap = max(2, max_workers * 2)
+        pending_iter = iter(pending)
+        total = len(pending)
+        futures: dict[Any, str] = {}
+        done_count = 0
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+
+            def _submit_one(document: str) -> None:
+                fut = pool.submit(
                     _process_one,
                     document=document,
                     out_dir=out_dir,
@@ -1973,50 +2000,61 @@ def main() -> int:
                     keep_heavy=args.keep_heavy,
                     ocr_executor=ocr_executor,
                     app_executor=app_executor,
-                ): document
-                for document in pending
-            }
-            for i, fut in enumerate(as_completed(futures), start=1):
-                document = futures[fut]
+                )
+                futures[fut] = document
+
+            for _ in range(min(in_flight_cap, total)):
                 try:
-                    row = fut.result()
-                except Exception as exc:  # noqa: BLE001
-                    row = {
-                        "finished": True,
-                        "claim_id": _claim_slug(document),
-                        "document": document,
-                        "bundle_id": _bundle_id(document),
-                        "group_id": _group_id(document),
-                        "registration_ok": False,
-                        "completed": False,
-                        "true_stp": False,
-                        "disposition": "WORKER_ERROR",
-                        "error": f"{type(exc).__name__}: {exc}",
-                        "ts": _utc_now(),
-                    }
-                _append_ledger(ledger, row, lock)
-                rows_new.append(row)
-                if i % 5 == 0 or i == len(futures):
-                    roll = _rollup_scope(rows_new)
-                    msg = (
-                        f"progress {i}/{len(futures)} newest={row.get('claim_id')} "
-                        f"batch_reg={roll['registration_ok']}/{roll['n']} "
-                        f"batch_completed={roll['completed']}/{roll['n']} "
-                        f"batch_true_stp={roll['true_stp']}/{roll['completed']} "
-                        f"({roll['true_stp_rate']:.1%} of completed) "
-                        f"batch_field_hitl={roll['field_ink_hitl']}/{roll['completed']} "
-                        f"({roll['hitl_rate']:.1%} of completed) "
-                        f"batch_infra={roll['infra_failures']}/{roll['n']} "
-                        f"disp={row.get('disposition')}"
-                    )
-                    # Always land progress on disk (survives stdout pipe stalls).
+                    _submit_one(next(pending_iter))
+                except StopIteration:
+                    break
+            while futures:
+                for fut in as_completed(list(futures.keys()), timeout=None):
+                    document = futures.pop(fut)
+                    done_count += 1
                     try:
-                        (out_dir / "progress.txt").write_text(
-                            msg + f"\n{ _utc_now() }\n", encoding="utf-8"
+                        row = fut.result()
+                    except Exception as exc:  # noqa: BLE001
+                        row = {
+                            "finished": True,
+                            "claim_id": _claim_slug(document),
+                            "document": document,
+                            "bundle_id": _bundle_id(document),
+                            "group_id": _group_id(document),
+                            "registration_ok": False,
+                            "completed": False,
+                            "true_stp": False,
+                            "disposition": "WORKER_ERROR",
+                            "error": f"{type(exc).__name__}: {exc}",
+                            "ts": _utc_now(),
+                        }
+                    _append_ledger(ledger, row, lock)
+                    rows_new.append(row)
+                    if done_count % 5 == 0 or done_count == total:
+                        roll = _rollup_scope(rows_new)
+                        msg = (
+                            f"progress {done_count}/{total} newest={row.get('claim_id')} "
+                            f"batch_reg={roll['registration_ok']}/{roll['n']} "
+                            f"batch_completed={roll['completed']}/{roll['n']} "
+                            f"batch_true_stp={roll['true_stp']}/{roll['completed']} "
+                            f"({roll['true_stp_rate']:.1%} of completed) "
+                            f"batch_field_hitl={roll['field_ink_hitl']}/{roll['completed']} "
+                            f"({roll['hitl_rate']:.1%} of completed) "
+                            f"batch_infra={roll['infra_failures']}/{roll['n']} "
+                            f"disp={row.get('disposition')}"
                         )
-                    except OSError:
+                        try:
+                            (out_dir / "progress.txt").write_text(
+                                msg + f"\n{ _utc_now() }\n", encoding="utf-8"
+                            )
+                        except OSError:
+                            pass
+                        print(msg, flush=True)
+                    try:
+                        _submit_one(next(pending_iter))
+                    except StopIteration:
                         pass
-                    print(msg, flush=True)
+                    break  # re-enter as_completed with updated futures set
     finally:
         _shutdown_process_pool(_executor_from_holder(ocr_executor))
         _shutdown_process_pool(_executor_from_holder(app_executor))
