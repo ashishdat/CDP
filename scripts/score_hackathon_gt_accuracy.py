@@ -87,6 +87,24 @@ def _canon_date(value: object) -> str:
     return text.upper()
 
 
+def _canon_id(value: object) -> str:
+    return re.sub(r"[^A-Z0-9]", "", str(value or "").upper())
+
+
+def _canon_name(value: object) -> str:
+    text = re.sub(r"[^A-Za-z0-9,.\- ]", " ", str(value or ""))
+    return re.sub(r"\s+", " ", text).strip(" .,").upper()
+
+
+def _canon_money(value: object) -> str:
+    from packages.claim_evidence.line_sum_authority import parse_currency
+
+    amount = parse_currency(value)
+    if amount is None:
+        return re.sub(r"\s+", "", str(value or "")).upper()
+    return f"{amount:.2f}"
+
+
 def _exact(field: str, predicted: object, expected: object, **_context: Any) -> bool:
     """Representation normalization only; no OCR repairs or identity deletion."""
     if expected in (None, "", "EMPTY", "NULL"):

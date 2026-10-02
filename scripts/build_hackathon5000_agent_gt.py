@@ -38,12 +38,56 @@ from packages.extraction_recovery.field_cascade import semantic_accept  # noqa: 
 from packages.extraction_recovery.unstructured_reg_fallback import (  # noqa: E402
     _heuristic_fields_from_di_text,
 )
-from scripts.build_hackathon_agent_gt import (  # noqa: E402
-    _display_for,
-    _normalize_key,
-    merge_claims,
+from scripts.score_hackathon_gt_accuracy import (  # noqa: E402
+    CRITICAL,
+    _canon_date,
+    _canon_id,
+    _canon_money,
+    _canon_name,
 )
-from scripts.score_hackathon_gt_accuracy import CRITICAL  # noqa: E402
+
+
+def _normalize_key(field: str, value: str) -> str:
+    if field in {"patient_dob", "date_of_birth"}:
+        return _canon_date(value)
+    if field in {"insured_id_number", "member_id"}:
+        return _canon_id(value)
+    if field in {"patient_name", "insured_name"}:
+        return _canon_name(value)
+    if field in {"total_charge", "total_charges"}:
+        return _canon_money(value)
+    return str(value or "").strip().upper()
+
+
+def _display_for(field: str, value: str) -> str:
+    if field in {"patient_dob", "date_of_birth"}:
+        return _canon_date(value)
+    if field in {"total_charge", "total_charges"}:
+        return _canon_money(value)
+    if field in {"insured_id_number", "member_id"}:
+        return _canon_id(value)
+    text = re.sub(r"[^A-Za-z0-9,.\- ]", " ", value or "")
+    text = re.sub(r"\s+", " ", text).strip(" .,")
+    return text.upper()
+
+
+def merge_claims(*sources: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    merged: dict[str, dict[str, Any]] = {}
+    for source in sources:
+        for claim_id, payload in source.items():
+            slot = merged.setdefault(
+                claim_id,
+                {
+                    "document": payload.get("document"),
+                    "fields": {},
+                    "run_source": payload.get("run_source"),
+                },
+            )
+            if payload.get("document"):
+                slot["document"] = payload["document"]
+            for field, meta in (payload.get("fields") or {}).items():
+                slot["fields"][field] = meta
+    return merged
 
 DEFAULT_ZIP = ROOT / "data" / "Hackathon - 5000 Claims.zip"
 DEFAULT_RUN = ROOT / "evaluation_results" / "hackathon5000_all_v1"
