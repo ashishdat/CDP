@@ -181,7 +181,13 @@ def _label_fields(
                     "confidence": "GOLD",
                 }
                 continue
-            # Disagree on real ink — abstain (do not invent).
+            # Real disagreement: keep Rapid as SILVER (production engine ink read)
+            # and record the conflict — do not promote to GOLD.
+            field_gt[field] = {
+                "expected_value": _display_for(field, r),
+                "source": f"rapidocr_pref_over_paddle_conflict:{p}",
+                "confidence": "SILVER",
+            }
             continue
         # Rapid is the production unstructured-first engine; prefer it for SILVER.
         if r:
