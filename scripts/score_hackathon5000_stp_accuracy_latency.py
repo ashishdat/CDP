@@ -96,7 +96,7 @@ def _fa_block(run_dir: Path) -> dict[str, Any]:
         from packages.evaluation.agent_gt_paths import resolve_field_truth_path
         from scripts.score_hackathon_gt_accuracy import score as score_agent_gt
 
-        gt_path = resolve_field_truth_path()
+        gt_path = resolve_field_truth_path(corpus="hackathon5000")
         if gt_path is None:
             return {
                 "status": "GT_MISSING",

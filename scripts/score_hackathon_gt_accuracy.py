@@ -303,6 +303,22 @@ def score(run_dir: Path, gt: dict[str, Any]) -> dict[str, Any]:
             incomplete_results += 1
             continue
         fields = result.get("fields") or {}
+        # Unstructured REG / unstructured-first stores plain shaped strings
+        # under unstructured_reg_fallback.fields (no disp/value envelope).
+        # TRUE_STP ⇒ treat those as AUTO_ACCEPTED for FA scoring.
+        unstruct = result.get("unstructured_reg_fallback") or {}
+        unstruct_fields = unstruct.get("fields") if isinstance(unstruct, dict) else None
+        if isinstance(unstruct_fields, dict) and not fields:
+            fields = {
+                name: {"value": value, "disp": "AUTO_ACCEPTED"}
+                for name, value in unstruct_fields.items()
+                if str(value or "").strip()
+            }
+            if result.get("disposition") != "TRUE_STP":
+                # HITL: only fields present were shaped; still score exactness
+                # but do not count as false-accept (not auto-released).
+                for name in fields:
+                    fields[name]["disp"] = "HITL_SHAPED"
         claim_ok = True
         field_rows = []
         patient_name_pred = (fields.get("patient_name") or {}).get("value")
