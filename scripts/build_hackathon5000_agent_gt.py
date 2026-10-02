@@ -18,6 +18,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import random
 import re
@@ -36,7 +37,9 @@ from PIL import Image  # noqa: E402
 
 from packages.extraction_recovery.field_cascade import semantic_accept  # noqa: E402
 from packages.extraction_recovery.unstructured_reg_fallback import (  # noqa: E402
+    _BAD_NAME,
     _heuristic_fields_from_di_text,
+    _looks_like_person_name,
 )
 from scripts.score_hackathon_gt_accuracy import (  # noqa: E402
     CRITICAL,
@@ -146,13 +149,30 @@ def _shaped_fields(text: str) -> dict[str, str]:
     return out
 
 
+def _paddle_usable(field: str, value: str | None) -> bool:
+    """Drop form-junk paddle reads (e.g. 'NAME, FISST N') before consensus."""
+    if not value or not str(value).strip():
+        return False
+    text = str(value).strip()
+    if field in {"patient_name", "insured_name"}:
+        if _BAD_NAME.search(text) or not _looks_like_person_name(text):
+            return False
+        # Common NUCC placeholder OCR.
+        if re.search(r"\bFISST\b|\bFIRST\s*N(?:AME)?\b|\bNAME,\s*F", text, re.I):
+            return False
+    if field == "patient_dob":
+        # Paddle often latches onto printed example dates on the form shell.
+        pass
+    return True
+
+
 def _label_fields(
     rapid_fields: dict[str, str], paddle_fields: dict[str, str]
 ) -> dict[str, dict[str, Any]]:
     field_gt: dict[str, dict[str, Any]] = {}
     for field in CRITICAL:
         r = rapid_fields.get(field)
-        p = paddle_fields.get(field)
+        p = paddle_fields.get(field) if _paddle_usable(field, paddle_fields.get(field)) else None
         if r and p:
             if _normalize_key(field, r) == _normalize_key(field, p):
                 field_gt[field] = {
@@ -161,14 +181,19 @@ def _label_fields(
                     "confidence": "GOLD",
                 }
                 continue
-            # Disagree — abstain (do not invent).
+            # Disagree on real ink — abstain (do not invent).
             continue
-        single = r or p
-        engine = "rapidocr" if r else "paddleocr"
-        if single:
+        # Rapid is the production unstructured-first engine; prefer it for SILVER.
+        if r:
             field_gt[field] = {
-                "expected_value": _display_for(field, single),
-                "source": f"single_engine_shaped:{engine}",
+                "expected_value": _display_for(field, r),
+                "source": "single_engine_shaped:rapidocr",
+                "confidence": "SILVER",
+            }
+        elif p:
+            field_gt[field] = {
+                "expected_value": _display_for(field, p),
+                "source": "single_engine_shaped:paddleocr",
                 "confidence": "SILVER",
             }
     return field_gt
@@ -237,13 +262,20 @@ def build_labels(
     *,
     zip_path: Path,
     docs: list[str],
+    resume_claims: dict[str, dict[str, Any]] | None = None,
+    checkpoint: Path | None = None,
 ) -> dict[str, dict[str, Any]]:
     import numpy as np
 
+    claims: dict[str, dict[str, Any]] = dict(resume_claims or {})
+    pending = [d for d in docs if d.replace("/", "__") not in claims]
+    print(f"pending={len(pending)} already={len(claims)}", flush=True)
+    if not pending:
+        return claims
     rapid, paddle = _ocr_engines()
-    claims: dict[str, dict[str, Any]] = {}
+    print("ocr engines ready", flush=True)
     with ZipFile(zip_path) as zf:
-        for i, document in enumerate(docs, start=1):
+        for i, document in enumerate(pending, start=1):
             claim_id = document.replace("/", "__")
             try:
                 img = Image.open(BytesIO(zf.read(document))).convert("RGB")
@@ -252,13 +284,18 @@ def build_labels(
                 continue
             rgb = np.asarray(img)
             try:
-                r_text = _rapid_text(rapid, rgb)
-                p_text = _paddle_text(paddle, rgb)
+                try:
+                    r_text = _rapid_text(rapid, rgb)
+                    p_text = _paddle_text(paddle, rgb)
+                except Exception as exc:  # noqa: BLE001
+                    print(f"ocr_fail {document}: {type(exc).__name__}: {exc}", flush=True)
+                    continue
             finally:
-                img.close()
+                with contextlib.suppress(Exception):
+                    img.close()
             field_gt = _label_fields(_shaped_fields(r_text), _shaped_fields(p_text))
             if not field_gt:
-                print(f"[{i}/{len(docs)}] {document} no labels", flush=True)
+                print(f"[{i}/{len(pending)}] {document} no labels", flush=True)
                 continue
             claims[claim_id] = {
                 "document": document,
@@ -267,9 +304,15 @@ def build_labels(
             }
             gold = sum(1 for m in field_gt.values() if m.get("confidence") == "GOLD")
             print(
-                f"[{i}/{len(docs)}] {document} fields={len(field_gt)} gold={gold}",
+                f"[{i}/{len(pending)}] {document} fields={len(field_gt)} gold={gold}",
                 flush=True,
             )
+            if checkpoint is not None and (i % 10 == 0 or i == len(pending)):
+                write_gt(
+                    checkpoint,
+                    claims,
+                    dataset="Hackathon - 5000 Claims.zip",
+                )
     return claims
 
 
@@ -347,7 +390,20 @@ def main() -> int:
             flush=True,
         )
 
-    claims = build_labels(zip_path=zip_path, docs=docs)
+    resume: dict[str, dict[str, Any]] = {}
+    if out.is_file():
+        try:
+            prev = json.loads(out.read_text(encoding="utf-8"))
+            resume = dict(prev.get("claims") or {})
+            print(f"resume from {out} claims={len(resume)}", flush=True)
+        except json.JSONDecodeError:
+            resume = {}
+    claims = build_labels(
+        zip_path=zip_path,
+        docs=docs,
+        resume_claims=resume,
+        checkpoint=out,
+    )
     gt = write_gt(out, claims, dataset="Hackathon - 5000 Claims.zip")
     print(json.dumps({"out": str(out), "stats": gt["stats"]}, indent=2), flush=True)
 
