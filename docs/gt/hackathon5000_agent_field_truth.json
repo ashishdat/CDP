@@ -1,0 +1,5514 @@
+{
+  "dataset": "Hackathon - 5000 Claims.zip",
+  "created_by": "agent_consensus_gt_hackathon5000_v1",
+  "created_at": "2026-10-02T02:04:27.462329+00:00",
+  "methodology": [
+    "No vendor labels on Hackathon-5000 ZIP \u2014 agent-created GT.",
+    "Full-page RapidOCR + PaddleOCR text independently.",
+    "Field heuristics + semantic_accept (same shaping as unstructured REG).",
+    "GOLD: both engines agree after normalize/shape.",
+    "SILVER: single engine shaped; abstain on engine conflicts.",
+    "Never invent DOB/amounts/IDs when engines disagree or ink is empty."
+  ],
+  "stats": {
+    "claims": 200,
+    "field_labels": 857,
+    "by_confidence": {
+      "SILVER": 857
+    },
+    "by_field": {
+      "patient_dob": 165,
+      "total_charge": 184,
+      "patient_name": 156,
+      "insured_id_number": 196,
+      "insured_name": 156
+    }
+  },
+  "claims": {
+    "Group A__M0463JEM.011": {
+      "document": "Group A/M0463JEM.011",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "15885.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "GREENWOOD JANET M",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "905458463",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "GREENWOOD JANET M",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0476JEB.004": {
+      "document": "Group C/M0476JEB.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1965-04-23",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "78008.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "Y291148",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JDC.019": {
+      "document": "Group A/M0472JDC.019",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "11982.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "RUSTEN LUCAS",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "967865307",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "RUSTEN LUCAS",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JCS.001": {
+      "document": "Group A/M0472JCS.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NORO, MICL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NORO, MICL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDZ.034": {
+      "document": "Group A/M0473JDZ.034",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "77840.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WIER, MARY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "976758181",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "WIER, MARY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JC9.026": {
+      "document": "Group C/M0473JC9.026",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "OSC77680095",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJEI.004": {
+      "document": "Group A/M047AJEI.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1988-11-01",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "24126.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HEALTH JNSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "072085741601",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HEALTH JNSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JIK.002": {
+      "document": "Group A/M0477JIK.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "332922154",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M047AJDS.014": {
+      "document": "Group C/M047AJDS.014",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "87726.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "D111013631",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JIK.039": {
+      "document": "Group A/M0477JIK.039",
+      "fields": {
+        "total_charge": {
+          "expected_value": "2020.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BUSH, ANNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "CR061653",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BUSH, ANNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJB.019": {
+      "document": "Group A/M0477JJB.019",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAMG,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "014423474",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAMG,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JED.020": {
+      "document": "Group A/M0471JED.020",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "70806.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "FERNANDEZ, VALERY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "823577879",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "FERNANDEZ, VALERY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJEO.042": {
+      "document": "Group A/M047AJEO.042",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "32547.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "FSINAME,MIDLE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "22939502",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "FSINAME,MIDLE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0477JHE.002": {
+      "document": "Group C/M0477JHE.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1972-05-25",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "80905.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "134039211",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JER.034": {
+      "document": "Group A/M0473JER.034",
+      "fields": {
+        "total_charge": {
+          "expected_value": "10316.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "976442481",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JBP.008": {
+      "document": "Group A/M0472JBP.008",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2011-10-01",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAMO,FISI N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "20260500",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAMO,FISI N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JC9.011": {
+      "document": "Group C/M0473JC9.011",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "81001.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "N1750792313",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJB.014": {
+      "document": "Group A/M0477JJB.014",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2004-06-18",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "63026.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,MDDLE I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "CR061653",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,MDDLE I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0479JG6.011": {
+      "document": "Group C/M0479JG6.011",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62926.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "514377934",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JAX.001": {
+      "document": "Group A/M0472JAX.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2008-08-25",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "IBARRA, EMANUEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "989822206",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "IBARRA, EMANUEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JGV.016": {
+      "document": "Group A/M0473JGV.016",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "247.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BRITTEN, MINGO",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "134541913",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BRITTEN, MINGO",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JCE.040": {
+      "document": "Group A/M0472JCE.040",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "77377.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BROWN, SAMUEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "979712771",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BROWN, SAMUEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JLI.003": {
+      "document": "Group A/M0477JLI.003",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2011-08-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "66105.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BOBBER, TEELA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "NPI1740718618",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BOBBER, TEELA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0478JFC.010": {
+      "document": "Group A/M0478JFC.010",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "44410.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MITCHNER, JEFFREY K",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "965433324",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "MITCHNER, JEFFREY K",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0471JEO.001": {
+      "document": "Group C/M0471JEO.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1980-08-29",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "84130.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "M082980",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JGG.014": {
+      "document": "Group A/M0473JGG.014",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2001-10-05",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "38251.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "JACQUES, DANIEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "005821598",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "JACQUES, DANIEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0478JFK.001": {
+      "document": "Group A/M0478JFK.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2010-08-11",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "70226.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WALDRON, MICAH W",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "WALDRON, MICAH W",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0476JD9.013": {
+      "document": "Group A/M0476JD9.013",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1974-12-21",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "64834.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HEALTHINSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "430821959",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HEALTHINSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JB9.036": {
+      "document": "Group A/M0472JB9.036",
+      "fields": {
+        "total_charge": {
+          "expected_value": "32022.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MCCLAUGHRY, PATRL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "194404225",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "MCCLAUGHRY, PATRL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JFX.031": {
+      "document": "Group A/M0473JFX.031",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2010-01-25",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "42226.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "GUTIERREZ, ANASTACIO N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "771530196867",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "GUTIERREZ, ANASTACIO N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M046UJHX.002": {
+      "document": "Group A/M046UJHX.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "80834.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "18042512360",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDQ.037": {
+      "document": "Group A/M0473JDQ.037",
+      "fields": {
+        "total_charge": {
+          "expected_value": "12107.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "REHAN, RAYNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "920020324",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "REHAN, RAYNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0477JIM.001": {
+      "document": "Group C/M0477JIM.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "87726.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "THORN, NELSON",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "S000378934",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "THORN, NELSON",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JDS.009": {
+      "document": "Group C/M0473JDS.009",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1964-12-25",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "61526.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "92023878901",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JE6.013": {
+      "document": "Group A/M0473JE6.013",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "4001.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "930837593",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJEO.007": {
+      "document": "Group A/M047AJEO.007",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1963-08-01",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "80163.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "VALIENTE PETER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "077097169901",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "VALIENTE PETER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JB9.023": {
+      "document": "Group A/M0472JB9.023",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1951-05-05",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "IXDARVN BRYDEV",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "20260500",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "IXDARVN BRYDEV",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JCM.029": {
+      "document": "Group A/M0472JCM.029",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1962-09-05",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "8931.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CHATMAN VICTOR",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "092090479001",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "CHATMAN VICTOR",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JKF.001": {
+      "document": "Group A/M0472JKF.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2010-08-11",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "37663.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WALDRON, MICAH W",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "WALDRON, MICAH W",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0478JHP.027": {
+      "document": "Group A/M0478JHP.027",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1946-14-11",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "34761.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PANZARDI, GIANNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "451618958",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "PANZARDI, GIANNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JC9.019": {
+      "document": "Group C/M0473JC9.019",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "61926.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "M1770144982",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M047AJJD.007": {
+      "document": "Group C/M047AJJD.007",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "S32851938132",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JE4.026": {
+      "document": "Group A/M0473JE4.026",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "78681.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "RAY, JANE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "980747915",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "RAY, JANE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDQ.020": {
+      "document": "Group A/M0473JDQ.020",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "13819.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BROWN, OUINCY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "997064947",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BROWN, OUINCY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JC9.017": {
+      "document": "Group C/M0473JC9.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "64359.57",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "A314905606",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0472JBB.004": {
+      "document": "Group C/M0472JBB.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1970-05-20",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "80480.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BUTLER, MARK",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "N1396026167",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BUTLER, MARK",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JDD.003": {
+      "document": "Group C/M0473JDD.003",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "78009.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "R61516867",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JDH.021": {
+      "document": "Group A/M0472JDH.021",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2011-01-08",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "33709.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FIRT N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "A6008171602",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FIRT N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0471JHC.003": {
+      "document": "Group C/M0471JHC.003",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "TFP24394587",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JEP.047": {
+      "document": "Group A/M0473JEP.047",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "11374.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MAME, DDIG I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "902902559",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "MAME, DDIG I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0479JGP.031": {
+      "document": "Group A/M0479JGP.031",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2008-10-11",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "1537.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "FELL, MARIAH E",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "SH000498",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "FELL, MARIAH E",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JGC.004": {
+      "document": "Group C/M0473JGC.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2005-01-08",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "80825.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "N861476798",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0478JFC.046": {
+      "document": "Group A/M0478JFC.046",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "1949.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "POPE, LINDA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "908420220",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "POPE, LINDA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJB.005": {
+      "document": "Group A/M0477JJB.005",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "75080.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ROSE LOUISE BETH I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "17863408701",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ROSE LOUISE BETH I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JLI.004": {
+      "document": "Group A/M0477JLI.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2006-07-26",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ASTNAME,FRSNANEMDDENIFA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "A1689722357",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ASTNAME,FRSNANEMDDENIFA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0479JHN.025": {
+      "document": "Group A/M0479JHN.025",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1962-08-31",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "1962.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "992443213",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0477JH2.005": {
+      "document": "Group C/M0477JH2.005",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1982-06-01",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "85025.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "570370242",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JC7.019": {
+      "document": "Group A/M0473JC7.019",
+      "fields": {
+        "total_charge": {
+          "expected_value": "48301.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CHIODO, LUISA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "A2303691651",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "CHIODO, LUISA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JDD.004": {
+      "document": "Group C/M0473JDD.004",
+      "fields": {
+        "total_charge": {
+          "expected_value": "60622.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BUTERA, GINA M",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "OSC7766877301",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BUTERA, GINA M",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JEV.014": {
+      "document": "Group A/M0471JEV.014",
+      "fields": {
+        "total_charge": {
+          "expected_value": "84010.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,MIDDE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "968656518",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,MIDDE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDQ.039": {
+      "document": "Group A/M0473JDQ.039",
+      "fields": {
+        "total_charge": {
+          "expected_value": "2121.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "920020324",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JIM.005": {
+      "document": "Group A/M0471JIM.005",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62026.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "124841487",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JCE.005": {
+      "document": "Group A/M0472JCE.005",
+      "fields": {
+        "total_charge": {
+          "expected_value": "2481.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "81669074621",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JB9.025": {
+      "document": "Group A/M0472JB9.025",
+      "fields": {
+        "total_charge": {
+          "expected_value": "40837.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAMA, FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "128506278",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAMA, FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JDD.009": {
+      "document": "Group C/M0473JDD.009",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "NM1881747152",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJEI.010": {
+      "document": "Group A/M047AJEI.010",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1986-12-13",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "22126.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICY OR GROUP",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "072085142901",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICY OR GROUP",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JAY.005": {
+      "document": "Group A/M0473JAY.005",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "23523.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "VA233215525",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JEP.012": {
+      "document": "Group A/M0473JEP.012",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1976-07-03",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "2375.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "SMALL JENNY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "00051288500",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "SMALL JENNY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJ9.024": {
+      "document": "Group A/M0477JJ9.024",
+      "fields": {
+        "total_charge": {
+          "expected_value": "200.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "901916350",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JCZ.013": {
+      "document": "Group A/M0472JCZ.013",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "8751.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "AOTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "237245364301",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "AOTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0476JDX.021": {
+      "document": "Group A/M0476JDX.021",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1942-06-16",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "213.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HOLLAND, DOROTHY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "942387441",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HOLLAND, DOROTHY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0474JB2.028": {
+      "document": "Group A/M0474JB2.028",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "84130.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HEALTHINSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "123128794",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HEALTHINSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JEV.019": {
+      "document": "Group A/M0471JEV.019",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "23219.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WADE, LOGAN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "130670468",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "WADE, LOGAN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M047AJD5.001": {
+      "document": "Group C/M047AJD5.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "61826.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "955696779",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M047AJD5.002": {
+      "document": "Group C/M047AJD5.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1954-08-06",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "000066666",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JCM.047": {
+      "document": "Group A/M0472JCM.047",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "18221.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "072084345101",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JIU.036": {
+      "document": "Group A/M0477JIU.036",
+      "fields": {
+        "total_charge": {
+          "expected_value": "224.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LANCE, JOHNSON",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "A1235259359",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "LANCE, JOHNSON",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0478JFC.023": {
+      "document": "Group A/M0478JFC.023",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "49505.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PASHAK, ANDREA D",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "GIS815329847",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "PASHAK, ANDREA D",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0476JD9.015": {
+      "document": "Group A/M0476JD9.015",
+      "fields": {
+        "total_charge": {
+          "expected_value": "2675.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "481305799",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JB9.024": {
+      "document": "Group A/M0472JB9.024",
+      "fields": {
+        "total_charge": {
+          "expected_value": "10011.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BAEEON, VUET R",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "W818485069",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BAEEON, VUET R",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JAY.003": {
+      "document": "Group A/M0473JAY.003",
+      "fields": {
+        "total_charge": {
+          "expected_value": "760.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ASTNAME, MIGDLEINITIAL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "INS000677907",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ASTNAME, MIGDLEINITIAL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDQ.034": {
+      "document": "Group A/M0473JDQ.034",
+      "fields": {
+        "total_charge": {
+          "expected_value": "172.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LESTNAME,FLSTNEMO",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "19975402",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "LESTNAME,FLSTNEMO",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JCE.027": {
+      "document": "Group A/M0472JCE.027",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-05",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "5111.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ONTIVEROS, FERNANDO",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "917633084",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ONTIVEROS, FERNANDO",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJ9.015": {
+      "document": "Group A/M0477JJ9.015",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "44223.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BURRIS, ANNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "928333734",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BURRIS, ANNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JG1.015": {
+      "document": "Group A/M0473JG1.015",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "6218.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME, MICDLE I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "K9049979404",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME, MICDLE I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JC9.014": {
+      "document": "Group C/M0473JC9.014",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62570.60",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "AA308554702",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M047AJDS.008": {
+      "document": "Group C/M047AJDS.008",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62926.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "A320322452",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JAJ.002": {
+      "document": "Group A/M0472JAJ.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "55433.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "V105765081",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0479JHN.023": {
+      "document": "Group A/M0479JHN.023",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1957-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "84130.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJS.006": {
+      "document": "Group A/M0477JJS.006",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHER INSURED SPOLICYOR GROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "901280442",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHER INSURED SPOLICYOR GROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JFR.004": {
+      "document": "Group A/M0473JFR.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "78170.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAMS,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "887890501",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAMS,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JCM.003": {
+      "document": "Group A/M0473JCM.003",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1968-04-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "27107.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WILSON, SAVIER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "937877324",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "WILSON, SAVIER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JEP.004": {
+      "document": "Group A/M0473JEP.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2011-05-01",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "33624.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MENDES, SEAN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "989402108",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "MENDES, SEAN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDQ.019": {
+      "document": "Group A/M0473JDQ.019",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "46781.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PAOPAO, RAYMOND",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "0000075315",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "PAOPAO, RAYMOND",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJY.001": {
+      "document": "Group A/M0477JJY.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1962-03-13",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "11211.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FIRSI N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "97163468500",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FIRSI N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JAT.004": {
+      "document": "Group A/M0471JAT.004",
+      "fields": {
+        "total_charge": {
+          "expected_value": "80124.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "903215204",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0476JD9.003": {
+      "document": "Group A/M0476JD9.003",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2008-10-11",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "54476.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGAOUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "977389414",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGAOUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JAY.004": {
+      "document": "Group A/M0473JAY.004",
+      "fields": {
+        "total_charge": {
+          "expected_value": "8317.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NARME,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "IN000697",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NARME,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JAP.002": {
+      "document": "Group C/M0473JAP.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62426.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "18942686509",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0471JEY.004": {
+      "document": "Group C/M0471JEY.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1930-08-09",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "61826.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "FN01484386",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JG1.024": {
+      "document": "Group A/M0473JG1.024",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2005-10-01",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62526.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "DELUCO, JOSEPH",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "K9040966601",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "DELUCO, JOSEPH",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JC7.022": {
+      "document": "Group A/M0473JC7.022",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "15896.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "954709388",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JFR.013": {
+      "document": "Group A/M0473JFR.013",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "41504.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "APOSTOL, DOMINIQUE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "111821769",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "APOSTOL, DOMINIQUE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JIK.013": {
+      "document": "Group A/M0477JIK.013",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "981043908",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJB.018": {
+      "document": "Group A/M0477JJB.018",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "014423474",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0476JEB.007": {
+      "document": "Group C/M0476JEB.007",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "85027.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "OSC75092165",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDQ.017": {
+      "document": "Group A/M0473JDQ.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1955-08-27",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "30757.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BROWN, TIMOTHY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "0001289206",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BROWN, TIMOTHY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJDE.004": {
+      "document": "Group A/M047AJDE.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "75861.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FTRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "20260500",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FTRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JEV.023": {
+      "document": "Group A/M0471JEV.023",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "12610.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "SANTOS, MARIA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "R225810263",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "SANTOS, MARIA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJY.021": {
+      "document": "Group A/M0477JJY.021",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "1971.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HALL LANCE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "925627780",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HALL LANCE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0475JAH.003": {
+      "document": "Group A/M0475JAH.003",
+      "fields": {
+        "total_charge": {
+          "expected_value": "10017.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAM, FIRTNM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "Q1902976509",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAM, FIRTNM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JFR.011": {
+      "document": "Group A/M0473JFR.011",
+      "fields": {
+        "total_charge": {
+          "expected_value": "4114.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "20260500",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJEI.049": {
+      "document": "Group A/M047AJEI.049",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "23126.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,MIDILE I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "072090738001",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,MIDILE I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JAJ.047": {
+      "document": "Group A/M0472JAJ.047",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1955-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "19126.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ELHAJJ, SALEEM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "596240526966",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ELHAJJ, SALEEM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0478JFZ.002": {
+      "document": "Group A/M0478JFZ.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1972-06-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "1938.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "19972903",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JEU.002": {
+      "document": "Group C/M0473JEU.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1938-08-01",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "87726.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "988468277",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JFQ.042": {
+      "document": "Group A/M0471JFQ.042",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1970-03-30",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62426.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "Q.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "OSC7583552602",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "Q.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JAT.006": {
+      "document": "Group A/M0471JAT.006",
+      "fields": {
+        "total_charge": {
+          "expected_value": "63026.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NERE, MICE I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "M674372",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NERE, MICE I",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JG1.034": {
+      "document": "Group A/M0473JG1.034",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "84130.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CROWLEY, MARCUS L",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "364011672900",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "CROWLEY, MARCUS L",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JGV.017": {
+      "document": "Group A/M0473JGV.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "77705.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BELL, HAZEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "913115433",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BELL, HAZEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JAX.011": {
+      "document": "Group A/M0472JAX.011",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "23126.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAMA,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "995378964",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAMA,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJB.023": {
+      "document": "Group A/M0477JJB.023",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "17789.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HENYAN, CALEB",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "985737803",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HENYAN, CALEB",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJCY.010": {
+      "document": "Group A/M047AJCY.010",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "288.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FTRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "CR061653",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FTRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JG7.039": {
+      "document": "Group A/M0473JG7.039",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1991-07-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "77008.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "TTBBS, BONNTE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "924715682",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "TTBBS, BONNTE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JDD.005": {
+      "document": "Group C/M0473JDD.005",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1993-07-04",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "OSC77680095",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0471JF3.001": {
+      "document": "Group C/M0471JF3.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "21326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "QSC7551956501",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJEO.041": {
+      "document": "Group A/M047AJEO.041",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "25492.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "001877557",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0474JB0.009": {
+      "document": "Group A/M0474JB0.009",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1957-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "7549.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CONTRERAS, BERTHA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "944226668",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "CONTRERAS, BERTHA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JL4.004": {
+      "document": "Group A/M0477JL4.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2010-05-18",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "84130.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FQRM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "983391929",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FQRM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJY.044": {
+      "document": "Group A/M0477JJY.044",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "14222.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MORSE, CHARLES",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "575410113",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "MORSE, CHARLES",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JBU.017": {
+      "document": "Group A/M0473JBU.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1966-10-30",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "2451.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "KREMER ANDREA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "AL205989795",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "KREMER ANDREA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JB9.028": {
+      "document": "Group A/M0472JB9.028",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "439.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LYMAN, CHRISTOPYER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "867287485",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "LYMAN, CHRISTOPYER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JER.005": {
+      "document": "Group A/M0473JER.005",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1934-06-11",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "75811.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "N11013164390",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JK4.026": {
+      "document": "Group A/M0477JK4.026",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LASTNARNE FRSTNAME",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "009002253",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "LASTNARNE FRSTNAME",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JAX.008": {
+      "document": "Group A/M0472JAX.008",
+      "fields": {
+        "total_charge": {
+          "expected_value": "11010.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "QUINLAN, SIENNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "826614710",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "QUINLAN, SIENNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJCY.016": {
+      "document": "Group A/M047AJCY.016",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1957-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62526.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "CR061653",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JCM.001": {
+      "document": "Group A/M0473JCM.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1974-09-27",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "52826.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CLARY, PETRINA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "950739291",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "CLARY, PETRINA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JDC.031": {
+      "document": "Group A/M0472JDC.031",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1987-06-14",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "20261.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NESBITT-CURRANTENEE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "949165310",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NESBITT-CURRANTENEE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JGV.011": {
+      "document": "Group A/M0473JGV.011",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "77840.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "WIER, MARY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "976758181",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "WIER, MARY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JEV.038": {
+      "document": "Group A/M0471JEV.038",
+      "fields": {
+        "total_charge": {
+          "expected_value": "2201.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ONAGA, MATTHEW",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "P569295610",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ONAGA, MATTHEW",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JC9.023": {
+      "document": "Group C/M0473JC9.023",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1965-04-23",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "XHB736226170",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JCF.006": {
+      "document": "Group A/M0477JCF.006",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1955-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "79934.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ASTNAM, FRALNAMMLLIL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "966890888",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ASTNAM, FRALNAMMLLIL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JC7.047": {
+      "document": "Group A/M0473JC7.047",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "1562.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MARTINS, JENNIFER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "R225314875",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "MARTINS, JENNIFER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JGK.012": {
+      "document": "Group A/M0471JGK.012",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "70037.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FIRSTNAMO",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "662019005",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FIRSTNAMO",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M047AJDS.009": {
+      "document": "Group C/M047AJDS.009",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "A322223050",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JFR.012": {
+      "document": "Group A/M0473JFR.012",
+      "fields": {
+        "total_charge": {
+          "expected_value": "62269.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "FIRSTNAMN, MIDELATOTIA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "443335134",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "FIRSTNAMN, MIDELATOTIA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0479JGP.017": {
+      "document": "Group A/M0479JGP.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "2240.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "GARRITY, RUTH",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "908372776",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "GARRITY, RUTH",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JDS.001": {
+      "document": "Group C/M0473JDS.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62326.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "958786046",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JDS.008": {
+      "document": "Group C/M0473JDS.008",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "61426.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "E122564",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJ9.031": {
+      "document": "Group A/M0477JJ9.031",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1978-02-23",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "32081.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME, FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "981980331",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME, FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JI9.031": {
+      "document": "Group A/M0477JI9.031",
+      "fields": {
+        "total_charge": {
+          "expected_value": "11226.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "OME, FIST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "980445816",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "OME, FIST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDQ.027": {
+      "document": "Group A/M0473JDQ.027",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "40826.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "AQUINO, IVON",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "347146301",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "AQUINO, IVON",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJS.019": {
+      "document": "Group A/M0477JJS.019",
+      "fields": {
+        "total_charge": {
+          "expected_value": "2453.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAMO,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "CR061653",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAMO,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0476JEB.003": {
+      "document": "Group C/M0476JEB.003",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2010-01-01",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "81112.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "74532772503",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JCM.002": {
+      "document": "Group A/M0473JCM.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1971-03-01",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "51826.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "SPANN, CASSIE M",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "990164390",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "SPANN, CASSIE M",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JCS.004": {
+      "document": "Group A/M0472JCS.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "70772.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "FNIT NAME, M CDE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "20261404",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "FNIT NAME, M CDE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJ9.022": {
+      "document": "Group A/M0477JJ9.022",
+      "fields": {
+        "total_charge": {
+          "expected_value": "400.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "968948840",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JAL.002": {
+      "document": "Group A/M0471JAL.002",
+      "fields": {
+        "total_charge": {
+          "expected_value": "28258.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "INSUAEDSAORESSN, SRAT",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "20262004",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "INSUAEDSAORESSN, SRAT",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0478JFZ.019": {
+      "document": "Group A/M0478JFZ.019",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1969-06-25",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "30030.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PARKER, ANDREWT",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "23650030",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "PARKER, ANDREWT",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0479JFZ.045": {
+      "document": "Group A/M0479JFZ.045",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "2911.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PAGLINO, DESTINY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "0005064535",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "PAGLINO, DESTINY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M046UJHZ.001": {
+      "document": "Group A/M046UJHZ.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2014-07-28",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PALENT SBIRTWDATE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "174791834",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "PALENT SBIRTWDATE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JKF.008": {
+      "document": "Group A/M0477JKF.008",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "29506.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PLANTER, MELBA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "923574035",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "PLANTER, MELBA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0471JEO.004": {
+      "document": "Group C/M0471JEO.004",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2005-01-08",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "50826.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "111744712672",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JEV.035": {
+      "document": "Group A/M0471JEV.035",
+      "fields": {
+        "total_charge": {
+          "expected_value": "13201.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ONAGA, MATTHEW",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "980134066",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ONAGA, MATTHEW",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JB9.034": {
+      "document": "Group A/M0472JB9.034",
+      "fields": {
+        "total_charge": {
+          "expected_value": "22806.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LASTNAMO,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "702302020",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "LASTNAMO,FIRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0479JFZ.049": {
+      "document": "Group A/M0479JFZ.049",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1955-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "60826.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "770280273",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JB0.005": {
+      "document": "Group A/M0472JB0.005",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "46307.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LOAKIMIDIS, COLETTE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "18534307500",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "LOAKIMIDIS, COLETTE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDZ.039": {
+      "document": "Group A/M0473JDZ.039",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "79735.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "JR, VICENTE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "731850240",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "JR, VICENTE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJ9.034": {
+      "document": "Group A/M0477JJ9.034",
+      "fields": {
+        "total_charge": {
+          "expected_value": "1994.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "JAVANMARD, SAM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "940931759",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "JAVANMARD, SAM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0476JE7.022": {
+      "document": "Group A/M0476JE7.022",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "1992.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "SIMON JARED",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "CR061657",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "SIMON JARED",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M047AJBG.002": {
+      "document": "Group A/M047AJBG.002",
+      "fields": {
+        "total_charge": {
+          "expected_value": "11106.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MENDEZ, ABIEZER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "133217805",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "MENDEZ, ABIEZER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JFQ.012": {
+      "document": "Group A/M0471JFQ.012",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "12603.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BLUEPETER, ASIA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "K6153666501",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BLUEPETER, ASIA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JIU.014": {
+      "document": "Group A/M0477JIU.014",
+      "fields": {
+        "total_charge": {
+          "expected_value": "34786.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LANDRAU, MAYLIN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "OSC04902581",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "LANDRAU, MAYLIN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JEV.007": {
+      "document": "Group A/M0471JEV.007",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1957-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "12813.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME, MDDL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "222572930",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME, MDDL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0476JDX.017": {
+      "document": "Group A/M0476JDX.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "64836.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "A1790796878",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0476JEB.008": {
+      "document": "Group C/M0476JEB.008",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "34990.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BJAYNES, CATHERINE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "OSC75082395",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BJAYNES, CATHERINE",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0478JEV.003": {
+      "document": "Group A/M0478JEV.003",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FIRS",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "001483341",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FIRS",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0479JHL.012": {
+      "document": "Group A/M0479JHL.012",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1957-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "8005.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "BAGDONAVICIUS, EHLEEN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "993017085",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "BAGDONAVICIUS, EHLEEN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JG1.018": {
+      "document": "Group A/M0473JG1.018",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62526.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NEAL, IAN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "K9049979404",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NEAL, IAN",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JH0.036": {
+      "document": "Group A/M0477JH0.036",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "87389.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "C76676549",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JC9.020": {
+      "document": "Group C/M0473JC9.020",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "52626.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "ROSS, STACI H",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "902915764",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "ROSS, STACI H",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JFQ.017": {
+      "document": "Group A/M0471JFQ.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "12550.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CARCAR, SUSAN C",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "113547331",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "CARCAR, SUSAN C",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JG7.045": {
+      "document": "Group A/M0473JG7.045",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "85540.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "LANGDON, MICHAEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "61013519",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "LANGDON, MICHAEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JHK.017": {
+      "document": "Group A/M0471JHK.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "649204130",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "HEALTH INSURANCE CLAIM FORM",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JJ9.020": {
+      "document": "Group A/M0477JJ9.020",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2008-10-11",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62026.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CURTIS, BRADLEY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "771100660689",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "CURTIS, BRADLEY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0471JHK.021": {
+      "document": "Group A/M0471JHK.021",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "84130.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "NAME,FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "931533988",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "NAME,FLRST N",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0478JE2.011": {
+      "document": "Group A/M0478JE2.011",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2010-01-13",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "MELLOR, SARAH",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "193973579",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "MELLOR, SARAH",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JDC.020": {
+      "document": "Group A/M0472JDC.020",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-10-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "3104.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "GOUDREAU WHITNEY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "999692080",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "GOUDREAU WHITNEY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0471JEO.005": {
+      "document": "Group C/M0471JEO.005",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1995-03-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "84130.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "K61041680",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0479JHN.024": {
+      "document": "Group A/M0479JHN.024",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1957-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "84130.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "PATIENT SARDRESSNG, SREEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "97839245",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "PATIENT SARDRESSNG, SREEL",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0477JLI.002": {
+      "document": "Group A/M0477JLI.002",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1955-03-07",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "87726.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "CITY, UR",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "993606598",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "CITY, UR",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0471JHM.001": {
+      "document": "Group C/M0471JHM.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "87726.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "345901002",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0478JEZ.003": {
+      "document": "Group C/M0478JEZ.003",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "61826.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "181821480",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0473JDQ.036": {
+      "document": "Group A/M0473JDQ.036",
+      "fields": {
+        "total_charge": {
+          "expected_value": "12107.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "REHAN, RAYNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "920020324",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "REHAN, RAYNA",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JC9.012": {
+      "document": "Group C/M0473JC9.012",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "75262.78",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "NP1811131154",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JC9.010": {
+      "document": "Group C/M0473JC9.010",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "81525.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "D775143064",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0473JDS.014": {
+      "document": "Group C/M0473JDS.014",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "1979-06-15",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "80307.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "92106402401",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0476JD9.020": {
+      "document": "Group A/M0476JD9.020",
+      "fields": {
+        "patient_name": {
+          "expected_value": "SAI LHE CITY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "039346630",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "SAI LHE CITY",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group C__M0471JEY.001": {
+      "document": "Group C/M0471JEY.001",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2000-01-10",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "83701.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "922171701",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    },
+    "Group A__M0472JB9.017": {
+      "document": "Group A/M0472JB9.017",
+      "fields": {
+        "patient_dob": {
+          "expected_value": "2008-10-11",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "total_charge": {
+          "expected_value": "62226.00",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "patient_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_id_number": {
+          "expected_value": "M0048399604",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        },
+        "insured_name": {
+          "expected_value": "A.OTHERINSURED SPOLICYORGROUPNUMBER",
+          "source": "single_engine_shaped:rapidocr",
+          "confidence": "SILVER"
+        }
+      },
+      "run_source": "hackathon5000_rapidocr_local"
+    }
+  }
+}

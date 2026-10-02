@@ -1,0 +1,520 @@
+{
+  "run_dir": "evaluation_results/hackathon5000_all_v1",
+  "claims_scored": 200,
+  "field_count": 857,
+  "exact_accuracy": 1.0,
+  "perfect_claim_exact_rate": 1.0,
+  "false_accepts": 0,
+  "accepted_fields_scored": 515,
+  "accepted_field_precision": 1.0,
+  "false_accept_rate": 0.0,
+  "false_accepts_per_scored_field": 0.0,
+  "quarantined_fields": 0,
+  "missing_claim_results": 0,
+  "incomplete_claim_results": 0,
+  "metric_contract": "strict_representation_only_v1",
+  "release_gate_eligible": false,
+  "release_gate_reason": "AGENT_LABELS_NOT_INDEPENDENT_ADJUDICATED_TRUTH",
+  "field_exact": {
+    "patient_dob": {
+      "exact": 165,
+      "n": 165,
+      "rate": 1.0
+    },
+    "total_charge": {
+      "exact": 184,
+      "n": 184,
+      "rate": 1.0
+    },
+    "patient_name": {
+      "exact": 156,
+      "n": 156,
+      "rate": 1.0
+    },
+    "insured_id_number": {
+      "exact": 196,
+      "n": 196,
+      "rate": 1.0
+    },
+    "insured_name": {
+      "exact": 156,
+      "n": 156,
+      "rate": 1.0
+    }
+  },
+  "true_stp_of_scored": 103,
+  "by_bundle": {
+    "Group A/M0463JEM": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M046UJHX": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M046UJHZ": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0471JAL": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0471JAT": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 0
+    },
+    "Group A/M0471JED": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0471JEV": {
+      "n": 6,
+      "perfect_exact": 6,
+      "true_stp": 3
+    },
+    "Group A/M0471JFQ": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 3
+    },
+    "Group A/M0471JGK": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0471JHK": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 1
+    },
+    "Group A/M0471JIM": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0472JAJ": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 1
+    },
+    "Group A/M0472JAX": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 1
+    },
+    "Group A/M0472JB0": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0472JB9": {
+      "n": 7,
+      "perfect_exact": 7,
+      "true_stp": 2
+    },
+    "Group A/M0472JBP": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0472JCE": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 2
+    },
+    "Group A/M0472JCM": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 2
+    },
+    "Group A/M0472JCS": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 1
+    },
+    "Group A/M0472JCZ": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0472JDC": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 3
+    },
+    "Group A/M0472JDH": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0472JKF": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0473JAY": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 1
+    },
+    "Group A/M0473JBU": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0473JC7": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 2
+    },
+    "Group A/M0473JCM": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 3
+    },
+    "Group A/M0473JDQ": {
+      "n": 8,
+      "perfect_exact": 8,
+      "true_stp": 4
+    },
+    "Group A/M0473JDZ": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 2
+    },
+    "Group A/M0473JE4": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0473JE6": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0473JEP": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 3
+    },
+    "Group A/M0473JER": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 1
+    },
+    "Group A/M0473JFR": {
+      "n": 4,
+      "perfect_exact": 4,
+      "true_stp": 2
+    },
+    "Group A/M0473JFX": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0473JG1": {
+      "n": 4,
+      "perfect_exact": 4,
+      "true_stp": 4
+    },
+    "Group A/M0473JG7": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 2
+    },
+    "Group A/M0473JGG": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0473JGV": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 3
+    },
+    "Group A/M0474JB0": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0474JB2": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0475JAH": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0476JD9": {
+      "n": 4,
+      "perfect_exact": 4,
+      "true_stp": 2
+    },
+    "Group A/M0476JDX": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 1
+    },
+    "Group A/M0476JE7": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0477JCF": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0477JH0": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0477JI9": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0477JIK": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 0
+    },
+    "Group A/M0477JIU": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 0
+    },
+    "Group A/M0477JJ9": {
+      "n": 6,
+      "perfect_exact": 6,
+      "true_stp": 3
+    },
+    "Group A/M0477JJB": {
+      "n": 5,
+      "perfect_exact": 5,
+      "true_stp": 3
+    },
+    "Group A/M0477JJS": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 0
+    },
+    "Group A/M0477JJY": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 3
+    },
+    "Group A/M0477JK4": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0477JKF": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0477JL4": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0477JLI": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 2
+    },
+    "Group A/M0478JE2": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0478JEV": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0478JFC": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 3
+    },
+    "Group A/M0478JFK": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M0478JFZ": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 2
+    },
+    "Group A/M0478JHP": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0479JFZ": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 2
+    },
+    "Group A/M0479JGP": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 2
+    },
+    "Group A/M0479JHL": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M0479JHN": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 2
+    },
+    "Group A/M047AJBG": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group A/M047AJCY": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 1
+    },
+    "Group A/M047AJDE": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group A/M047AJEI": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 3
+    },
+    "Group A/M047AJEO": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 2
+    },
+    "Group C/M0471JEO": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 0
+    },
+    "Group C/M0471JEY": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 0
+    },
+    "Group C/M0471JF3": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M0471JHC": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M0471JHM": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M0472JBB": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group C/M0473JAP": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M0473JC9": {
+      "n": 9,
+      "perfect_exact": 9,
+      "true_stp": 1
+    },
+    "Group C/M0473JDD": {
+      "n": 4,
+      "perfect_exact": 4,
+      "true_stp": 0
+    },
+    "Group C/M0473JDS": {
+      "n": 4,
+      "perfect_exact": 4,
+      "true_stp": 0
+    },
+    "Group C/M0473JEU": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M0473JGC": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M0476JEB": {
+      "n": 4,
+      "perfect_exact": 4,
+      "true_stp": 1
+    },
+    "Group C/M0477JH2": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M0477JHE": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M0477JIM": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 1
+    },
+    "Group C/M0478JEZ": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M0479JG6": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    },
+    "Group C/M047AJD5": {
+      "n": 2,
+      "perfect_exact": 2,
+      "true_stp": 0
+    },
+    "Group C/M047AJDS": {
+      "n": 3,
+      "perfect_exact": 3,
+      "true_stp": 0
+    },
+    "Group C/M047AJJD": {
+      "n": 1,
+      "perfect_exact": 1,
+      "true_stp": 0
+    }
+  },
+  "generated_at": "2026-10-02T02:07:00.052209+00:00",
+  "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6."
+}

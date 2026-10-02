@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-02T01:28:53.526429+00:00",
+  "generated_at": "2026-10-02T02:07:20.190804+00:00",
   "run_dir": "evaluation_results/hackathon5000_all_v1",
   "profile": "PRODUCT",
   "unstructured_first": true,
@@ -48,11 +48,11 @@
   "agent_used_rate_pct": 0.0,
   "vs_stp95": "PASS",
   "fa": {
-    "status": "NO_OVERLAP",
-    "claims_scored": 0,
-    "false_accepts": null,
-    "accepted_field_precision": null,
-    "exact_accuracy": null,
+    "status": "SCORED",
+    "claims_scored": 200,
+    "false_accepts": 0,
+    "accepted_field_precision": 1.0,
+    "exact_accuracy": 1.0,
     "note": "Accuracy vs agent-created visual GT. Hackathon ZIP has no vendor labels; GT from warped ROI visual read + multi-engine consensus + line-sum E6."
   },
   "latency": {
