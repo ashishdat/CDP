@@ -1,32 +1,32 @@
 {
-  "generated_at": "2026-10-02T01:13:17.738527+00:00",
+  "generated_at": "2026-10-02T01:28:53.526429+00:00",
   "run_dir": "evaluation_results/hackathon5000_all_v1",
   "profile": "PRODUCT",
   "unstructured_first": true,
-  "n": 4456,
+  "n": 5000,
   "target": 5000,
-  "remaining": 544,
-  "run_status": "RUNNING",
+  "remaining": 0,
+  "run_status": "COMPLETE",
   "disposition_counts": {
-    "TRUE_STP": 3349,
-    "HITL": 70,
-    "REGISTRATION_FAILED": 1037
+    "TRUE_STP": 3437,
+    "HITL": 97,
+    "REGISTRATION_FAILED": 1466
   },
-  "completed": 3419,
-  "true_stp": 3349,
-  "stp_pct_of_completed": 97.95,
-  "hitl": 70,
+  "completed": 3534,
+  "true_stp": 3437,
+  "stp_pct_of_completed": 97.26,
+  "hitl": 97,
   "hitl_tracks": {
-    "UNSTRUCTURED_DI": 70
+    "UNSTRUCTURED_DI": 97
   },
   "hitl_blockers": [
     [
-      "patient_dob",
-      34
+      "patient_name",
+      44
     ],
     [
-      "patient_name",
-      18
+      "patient_dob",
+      35
     ],
     [
       "total_charge",
@@ -37,11 +37,11 @@
       4
     ]
   ],
-  "registration_failed": 1037,
+  "registration_failed": 1466,
   "registration_reasons": [
     [
       "UNKNOWN",
-      1037
+      1466
     ]
   ],
   "agent_used_true": 0,
@@ -58,28 +58,28 @@
   "latency": {
     "all_docs": {
       "cohort": "all",
-      "n": 4456,
-      "mean_sec": 5.903,
-      "p50_sec": 3.722,
-      "p95_sec": 4.402,
+      "n": 5000,
+      "mean_sec": 5.427,
+      "p50_sec": 3.675,
+      "p95_sec": 4.371,
       "max_sec": 1238.89,
       "min_sec": 0.866
     },
     "true_stp": {
       "cohort": "TRUE_STP",
-      "n": 3349,
-      "mean_sec": 6.831,
-      "p50_sec": 3.823,
-      "p95_sec": 4.478,
+      "n": 3437,
+      "mean_sec": 6.731,
+      "p50_sec": 3.814,
+      "p95_sec": 4.469,
       "max_sec": 1238.89,
       "min_sec": 1.485
     },
     "hitl": {
       "cohort": "HITL",
-      "n": 70,
-      "mean_sec": 3.474,
-      "p50_sec": 3.554,
-      "p95_sec": 4.323,
+      "n": 97,
+      "mean_sec": 3.348,
+      "p50_sec": 3.399,
+      "p95_sec": 4.165,
       "max_sec": 4.594,
       "min_sec": 1.661
     },
