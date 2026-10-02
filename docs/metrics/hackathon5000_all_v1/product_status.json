@@ -1,22 +1,23 @@
 {
-  "generated_at": "2026-10-02T00:11:07.147994+00:00",
+  "generated_at": "2026-10-02T00:38:10.004296+00:00",
   "run_dir": "evaluation_results/hackathon5000_all_v1",
   "profile": "PRODUCT",
   "unstructured_first": true,
-  "n": 3272,
+  "n": 3786,
   "target": 5000,
-  "remaining": 1728,
+  "remaining": 1214,
   "run_status": "RUNNING",
   "disposition_counts": {
-    "TRUE_STP": 3216,
-    "HITL": 56
+    "TRUE_STP": 3318,
+    "HITL": 57,
+    "REGISTRATION_FAILED": 411
   },
-  "completed": 3272,
-  "true_stp": 3216,
-  "stp_pct_of_completed": 98.29,
-  "hitl": 56,
+  "completed": 3375,
+  "true_stp": 3318,
+  "stp_pct_of_completed": 98.31,
+  "hitl": 57,
   "hitl_tracks": {
-    "UNSTRUCTURED_DI": 56
+    "UNSTRUCTURED_DI": 57
   },
   "hitl_blockers": [
     [
@@ -29,15 +30,20 @@
     ],
     [
       "patient_name",
-      4
+      5
     ],
     [
       "insured_id_number",
       4
     ]
   ],
-  "registration_failed": 0,
-  "registration_reasons": [],
+  "registration_failed": 411,
+  "registration_reasons": [
+    [
+      "UNKNOWN",
+      411
+    ]
+  ],
   "agent_used_true": 0,
   "agent_used_rate_pct": 0.0,
   "vs_stp95": "PASS",
@@ -52,28 +58,28 @@
   "latency": {
     "all_docs": {
       "cohort": "all",
-      "n": 3272,
-      "mean_sec": 6.898,
-      "p50_sec": 3.817,
-      "p95_sec": 4.474,
+      "n": 3786,
+      "mean_sec": 6.391,
+      "p50_sec": 3.784,
+      "p95_sec": 4.437,
       "max_sec": 1238.89,
-      "min_sec": 1.485
+      "min_sec": 0.866
     },
     "true_stp": {
       "cohort": "TRUE_STP",
-      "n": 3216,
-      "mean_sec": 6.956,
-      "p50_sec": 3.819,
-      "p95_sec": 4.473,
+      "n": 3318,
+      "mean_sec": 6.868,
+      "p50_sec": 3.827,
+      "p95_sec": 4.48,
       "max_sec": 1238.89,
       "min_sec": 1.485
     },
     "hitl": {
       "cohort": "HITL",
-      "n": 56,
-      "mean_sec": 3.577,
-      "p50_sec": 3.638,
-      "p95_sec": 4.393,
+      "n": 57,
+      "mean_sec": 3.58,
+      "p50_sec": 3.639,
+      "p95_sec": 4.383,
       "max_sec": 4.594,
       "min_sec": 1.661
     },
