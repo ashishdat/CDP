@@ -25,6 +25,9 @@ COPY apps ./apps
 COPY workers ./workers
 COPY config ./config
 COPY scripts ./scripts
+# MySQL migrations (scripts/apply_mysql_migrations.py) + shared agent GT
+COPY deploy/mysql ./deploy/mysql
+COPY docs/gt ./docs/gt
 
 RUN pip install --no-cache-dir .
 
@@ -37,8 +40,16 @@ RUN mkdir -p /data && chown -R appuser:appuser /data /app
 
 USER appuser
 
+EXPOSE 8000 8001 8002
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
+
 STOPSIGNAL SIGTERM
 ENTRYPOINT []
+
+# Default: ingestion API. Compose/Helm override command for other services.
+CMD ["uvicorn", "apps.ingestion_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
 
 LABEL org.opencontainers.image.title="cdp-app" \
       org.opencontainers.image.description="CDP APIs and CPU Kafka workers"

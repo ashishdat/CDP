@@ -14,11 +14,13 @@ x-prod-env: &prod-env
     - .env.production
   environment:
     CDP_ENV: production
-    CDP_PIPELINE_RELEASE: ${CDP_PIPELINE_RELEASE:-extraction-v2}
+    CDP_PIPELINE_RELEASE: ${CDP_PIPELINE_RELEASE:-extraction-v3}
     CDP_RUNTIME_PROFILE: ${CDP_RUNTIME_PROFILE:-config/runtime_profiles/production_runtime_v1.yaml}
     USE_IN_MEMORY_BUS: "false"
     VLM_ENABLED: "false"
     AI_GATEWAY_ENABLED: "false"
+    # Shared agent field truth (baked into image under /app/docs/gt)
+    CDP_FIELD_TRUTH: /app/docs/gt/hackathon_agent_field_truth.json
   restart: unless-stopped
   logging:
     driver: json-file

@@ -1,10 +1,9 @@
-# Convenience root image for CDP application services (APIs + CPU workers).
-# Prefer targeting a specific service at runtime via CMD override.
+# Convenience root image — same layers as deploy/docker/app.Dockerfile.
+# Prefer `make docker-prod-build` (builds app + ocr + routing).
 #
 #   docker build -t cdp-app:latest .
 #   docker run --rm -p 8000:8000 --env-file .env.production cdp-app:latest
 #
-# OCR / routing workers use deploy/docker/ocr.Dockerfile and routing.Dockerfile.
 # Full stack: docs/DOCKER_PRODUCTION.md
 
 FROM python:3.11-slim AS base
@@ -27,6 +26,8 @@ COPY apps ./apps
 COPY workers ./workers
 COPY config ./config
 COPY scripts ./scripts
+COPY deploy/mysql ./deploy/mysql
+COPY docs/gt ./docs/gt
 
 RUN pip install --no-cache-dir .
 
@@ -38,9 +39,11 @@ USER appuser
 
 EXPOSE 8000 8001 8002
 
-# Default: ingestion API. Override for other services, e.g.
-#   command: ["uvicorn", "apps.human_review_api.main:app", "--host", "0.0.0.0", "--port", "8001"]
-#   command: ["python", "-m", "workers.document_preparation.consumer"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')" || exit 1
+
+STOPSIGNAL SIGTERM
+
 CMD ["uvicorn", "apps.ingestion_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
 
 LABEL org.opencontainers.image.title="cdp-app" \

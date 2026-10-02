@@ -24,6 +24,8 @@ COPY apps ./apps
 COPY workers ./workers
 COPY config ./config
 COPY scripts ./scripts
+COPY deploy/mysql ./deploy/mysql
+COPY docs/gt ./docs/gt
 
 RUN pip install --no-cache-dir .
 

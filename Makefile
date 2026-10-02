@@ -2,7 +2,7 @@
 	architecture lint quality run down logs clean clean-runtime-data evaluation \
 	prod-smoke prod-check prod-closeout-init ui-up ui-down ui-seed ui-up-local ui-down-local \
 	geo-accuracy-gate product-gate \
-	docker-local docker-local-prod \
+	docker-local docker-local-prod docker-deploy-check \
 	docker-prod-build docker-prod-up docker-prod-down docker-prod-migrate docker-prod-ps
 
 COMPOSE_PROD = docker compose --env-file .env.production \
@@ -130,7 +130,10 @@ prod-check: prod-smoke
 # --- Docker production / staging (see docs/DOCKER_PRODUCTION.md) ---
 # Requires .env.production (from .env.production.example). Not PHI-authorized.
 
-docker-prod-build:
+docker-deploy-check:
+	python3 scripts/check_docker_deploy_ready.py
+
+docker-prod-build: docker-deploy-check
 	@test -f .env.production.example || true
 	bash scripts/docker_build_prod.sh
 

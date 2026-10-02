@@ -18,19 +18,32 @@ Orchestration:
 
 ## Quick start (Compose prod overlay)
 
+One-shot on a machine with Docker Engine / Desktop:
+
 ```bash
+make docker-local-prod
+# = scripts/docker_local_up.sh --prod
+# creates .env.production with strong secrets, builds images, ups stack, migrates
+```
+
+Manual steps:
+
+```bash
+# 0. Packaging sanity (no daemon required)
+make docker-deploy-check
+
 # 1. Secrets (never commit)
 cp .env.production.example .env.production
 # Edit: MYSQL_*, OBJECT_STORE_*, MINIO_ROOT_* (not minioadmin)
 
-# 2. Build images
+# 2. Build images (app + ocr + routing; verifies migrations + GT in image)
 make docker-prod-build
 # or: CDP_IMAGE_TAG=$(git rev-parse --short HEAD) make docker-prod-build
 
 # 3. Start platform + APIs + workers
 make docker-prod-up
 
-# 4. Migrations
+# 4. Migrations (SQL files are baked into cdp-app at /app/deploy/mysql/migrations)
 make docker-prod-migrate
 
 # 5. Fail-closed smoke (host Python with same env pins)
@@ -62,11 +75,26 @@ When `CDP_ENV=production` the process refuses to start if:
 
 APIs expose `/health` (liveness) and `/ready` (readiness).
 
+## Image contents (baked in)
+
+| Path in image | Purpose |
+|---|---|
+| `/app/apps`, `/app/packages`, `/app/workers` | Runtime code |
+| `/app/config` | Runtime profiles + product contracts |
+| `/app/deploy/mysql/migrations` | `make docker-prod-migrate` |
+| `/app/docs/gt` | Shared agent field truth (`CDP_FIELD_TRUTH`) |
+| `/app/scripts` | Ops scripts (migrate, smoke) |
+
+Images run as UID 1000 (`appuser`), expose `/health` + `/ready`, and refuse
+unsafe defaults when `CDP_ENV=production`.
+
 ## Image-only run (ingestion API)
 
 ```bash
-docker build -t cdp-app:latest -f Dockerfile .
+docker build -t cdp-app:latest -f deploy/docker/app.Dockerfile .
+# Needs MySQL + MinIO + Kafka for /ready; /health is process-local.
 docker run --rm -p 8000:8000 --env-file .env.production \
+  -e CDP_ENV=development \
   cdp-app:latest
 ```
 
