@@ -102,12 +102,15 @@ def _utc() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _ocr_engines() -> tuple[Any, Any]:
+def _ocr_engines(*, dual: bool) -> tuple[Any, Any | None]:
     from rapidocr_onnxruntime import RapidOCR
-    from paddleocr import PaddleOCR
 
     rapid = RapidOCR()
-    paddle = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
+    paddle = None
+    if dual:
+        from paddleocr import PaddleOCR
+
+        paddle = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
     return rapid, paddle
 
 
@@ -189,7 +192,9 @@ def _label_fields(
                 "confidence": "SILVER",
             }
             continue
-        # Rapid is the production unstructured-first engine; prefer it for SILVER.
+        # Rapid is the production unstructured-first engine.
+        # When dual OCR is unavailable (memory), Rapid-only labels are still
+        # observed ink — tagged SILVER (not multi-engine GOLD).
         if r:
             field_gt[field] = {
                 "expected_value": _display_for(field, r),
@@ -270,15 +275,19 @@ def build_labels(
     docs: list[str],
     resume_claims: dict[str, dict[str, Any]] | None = None,
     checkpoint: Path | None = None,
+    dual: bool = False,
 ) -> dict[str, dict[str, Any]]:
     import numpy as np
 
     claims: dict[str, dict[str, Any]] = dict(resume_claims or {})
     pending = [d for d in docs if d.replace("/", "__") not in claims]
-    print(f"pending={len(pending)} already={len(claims)}", flush=True)
+    print(
+        f"pending={len(pending)} already={len(claims)} dual={dual}",
+        flush=True,
+    )
     if not pending:
         return claims
-    rapid, paddle = _ocr_engines()
+    rapid, paddle = _ocr_engines(dual=dual)
     print("ocr engines ready", flush=True)
     with ZipFile(zip_path) as zf:
         for i, document in enumerate(pending, start=1):
@@ -289,10 +298,13 @@ def build_labels(
                 print(f"skip {document}: {type(exc).__name__}: {exc}", flush=True)
                 continue
             rgb = np.asarray(img)
+            r_text = ""
+            p_text = ""
             try:
                 try:
                     r_text = _rapid_text(rapid, rgb)
-                    p_text = _paddle_text(paddle, rgb)
+                    if paddle is not None:
+                        p_text = _paddle_text(paddle, rgb)
                 except Exception as exc:  # noqa: BLE001
                     print(f"ocr_fail {document}: {type(exc).__name__}: {exc}", flush=True)
                     continue
@@ -306,14 +318,18 @@ def build_labels(
             claims[claim_id] = {
                 "document": document,
                 "fields": field_gt,
-                "run_source": "hackathon5000_dual_local_ocr",
+                "run_source": (
+                    "hackathon5000_dual_local_ocr"
+                    if dual
+                    else "hackathon5000_rapidocr_local"
+                ),
             }
             gold = sum(1 for m in field_gt.values() if m.get("confidence") == "GOLD")
             print(
                 f"[{i}/{len(pending)}] {document} fields={len(field_gt)} gold={gold}",
                 flush=True,
             )
-            if checkpoint is not None and (i % 10 == 0 or i == len(pending)):
+            if checkpoint is not None and (i % 1 == 0 or i == len(pending)):
                 write_gt(
                     checkpoint,
                     claims,
@@ -373,6 +389,12 @@ def main() -> int:
         default=None,
         help="Optional explicit document list (skips stratified sample).",
     )
+    ap.add_argument(
+        "--dual",
+        action="store_true",
+        help="Load Paddle+Rapid for GOLD consensus (needs ~8+ GiB free; "
+        "default Rapid-only SILVER to avoid OOM on 15 GiB hosts).",
+    )
     args = ap.parse_args()
 
     zip_path = args.zip if args.zip.is_absolute() else ROOT / args.zip
@@ -409,6 +431,7 @@ def main() -> int:
         docs=docs,
         resume_claims=resume,
         checkpoint=out,
+        dual=bool(args.dual),
     )
     gt = write_gt(out, claims, dataset="Hackathon - 5000 Claims.zip")
     print(json.dumps({"out": str(out), "stats": gt["stats"]}, indent=2), flush=True)
