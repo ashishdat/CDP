@@ -8,7 +8,7 @@ output with full field-level evidence.
 
 **Production operators:** start at `docs/PRODUCTION_OPERATOR_RUNBOOK.md`.
 The platform is **production-hardened** (fail-closed runtime pin, health/ready,
-frozen `extraction-v2`) but **not production-authorized** for PHI until the
+`extraction-v3` Docker pin) but **not production-authorized** for PHI until the
 gates in `docs/PRODUCTION_READINESS.md` close. To close them, follow
 `docs/PRODUCTION_CLOSEOUT_CHECKLIST.md`:
 
@@ -17,10 +17,11 @@ python3 scripts/check_production_closeout.py --init
 python3 scripts/smoke_production_fail_closed.py
 ```
 
-**Local Docker (your machine):** `docs/DOCKER_LOCAL.md` — run
-`make docker-local` (or `bash scripts/docker_local_up.sh`). Production-style
-overlay: `docs/DOCKER_PRODUCTION.md` / `make docker-local-prod`. Shared field
-truth for FA scoring: `docs/gt/FIELD_TRUTH.md` (Hackathon-1000 `M048*` only).
+**Docker deploy:** `make docker-deploy-check` then `make docker-local` (dev) or
+`make docker-local-prod` (fail-closed prod overlay). Docs:
+`docs/DOCKER_LOCAL.md`, `docs/DOCKER_PRODUCTION.md`. Images bake MySQL
+migrations + shared agent GT (`docs/gt/`). Shared field truth:
+`docs/gt/FIELD_TRUTH.md` (M048* + Hackathon-5000 SILVER sample).
 
 This repository is being built phase by phase (see
 `docs/IMPLEMENTATION_PLAN.md`). **This README reflects what is actually
