@@ -49,7 +49,8 @@ def test_anchor_match_selects_actual_page_and_template():
     )
     assert result.template_id == cms.template_id
     assert result.page_number == 2
-    assert result.template_version == cms.version
+    assert result.template_version == TemplateSelector._preferred_template_versions().get(
+        cms.template_id, cms.version)
     assert result.reason == "ANCHOR_MATCH"
 
 
@@ -119,3 +120,30 @@ def test_blank_reference_does_not_pass_registration_fallback(tmp_path):
     assert result.template_id is None
     assert result.reason == "NO_TEMPLATE_ABOVE_THRESHOLD"
     assert "registration" in result.candidate_templates[0]["scores"]
+
+
+def test_cover_is_preserved_but_not_matched_when_claim_page_is_identified():
+    registry = registry_without_references()
+    cms = registry.latest_for_form_type(ClaimFormType.CMS1500)
+    cover = TextLine("FAX PATCH", 0, 0, 1700, 2200, 1.0)
+    result = TemplateSelector(registry).select(
+        [None, None], text_lines={1: [cover], 2: anchor_lines(cms)})
+    assert result.page_number == 2
+    assert all(c["page_number"] == 2 for c in result.candidate_templates)
+    assert all(c["template_id"] == "cms1500" for c in result.candidate_templates)
+
+
+def test_positive_family_hint_enters_recovery_without_accepting_geometry(tmp_path):
+    source = registry_without_references()
+    cms = source.latest_for_form_type(ClaimFormType.CMS1500).model_copy(
+        update={'reference_image_path': 'blank.png'})
+    registry = TemplateRegistry()
+    registry.register(cms, source_dir=tmp_path)
+    with Image.new('L', (300, 400), 255) as image:
+        image.save(tmp_path / 'blank.png')
+        line = TextLine('HEALTH INSURANCE CLAIM FORM', 0, 0, 200, 20, 1.0)
+        result = TemplateSelector(registry).select([image], text_lines={1: [line]})
+        assert result.reason == 'CLAIM_FAMILY_RECOVERY_CANDIDATE'
+        assert result.confidence == 0.0
+        registration = register_classified_document([image], None, registry, result)
+        assert registration['accepted'] is False

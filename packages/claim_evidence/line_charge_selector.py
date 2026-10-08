@@ -10,6 +10,8 @@ Disposition:
 """
 
 from __future__ import annotations
+from packages.ocr.evidence_eligibility import eligible_candidates
+from packages.ocr.observed_confidence import observed_confidence
 
 import re
 from dataclasses import dataclass, field
@@ -202,7 +204,7 @@ def _looks_like_units_concat(amount: str, peers: set[str]) -> bool:
 def _scale_shifted_from_dual_local(current: Decimal, candidates: list | None) -> bool:
     """True when ``current`` is a ×10/×100 twin of a paddle+rapid amount."""
     dual: dict[str, set[str]] = {}
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         engine = str(cand.get("engine") or "").casefold()
@@ -243,7 +245,7 @@ def _inflated_geometry_vs_peer(current: Decimal, candidates: list | None) -> boo
     ``200100`` shaped as ``2001.00`` is the cents ruling read as a digit.
     A normal Rapid ``1851.00`` is not geometry and must not be cleared.
     """
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         prep = str(
@@ -341,12 +343,12 @@ def is_ruling_split_digit_glue(ruled_amount: object, other: object) -> bool:
         return False
     classic = f"{dollars}{cents}"
     leading1 = f"{dollars}1{cents}"
-    glue_forms = {
-        classic,
-        leading1,
-        f"{classic}00",
-        f"{leading1}00",
-    }
+    glue_forms = {classic, f"{classic}00"}
+    # Leading-1 cents bleed only exists when there are real cents. For a
+    # whole-dollar amount the same digits are a genuine fuller rival
+    # (``200.00`` vs ``2001.00`` → ``200100``), which must keep blocking.
+    if cents != "00":
+        glue_forms |= {leading1, f"{leading1}00"}
     return other_digits in glue_forms
 
 
@@ -610,13 +612,15 @@ def _geometry_cents_candidate_from_attempts(line: dict) -> dict | None:
         if _is_selection_noise(amount):
             continue
         return {
-            "engine": "rapidocr",
+            "engine": obs.get("reader_engine") or attempt.get("engine") or "monetary_geometry",
             "model_name": "geometry-cents",
             "model_version": "monetary-geometry",
             "preprocessing_variant": "GEOMETRY_CENTS",
             "value": amount,
             "raw_value": obs.get("raw_digit_sequence") or obs.get("text") or amount,
-            "raw_confidence": 0.91,
+            "raw_confidence": observed_confidence(obs.get("confidence")) or 0.0,
+            "calibrated_confidence": None,
+            "confidence_source": "OBSERVED_READER_SCORE" if observed_confidence(obs.get("confidence")) is not None else "NOT_REPORTED",
             "evidence_reference": "GEOMETRY_CENTS",
             "bounding_box": (
                 {
@@ -733,7 +737,7 @@ def _di_corroborated_ruling_split(line: dict, by_amount: dict[str, set[str]]) ->
     local: set[str] = set()
     di: set[str] = set()
     geometry: list[str] = []
-    for cand in line.get("candidates") or []:
+    for cand in eligible_candidates(line.get("candidates")):
         if not isinstance(cand, dict):
             continue
         ruled = _ruling_split_amount(cand.get("raw_value"))
@@ -788,7 +792,7 @@ def _is_same_stem_cents_twin(left: str, right: str) -> bool:
 def _vision_vendor_amounts(line: dict) -> dict[str, set[str]]:
     """Map shaped charge → independent vision vendor ids (``claude`` / ``gpt4o``)."""
     by_amount: dict[str, set[str]] = {}
-    for cand in line.get("candidates") or []:
+    for cand in eligible_candidates(line.get("candidates")):
         if not isinstance(cand, dict):
             continue
         amount = _shaped_amount(cand)
@@ -829,7 +833,7 @@ def _local_stem_corroborates(amount: str, line: dict, by_amount: dict[str, set[s
         for other, families in by_amount.items()
     ):
         return True
-    for cand in line.get("candidates") or []:
+    for cand in eligible_candidates(line.get("candidates")):
         if not isinstance(cand, dict):
             continue
         if _engine_family(cand.get("engine")) not in _LOCAL_ENGINES:
@@ -1028,7 +1032,7 @@ def select_line_charge(
     if row_y_band is None and line_region is not None:
         row_y_band = (line_region[1], line_region[3])
 
-    candidates = list(line.get("candidates") or [])
+    candidates = eligible_candidates(line.get("candidates"))
     geo_cand = _geometry_cents_candidate_from_attempts(line)
     if geo_cand is not None:
         geo_amt = geo_cand.get("value")
@@ -1042,7 +1046,7 @@ def select_line_charge(
         if not already:
             candidates.append(geo_cand)
 
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         family = _engine_family(cand.get("engine"))
@@ -1544,7 +1548,7 @@ def select_line_charge(
         # fuller cents amount override a conflicting GEOMETRY_CENTS place-shift
         # soup (1571.07 vs 157.07). Single vision still fails closed on geo conflict.
         vision_vendors: set[str] = set()
-        for cand in line.get("candidates") or []:
+        for cand in eligible_candidates(line.get("candidates")):
             if not isinstance(cand, dict):
                 continue
             if parse_currency(cand.get("value")) != fuller_amt:
@@ -1597,7 +1601,7 @@ def _geometry_digit_drop_vs_vision_short(line: dict) -> str | None:
     """
     by_amount: dict[str, set[str]] = {}
     geometry_amounts: set[str] = set()
-    for cand in line.get("candidates") or []:
+    for cand in eligible_candidates(line.get("candidates")):
         if not isinstance(cand, dict):
             continue
         amount = _shaped_amount(cand)

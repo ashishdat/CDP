@@ -79,6 +79,8 @@ def client(session_factory, object_store, monkeypatch, tmp_path):
     monkeypatch.setenv("CORRECTION_MEMORY_PATH", str(tmp_path / "corrections.jsonl"))
     app.dependency_overrides[get_session_factory] = lambda: session_factory
     app.dependency_overrides[get_object_store] = lambda: object_store
+    # Lifespan creates its own store; request overrides alone do not isolate it.
+    monkeypatch.setattr("packages.storage.object_store.build_object_store", lambda **kwargs: object_store)
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

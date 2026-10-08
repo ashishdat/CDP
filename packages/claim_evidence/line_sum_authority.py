@@ -16,6 +16,7 @@ or independence_group lineage means candidates are not independent → HITL.
 """
 
 from __future__ import annotations
+from packages.ocr.evidence_eligibility import confirmation_eligible, eligible_candidates
 
 import re
 from decimal import Decimal, InvalidOperation
@@ -71,7 +72,7 @@ def _hydrate_line_charge_from_candidates(line: dict) -> Decimal | None:
         if parsed is not None and parsed >= 0:
             return parsed
     cand_vals: list[Decimal] = []
-    for cand in line.get("candidates") or []:
+    for cand in eligible_candidates(line.get("candidates")):
         if not isinstance(cand, dict):
             continue
         shaped = parse_currency(cand.get("value") or cand.get("raw_value"))
@@ -184,9 +185,8 @@ def is_implausible_corroborator(value: object, line_total: object) -> bool:
     total = parse_currency(line_total)
     if amount is None or total is None or total <= 0:
         return bool(is_implausible_charge_total(value))
-    # Near ×10 / ×100 place-shift rivals (182500 vs 1825.00) must stay visible
-    # so SCALE_TWIN / CONFLICT can adjudicate — never drop as form-ruling soup
-    # via is_implausible_charge_total (≥$100k digit glue) first.
+    # Near ×10 / ×100 place-shift rivals (1571.07 vs 157.00) must CONFLICT —
+    # never ignore them as ratio junk or SINGLE_LINE_GPT4O_LOCAL false-accepts.
     for factor in (Decimal(10), Decimal(100)):
         if abs(amount - total * factor) <= Decimal("2.00"):
             return False
@@ -194,7 +194,7 @@ def is_implausible_corroborator(value: object, line_total: object) -> bool:
             return False
     if is_implausible_charge_total(value):
         return True
-    # DI cents-column split of the line total is not a rival charge.
+    # Scale rivals must remain visible before ruling/cents noise is filtered.
     if is_cents_column_fragment(value, line_total):
         return True
     # >3× or <1/3 the observed line-sum and off by >$50 → form noise / truncated cell.
@@ -409,7 +409,7 @@ def _candidate_engine_and_value(cand: object) -> tuple[str, object]:
 def open_source_charge_amounts(candidates: list | None) -> list:
     """Currency amounts read by Paddle, Rapid, or Tesseract — not Claude/DI."""
     found = []
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         engine, value = _candidate_engine_and_value(cand)
         if engine not in _OPEN_SOURCE_CHARGE_ENGINES:
             continue
@@ -419,39 +419,21 @@ def open_source_charge_amounts(candidates: list | None) -> list:
     return found
 
 
-def _inflated_place_shift_of(total: object, value: object) -> bool:
-    """True when ``value`` is the exact ×100 digit-glue twin of ``total``.
-
-    Classic Azure DI Box-28 glue: raw ``182500`` beside line Σ ``1825.00``.
-    The inflated side must be ``value`` (DI/Box28), never the line sum.
-    """
-    base = parse_currency(total)
-    other = parse_currency(value)
-    if base is None or other is None or other <= base:
-        return False
-    return is_decimal_place_shift(total, value)
-
-
 def _di_agrees_on_charge_amount(chosen: object, candidates: list | None) -> bool:
     """True when Azure Document Intelligence already read ``chosen``.
 
     DI crop residuals often keep trailing scrap in ``value`` (``23.00``) while
     ``raw_value`` still carries the printed total (``TOTAL CHARGE 1200; 00 23``).
     Shape the raw text the same way residual OCR does before comparing.
-
-    Also treats DI digit-glue ×100 of ``chosen`` as agreement when the raw read
-    has no decimal point (``182500`` vs ``1825.00``) — same ink, cents column
-    not placed. Does not invent amounts; only confirms digits already chosen.
     """
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         shell = cand.get("ocr_candidate") if isinstance(cand.get("ocr_candidate"), dict) else cand
         engine = str(shell.get("engine") or shell.get("engine_name") or "").casefold()
         if "document_intelligence" not in engine and "azure_di" not in engine:
             continue
-        value = shell.get("value") or shell.get("raw_value")
-        if amounts_corroborate(chosen, value):
+        if amounts_corroborate(chosen, shell.get("value") or shell.get("raw_value")):
             return True
         raw = shell.get("raw_value")
         if raw and raw != shell.get("value"):
@@ -464,12 +446,6 @@ def _di_agrees_on_charge_amount(chosen: object, candidates: list | None) -> bool
             except Exception:  # noqa: BLE001
                 shaped, ok = None, False
             if ok and shaped and amounts_corroborate(chosen, shaped):
-                return True
-            value = shaped or value
-        # Digit-glue ×100: DI raw ``182500`` (no decimal) beside chosen ``1825.00``.
-        if _inflated_place_shift_of(chosen, value):
-            raw_txt = str(raw or "").strip()
-            if raw_txt and "." not in raw_txt.replace(",", ""):
                 return True
     return False
 
@@ -497,7 +473,7 @@ def _local_amount_only_from_digit_whitelist(
     DI ``1825`` is not an independent local total — whitelist ink alone.
     """
     saw = False
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         engine, value = _candidate_engine_and_value(cand)
         if engine not in _OPEN_SOURCE_CHARGE_ENGINES:
             continue
@@ -536,7 +512,7 @@ def _line_geometry_cents_amounts(service_lines: list | None) -> list:
     for line in service_lines or []:
         if not isinstance(line, dict):
             continue
-        for cand in line.get("candidates") or []:
+        for cand in eligible_candidates(line.get("candidates")):
             if not isinstance(cand, dict):
                 continue
             prep = str(
@@ -742,7 +718,7 @@ def prefer_di_partner_fuller_over_local_underread(
     if chosen_amt is None or not candidates:
         return None
     by_norm: dict[str, set[str]] = {}
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         if isinstance(cand, dict):
             shell = (
                 cand.get("ocr_candidate")
@@ -816,7 +792,7 @@ def box28_di_partner_confirmed(amount: object, candidates: list | None) -> bool:
         return False
     target_txt = format_currency(target)
     families: set[str] = set()
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         if isinstance(cand, dict):
             shell = (
                 cand.get("ocr_candidate")
@@ -882,7 +858,7 @@ def prefer_box28_over_bleed_line_sum(
         return None
     # Collect non-bleed amounts corroborated by DI+partner or vision+local.
     amounts: dict[str, int] = {}
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         if isinstance(cand, dict):
             shell = (
                 cand.get("ocr_candidate")
@@ -925,14 +901,14 @@ def _chosen_is_open_source_digit_drop_fuller(
         return False
     # Closed-source already reading the fuller = conflict-agent inflation, not
     # an open-source-only digit-drop recovery.
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         engine, value = _candidate_engine_and_value(cand)
         if not engine or engine in _OPEN_SOURCE_CHARGE_ENGINES:
             continue
         if amounts_corroborate(chosen, value):
             return False
     seen: set[str] = set()
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         shell = (
@@ -966,7 +942,7 @@ def prefer_incomplete_grid_box28(
     if not chosen_exceeds_cms_uniform_line_grid(chosen, service_lines):
         return None
     explained: list[str] = []
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         shell = cand.get("ocr_candidate") if isinstance(cand.get("ocr_candidate"), dict) else cand
@@ -1035,7 +1011,7 @@ def agent_amount_is_inflated_scale(chosen: object, candidates: list | None) -> b
     chosen_amt = parse_currency(chosen)
     if chosen_amt is None:
         return False
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         amount = parse_currency(cand.get("value") or cand.get("raw_value"))
@@ -1270,7 +1246,7 @@ def _inflated_only_vs_whitelist_shorts(
     if chosen_amt is None:
         return False
     saw_short = False
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         amount = parse_currency(cand.get("value") or cand.get("raw_value"))
@@ -1382,7 +1358,7 @@ def line_has_vision_and_local_on_selected(
             continue
         saw_vision = False
         saw_local = False
-        for cand in line.get("candidates") or []:
+        for cand in eligible_candidates(line.get("candidates")):
             if not isinstance(cand, dict):
                 continue
             if parse_currency(cand.get("value")) != target:
@@ -1497,7 +1473,7 @@ def _candidate_amounts_by_family(
     """
     allowed = families
     by_engine: dict[str, Decimal] = {}
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         family = _engine_family(cand.get("engine") or cand.get("producing_engine"))
@@ -1521,7 +1497,7 @@ def _first_candidate_for_family(
     candidates: list[dict] | None,
     family: str,
 ) -> dict | None:
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         if not isinstance(cand, dict):
             continue
         if _engine_family(cand.get("engine") or cand.get("producing_engine")) != family:
@@ -1554,7 +1530,7 @@ def _selected_provenance_engine(line: dict) -> str:
         return ""
     target_txt = format_currency(target)
     gpt_match = ""
-    for cand in line.get("candidates") or []:
+    for cand in eligible_candidates(line.get("candidates")):
         if not isinstance(cand, dict):
             continue
         parsed = _candidate_amount(cand)
@@ -1594,11 +1570,11 @@ def line_has_dual_engine_agreement(line: dict) -> bool:
     if not isinstance(line, dict):
         return False
     target = parse_currency(line.get("charges") or line.get("charge_amount"))
-    candidates = [c for c in (line.get("candidates") or []) if isinstance(c, dict)]
+    candidates = [c for c in (line.get("candidates") or []) if isinstance(c, dict) and confirmation_eligible(c)]
     if target is not None:
         target_txt = format_currency(target)
         local_families: set[str] = set()
-        for cand in candidates:
+        for cand in eligible_candidates(candidates):
             fam = _engine_family(cand.get("engine") or cand.get("producing_engine"))
             if fam not in _LOCAL_ENGINES:
                 continue
@@ -1638,7 +1614,7 @@ def _sole_line_vision_scale_twin_of_dual_local(line: dict) -> bool:
     if target is None:
         return False
     target_txt = format_currency(target)
-    for cand in line.get("candidates") or []:
+    for cand in eligible_candidates(line.get("candidates")):
         if not isinstance(cand, dict):
             continue
         eng = str(cand.get("engine") or "").casefold()
@@ -1677,7 +1653,7 @@ def line_has_gpt4o_local_consensus(line: dict) -> bool:
     if target is None or is_implausible_charge_total(target):
         return False
     target_txt = format_currency(target)
-    candidates = [c for c in (line.get("candidates") or []) if isinstance(c, dict)]
+    candidates = [c for c in (line.get("candidates") or []) if isinstance(c, dict) and confirmation_eligible(c)]
 
     gpt_cand = _first_candidate_for_family(candidates, _GPT4O_FAMILY)
     if gpt_cand is None:
@@ -1716,7 +1692,7 @@ def line_has_gpt4o_local_consensus(line: dict) -> bool:
         except Exception:  # noqa: BLE001
             return False
 
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         fam = _engine_family(cand.get("engine") or cand.get("producing_engine"))
         if fam not in _LOCAL_ENGINES:
             continue
@@ -1969,10 +1945,6 @@ def line_sum_auto_eligible(
                 return True, "DIGIT_DROP_BOX28_UNDERREAD"
             if underread_box is not None and not blockers:
                 return True, "DIGIT_DROP_BOX28_UNDERREAD"
-        # DI/Box28 ×100 digit-glue of line Σ (182500 vs 1825.00) — same ink,
-        # not a second total (JB9.037 SINGLE_LINE_REQUIRES_DI).
-        if any(_inflated_place_shift_of(total, value) for value in corroborators):
-            return True, "SCALE_TWIN_BOX28_DEFERRED"
         # Plausible currency-shaped box-28 / DI disagrees → HITL, not false STP.
         return False, "BOX28_OR_DI_CONFLICT"
 

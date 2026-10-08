@@ -471,11 +471,35 @@ def test_whole_dollar_times_ten_scale_rival_stays_hitl():
     assert "CHARGE_VISION_LOCAL_SCALE_RIVAL_HITL" in result.rationale_codes
 
 
-def test_l5_unique_calendar_dob_mints_independent_e2():
-    """EJG7.007: sole Claude calendar DOB still mints independent E2."""
+def test_l5_sole_calendar_dob_does_not_mint_independent_e2():
+    """One read is not agreement: a sole calendar DOB mints no independent E2."""
     bundle = build_evidence_bundle(
         field_name="patient_dob",
         candidates=[_cand("anthropic_claude_crop", "01/06/1975", 0.72)],
+        registration_confidence=0.9,
+        wrong_crop_suspected=False,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        hard_validation_passed=True,
+    )
+    assert not [
+        item
+        for item in bundle.items
+        if item.evidence_class.value == "E2" and item.independent
+    ]
+
+
+def test_l5_two_family_calendar_dob_mints_independent_e2():
+    """Vision + local shaping the same calendar DOB is independent E2."""
+    bundle = build_evidence_bundle(
+        field_name="patient_dob",
+        candidates=[
+            _cand("anthropic_claude_crop", "01/06/1975", 0.72),
+            _cand("tesseract", "01/06/1975", 0.60),
+        ],
         registration_confidence=0.9,
         wrong_crop_suspected=False,
         deterministic_evidence={
@@ -491,9 +515,6 @@ def test_l5_unique_calendar_dob_mints_independent_e2():
         if item.evidence_class.value == "E2" and item.independent
     ]
     assert e2
-    assert (e2[0].metadata or {}).get("agreement_type") == (
-        "DATE_UNIQUE_CALENDAR_CORROBORATED"
-    )
 
 
 def test_ejge_vision_underread_authorizes_and_mints_e4():

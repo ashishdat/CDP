@@ -65,19 +65,19 @@ def ocr_inference_lock(engine: str | None = None):
             _THREAD_LOCAL.depth = depth
         return
 
-    import fcntl
+    from packages.file_lock import lock_exclusive, unlock
 
     path = _lock_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    handle = path.open("w", encoding="utf-8")
+    handle = path.open("a+", encoding="utf-8")
     try:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        lock_exclusive(handle)
         _THREAD_LOCAL.depth = 1
         try:
             yield
         finally:
             _THREAD_LOCAL.depth = 0
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            unlock(handle)
     finally:
         handle.close()
 
@@ -88,13 +88,13 @@ def ocr_process_lock():
     if not ocr_lock_enabled() or ocr_lock_scope() == "inference":
         yield
         return
-    import fcntl
+    from packages.file_lock import lock_exclusive, unlock
 
     path = _lock_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+    with path.open("a+", encoding="utf-8") as handle:
+        lock_exclusive(handle)
         try:
             yield
         finally:
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            unlock(handle)

@@ -12,6 +12,7 @@ mean ~2.0s/call. See docs/metrics/dob_id_hitl_techstack_v12_3n.md.
 """
 
 from __future__ import annotations
+from packages.ocr.evidence_eligibility import eligible_candidates
 
 import contextlib
 import io
@@ -81,6 +82,8 @@ class Gpt4oCropResidualResult:
     engine: str = "azure_gpt4o_crop"
     confidence: float | None = None
     validation_results: tuple[str, ...] = ()
+    prior_hints_supplied: bool = False
+    observation_bbox: tuple[int, int, int, int] | None = None
 
 
 class Gpt4oCropRecognizer(Protocol):
@@ -282,7 +285,7 @@ def charge_needs_gpt4o(
                 line_amts = [a for a in line_amts if a is not None]
                 if line_amts:
                     line_txt = format_currency(sum(line_amts, start=Decimal("0")))
-                    for cand in candidates or []:
+                    for cand in eligible_candidates(candidates):
                         eng = str(cand.get("engine") or "").casefold()
                         if any(
                             t in eng
@@ -321,7 +324,7 @@ def _charge_candidates_have_place_shift_rival(
 
     amounts: list[object] = []
     texts: list[str] = []
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         eng = str(cand.get("engine") or "").casefold()
         if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
             continue
@@ -366,7 +369,7 @@ def _charge_local_disagrees_with_di(
 
     di_values: list[object] = []
     local_values: list[object] = []
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         engine = str(cand.get("engine") or "").casefold()
         raw = cand.get("value") or cand.get("raw_value")
         if parse_currency(raw) is None:
@@ -429,7 +432,7 @@ def id_local_digit_conflict(candidates: list[Mapping[str, Any]] | None) -> bool:
     )
 
     shaped: list[str] = []
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         engine = str(cand.get("engine") or "")
         if "gpt4o" in engine.casefold() or "gpt-4o" in engine.casefold() or "claude" in engine.casefold() or "anthropic" in engine.casefold():
             continue
@@ -470,7 +473,7 @@ def id_local_already_settled(candidates: list[Mapping[str, Any]] | None) -> bool
     from packages.ocr.independence import independence_group
 
     by_canon: dict[str, set[str]] = {}
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         engine = str(cand.get("engine") or "")
         eng_cf = engine.casefold()
         if any(
@@ -530,17 +533,16 @@ def dob_needs_gpt4o(
     azure_di_shaped: bool,
     gap_class: str | None,
     candidates: list[Mapping[str, Any]] | None = None,
+    attempts=None,
 ) -> bool:
     """Unresolved DOB gets a vision read. Accepted / already-shaped locals do not."""
-    if local_accepted or trocr_shaped or azure_di_shaped:
-        return False
     try:
         from packages.extraction_recovery.cloud_stop_ladder import (
             cloud_stop_ladder_enabled,
-            dob_locals_settled,
         )
+        from packages.extraction_recovery.dob_confirmation import dob_reads_confirmed
 
-        if cloud_stop_ladder_enabled() and dob_locals_settled(candidates):
+        if cloud_stop_ladder_enabled() and dob_reads_confirmed(candidates, attempts):
             return False
     except Exception:  # noqa: BLE001
         pass
@@ -562,7 +564,7 @@ def name_local_engine_conflict(candidates: list[Mapping[str, Any]] | None) -> bo
     from packages.candidate_reconciliation.reconciler import values_conflict_equivalent
 
     shaped: list[str] = []
-    for cand in candidates:
+    for cand in eligible_candidates(candidates):
         engine = str(cand.get("engine") or "")
         if "gpt4o" in engine.casefold() or "gpt-4o" in engine.casefold() or "claude" in engine.casefold() or "anthropic" in engine.casefold():
             continue
@@ -595,7 +597,7 @@ def _local_names_need_vision_tiebreak(
     from packages.evidence.normalization import normalize_agreement_value
 
     norms: list[str] = []
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         engine = str(cand.get("engine") or "").casefold()
         if "gpt4o" in engine or "gpt-4o" in engine or "claude" in engine or "anthropic" in engine:
             continue
@@ -641,7 +643,7 @@ def name_needs_gpt4o(
         return True
     if not local_accepted:
         local_engines: set[str] = set()
-        for cand in candidates or []:
+        for cand in eligible_candidates(candidates):
             eng = str(cand.get("engine") or "").casefold()
             if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
                 continue
@@ -651,7 +653,7 @@ def name_needs_gpt4o(
         if len(local_engines) < 2:
             return True
         has_shaped = False
-        for cand in candidates or []:
+        for cand in eligible_candidates(candidates):
             text = _normalize(str(cand.get("value") or cand.get("text") or ""))
             if text and semantic_accept("patient_name", text)[0]:
                 has_shaped = True
@@ -660,7 +662,7 @@ def name_needs_gpt4o(
     # Cascade can accept one shaped local name. A second engine that only
     # emitted a fragment ("M") is not E2, so Claude still has to read the crop.
     shaped_locals: set[str] = set()
-    for cand in candidates or []:
+    for cand in eligible_candidates(candidates):
         eng = str(cand.get("engine") or "").casefold()
         if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
             continue
@@ -853,19 +855,9 @@ class _AzureGpt4oCropRecognizer:
         return out
 
 
-def _dob_cell_bboxes(
-    bbox: tuple[int, int, int, int],
-) -> list[tuple[int, int, int, int]]:
-    """Split a DOB ROI into approximate MM / DD / YY cells (equal thirds)."""
-    x0, y0, x1, y1 = bbox
-    width = max(1, x1 - x0)
-    third = max(1, width // 3)
-    cells = []
-    for i in range(3):
-        cx0 = x0 + i * third
-        cx1 = x1 if i == 2 else x0 + (i + 1) * third
-        cells.append((cx0, y0, max(cx0 + 1, cx1), y1))
-    return cells
+def _dob_cell_bboxes(bbox):
+    from packages.extraction_recovery.dob_cell_geometry import dob_cell_bboxes
+    return list(dob_cell_bboxes(bbox).values())
 
 
 def _dob_description(prior: list[str], *, cell_mode: bool = False) -> str:
@@ -991,7 +983,11 @@ def run_gpt4o_crop_residual(
                 reason=f"GPT4O_ERROR:{type(exc).__name__}",
                 validation_results=(f"ERROR:{exc}"[:160],),
             )
-        return mapped.get(field_name) or Gpt4oCropResidualResult(
+        response = mapped.get(field_name)
+        if response is not None:
+            from dataclasses import replace
+            return replace(response, prior_hints_supplied=bool(prior), observation_bbox=bbox)
+        return Gpt4oCropResidualResult(
             attempted=True,
             configured=True,
             review_only=True,
@@ -1025,6 +1021,7 @@ def run_gpt4o_crop_residual(
                         shaped=True,
                         insufficient_evidence=False,
                         reason="GPT4O_EXPANDED_CHARGE_SHAPED",
+                        prior_hints_supplied=bool(prior), observation_bbox=expanded,
                         engine=retry.engine,
                         confidence=retry.confidence,
                         validation_results=tuple(retry.validation_results)
@@ -1060,6 +1057,7 @@ def run_gpt4o_crop_residual(
                     shaped=True,
                     insufficient_evidence=False,
                     reason="GPT4O_CELL_SPLIT_SHAPED",
+                    prior_hints_supplied=bool(prior), observation_bbox=bbox,
                     engine=retry.engine,
                     confidence=retry.confidence,
                     validation_results=tuple(retry.validation_results)
@@ -1077,8 +1075,10 @@ def residual_candidate_dict(
     if not result.attempted or not result.value:
         return None
     width, height = image_size
-    x0, y0, x1, y1 = bbox
-    conf = float(result.confidence) if result.confidence is not None else 0.9
+    x0, y0, x1, y1 = result.observation_bbox or bbox
+    from packages.ocr.observed_confidence import observed_confidence
+    observed = observed_confidence(result.confidence)
+    conf = observed if observed is not None else 0.0
     engine = str(result.engine or "azure_gpt4o_crop")
     claude = "claude" in engine.casefold() or "anthropic" in engine.casefold()
     return {
@@ -1092,11 +1092,13 @@ def residual_candidate_dict(
         ),
         "preprocessing_version": "cascade-v12-3n",
         "raw_confidence": conf,
-        "calibrated_confidence": conf,
+        "calibrated_confidence": None,
+        "confidence_source": "MODEL_SELF_REPORTED" if observed is not None else "NOT_REPORTED",
         "confidence": conf,
         "reason_code": result.reason,
         "validation_results": list(result.validation_results),
         "shadow_review_only": result.review_only,
+        "prior_hints_supplied": result.prior_hints_supplied,
         "latency_ms": 0.0,
         "bounding_box": {
             "x0": float(x0),
@@ -1106,7 +1108,7 @@ def residual_candidate_dict(
             "image_width": float(width),
             "image_height": float(height),
         },
-        "bbox": list(bbox),
+        "bbox": [x0, y0, x1, y1],
         "image_width": float(width),
         "image_height": float(height),
         "reason": result.reason,
@@ -1223,6 +1225,8 @@ def maybe_attach_gpt4o_crop_to_field_row(
 ) -> dict[str, Any]:
     """Attach gpt-4o crop residual for DOB, ID, name conflict/ink, or charge."""
     updated = dict(field_row)
+    if (field_row.get("gpt4o_crop_residual") or {}).get("attempted"):
+        return updated
     name = str(field_row.get("field") or "")
     key = name.casefold()
     cascade = dict(field_row.get("cascade") or {})
@@ -1280,6 +1284,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
             azure_di_shaped=bool(di.get("date_shaped") and not di.get("review_only")),
             gap_class=gap_class,
             candidates=list(field_row.get("candidates") or []),
+            attempts=field_row.get("attempts"),
         ):
             return updated
     elif key in _ID_FIELDS:
@@ -1329,12 +1334,14 @@ def maybe_attach_gpt4o_crop_to_field_row(
         image=image,
         bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
         field_name=name,
-        prior_candidates=prior,
+        # Confirmation must read the image without echoing earlier answers.
+        prior_candidates=[],
         engine=engine,
     )
     accept = gpt4o_crop_accept_enabled()
     effective_review_only = result.review_only and not (accept and result.shaped)
     updated["gpt4o_crop_residual"] = {
+        "prior_hints_supplied": False,
         "attempted": result.attempted,
         "configured": result.configured,
         "review_only": effective_review_only,
@@ -1357,6 +1364,8 @@ def maybe_attach_gpt4o_crop_to_field_row(
             reason="GPT4O_SHAPED_ACCEPTED",
             engine=result.engine,
             confidence=result.confidence,
+            prior_hints_supplied=result.prior_hints_supplied,
+            observation_bbox=result.observation_bbox,
             validation_results=tuple(
                 v for v in result.validation_results if v != "SHADOW_REVIEW_ONLY"
             )
@@ -1395,7 +1404,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
                             prior_c.get("value") or prior_c.get("raw_value") or ""
                         ).strip()
                         eng = str(prior_c.get("engine") or "").casefold()
-                        if "gpt4o" in eng or "gpt-4o" in eng or "claude" in eng or "anthropic" in eng:
+                        if any(tag in eng for tag in ("gpt4o", "gpt-4o", "claude", "anthropic", "azure", "document_intelligence")):
                             continue
                         if seed:
                             local_value = seed
@@ -1427,7 +1436,7 @@ def maybe_attach_gpt4o_crop_to_field_row(
 
                     risk = estimate_acceptance_risk(
                         field_name=key,
-                        calibrated_confidence=float(promoted.confidence or 0.0),
+                        calibrated_confidence=None,
                         engine_count=1 + (1 if has_local else 0),
                         dual_engine_agree=bool(has_local and promote_accept),
                         gpt4o_only=not has_local,

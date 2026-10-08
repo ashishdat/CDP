@@ -861,8 +861,11 @@ def test_dob_prefers_display_shaped_over_digit_glue_soup():
         document_family="CMS1500",
         enforce_legacy_evidence_policy=False,
     )
-    assert result.decision == Decision.ACCEPT
+    # The display-shaped date is preferred, but one engine's read is not
+    # corroboration: a lone date must not auto-accept (M0478JE2.011).
     assert result.selected_value == "11/01/2011"
+    assert result.decision != Decision.ACCEPT
+    assert "DATE_UNIQUE_CALENDAR_CORROBORATED" not in result.rationale_codes
 
 
 def test_dob_prefers_trocr_date_over_multi_engine_junk():
@@ -883,8 +886,8 @@ def test_dob_prefers_trocr_date_over_multi_engine_junk():
         document_family="CMS1500",
         enforce_legacy_evidence_policy=False,
     )
-    assert result.decision == Decision.ACCEPT
     assert result.selected_value == "06/20/2002"
+    assert result.decision != Decision.ACCEPT
 
 
 def test_vision_id_unique_shaped_ignores_weak_local_fragment():
@@ -901,9 +904,11 @@ def test_vision_id_unique_shaped_ignores_weak_local_fragment():
         document_family="CMS1500",
         enforce_legacy_evidence_policy=False,
     )
-    assert result.decision == Decision.ACCEPT
+    # The shaped vision read is preferred over the fragment, but a single
+    # read is not "unique corroboration" and must not auto-accept.
     assert result.selected_value == "981067892"
-    assert "UNIQUE_SHAPED_ID_CORROBORATED" in result.rationale_codes
+    assert result.decision != Decision.ACCEPT
+    assert "UNIQUE_SHAPED_ID_CORROBORATED" not in result.rationale_codes
 
 
 def test_alnum_cms_member_id_multi_engine_accepts():
@@ -926,7 +931,7 @@ def test_alnum_cms_member_id_multi_engine_accepts():
         enforce_legacy_evidence_policy=False,
     )
     assert result.decision == Decision.ACCEPT
-    assert result.selected_value == "JQL4PV01"
+    assert result.selected_value == "JQL4PV-01"
     assert "UNSHAPED_MEMBER_ID" not in result.rationale_codes
 
 
@@ -1110,3 +1115,22 @@ def test_di_local_confirmed_does_not_clear_place_shift_rival():
     assert result.selected_value == "200.00"
     assert result.decision != Decision.ACCEPT
     assert "CONFLICT_MARGIN_TOO_SMALL" in result.rationale_codes
+
+
+def test_lone_assembled_dob_is_not_auto_accepted():
+    """M0478JE2.011: lone rapidocr ``1o12 Do10`` assembled to 11/20/2001; page says 10/13/2010."""
+    result = EvidenceReconciler().reconcile(
+        "patient_dob",
+        [_candidate("11/20/2001", "rapidocr", 0.72)],
+        CriticalityLevel.C2,
+        deterministic_evidence={
+            "HARD_VALIDATION_PASSED",
+            "FORMAT_VALID",
+            "DATE_VALID",
+        },
+        independent_agreement_values=set(),
+        document_family="CMS1500",
+        enforce_legacy_evidence_policy=False,
+    )
+    assert result.decision != Decision.ACCEPT
+    assert "DATE_UNIQUE_CALENDAR_CORROBORATED" not in result.rationale_codes

@@ -48,7 +48,8 @@ TOTALS 2420968
 
 
 def test_dob_mim_header_garble_stripped():
-    assert _assemble_dob_from_tokens("MIM 12 30 200") == "12/30/2020"
+    assert _assemble_dob_from_tokens("MIM 12 30 200") is None
+    assert _assemble_dob_from_tokens("MIM 12 30 2020") == "12/30/2020"
 
 
 def test_unstructured_heuristic_prefers_historical_dob_and_digit_id():

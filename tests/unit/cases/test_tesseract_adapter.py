@@ -1,6 +1,14 @@
 from workers.cascade.tesseract_adapter import parse_tsv
 
 
+def test_ocr_quote_cannot_swallow_following_tsv_words():
+    header = 'level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n'
+    payload = header + '5\t1\t1\t1\t1\t1\t10\t20\t30\t12\t90\t"\n'
+    payload += '5\t1\t1\t1\t1\t2\t45\t20\t20\t12\t95\tPATIENT\n'
+    payload += '5\t1\t1\t1\t1\t3\t70\t20\t20\t12\t95\tNAME\n'
+    assert [line.text for line in parse_tsv(payload)] == ['"', 'PATIENT', 'NAME']
+
+
 def test_parse_tesseract_tsv_to_common_text_lines():
     payload = (
         "level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n"

@@ -77,7 +77,8 @@ def test_attach_skips_accepted_local_dob():
         "field": "patient_dob",
         "canonical_region": [10, 10, 180, 70],
         "ocr_region": [10, 10, 180, 70],
-        "candidates": [{"value": "01/02/2000", "engine": "paddleocr"}],
+        "candidates": [{"value": "01/02/2000", "engine": "paddleocr"},
+                       {"value": "01/02/2000", "engine": "rapidocr"}],
         "cascade": {"accepted": True, "accept_reason": "DATE_SHAPED"},
     }
     updated = maybe_attach_dob_azure_di_to_field_row(
@@ -86,10 +87,10 @@ def test_attach_skips_accepted_local_dob():
         gap_class="HANDWRITING_UNREADABLE",
         engine=_FakeCropEngine("03/15/1968"),
     )
-    # Stop ladder: cascade-accepted DOB skips DI entirely.
+    # Stop ladder: Independently confirmed DOB skips DI entirely.
     assert (updated.get("cloud_stop_ladder") or {}).get("skipped") == "LOCALS_SETTLED"
     assert "azure_di_residual" not in updated
-    assert len(updated.get("candidates") or []) == 1
+    assert len(updated.get("candidates") or []) == 2
 
 
 def test_attach_appends_shadow_candidate_on_miss():

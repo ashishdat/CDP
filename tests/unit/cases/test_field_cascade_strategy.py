@@ -14,8 +14,8 @@ from packages.extraction_recovery.field_cascade import (
 
 def test_patient_name_requires_independent_confirmation():
     assert field_requires_independent_confirmation("patient_name") is True
-    assert field_requires_independent_confirmation("insured_name") is False
-    assert field_requires_independent_confirmation("total_charge") is False
+    assert field_requires_independent_confirmation("insured_name") is True
+    assert field_requires_independent_confirmation("total_charge") is True
 
 
 def test_route_engines_prefer_governed_primary_then_confirmation():
@@ -97,9 +97,9 @@ def test_cascade_invokes_tesseract_fill_when_confirmation_unshaped():
         recognize_fn=recognize_fn,
     )
     assert ("tesseract",) in calls
-    assert result.accepted is True
+    assert result.accepted is False
     assert result.candidates[0]["engine"] == "tesseract"
-    assert result.accept_reason.startswith("TESSERACT_FILL:")
+    assert result.accept_reason == "SHAPED_READ_NEEDS_CONFIRMATION"
     assert any(a.get("engine") == "tesseract" for a in result.attempts)
 
 
@@ -136,10 +136,10 @@ def test_cascade_prefers_shaped_confirmation_over_primary_bleed():
         image_size=(1700, 2200),
         recognize_fn=recognize_fn,
     )
-    assert result.accepted is True
+    assert result.accepted is False
     assert result.candidates[0]["value"] == "10/29/1983"
-    assert result.accept_reason.endswith("DATE_SHAPED")
-    assert len(calls) == 1
+    assert result.accept_reason == "SHAPED_READ_NEEDS_CONFIRMATION"
+    assert len(calls) > 1
 
 
 def test_cascade_stops_on_first_semantic_accept():

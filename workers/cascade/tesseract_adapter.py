@@ -16,11 +16,12 @@ from workers.page_detection.text_extraction import TextLine
 
 class TesseractTextExtractor:
     def __init__(
-        self, psm: int = 11, language: str = "eng", whitelist: str | None = None
+        self, psm: int = 11, language: str = "eng", whitelist: str | None = None, timeout_seconds: float | None = None
     ) -> None:
         self._psm = psm
         self._language = language
         self._whitelist = whitelist
+        self._timeout_seconds = timeout_seconds
 
     @property
     def psm(self) -> int:
@@ -60,6 +61,7 @@ class TesseractTextExtractor:
             input=_png_bytes(image),
             capture_output=True,
             check=True,
+            timeout=self._timeout_seconds,
         )
         return parse_tsv(process.stdout.decode("utf-8", errors="replace"))
 
@@ -88,7 +90,9 @@ def _png_bytes(image: Image.Image) -> bytes:
 
 def parse_tsv(payload: str) -> list[TextLine]:
     words: list[TextLine] = []
-    for row in csv.DictReader(io.StringIO(payload), delimiter="\t"):
+    # Tesseract TSV text is unquoted. An OCR quote must not consume following
+    # rows as a CSV quoted field and swallow classification anchors.
+    for row in csv.DictReader(io.StringIO(payload), delimiter="\t", quoting=csv.QUOTE_NONE):
         text = (row.get("text") or "").strip()
         try:
             confidence = float(row.get("conf") or -1)

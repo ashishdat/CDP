@@ -220,7 +220,7 @@ def test_pos_and_units_still_geometry_gated_on_cms():
     assert reject is True
     # 270 charge + unit 1 must not become 2701 via ink preference when clean .00 exists.
     assert prefer_charge_ink_amount("270.00", "2701.00") == "270.00"
-    assert shape_monetary("2701.00") == "270.00"
+    assert shape_monetary("2701.00") == "2701.00"
 
 
 def test_reconcile_dispatches_by_document_family():

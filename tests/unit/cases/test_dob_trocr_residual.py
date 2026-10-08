@@ -117,13 +117,16 @@ def test_attach_promotes_cascade_on_date_shaped():
     assert updated["candidates"][0]["engine"] == "trocr"
 
 
-def test_attach_skips_accepted_local_dob():
+def test_attach_skips_independently_confirmed_local_dob():
     img = Image.new("RGB", (200, 80), color=(255, 255, 255))
     row = {
         "field": "patient_dob",
         "canonical_region": [10, 10, 180, 70],
         "ocr_region": [10, 10, 180, 70],
-        "candidates": [{"value": "01/02/2000", "engine": "paddleocr"}],
+        "candidates": [
+            {"value": "01/02/2000", "engine": "paddleocr"},
+            {"value": "01/02/2000", "engine": "tesseract"},
+        ],
         "cascade": {"accepted": True, "accept_reason": "DATE_SHAPED"},
     }
     updated = maybe_attach_dob_trocr_to_field_row(
@@ -133,4 +136,24 @@ def test_attach_skips_accepted_local_dob():
         engine=_FakeCropEngine("03/15/1968"),
     )
     assert updated["trocr_residual"]["reason"] == "NOT_DOB_HANDWRITING_RESIDUAL"
-    assert len(updated.get("candidates") or []) == 1
+    assert len(updated.get("candidates") or []) == 2
+
+
+def test_single_date_shaped_read_keeps_handwriting_confirmation_available():
+    row = {
+        "field": "patient_dob",
+        "canonical_region": [10, 10, 180, 70],
+        "ocr_region": [10, 10, 180, 70],
+        "candidates": [{"value": "01/02/2000", "engine": "paddleocr"}],
+        "cascade": {"accepted": True, "accept_reason": "DATE_SHAPED"},
+    }
+    updated = maybe_attach_dob_trocr_to_field_row(
+        row,
+        image=Image.new("RGB", (200, 80), color=(255, 255, 255)),
+        gap_class="HANDWRITING_UNREADABLE",
+        engine=_FakeCropEngine("03/15/1968"),
+    )
+    assert updated["trocr_residual"]["attempted"] is True
+    assert {candidate["value"] for candidate in updated["candidates"]} == {
+        "01/02/2000", "03/15/1968"
+    }

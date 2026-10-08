@@ -1985,6 +1985,8 @@ class EvidenceReconciler:
             field_name in {"insured_id_number", "member_id", "subscriber_id"}
             and len(ranked) > 1
             and _member_id_is_weak_for_gpt4o_gate(str(value or ""))
+            and (re.search(r"INSURED|NUMBER|PROGRAM|ITEM|PICA", str(value or ""), re.IGNORECASE)
+                 or re.fullmatch(r"0+", re.sub(r"[^A-Za-z0-9]", "", str(value or ""))))
         ):
             for _norm, items in ranked[1:]:
                 cand_val = str(max(items, key=lambda row: row[1])[0].value or "")
@@ -3271,25 +3273,6 @@ class EvidenceReconciler:
                         else Decision.ACCEPT
                     )
                     reasons.append("BOX2_BOX4_NAME_CONFLICT_RELIEVED")
-                elif (
-                    is_id_field
-                    and "MEMBER_RELATIONSHIP_CONFIRMED" in deterministic
-                    and "IDENTITY_CORROBORATED_THRESHOLD_RELIEF" in (
-                        relief_reason or ""
-                    )
-                    and "HARD_VALIDATION_PASSED" in deterministic
-                    and "FORMAT_VALID" in deterministic
-                    and _member_id_is_shaped(str(value or ""))
-                    and not _member_id_is_weak_for_gpt4o_gate(str(value or ""))
-                ):
-                    # Relationship-backed shaped ID near-miss: length fragments
-                    # beside the authority canon stay HITL-free (JB2.045-class).
-                    decision = (
-                        Decision.REFERENCE_CONFIRMED
-                        if reference_match
-                        else Decision.ACCEPT
-                    )
-                    reasons.append("IDENTITY_CORROBORATED_ID_CONFLICT_RELIEVED")
                 else:
                     decision = Decision.REVIEW
                     reasons.append("CONFLICT_MARGIN_TOO_SMALL")

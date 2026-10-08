@@ -35,6 +35,7 @@ import yaml
 
 from .span_selection import select_field_span, span_datatype_for_field
 from .strategy import crop_ladder_for, load_cascade_strategy
+from packages.ocr.independence import independence_group
 
 _ROUTE_PATH = Path(__file__).resolve().parents[2] / "config" / "ocr_field_routes.yaml"
 
@@ -136,13 +137,16 @@ def load_route_engines(field_name: str, route_path: Path | None = None) -> tuple
 
 
 def field_requires_independent_confirmation(field_name: str) -> bool:
-    """Patient name cannot STP on one engine.
+    """Critical identity and claim totals require confirmation before stopping recovery.
 
     The governed policy accepts independent OCR plus a strong check, or
     multi-attribute identity. Selective confirm skips the second engine once
     the primary read is field-shaped, so E2 never forms.
     """
-    return (field_name or "").casefold() == "patient_name"
+    return (field_name or "").casefold() in {
+        'patient_name', 'insured_name', 'patient_dob', 'date_of_birth', 'dob',
+        'total_charge', 'total_charges', 'insured_id_number', 'member_id', 'subscriber_id',
+    }
 
 
 def semantic_accept(
@@ -160,7 +164,14 @@ def semantic_accept(
     datatype = span_datatype_for_field(field_name, "")
 
     if name in {"patient_dob", "date_of_birth", "insured_dob"} or datatype == "DATE":
-        if _DATE_SHAPE.fullmatch(text):
+        if (_DATE_SHAPE.fullmatch(text)
+                or re.fullmatch(r"\d{4}-\d{2}-\d{2}", text)
+                or re.fullmatch(r"(?:\d{6}|\d{8})", text)):
+            from packages.field_normalization import normalize_date
+
+            _, valid = normalize_date(text)
+            if not valid:
+                return False, "INVALID_CALENDAR_DATE"
             return True, "DATE_SHAPED"
         return False, "NOT_DATE_SHAPED"
 
@@ -352,7 +363,7 @@ def pick_engine_candidates(
     # Prefer agreement across ≥2 distinct engines (paddle + rapid confirmation).
     for group in by_norm.values():
         engines = {
-            str(item[2].get("engine") or "").casefold()
+            independence_group(str(item[2].get("engine") or ""))
             for item in group
             if (item[2].get("engine") or "").strip()
         }
@@ -605,7 +616,8 @@ class FieldCascade:
                 for a in attempts
             )
             if (
-                not ok
+                (not ok or (field_requires_independent_confirmation(field_name)
+                            and not pick_reason.startswith('MULTI_ENGINE_AGREEMENT:')))
                 and not already_tess
                 and "tesseract" in {e.casefold() for e in engines}
             ):
@@ -650,6 +662,11 @@ class FieldCascade:
                         if ok:
                             accept_reason = f"TESSERACT_FILL:{base_reason}"
 
+            if (ok and field_requires_independent_confirmation(field_name)
+                    and not pick_reason.startswith('MULTI_ENGINE_AGREEMENT:')):
+                ok = False
+                accept_reason = 'SHAPED_READ_NEEDS_CONFIRMATION'
+
             step = CascadeStepResult(
                 variant_id=variant.variant_id,
                 bbox=variant.bbox,
@@ -683,26 +700,25 @@ class FieldCascade:
         # while primary holds MM/DD. Span over observed ink only — never invent
         # glyphs. Gated so free-text fields do not mint incomplete shells.
         datatype = span_datatype_for_field(field_name, field_type)
-        if field_name.casefold() in {
+        if not field_requires_independent_confirmation(field_name) and (field_name.casefold() in {
             "patient_dob",
             "date_of_birth",
             "insured_dob",
-        } or datatype == "DATE":
+        } or datatype == "DATE"):
+            fusion_engines = {str(c.get('engine') or '').strip()
+                              for step in trace for c in step.candidates
+                              if c.get('value') or c.get('raw_value')}
             fused_bits: list[str] = []
             donor: dict | None = None
             for step in trace:
-                if step.selected_value:
-                    fused_bits.append(step.selected_value)
-                if step.raw_value:
-                    fused_bits.append(step.raw_value)
                 for cand in step.candidates:
-                    if donor is None and isinstance(cand, dict) and "raw_confidence" in cand:
+                    if donor is None and isinstance(cand, dict) and cand.get('engine'):
                         donor = dict(cand)
                     val = (cand.get("value") or cand.get("raw_value") or "").strip()
                     if val:
                         fused_bits.append(val)
             fused = " ".join(fused_bits).strip()
-            if fused:
+            if fused and len(fusion_engines) == 1 and '' not in fusion_engines and donor:
                 span = select_field_span(fused, datatype, field_name)
                 fused_selected = span.selected_text or ""
                 ok, accept_reason = semantic_accept(
@@ -717,12 +733,12 @@ class FieldCascade:
                         {
                             "value": fused_selected,
                             "raw_value": fused,
-                            "engine": shell.get("engine") or "rapidocr",
+                            "engine": shell['engine'],
                             "model_name": shell.get("model_name") or "unknown",
                             "model_version": shell.get("model_version") or "unknown",
                             "preprocessing_variant": shell.get("preprocessing_variant")
                             or "recorded_canonical_region",
-                            "raw_confidence": float(shell.get("raw_confidence") or 0.8),
+                            "raw_confidence": float(shell.get("raw_confidence") or 0.0),
                             "calibrated_confidence": shell.get("calibrated_confidence"),
                             "latency_ms": float(shell.get("latency_ms") or 0.0),
                             "validation_results": [],
@@ -781,11 +797,18 @@ class FieldCascade:
                     )
 
         if best is not None and best.candidates:
+            retained_candidates = list(best.candidates)
+            retained_attempts = list(best.attempts)
+            if field_requires_independent_confirmation(field_name):
+                # Later crops are acquisition evidence too. A provisional best
+                # crop must not erase correct readers or observed conflicts.
+                retained_candidates = [c for step in trace for c in step.candidates]
+                retained_attempts = [a for step in trace for a in step.attempts]
             return CascadeResult(
                 field_name=field_name,
                 bbox=best.bbox,
-                candidates=list(best.candidates),
-                attempts=list(best.attempts),
+                candidates=retained_candidates,
+                attempts=retained_attempts,
                 router_reason=best.router_reason,
                 status="OBSERVED" if best.selected_value else "NO_OBSERVATION",
                 cascade_trace=trace,

@@ -47,9 +47,9 @@ def test_member_id_requires_ocr_and_reference_or_three_attribute_reference() -> 
     assert reconciler.reconcile("member_id", _two("M123"), CriticalityLevel.C2).decision == Decision.REVIEW
     result = reconciler.reconcile(
         "member_id",
-        [_candidate("M123")],
+        [_candidate("M01406484")],
         CriticalityLevel.C2,
-        authoritative_value="M123",
+        authoritative_value="M01406484",
         authoritative_reference_verified=True,
         deterministic_evidence={"DOB_MATCH", "NAME_MATCH"},
     )

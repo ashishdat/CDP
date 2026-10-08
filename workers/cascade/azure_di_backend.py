@@ -11,6 +11,7 @@ times so last-resort page-corners can complete instead of terminal REG.
 from __future__ import annotations
 
 import os
+from contextvars import ContextVar
 import re
 import time
 from pathlib import Path
@@ -51,6 +52,7 @@ def wait_for_azure_di_slot(
     sleeper,
     now=time.time,
     slot_path: Path | None = None,
+    remaining_seconds=None,
 ) -> None:
     """Block until this process may send one new analyze request.
 
@@ -61,10 +63,10 @@ def wait_for_azure_di_slot(
         return
     path = slot_path or azure_di_slot_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    import fcntl
+    from packages.file_lock import lock_exclusive
 
     with path.open("a+") as handle:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        lock_exclusive(handle, timeout_seconds=remaining_seconds()) if remaining_seconds else lock_exclusive(handle)
         handle.seek(0)
         raw = handle.read().strip()
         try:
@@ -74,6 +76,8 @@ def wait_for_azure_di_slot(
         current = float(now())
         delay = interval_seconds - (current - last)
         if delay > 0:
+            if remaining_seconds and delay >= remaining_seconds():
+                raise TimeoutError("AZURE_DI_SLOT_EXCEEDS_OPERATION_BUDGET")
             sleeper(delay)
             current = float(now())
         handle.seek(0)
@@ -174,6 +178,8 @@ class AzureDocumentIntelligenceReadBackend:
         self._api_version = api_version
         self._model_id = model_id
         self._timeout = timeout_seconds
+        self._operation_deadline = ContextVar("azure_di_operation_deadline", default=None)
+        self._operation_timeout = _env_float("CDP_AZURE_DI_OPERATION_TIMEOUT_SECONDS", 75.0)
         # Full-page unstructured REG reads often need >6s; default 150×0.35s ≈ 50s.
         self._poll_interval = (
             float(poll_interval_seconds)
@@ -226,13 +232,34 @@ class AzureDocumentIntelligenceReadBackend:
         """Return the full Azure DI analyze payload (pages/polygons included)."""
         if not image_bytes:
             return {}
-        wait_for_azure_di_slot(
-            interval_seconds=self._min_interval_seconds,
-            sleeper=self._sleeper,
-            now=self._clock,
-        )
-        operation = self._start_analyze(image_bytes)
-        return self._poll_result(operation)
+        duration = self._operation_timeout
+        from packages.extraction_recovery.doc_latency_budget import get_doc_budget
+        budget = get_doc_budget()
+        if budget is not None:
+            duration = min(duration, max(0.0, _env_float("CDP_CLOUD_RECOVERY_DEADLINE_SECONDS",210.0)-budget.elapsed()))
+        token = self._operation_deadline.set(time.monotonic()+duration)
+        try:
+            self._remaining_timeout()
+            wait_for_azure_di_slot(interval_seconds=self._min_interval_seconds,
+                sleeper=self._sleeper, now=self._clock, remaining_seconds=self._remaining_timeout)
+            operation = self._start_analyze(image_bytes)
+            return self._poll_result(operation)
+        finally:
+            self._operation_deadline.reset(token)
+
+    def _remaining_timeout(self):
+        deadline = self._operation_deadline.get()
+        if deadline is None:
+            return self._timeout
+        remaining = deadline-time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("AZURE_DI_OPERATION_BUDGET_EXHAUSTED")
+        return remaining
+
+    def _budgeted_sleep(self, seconds):
+        if self._operation_deadline.get() is not None and seconds >= self._remaining_timeout():
+            raise TimeoutError("AZURE_DI_RETRY_EXCEEDS_OPERATION_BUDGET")
+        self._sleeper(seconds)
 
     def _sleep_rate_limit(self, body: str, headers: Any | None = None) -> None:
         wait = parse_azure_di_retry_after_seconds(
@@ -240,7 +267,7 @@ class AzureDocumentIntelligenceReadBackend:
             headers=headers,
             default=self._rate_limit_wait_seconds,
         )
-        self._sleeper(wait)
+        self._budgeted_sleep(wait)
 
     def _start_analyze(self, image_bytes: bytes) -> str:
         url = (
@@ -262,7 +289,7 @@ class AzureDocumentIntelligenceReadBackend:
                 },
             )
             try:
-                with self._opener(request, timeout=self._timeout) as response:
+                with self._opener(request, timeout=min(self._timeout,self._remaining_timeout())) as response:
                     location = response.headers.get(
                         "operation-location"
                     ) or response.headers.get("Operation-Location")
@@ -283,7 +310,7 @@ class AzureDocumentIntelligenceReadBackend:
                 last_exc = RuntimeError(f"Azure DI analyze transport error: {exc}")
                 last_exc.__cause__ = exc
                 if _is_transport_timeout(exc) and attempt + 1 < attempts:
-                    self._sleeper(self._transport_wait_seconds)
+                    self._budgeted_sleep(self._transport_wait_seconds)
                     continue
                 raise last_exc from exc
         assert last_exc is not None
@@ -300,7 +327,7 @@ class AzureDocumentIntelligenceReadBackend:
                 headers={"Ocp-Apim-Subscription-Key": self._api_key},
             )
             try:
-                with self._opener(request, timeout=self._timeout) as response:
+                with self._opener(request, timeout=min(self._timeout,self._remaining_timeout())) as response:
                     import json
 
                     payload = json.loads(response.read().decode("utf-8"))
@@ -315,7 +342,7 @@ class AzureDocumentIntelligenceReadBackend:
             except (URLError, TimeoutError) as exc:
                 if _is_transport_timeout(exc) and transport_retries_left > 0:
                     transport_retries_left -= 1
-                    self._sleeper(self._transport_wait_seconds)
+                    self._budgeted_sleep(self._transport_wait_seconds)
                     continue
                 raise RuntimeError(f"Azure DI poll transport error: {exc}") from exc
             polls += 1
@@ -324,7 +351,7 @@ class AzureDocumentIntelligenceReadBackend:
                 if status != "succeeded":
                     raise RuntimeError(f"Azure DI analyze ended with status={status}")
                 return payload
-            self._sleeper(self._poll_interval)
+            self._budgeted_sleep(self._poll_interval)
         raise RuntimeError("Azure DI analyze timed out waiting for result")
 
     def _to_evidence(self, payload: dict[str, Any]) -> AzureReadEvidence:
@@ -345,7 +372,9 @@ class AzureDocumentIntelligenceReadBackend:
             if confidences
             else (0.7 if content else 0.0)
         )
-        return AzureReadEvidence(content, confidence, handwritten)
+        pages = result.get('pages') or []
+        words = tuple(pages[0].get('words') or []) if len(pages) == 1 else ()
+        return AzureReadEvidence(content, confidence, handwritten, words)
 
 
 def azure_di_handwriting_transport(

@@ -40,7 +40,7 @@ def test_dob_and_id_gate_helpers():
         azure_di_shaped=False,
         gap_class="HANDWRITING_UNREADABLE",
     )
-    assert not dob_needs_gpt4o(
+    assert dob_needs_gpt4o(
         local_accepted=False,
         trocr_shaped=True,
         azure_di_shaped=False,
@@ -784,3 +784,31 @@ def test_charge_expanded_crop_retry_on_abstain(monkeypatch):
     assert result.value == "1165.00"
     assert result.reason == "GPT4O_EXPANDED_CHARGE_SHAPED"
     assert calls["n"] >= 2
+
+
+def test_di_only_charge_gets_blind_confirmation_once(monkeypatch):
+    monkeypatch.setenv("CDP_CLOUD_STOP_LADDER", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_RESIDUAL", "1")
+    monkeypatch.setenv("CDP_GPT4O_CROP_ACCEPT", "1")
+    calls = []
+    class BlindEngine:
+        def recognize_fields(self, crops, *, field_types, descriptions, prior_candidates):
+            calls.append(prior_candidates)
+            assert not any(prior_candidates.values())
+            return {"total_charge": Gpt4oCropResidualResult(
+                attempted=True, configured=True, review_only=True,
+                value="600.00", raw_value="600 00", shaped=True,
+                insufficient_evidence=False, reason="GPT4O_SHAPED", confidence=.95)}
+    di = {"engine": "azure_di", "value": "600.00", "confidence_raw": .699}
+    row = {"field": "total_charge", "ocr_region": [10,10,200,70],
+           "canonical_region": [10,10,200,70], "candidates": [di],
+           "azure_di_residual": {"currency_shaped": True, "review_only": False, "value": "600.00"},
+           "cascade": {"accepted": False}}
+    image = Image.new("RGB", (240,80), "white")
+    result = maybe_attach_gpt4o_crop_to_field_row(row, image=image, engine=BlindEngine())
+    assert result["gpt4o_crop_residual"]["attempted"]
+    assert result["gpt4o_crop_residual"]["prior_hints_supplied"] is False
+    assert di in result["candidates"]
+    assert not result["cascade"]["accepted"]
+    maybe_attach_gpt4o_crop_to_field_row(result, image=image, engine=BlindEngine())
+    assert len(calls) == 1

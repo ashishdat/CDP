@@ -1,0 +1,38 @@
+{
+  "target": "de373ac0",
+  "source": "473b86ed",
+  "unit_passed": 2099,
+  "unit_skipped": 40,
+  "unit_failed": 12,
+  "baseline_failed_test_ids": [
+    "tests.unit.cases.test_evaluation_ui_server::test_evaluation_ui_health_and_index",
+    "tests.unit.cases.test_field_accuracy_gt_residuals::test_gt_scorer_same_marker_matches_patient_twin",
+    "tests.unit.cases.test_phase7a15_tuning_truth::test_freeze_fails_closed_while_annotation_tasks_are_incomplete",
+    "tests.unit.cases.test_phase7a15_tuning_truth::test_generated_truth_streams_are_empty_until_human_verification",
+    "tests.unit.cases.test_phase7a15_tuning_truth::test_tuning_truth_sample_is_deterministic_and_split_safe",
+    "tests.unit.cases.test_phase8_6_two_track::test_corrected_archive_has_50_ub_tax_truth_rows_and_preserves_100_documents",
+    "tests.unit.cases.test_phase8_6_two_track::test_only_zero_false_agreement_routes_are_production_approved",
+    "tests.unit.cases.test_phase8_6_two_track::test_targeted_replay_is_ocr_free_and_preserves_the_safety_gate",
+    "tests.unit.cases.test_safe_stp_policy::test_all_c3_independently_verified_is_stp_safe",
+    "tests.unit.cases.test_safe_stp_policy::test_authoritative_reference_verification_qualifies_c3_for_safe_stp",
+    "tests.unit.cases.test_safe_stp_policy::test_review_task_count_is_not_used_as_a_proxy_for_policy_gates",
+    "tests.unit.cases.test_safe_stp_policy::test_standard_passes_all_gates_without_c3_requirement"
+  ],
+  "new_failed_tests": [],
+  "presence_only_stp_disabled": true,
+  "focused_recovery_checks_passed": 44,
+  "routing_and_charge_contract_checks_passed": 79,
+  "stp_improvement_measured": false,
+  "port_branch": "fix/port-governed-recovery-v325-20261008",
+  "target_branch": "feature/cdp-v3",
+  "candidate_release": "extraction-v3.26-port-recovery",
+  "port_order": [
+    "DOB contracts and blind readers",
+    "registration deadline and template selection",
+    "Azure ID confirmation",
+    "charge residual and provenance controls"
+  ],
+  "target_ui_reporting_source_unchanged": true,
+  "local_feature_worktree_untouched": true,
+  "baseline_failures_not_claimed_fixed": true
+}

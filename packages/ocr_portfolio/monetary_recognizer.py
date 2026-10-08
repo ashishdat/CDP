@@ -472,6 +472,18 @@ def shape_dollars_ruling_amount(text: str) -> str | None:
 
 
 def shape_monetary(text: str) -> str | None:
+    from packages.extraction_recovery.span_selection import caption_contaminated_amount, select_field_span
+    if caption_contaminated_amount(text):
+        return None
+    if re.search(r"\bTOTAL\s*CHARGES?(?![A-Z])", str(text or '').upper()):
+        # Preserve the observed monetary token; never remove a caption and
+        # concatenate its printed index with a neighboring digit.
+        return select_field_span(text, 'CURRENCY', 'total_charge').selected_text or None
+    # An explicit observed amount cannot be shortened on a digit-tail heuristic.
+    # Crop/column geometry and corroboration must establish any units bleed.
+    explicit = re.fullmatch(r"\s*\$?\s*(\d{1,3}(?:,\d{3})+|\d+)\.(\d{2})\s*", text or "")
+    if explicit:
+        return f"{explicit.group(1).replace(',', '')}.{explicit.group(2)}"
     recovered = recover_dollars_from_split_raw(text)
     if recovered:
         return recovered
@@ -487,21 +499,6 @@ def shape_monetary(text: str) -> str | None:
         if amount.startswith("(") and amount.endswith(")"):
             amount = amount[1:-1]
         if "." in amount and re.fullmatch(r"\d+\.\d{2}", amount):
-            # Already decimal-shaped — still strip units/ruling tails on .00 forms
-            # (2701.00 from units "1" bleed → 270.00).
-            if amount.endswith(".00"):
-                dollars = amount.split(".", 1)[0]
-                if (
-                    len(dollars) >= 4
-                    and dollars[-1] in {"1", "4", "5"}
-                    and 2 <= len(dollars) - 1 <= 4
-                ):
-                    trimmed = f"{dollars[:-1]}.00"
-                    try:
-                        if 1.0 <= float(trimmed) <= 99999.99:
-                            return trimmed
-                    except ValueError:
-                        pass
             return amount
         if "." not in amount and re.fullmatch(r"\d{2,6}", amount):
             # Defer to ranked digit-soup handling below (6404 → 640.00).

@@ -211,11 +211,13 @@ def test_cents_column_prefers_line_without_asking_claude(monkeypatch):
         service_lines=lines,
         engine=_FakeEngine("BOX28"),  # would wrongly pick box if asked
     )
-    agent = out_fields[0]["financial_conflict_agent"]
-    assert agent["side"] == "LINES"
-    assert agent["value"] == "49.77"
-    assert "CENTS_COLUMN" in agent["reason"]
-    assert out_fields[0]["candidates"][0]["model_version"] == "conflict-agent-v1"
+    preference = out_fields[0]["financial_preference"]
+    assert preference["side"] == "LINES"
+    assert preference["value"] == "49.77"
+    assert "CENTS_COLUMN" in preference["reason"]
+    assert out_fields[0]["candidates"] == fields[0]["candidates"]
+    assert "financial_conflict_agent" not in out_fields[0]
+    assert not out_fields[0]["cascade"]["accepted"]
 
 
 def test_financial_conflict_agent_abstain_keeps_hitl(monkeypatch):

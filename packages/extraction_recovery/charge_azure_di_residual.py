@@ -11,7 +11,8 @@ import contextlib
 import os
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+import math
 from typing import Any, Protocol
 
 from PIL import Image
@@ -50,6 +51,16 @@ class ChargeAzureDiResidualResult:
     reason: str
     engine: str = "azure_document_intelligence_read"
     validation_results: tuple[str, ...] = ()
+    raw_confidence: float | None = None
+    observation_bbox: tuple[int, int, int, int] | None = None
+
+
+def _observed_confidence(value):
+    try:
+        value=float(value)
+    except (TypeError,ValueError):
+        return None
+    return value if math.isfinite(value) and 0 <= value <= 1 else None
 
 
 class ChargeCropRecognizer(Protocol):
@@ -176,6 +187,8 @@ def _shape_charge_text(field_name: str, raw: str | None) -> tuple[str | None, bo
                 return ruled, True
     # Prefer explicit currency; fall back to digit spans from noisy DI lines.
     span = select_field_span(text, "CURRENCY", field_name)
+    if "CAPTION_CONTAMINATED_AMOUNT_REQUIRES_LOCALIZATION" in span.reason_codes:
+        return None, False
     selected = _normalize_charge_text(span.selected_text) or text
     if not re.search(r"\d", selected or ""):
         return selected, False
@@ -295,6 +308,7 @@ def _recognize_with_azure_read_engine(
             else "AZURE_DI_UNSHAPED"
         ),
         validation_results=validations,
+        raw_confidence=_observed_confidence(getattr(lead,"raw_confidence",None)),
     )
 
 
@@ -437,7 +451,7 @@ def run_charge_azure_di_residual(
                     reason=f"AZURE_DI_FACTORY_UNCONFIGURED:{exc}",
                 )
 
-        primary = _recognize_one(crop, read_engine=read_engine)
+        primary = replace(_recognize_one(crop, read_engine=read_engine), observation_bbox=tuple(bbox))
         if primary.currency_shaped or not primary.attempted:
             return primary
 
@@ -453,17 +467,7 @@ def run_charge_azure_di_residual(
         finally:
             crop2.close()
         if retry.currency_shaped:
-            return ChargeAzureDiResidualResult(
-                attempted=retry.attempted,
-                configured=retry.configured,
-                review_only=retry.review_only,
-                value=retry.value,
-                raw_value=retry.raw_value,
-                currency_shaped=retry.currency_shaped,
-                reason=f"{retry.reason}:EXPANDED_CROP",
-                engine=retry.engine,
-                validation_results=retry.validation_results,
-            )
+            return replace(retry,reason=f"{retry.reason}:EXPANDED_CROP",observation_bbox=expanded)
         return primary
     finally:
         crop.close()
@@ -475,11 +479,12 @@ def residual_candidate_dict(
     bbox: tuple[int, int, int, int] | None = None,
     image_size: tuple[int, int] | None = None,
 ) -> dict[str, Any] | None:
-    if not result.attempted or not result.value:
+    if not result.attempted or not result.value or not result.currency_shaped:
         return None
     width = int(image_size[0]) if image_size else max(1, int((bbox or (0, 0, 1, 1))[2]))
     height = int(image_size[1]) if image_size else max(1, int((bbox or (0, 0, 1, 1))[3]))
-    x0, y0, x1, y1 = bbox or (0, 0, width, height)
+    x0, y0, x1, y1 = result.observation_bbox or bbox or (0, 0, width, height)
+    confidence=_observed_confidence(result.raw_confidence)
     return {
         "value": result.value,
         "raw_value": result.raw_value or result.value,
@@ -488,8 +493,9 @@ def residual_candidate_dict(
         "model_version": "unknown",
         "preprocessing_variant": "charge_azure_di_crop_residual",
         "preprocessing_version": "cascade-v12-azure-di",
-        "raw_confidence": 0.85,
-        "calibrated_confidence": 0.85,
+        "raw_confidence": confidence if confidence is not None else 0.0,
+        "calibrated_confidence": None,
+        "confidence_source": "PROVIDER_REPORTED" if confidence is not None else "PROVIDER_NOT_REPORTED",
         "reason_code": result.reason,
         "validation_results": list(result.validation_results),
         "shadow_review_only": result.review_only,
@@ -519,17 +525,8 @@ def promote_currency_shaped(
     validations = tuple(
         v for v in result.validation_results if v != "SHADOW_REVIEW_ONLY"
     )
-    return ChargeAzureDiResidualResult(
-        attempted=result.attempted,
-        configured=result.configured,
-        review_only=False,
-        value=result.value,
-        raw_value=result.raw_value,
-        currency_shaped=True,
-        reason="AZURE_DI_CURRENCY_SHAPED",
-        engine=result.engine,
-        validation_results=validations or ("AZURE_DI_CHARGE_CROP",),
-    )
+    return replace(result,review_only=False,reason="AZURE_DI_CURRENCY_SHAPED",
+                   validation_results=validations or ("AZURE_DI_CHARGE_CROP",))
 
 
 def maybe_attach_charge_azure_di_to_field_row(
@@ -594,6 +591,10 @@ def maybe_attach_charge_azure_di_to_field_row(
         "currency_shaped": promoted.currency_shaped,
         "reason": promoted.reason,
         "value": promoted.value,
+        "raw_value": promoted.raw_value,
+        "raw_confidence": promoted.raw_confidence,
+        "calibrated_confidence": None,
+        "observation_bbox": promoted.observation_bbox,
     }
     candidate = residual_candidate_dict(
         promoted,

@@ -5,6 +5,7 @@ def test_runtime_rejects_evaluation_only_routes():
     runtime = EvidenceDecisionService(route_mode="runtime")
     assert set(runtime.ocr_routes) == {
         "federal_tax_no",
+        "insured_dob",
         "insured_id_number",
         "insured_name",
         "patient_dob",

@@ -60,6 +60,18 @@ def test_box28_crop_variants_include_tight_right_band():
     assert variants[1][0] > variants[0][0]
 
 
+def test_stale_box29_geometry_cannot_authorize_box28_crop():
+    from packages.geometry_authority.box28 import registered_box28_crop_variants
+    assert registered_box28_crop_variants((1250,1805,1450,1875)) == ()
+    assert registered_box28_crop_variants(CMS1500_BOX28_FULL)[0] == box28_value_only_bbox()
+
+
+def test_retry_crops_cannot_exceed_recorded_cell():
+    from packages.geometry_authority.box28 import registered_box28_crop_variants
+    variants = registered_box28_crop_variants((1045,1825,1248,1875))
+    assert variants and all(b[1] >= 1825 for b in variants)
+
+
 def test_form_redundancy_self_name_and_dob():
     from packages.geometry_authority.form_redundancy import (
         reconcile_box2_box4_names,

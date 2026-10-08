@@ -99,7 +99,8 @@ def test_independent_member_id_fragment_reconcile_accepts():
         independent_agreement_values=set(),
         enforce_legacy_evidence_policy=False,
     )
-    assert result.decision == Decision.ACCEPT
+    # One engine's read is not corroboration, so it must not auto-accept.
+    assert result.decision != Decision.ACCEPT
     assert result.selected_value == "98126619000"
     assert "CONFLICT_MARGIN_TOO_SMALL" not in result.rationale_codes
 
@@ -120,7 +121,7 @@ def test_independent_member_id_tesseract_only_conflict_relieved():
         enforce_legacy_evidence_policy=False,
     )
     assert result.decision == Decision.ACCEPT
-    assert result.selected_value == "90754963000"
+    assert result.selected_value == "907549630-00"
 
 
 # --- 5) Member ID: J↔U confusable ------------------------------------------

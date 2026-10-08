@@ -927,12 +927,9 @@ def test_decimal_place_shift_box28_is_deferrable_against_line_sum():
     assert not is_implausible_corroborator("45000.00", "450.00")
 
 
-def test_di_cent_glue_place_shift_unlocks_single_line_sum():
-    """JB9.037: DI raw 182500 (×100 glue) beside line Σ 1825.00 must AUTO.
+def test_di_digit_glue_without_geometry_does_not_unlock_single_line_sum():
+    """A ratio-only digit glue cannot supply independent amount agreement."""
 
-    Box 28 is deferred as a contradiction shell, but the glue corroborator must
-    still mint SCALE_TWIN_BOX28_DEFERRED — not SINGLE_LINE_REQUIRES_DI.
-    """
     from packages.claim_evidence.line_sum_authority import (
         _di_agrees_on_charge_amount,
         is_implausible_charge_total,
@@ -956,7 +953,7 @@ def test_di_cent_glue_place_shift_unlocks_single_line_sum():
         box28_value=None,
         corroborating_values=["182500.00"],
     )
-    assert ok and reason == "SCALE_TWIN_BOX28_DEFERRED"
+    assert not ok and reason in {"SINGLE_LINE_REQUIRES_DI", "BOX28_OR_DI_CONFLICT"}
     # Non-glue rival (825 vs 1825) still CONFLICT / REQUIRES_DI — not unlocked.
     ok_noise, reason_noise = line_sum_auto_eligible(
         lines,
@@ -966,7 +963,7 @@ def test_di_cent_glue_place_shift_unlocks_single_line_sum():
     assert not ok_noise
     assert reason_noise in {"BOX28_OR_DI_CONFLICT", "SINGLE_LINE_REQUIRES_DI"}
     # DI digit-glue without decimal in raw agrees on the deflated line amount.
-    assert _di_agrees_on_charge_amount(
+    assert not _di_agrees_on_charge_amount(
         "1825.00",
         [
             {

@@ -28,6 +28,10 @@ CMS1500_UNITS_X0 = 1207.0
 # Box 28 total charge on cms1500_v03 (absolute page coords).
 # Prior (1335,1755,1465,1811) landed in Box 29 / NPI and cut off the value band.
 CMS1500_BOX28: tuple[float, float, float, float] = (1045.0, 1805.0, 1248.0, 1875.0)
+# Box 28 has its own wider dollars column; Box 24F's x1155 divider and
+# x1207 units boundary must never be applied to the total-charge cell.
+CMS1500_BOX28_CENTS_X = 1182.0
+CMS1500_BOX28_RIGHT_X = 1248.0
 
 # Common CMS POS codes that OCR often emits as currency (11.00).
 _POS_LIKE_AMOUNTS = frozenset(
