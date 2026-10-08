@@ -253,6 +253,14 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
         # Allow 5-digit year tokens with a leading edge glyph (e.g. "11970").
         if re.fullmatch(r"\d{1,5}", norm):
             digits.append(norm)
+    if len(digits) == 2:
+        for index, token in enumerate(digits):
+            year_token = token[1:] if len(token) == 5 and token.startswith('1') else token
+            if (len(year_token) == 4 and 1900 <= int(year_token) <= 2100
+                    and len(digits[1 - index]) <= 2):
+                # MM + YYYY (or DD + YYYY) is missing a component. Do not
+                # reinterpret part of that observed year as a day or month.
+                return None
     if len(digits) >= 3:
         def _yearish(tok: str) -> bool:
             if re.fullmatch(r"\d{4}", tok) and 1900 <= int(tok) <= 2100:
@@ -334,6 +342,8 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             # YY MM DD after header strip ("YY 74 MM 03/12" → 74 03 12).
             # Only when first cannot be a month ( >12 ) so MM DD YY stays preferred.
             if (
+                len(digits) == 3
+                and
                 re.fullmatch(r"\d{2}", first)
                 and int(first) > 12
                 and re.fullmatch(r"\d{1,2}", second)
@@ -527,7 +537,14 @@ def _assemble_dob_from_tokens(text: str) -> str | None:
             got = _valid(inserted[:2], inserted[2:4], inserted[4:])
             if got:
                 return got
-            for candidate in (compact[1:], compact[:-1]):
+            # A ruling may appear as an edge '1'; arbitrary trailing digits
+            # are observed DOB ink and cannot be dropped (0511875 -> 1987).
+            edge_candidates = []
+            if compact.startswith('1'):
+                edge_candidates.append(compact[1:])
+            if compact.endswith('1'):
+                edge_candidates.append(compact[:-1])
+            for candidate in edge_candidates:
                 if len(candidate) == 6:
                     got = _valid(candidate[:2], candidate[2:4], _yy_to_yyyy(candidate[4:]))
                     if got:
@@ -633,10 +650,13 @@ def _person_name_from(text: str) -> str | None:
     matches: list[str] = []
     for match in re.finditer(
         # Comma only — OCR mid-name periods ("DAtSt.EY") are not Last, First.
-        r"\b([A-Z][A-Z'-]{1,30}),\s*([A-Z][A-Z'-]{1,30}(?:\s+[A-Z])?)\b",
+        r"\b([A-Z][A-Z'-]{1,30}),\s*([A-Z][A-Z'-]{1,30}(?:\s+[A-Z])?)\b"
+        r"(?:\s*,\s*([A-Z])\b)?",
         cleaned,
     ):
         last, first = match.group(1), match.group(2)
+        if match.group(3):
+            first = f"{first} {match.group(3)}"
         first_tok = first.split()[0]
         # Reject header residue pairs like "NAME, SLOGER" / "FURST, NAME".
         if last in junk or first_tok in junk:
@@ -686,9 +706,14 @@ def _member_id_from(text: str) -> str | None:
     space, _ = _strip_known_labels(space)
     # OCR often renders hyphen as "=" in plan member ids (e.g. P32=84957).
     space = space.replace("=", "-")
-    # Leading O misread as 0 on alphanumeric member ids (0SC74765420).
-    space = re.sub(r"\b0([A-Z]{2,4}\d{6,14})\b", r"O\1", space)
     patterns = [
+        # Preserve a literal slash suffix before numeric-prefix patterns run.
+        # A slash read as V is a real disagreement, never permission to discard
+        # the suffix or substitute the other producer's character.
+        r"(?<![A-Z0-9/])[A-Z0-9]{6,24}(?:/[A-Z0-9]{1,12})+(?![A-Z0-9/])",
+        # Keep the entire observed identifier, including dependent suffixes.
+        # O/0 disagreement is evidence to resolve, not a spelling correction.
+        r"(?<![A-Z0-9-])[A-Z0-9]{1,5}\d{6,14}(?:-\d{1,4})*(?![A-Z0-9-])",
         r"[A-Z]\d{2}-\d{7}",
         r"\b[A-Z]\d{2}-\d{4,8}\b",
         r"\b[A-Z0-9]{2,8}-[A-Z0-9-]{3,20}\b",
@@ -701,6 +726,13 @@ def _member_id_from(text: str) -> str | None:
         if usable:
             return usable[-1]
     return None
+
+
+def caption_contaminated_amount(raw_text: str) -> bool:
+    """Require an observed separator when a total-charge caption is present."""
+    upper = str(raw_text or '').upper()
+    return bool(re.search(r"\bTOTAL\s*CHARGES?(?![A-Z])", upper) and
+                not re.search(r"\d[\d,]*\s*[.:|;-]\s*\d{2}(?!\d)", upper))
 
 
 def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> SpanSelectionResult:
@@ -720,6 +752,36 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
     patterns: list[tuple[str, str, str]] = []
     if datatype == "DATE":
         search_space = _normalize_dob_punct_separators(search_space)
+        if field_name.casefold() in {"patient_dob", "insured_dob", "date_of_birth", "dob"}:
+            from datetime import date
+
+            from packages.field_normalization import normalize_date
+
+            observed_dates = {}
+            for token in re.findall(r"(?<![A-Z0-9])(\d{8})(?:[MF])?(?![A-Z0-9])", search_space):
+                normalized, valid = normalize_date(token)
+                if valid:
+                    observed_dates.setdefault(normalized, token)
+            # Inspect every intact date before choosing a span. Previously
+            # ambiguity was checked only when a compact date was also present;
+            # two slash-delimited dates silently selected the last one.
+            for token in re.findall(
+                r"(?<!\d)(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/](?:\d{4}|\d{2}))(?!\d)",
+                search_space,
+            ):
+                shaped = token if re.match(r'^\d{4}[-/]', token) else (
+                    _assemble_dob_from_tokens(token) or token)
+                normalized, valid = normalize_date(shaped)
+                if valid:
+                    observed_dates.setdefault(normalized, token)
+            if observed_dates:
+                if len(observed_dates) != 1:
+                    return _result(raw, "", "span-v2-date-ambiguous", list(observed_dates.values()),
+                                   0.0, "MULTIPLE_VALID_DATES_REQUIRES_REVIEW")
+                normalized, token = next(iter(observed_dates.items()))
+                selected = date.fromisoformat(normalized).strftime("%m/%d/%Y")
+                return _result(raw, selected, "span-v2-date-compact-observed", [token], 0.92,
+                               "OBSERVED_COMPACT_DATE", "FIELD_SEMANTIC_SPAN")
         duplicated_edge = re.search(r"(?<!\d)\d(\d{2}[-/]\d{2}[-/]\d{4})(?!\d)", search_space)
         if duplicated_edge:
             selected = duplicated_edge.group(1)
@@ -733,6 +795,12 @@ def select_field_span(raw_text: str, datatype: str, field_name: str = "") -> Spa
     elif datatype == "NPI":
         patterns = [("npi", r"(?<!\d)\d{10}(?!\d)", "first")]
     elif datatype == "CURRENCY":
+        if field_name.casefold() in {"total_charge", "total_charges"} and caption_contaminated_amount(upper):
+            # The shifted Box-28 crop can contain only its caption and the
+            # neighboring Box-29 index. Integers in such text cannot establish
+            # a whole-dollar amount without independent spatial localization.
+            return _result(raw, "", "span-v3-currency-caption-unlocalized", [], 0.0,
+                           "CAPTION_CONTAMINATED_AMOUNT_REQUIRES_LOCALIZATION")
         npi_bleed = bool(re.search(r"\bN[P1]I\b|\bNP1\b|\bN21\b", search_space))
         currency_space_before = search_space
 

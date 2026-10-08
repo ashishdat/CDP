@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 from PIL import Image
@@ -21,7 +21,8 @@ from packages.recovery.azure_di_meter import azure_di_error_detail, record_azure
 from packages.tool_escalation import EscalationTool, plan_field_escalation
 
 _DOB_FIELDS = frozenset({"patient_dob", "date_of_birth"})
-_HANDWRITING_GAPS = frozenset({"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS"})
+_HANDWRITING_GAPS = frozenset({"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS",
+                             "EVIDENCE_POLICY_GAP", "DOB_COMPONENT_CONFLICT"})
 # Year-wide cascade strips under this height starve DI/Claude (JEH.036 ~18px).
 _MIN_DOB_CROP_HEIGHT_PX = 28
 
@@ -53,6 +54,7 @@ class DobAzureDiResidualResult:
     reason: str
     engine: str = "azure_document_intelligence_read"
     validation_results: tuple[str, ...] = ()
+    raw_confidence: float | None = None
 
 
 class DobCropRecognizer(Protocol):
@@ -89,15 +91,42 @@ def _normalize_dob_text(text: str | None) -> str | None:
     return cleaned or None
 
 
-def _shape_dob_text(field_name: str, raw: str | None) -> tuple[str | None, bool]:
+def _shape_dob_text(field_name: str, raw: str | None, *, allow_ordered_components: bool = False) -> tuple[str | None, bool]:
     """Span-select then semantic-accept so DI noise around a date can still shape."""
     text = _normalize_dob_text(raw)
     if not text:
         return None, False
-    span = select_field_span(text, "DATE", field_name)
-    selected = _normalize_dob_text(span.selected_text) or text
-    shaped = bool(selected) and semantic_accept(field_name, selected)[0]
-    return selected, shaped
+    # Unordered caption fragments are not observed dates. Generic span
+    # selection can turn "YY 1 DD 1 no 20 1017 N MM" into January 1, 2020.
+    # Spatial components are assembled upstream using provider polygons;
+    # here accept only a complete date already present in the observation.
+    observed = re.findall(r"(?<![0-9])([0-9]{1,2}[/-][0-9]{1,2}[/-](?:[0-9]{4}|[0-9]{2}))(?![0-9A-Za-z])", text)
+    if not observed and allow_ordered_components:
+        clean = re.sub(r"\b(?:MM|DD|YYYY|YY|DOB)\b", " ", text, flags=re.IGNORECASE).strip()
+        parts = re.fullmatch(r"([0-9]{2})\s+([0-9]{2})\s+([0-9]{4}|[0-9]{2})", clean)
+        if parts:
+            observed = ["/".join(parts.groups())]
+        elif re.fullmatch(r"[0-9]{8}", clean):
+            observed = [f"{clean[:2]}/{clean[2:4]}/{clean[4:]}"]
+    if len(set(observed)) > 1:
+        return None, False
+    normalized = set()
+    for value in observed:
+        # Preserve explicitly observed four-digit years; never century-repair.
+        from packages.field_normalization import normalize_date
+        from datetime import date
+        # Two-digit century normalization retains the existing DOB policy;
+        # explicitly observed four-digit years are never rewritten.
+        if len(value.rsplit("/",1)[-1].rsplit("-",1)[-1]) == 2:
+            value = select_field_span(value, "DATE", field_name).selected_text
+        canonical, valid = normalize_date(value)
+        if valid and date.fromisoformat(canonical) <= date.today():
+            normalized.add(canonical)
+    if len(normalized) != 1:
+        return None, False
+    value = date.fromisoformat(next(iter(normalized))).strftime("%m/%d/%Y")
+    return value, bool(semantic_accept(field_name, value)[0])
+
 
 
 def _recognize_with_azure_read_engine(
@@ -180,8 +209,9 @@ def _recognize_with_azure_read_engine(
         )
     lead = candidates[0]
     raw = _normalize_dob_text(getattr(lead, "raw_value", None) or getattr(lead, "value", None))
-    value, shaped = _shape_dob_text(field_name, raw)
     validations = tuple(getattr(lead, "validation_results", ()) or ())
+    observed_value = getattr(lead, 'value', None) if 'DOB_SPATIAL_COMPONENTS_OBSERVED' in validations else raw
+    value, shaped = _shape_dob_text(field_name, observed_value)
     if "SHADOW_REVIEW_ONLY" not in validations:
         validations = (*validations, "SHADOW_REVIEW_ONLY")
     return DobAzureDiResidualResult(
@@ -199,6 +229,7 @@ def _recognize_with_azure_read_engine(
             else "AZURE_DI_UNSHAPED"
         ),
         validation_results=validations,
+        raw_confidence=getattr(lead,"raw_confidence",None),
     )
 
 
@@ -325,11 +356,13 @@ def residual_candidate_dict(
     image_size: tuple[int, int] | None = None,
 ) -> dict[str, Any] | None:
     """Serialize a DI residual into an OCR-candidates-compatible row."""
-    if not result.attempted or not result.value:
+    if not result.attempted or not result.value or not result.date_shaped:
         return None
     width = int(image_size[0]) if image_size else max(1, int((bbox or (0, 0, 1, 1))[2]))
     height = int(image_size[1]) if image_size else max(1, int((bbox or (0, 0, 1, 1))[3]))
     x0, y0, x1, y1 = bbox or (0, 0, width, height)
+    from packages.ocr.observed_confidence import observed_confidence
+    confidence=observed_confidence(result.raw_confidence)
     return {
         "value": result.value,
         "raw_value": result.raw_value or result.value,
@@ -338,8 +371,9 @@ def residual_candidate_dict(
         "model_version": "unknown",
         "preprocessing_variant": "dob_azure_di_crop_residual",
         "preprocessing_version": "cascade-v12-azure-di",
-        "raw_confidence": 0.85,
-        "calibrated_confidence": 0.85,
+        "raw_confidence": confidence if confidence is not None else 0.0,
+        "calibrated_confidence": None,
+        "confidence_source": "PROVIDER_REPORTED" if confidence is not None else "PROVIDER_NOT_REPORTED",
         "reason_code": result.reason,
         "validation_results": list(result.validation_results),
         "shadow_review_only": result.review_only,
@@ -369,7 +403,9 @@ def maybe_attach_dob_azure_di_to_field_row(
 
     name = str(field_row.get("field") or "")
     cascade = field_row.get("cascade") or {}
-    local_accepted = bool(cascade.get("accepted"))
+    from packages.extraction_recovery.dob_confirmation import dob_reads_confirmed
+
+    local_accepted = dob_reads_confirmed(field_row.get('candidates'), field_row.get('attempts'))
     # Prefer the full Box 3 cell when the cascade left a razor-thin year strip
     # (M0471JEH.036 ocr_region height ~18px → Claude abstain / DI miss).
     bbox = dob_residual_bbox(field_row)
@@ -420,6 +456,8 @@ def maybe_attach_dob_azure_di_to_field_row(
         "date_shaped": result.date_shaped,
         "reason": result.reason,
         "value": result.value,
+        "raw_value": result.raw_value,
+        "raw_confidence": result.raw_confidence,
     }
     # Rebuild candidate with accept semantics when promoting date-shaped crops.
     promoted = result
@@ -427,17 +465,8 @@ def maybe_attach_dob_azure_di_to_field_row(
         validations = tuple(
             v for v in result.validation_results if v != "SHADOW_REVIEW_ONLY"
         )
-        promoted = DobAzureDiResidualResult(
-            attempted=result.attempted,
-            configured=result.configured,
-            review_only=False,
-            value=result.value,
-            raw_value=result.raw_value,
-            date_shaped=result.date_shaped,
-            reason="AZURE_DI_DATE_SHAPED",
-            engine=result.engine,
-            validation_results=validations or ("AZURE_DI_DOB_CROP",),
-        )
+        promoted = replace(result,review_only=False,reason="AZURE_DI_DATE_SHAPED",
+            validation_results=validations or ("AZURE_DI_DOB_CROP",))
     candidate = residual_candidate_dict(
         promoted,
         bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),

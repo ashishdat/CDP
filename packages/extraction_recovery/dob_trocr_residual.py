@@ -19,7 +19,8 @@ from packages.extraction_recovery.span_selection import select_field_span
 from packages.tool_escalation import EscalationTool, plan_field_escalation
 
 _DOB_FIELDS = frozenset({"patient_dob", "date_of_birth"})
-_HANDWRITING_GAPS = frozenset({"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS"})
+_HANDWRITING_GAPS = frozenset({"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS",
+                             "EVIDENCE_POLICY_GAP", "DOB_COMPONENT_CONFLICT"})
 
 _get_shared_trocr_adapter: Callable[..., Any] | None = None
 
@@ -255,7 +256,7 @@ def residual_candidate_dict(
         "preprocessing_variant": "dob_trocr_crop_residual",
         "preprocessing_version": "cascade-v12-trocr",
         "raw_confidence": result.confidence,
-        "calibrated_confidence": result.confidence,
+        "calibrated_confidence": None,
         "reason_code": result.reason,
         "validation_results": list(result.validation_results),
         "shadow_review_only": result.review_only,
@@ -283,7 +284,11 @@ def maybe_attach_dob_trocr_to_field_row(
     """Return an updated field row with optional TrOCR candidate (+ cascade accept)."""
     name = str(field_row.get("field") or "")
     cascade = field_row.get("cascade") or {}
-    local_accepted = bool(cascade.get("accepted"))
+    from packages.extraction_recovery.dob_confirmation import dob_reads_confirmed
+
+    # Cascade acceptance is syntax/shape acceptance, not governed acceptance.
+    local_accepted = bool(cascade.get("accepted")) and dob_reads_confirmed(
+        field_row.get("candidates") or [], field_row.get("attempts"))
     try:
         from packages.extraction_recovery.dob_azure_di_residual import dob_residual_bbox
 

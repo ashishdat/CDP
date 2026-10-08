@@ -244,5 +244,6 @@ def promote_unstructured_fields(fields: Mapping[str, str] | None) -> tuple[str, 
     if not shaped:
         return "REGISTRATION_FAILED", missing
     if not missing:
-        return "TRUE_STP", []
+        # Presence is acquisition completeness, never field/claim acceptance.
+        return "HITL", sorted(_CRITICAL)
     return "HITL", missing

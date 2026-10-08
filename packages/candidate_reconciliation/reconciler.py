@@ -1660,12 +1660,28 @@ class EvidenceReconciler:
         enforce_legacy_evidence_policy: bool = True,
         independent_agreement_values: set[str] | None = None,
     ) -> ReconciliationResult:
+        all_candidate_ids = [self._candidate_id(candidate) for candidate in candidates]
+        candidates = [candidate for candidate in candidates if not candidate.prior_hints_supplied and not candidate.shadow_review_only]
         deterministic = deterministic_evidence or set()
         groups: dict[str, list[tuple[OCRCandidate, float, str]]] = defaultdict(list)
         conflicts: list[EvidenceReference] = []
+        dob_has_calendar_read = field_name in {'patient_dob', 'date_of_birth', 'dob'} and any(
+            _dob_is_display_shaped(str(candidate.value or '')) for candidate in candidates)
         for candidate in candidates:
+            if candidate.prior_hints_supplied:
+                continue  # Retained in candidate_ids, never an independent vote.
             display_value = (candidate.value or "").strip()
             if not display_value:
+                continue
+            if field_name in {'insured_id_number', 'member_id', 'subscriber_id'} and re.search(
+                r"INSUR|NUMBER|PROGRAM|ITEM\s*1|ID\.?\s*NUMBER", display_value, re.IGNORECASE
+            ):
+                # Preserve the observation in candidate_ids, but captions cannot
+                # vote for an ID or borrow validation from another candidate.
+                continue
+            if dob_has_calendar_read and not _dob_is_display_shaped(display_value):
+                # Keep candidate IDs/audit evidence, but do not turn partial
+                # digit fragments or caption junk into competing calendar dates.
                 continue
             calibrated, version = self.calibration.calibrate(
                 candidate.engine, field_name, candidate.raw_confidence
@@ -1673,7 +1689,7 @@ class EvidenceReconciler:
             normalized = normalize_agreement_value(field_name, display_value)
             if normalized:
                 groups[normalized].append((candidate, calibrated, version))
-        ids = [self._candidate_id(candidate) for candidate in candidates]
+        ids = all_candidate_ids
         if not groups:
             return ReconciliationResult(
                 field_name=field_name,
@@ -2183,8 +2199,13 @@ class EvidenceReconciler:
                 # Preserve pad form for deterministic FORMAT_VALID; do not emit
                 # the 4-digit core alone (that fails the length gate).
             else:
-                compact_id = _canonical_member_id(str(value))
-                if compact_id:
+                literal_id = str(value).strip()
+                compact_id = _canonical_member_id(literal_id)
+                if re.search(r"-[0-9]{1,3}$", literal_id):
+                    # A dependent suffix delimiter is part of the identifier.
+                    # Compact agreement keys must never become output values.
+                    value = re.sub(r"[\s.]", "", literal_id).upper()
+                elif compact_id:
                     value = compact_id
 
         # Prefer DI/vision+local Box 28 over bleed-cents line Σ (DJJM.049 /
@@ -2490,8 +2511,17 @@ class EvidenceReconciler:
                 if _dob_is_display_shaped(str(candidate.value or ""))
             }
             calendar_ymds.discard(None)
+            # A lone read is trivially unique — corroboration needs the same
+            # calendar date from two independent engine groups.
+            calendar_engine_groups = {
+                independence_group(candidate.engine)
+                for candidate in candidates
+                if _dob_is_display_shaped(str(candidate.value or ""))
+                and _dob_ymd(str(candidate.value or "")) is not None
+            }
             unique_calendar_dob = (
                 len(calendar_ymds) == 1
+                and len(calendar_engine_groups) >= 2
                 and _dob_is_display_shaped(str(value))
             )
             # Uncalibrated fill engines (tesseract) often sit ~0.3 raw conf even when
@@ -2510,6 +2540,7 @@ class EvidenceReconciler:
             and id_shaped
         ):
             shaped_values = set()
+            shaped_engine_groups = set()
             for candidate in candidates:
                 raw = str(candidate.value or "")
                 if not _member_id_is_shaped(raw):
@@ -2522,9 +2553,14 @@ class EvidenceReconciler:
                 # Ignore length fragments beside the selected authority ID.
                 if _member_id_is_length_fragment(str(value), raw):
                     continue
-                shaped_values.add(canon)
-            shaped_values.discard("")
-            unique_shaped_id = len(shaped_values) == 1
+                if canon:
+                    shaped_values.add(canon)
+                    shaped_engine_groups.add(independence_group(candidate.engine))
+            # A lone read is trivially unique — corroboration needs the same
+            # ID from two independent engine groups.
+            unique_shaped_id = (
+                len(shaped_values) == 1 and len(shaped_engine_groups) >= 2
+            )
             if unique_shaped_id:
                 confidence = max(confidence, 0.92)
 

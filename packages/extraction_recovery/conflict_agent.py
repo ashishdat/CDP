@@ -35,17 +35,29 @@ def _agent_candidate(
     image: Image.Image,
     reason: str,
     variant: str,
+    confidence: float | None = None,
+    raw_response: str | None = None,
+    engine: str = "anthropic_claude_crop",
 ) -> dict[str, Any]:
+    import math
+    try:
+        observed_confidence = float(confidence) if confidence is not None else 0.0
+    except (TypeError, ValueError):
+        observed_confidence = 0.0
+    if not math.isfinite(observed_confidence) or not 0 <= observed_confidence <= 1:
+        observed_confidence = 0.0
     return {
         "value": value,
-        "raw_value": value,
-        "engine": "anthropic_claude_crop",
+        "raw_value": raw_response if raw_response is not None else value,
+        "engine": engine,
         "model_name": "conflict-agent",
-        "model_version": "conflict-agent-v1",
+        "model_version": "conflict-agent-v2-observed-response",
         "preprocessing_variant": variant,
         "preprocessing_version": "cascade-v12-conflict-agent",
-        "raw_confidence": 0.96,
-        "calibrated_confidence": 0.96,
+        "raw_confidence": observed_confidence,
+        "calibrated_confidence": None,
+        "confidence_source": "PROVIDER_REPORTED_UNCALIBRATED" if confidence is not None else "NOT_REPORTED",
+        "prior_hints_supplied": True,
         "reason_code": reason,
         "latency_ms": 0.0,
         "bounding_box": {
@@ -86,6 +98,9 @@ class ConflictResolution:
     rivals: tuple[str, ...]
     reason: str
     financial_side: str | None = None  # BOX28 | LINES | None
+    provider_confidence: float | None = None
+    raw_response: str | None = None
+    provider_engine: str = "anthropic_claude_crop"
 
 
 def conflict_agent_enabled() -> bool:
@@ -331,6 +346,9 @@ def resolve_field_conflict(
         chosen=chosen,
         rivals=rivals_t,
         reason="CONFLICT_AGENT_RESOLVED",
+        provider_confidence=getattr(result, 'confidence', None),
+        raw_response=str(getattr(result, 'raw_value', None) or reply),
+        provider_engine=getattr(result, 'engine', None) or 'anthropic_claude_crop',
     )
 
 
@@ -452,6 +470,9 @@ def resolve_financial_conflict(
         rivals=rivals,
         reason="CONFLICT_AGENT_FINANCIAL_RESOLVED",
         financial_side=side,
+        provider_confidence=getattr(result, 'confidence', None),
+        raw_response=raw_reply or reply,
+        provider_engine=getattr(result, 'engine', None) or 'anthropic_claude_crop',
     )
 
 
@@ -515,6 +536,9 @@ def maybe_attach_conflict_agent_to_field_row(
         "chosen": resolution.chosen,
         "rivals": list(resolution.rivals),
         "reason": resolution.reason,
+        "provider_confidence": resolution.provider_confidence,
+        "raw_response": resolution.raw_response,
+        "provider_engine": resolution.provider_engine,
     }
     if not resolution.resolved or not resolution.chosen:
         return updated
@@ -522,7 +546,7 @@ def maybe_attach_conflict_agent_to_field_row(
     # Promote the chosen rival to the front and accept the cascade.
     chosen = resolution.chosen
     reordered: list[dict[str, Any]] = []
-    matched: dict[str, Any] | None = None
+    matches: list[dict[str, Any]] = []
     for cand in candidates:
         raw = _normalize_space(str(cand.get("value") or ""))
         from packages.evidence.normalization import normalize_agreement_value
@@ -530,19 +554,10 @@ def maybe_attach_conflict_agent_to_field_row(
         if normalize_agreement_value(name, raw) == normalize_agreement_value(
             name, chosen
         ):
-            matched = dict(cand)
+            matches.append(dict(cand))
             continue
         reordered.append(cand)
-    if matched is None:
-        matched = _agent_candidate(
-            value=chosen,
-            bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
-            image=image,
-            reason=resolution.reason,
-            variant="conflict_agent_resolve",
-        )
-    else:
-        matched = dict(matched)
+    for matched in matches:
         matched["reason_code"] = resolution.reason
         matched.setdefault("model_version", "unknown")
         matched.setdefault("model_name", matched.get("engine") or "unknown")
@@ -553,8 +568,13 @@ def maybe_attach_conflict_agent_to_field_row(
         image=image,
         reason=resolution.reason,
         variant="conflict_agent_resolve",
+        confidence=resolution.provider_confidence,
+        raw_response=resolution.raw_response,
+        engine=resolution.provider_engine,
     )
-    updated["candidates"] = [agent_cand, matched, *reordered]
+    # Retain every real agreeing reader. Replacing all matches with the last
+    # one deleted independent DI evidence and duplicated the agent's vote.
+    updated["candidates"] = [agent_cand, *matches, *reordered]
     cascade = dict(updated.get("cascade") or {})
     cascade["accepted"] = True
     cascade["accept_reason"] = resolution.reason
@@ -701,37 +721,18 @@ def maybe_resolve_financial_conflict(
                     updated_fields.append(row)
                     continue
                 current = dict(row)
-                current["financial_conflict_agent"] = {
+                current["financial_preference"] = {
                     "side": "LINES",
                     "value": line_total,
                     "reason": "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
                 }
-                current["conflict_agent"] = {
-                    "attempted": True,
-                    "resolved": True,
-                    "chosen": line_total,
-                    "rivals": [box28, line_total],
-                    "reason": "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
-                    "financial_side": "LINES",
-                }
                 cascade = dict(current.get("cascade") or {})
-                cascade["accepted"] = True
+                cascade["accepted"] = False
                 cascade["accept_reason"] = "CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES"
-                cascade["value"] = line_total
                 current["cascade"] = cascade
-                current["value"] = line_total
-                if len(bbox) == 4:
-                    agent_cand = _agent_candidate(
-                        value=line_total,
-                        bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
-                        image=image,
-                        reason="CONFLICT_AGENT_CENTS_COLUMN_PREFER_LINES",
-                        variant="conflict_agent_cents_column",
-                    )
-                    current["candidates"] = [
-                        agent_cand,
-                        *list(current.get("candidates") or []),
-                    ]
+                # This branch performs arithmetic, not a provider read.
+                # Keep the preference as a recommendation without an OCR vote.
+                current['financial_preference']['evidence_role'] = 'DETERMINISTIC_PREFERENCE_ONLY'
                 updated_fields.append(current)
             return updated_fields, service_lines
 
@@ -771,6 +772,9 @@ def maybe_resolve_financial_conflict(
             "rivals": list(resolution.rivals),
             "reason": resolution.reason,
             "financial_side": resolution.financial_side,
+            "provider_confidence": resolution.provider_confidence,
+            "raw_response": resolution.raw_response,
+            "provider_engine": resolution.provider_engine,
         }
         if resolution.resolved and resolution.chosen and resolution.financial_side:
             chosen = resolution.chosen
@@ -783,21 +787,22 @@ def maybe_resolve_financial_conflict(
                     chosen_amt = parse_currency(box28)
                     if chosen_amt is not None:
                         chosen = format_currency(chosen_amt)
-            agent_cand = _agent_candidate(
-                value=chosen,
-                bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
-                image=image,
-                reason=resolution.reason,
-                variant="conflict_agent_financial",
-            )
-            cands = [agent_cand, *list(current.get("candidates") or [])]
-            current["candidates"] = cands
+            from packages.claim_evidence.line_sum_authority import amounts_corroborate
+            # BOX28/LINES is a side choice, not an observed monetary token.
+            # Add a reader candidate only for an actual explicit amount reply.
+            if amounts_corroborate(resolution.raw_response, chosen):
+                agent_cand = _agent_candidate(value=chosen,
+                    bbox=(int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])),
+                    image=image, reason=resolution.reason, variant='conflict_agent_financial',
+                    confidence=resolution.provider_confidence, raw_response=resolution.raw_response,
+                    engine=resolution.provider_engine)
+                current['candidates'] = [agent_cand, *list(current.get('candidates') or [])]
             cascade = dict(current.get("cascade") or {})
-            cascade["accepted"] = True
+            cascade["accepted"] = False
             cascade["accept_reason"] = resolution.reason
             cascade["value"] = chosen
             current["cascade"] = cascade
-            current["status"] = "FIELD_ACCEPTED"
+            current["status"] = "CANDIDATES_OBSERVED"
             current["value"] = chosen
             # Signal for claim-evidence: prefer this side over FINANCIAL_CONFLICT.
             current["financial_conflict_agent"] = {

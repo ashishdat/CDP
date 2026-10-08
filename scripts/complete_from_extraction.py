@@ -178,7 +178,7 @@ def _load_registration_context(extraction):
                 except Exception:  # noqa: BLE001
                     historical = False
         if historical:
-            # CONFIRMED E3 requires confidence ≥ 0.80 — historical sha256 proves
+            # CONFIRMED E3 requires confidence â‰¥ 0.80 â€” historical sha256 proves
             # registration already succeeded; restore plumbing at the floor.
             confidence = 0.80
             for row in extraction.get('field_results') or []:
@@ -198,7 +198,7 @@ def _load_registration_context(extraction):
                             box = bbox
                             break
                 if box is None:
-                    # Synthetic unit ROI — plumbing only; never invents ink.
+                    # Synthetic unit ROI â€” plumbing only; never invents ink.
                     box = {'x0': 0.0, 'y0': 0.0, 'x1': 1.0, 'y1': 1.0}
                 try:
                     bbox_t = (
@@ -410,7 +410,7 @@ def decide(extraction, family):
             else:
                 region = None  # Missing observed ROI is not template-proven evidence.
         values['_box28_region'] = region
-        # Classify blankness before any derive path (OCR-empty ≠ confirmed blank).
+        # Classify blankness before any derive path (OCR-empty â‰  confirmed blank).
         try:
             from packages.claim_evidence.box28_blankness import classify_box28_blankness
 
@@ -468,7 +468,7 @@ def decide(extraction, family):
         if shaped is not None:
             values[rel_field] = shaped
     # Existing cross-field facts feed the existing decision rules. No evidence acquisition.
-    service_lines = extraction.get('service_lines') or []
+    service_lines = (extraction.get('service_lines') or []) if family == 'CMS1500' else []
     # Select printed Box 24F charges from charge-column OCR before any
     # Box 28 / line-sum verification. Stem resolution runs first; selector
     # never uses totals to pick a line amount.
@@ -490,8 +490,8 @@ def decide(extraction, family):
     # DJKN.004/007: live selector nullifies geometry-only DIGIT_DROP_FULLER vs
     # short vision. Restore extract-stage fuller only when Box 28 is a digit-drop
     # under-read AND open-source Box 28 does NOT also read that short amount
-    # (DJKN.001 paddle whitelist 200 agrees with DI 200 — keep printed 200;
-    # DJKN.004 paddle 2004 does not corroborate 200 — restore line 2001).
+    # (DJKN.001 paddle whitelist 200 agrees with DI 200 â€” keep printed 200;
+    # DJKN.004 paddle 2004 does not corroborate 200 â€” restore line 2001).
     try:
         from packages.claim_evidence.line_sum_authority import (
             amounts_corroborate,
@@ -565,7 +565,7 @@ def decide(extraction, family):
     except Exception:  # noqa: BLE001
         pass
     # Precision-safe charge total from tagged OCR only (C1/C2). Never invent
-    # Box 28 from a service-line Σ — that stays deferred / LINE_TOTALS.
+    # Box 28 from a service-line Î£ â€” that stays deferred / LINE_TOTALS.
     from packages.claim_evidence.charge_total_authority import (
         resolve_safe_charge_total,
     )
@@ -579,11 +579,11 @@ def decide(extraction, family):
         safe, _reason = resolve_safe_charge_total(
             primary=values.get(charge_field),
             field_payload=field_payload,
-            service_lines=None,  # do not mix line Σ into Box 28
+            service_lines=None,  # do not mix line Î£ into Box 28
         )
         if safe and parse_currency(safe) is not None:
             values[charge_field] = safe
-    # Prefer observed service-line Σ when box-28 is empty, suspicious-tiny, or
+    # Prefer observed service-line Î£ when box-28 is empty, suspicious-tiny, or
     # strongly contradicts multi-line charges (uncalibrated OCR soup).
     for charge_field in ('total_charge', 'total_charges'):
         if charge_field not in values:
@@ -636,7 +636,7 @@ def decide(extraction, family):
             ):
                 values[charge_field] = geo_whole
                 continue
-        # EJI2.036 / HJBI.005: local ×10 underread beside DI+Claude fuller.
+        # EJI2.036 / HJBI.005: local Ã—10 underread beside DI+Claude fuller.
         di_fuller = prefer_di_partner_fuller_over_local_underread(
             current_val, agent_candidates
         )
@@ -651,7 +651,7 @@ def decide(extraction, family):
             else ""
         )
         # L1 / DJJM.040: do not digit-drop-upgrade agent LINES cents-column picks
-        # (2.51 → 251) before the conflict-agent authority path runs.
+        # (2.51 â†’ 251) before the conflict-agent authority path runs.
         digit_alt = None
         if agent_side != "LINES":
             digit_alt = prefer_open_source_digit_drop_fuller_box28(
@@ -701,7 +701,7 @@ def decide(extraction, family):
                 if auth:
                     values[charge_field] = auth
                     continue
-                # Conflict-agent sole authority / uncorroborated bleed → clear so
+                # Conflict-agent sole authority / uncorroborated bleed â†’ clear so
                 # downstream fail-closed HITL can fire (never mint AUTO alone).
                 # Keep the agent pick bound when BOX28 authorize failed so a
                 # later geometry-underread path cannot invent a third total
@@ -711,13 +711,13 @@ def decide(extraction, family):
                 elif agent_val not in (None, ""):
                     values[charge_field] = agent_val
                 continue
-            # Uncorroborated BOX28/LINES without authorize attempt — keep agent
+            # Uncorroborated BOX28/LINES without authorize attempt â€” keep agent
             # value for HITL rather than clearing into geometry invention.
             if agent_side in {"BOX28", "LINES"} and agent_val not in (None, ""):
                 values[charge_field] = agent_val
                 continue
         # Defer band always wins over vision preserve. A gpt-4o/Claude Box28 that
-        # is a place-shift / digit-soup twin of Σ must not veto should_defer —
+        # is a place-shift / digit-soup twin of Î£ must not veto should_defer â€”
         # that re-arms FINANCIAL_CONFLICT after we cleared the contradictory shell.
         if current_val not in (None, '') and should_defer_box28_to_line_sum(
             current_val, service_lines, candidates=agent_candidates
@@ -736,11 +736,11 @@ def decide(extraction, family):
             )
 
             line_total = line_sum_total(service_lines)
-            # Never preserve form-ruling digit soup / 10×-off Azure totals.
-            # Also never preserve a decimal-place twin (45000 vs line Σ 450) —
+            # Never preserve form-ruling digit soup / 10Ã—-off Azure totals.
+            # Also never preserve a decimal-place twin (45000 vs line Î£ 450) â€”
             # that blocked should_defer and falsely minted DECIMAL_SHIFT_CONFLICT.
-            # Digit-drop Box 28 under-read of DIGIT_DROP_FULLER_LOCAL Σ
-            # (DJKN.004/007 200 vs 2001) must defer — do not preserve Claude/DI.
+            # Digit-drop Box 28 under-read of DIGIT_DROP_FULLER_LOCAL Î£
+            # (DJKN.004/007 200 vs 2001) must defer â€” do not preserve Claude/DI.
             if line_total and (
                 is_implausible_corroborator(current_val, line_total)
                 or is_decimal_place_shift(current_val, line_total)
@@ -794,7 +794,7 @@ def decide(extraction, family):
         if should_defer_box28_to_line_sum(current_val, service_lines):
             values[charge_field] = None
 
-    # Caption/index OCR (``8. TOTAL CHARGE`` + box 29 → 29.00) is not Box 28 ink.
+    # Caption/index OCR (``8. TOTAL CHARGE`` + box 29 â†’ 29.00) is not Box 28 ink.
     # Drop it before evidence build so it cannot veto a unanimous line sum.
     # A real printed total in the same string, or $100+, is not in this set.
     from packages.claim_evidence.box28_blankness import (
@@ -813,7 +813,7 @@ def decide(extraction, family):
         if current_amt is not None and format_currency(current_amt) in junk:
             values[charge_field] = None
 
-    # Promote DI cash ruling-split (``$ 222 |22`` → 222.22) into claim values
+    # Promote DI cash ruling-split (``$ 222 |22`` â†’ 222.22) into claim values
     # before ClaimEvidenceBuilder so bare ``222.00`` under-reads cannot mint
     # CLAIM_TOTAL_CONTRADICTION against the printed cents (DJKH.005/010).
     from packages.claim_evidence.line_charge_selector import _ruling_split_amount
@@ -870,7 +870,7 @@ def decide(extraction, family):
 
     # Strong line consensus owns E6: clear rival Box 28 before ClaimEvidenceBuilder
     # so CLAIM_TOTAL_CONTRADICTION / FINANCIAL_CONFLICT cannot re-arm (EJGE.037
-    # 1225 vs Σ 936 MULTI_LINE_GPT4O; HJBI.016 100 vs Σ 199; EJGE.041 ×100).
+    # 1225 vs Î£ 936 MULTI_LINE_GPT4O; HJBI.016 100 vs Î£ 199; EJGE.041 Ã—100).
     from packages.claim_evidence.line_sum_authority import (
         amounts_corroborate_or_cents_twin,
         is_decimal_place_shift,
@@ -915,7 +915,7 @@ def decide(extraction, family):
         ):
             values[charge_field] = None
             continue
-        # Scale twin of Σ even when blank reopen is only mixed — clear Box 28.
+        # Scale twin of Î£ even when blank reopen is only mixed â€” clear Box 28.
         if scale_soup:
             mix_ok, mix_reason = line_sum_auto_eligible(
                 service_lines,
@@ -951,8 +951,8 @@ def decide(extraction, family):
                                             claim_values=values, service_lines=service_lines)
     # Phase 2: when box-28 is empty but LINE_TOTALS_RECONCILED fired from observed
     # service-line charges, inject the derived total as a candidate (observed ink
-    # only). Never rewrite a printed Box 28 from Σ.
-    # Also bind DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES as operational Σ.
+    # only). Never rewrite a printed Box 28 from Î£.
+    # Also bind DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES as operational Î£.
     derived_totals = {}
     for item in facts.evidence_items:
         if item.evidence_type not in {
@@ -964,7 +964,7 @@ def decide(extraction, family):
             if item.value:
                 derived_totals[field_name] = item.value
                 if item.evidence_type == 'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES':
-                    # Operational value — label origin for audit; clear empty Box 28.
+                    # Operational value â€” label origin for audit; clear empty Box 28.
                     if values.get(field_name) in (None, ''):
                         values[field_name] = item.value
                     values['_total_charge_value_origin'] = (
@@ -997,7 +997,7 @@ def decide(extraction, family):
             # starves SCALE_TWIN_BOX28_DEFERRED → SINGLE_LINE_REQUIRES_DI (JB9.037).
             if is_implausible_corroborator(text, line_sum_total(service_lines)):
                 return
-            # Caption bleed / DI multi-token soup must not conflict with Σ.
+            # Caption bleed / DI multi-token soup must not conflict with Î£.
             if format_currency(parsed) in junk:
                 return
             seen.add(text)
@@ -1034,7 +1034,7 @@ def decide(extraction, family):
     for field_name, amount in list(derived_totals.items()):
         field_payload = next((f for f in fields if f.get('field_name') == field_name), {}) or {}
         # When Box 28 was deferred away from values, do not let the raw OCR shell
-        # re-enter as a corroborator (825.00 vs Σ 450.00 → false CONFLICT).
+        # re-enter as a corroborator (825.00 vs Î£ 450.00 â†’ false CONFLICT).
         corr = _charge_corroborators(field_payload)
         if values.get(field_name) in (None, ''):
             # Drop deferred contradiction shells (825 vs Σ 450), but keep exact
@@ -1085,7 +1085,7 @@ def decide(extraction, family):
         # Ranking may crown header junk (e.g. DOB "MM") while a shaped alternative
         # is calendar/format-valid. Borrow that E4 only for header chrome.
         # A nonempty failing winner (box label, short id, junk digits) must not
-        # inherit another candidate's pass — that fail-opens STP on the wrong value.
+        # inherit another candidate's pass â€” that fail-opens STP on the wrong value.
         if not check.passed and _may_borrow_passing_alternative(str(check_value)):
             for row in (f.get('alternatives') or []):
                 alt = (row.get('ocr_candidate') or {}).get('value') or ''
@@ -1145,7 +1145,7 @@ def decide(extraction, family):
         # v12.2 gap: insured_name CONFLICT / short-fragment when patient_name is a
         # strong accepted SELF twin. Inject the observed patient ink as a
         # competitor so fragment / confusable relief can prefer it (no invention).
-        # Non-Self (CHILD/SPOUSE/OTHER): Box 2 and Box 4 are independent — never
+        # Non-Self (CHILD/SPOUSE/OTHER): Box 2 and Box 4 are independent â€” never
         # copy patient ink into insured_name.
         if name == 'insured_name':
             from packages.candidate_reconciliation.reconciler import (
@@ -1244,7 +1244,7 @@ def decide(extraction, family):
                     # Box 4 printed SAME. Copying Box 2 over it is a different
                     # name, not fragment relief.
                     box4_says_same = any(_name_is_self_reference(v) for v in insured_vals)
-                    # Unknown relationship: only fragment/weak/label paths —
+                    # Unknown relationship: only fragment/weak/label paths â€”
                     # never soft_twin alone (could be a real different insured).
                     allow = (
                         soft_twin
@@ -1265,12 +1265,13 @@ def decide(extraction, family):
                         candidates.append(OCRCandidate(
                             value=patient_val,
                             raw_value=patient_val,
-                            engine='paddleocr',
+                            engine='claim_cross_field',
                             model_name='claim_cross_field',
                             model_version='v12.2-self-twin',
                             preprocessing_variant='PATIENT_NAME_SELF_TWIN',
-                            raw_confidence=0.9,
-                            calibrated_confidence=0.9,
+                            raw_confidence=0.0,
+                            calibrated_confidence=None,
+                            shadow_review_only=True,
                             bounding_box=base_box or BoundingBox(
                                 x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
                             ),
@@ -1279,8 +1280,8 @@ def decide(extraction, family):
                             preprocessing_version='v12.2-self-twin',
                         ))
             # Mirror: Box 2 patient_name missing E2 while Box 4 holds a soft OCR twin
-            # (FRANCAVLLA↔FRANCAVILLA). Inject the observed insured ink — no invention.
-            # Require soft name agreement — Self checkbox alone must NOT inject a
+            # (FRANCAVLLAâ†”FRANCAVILLA). Inject the observed insured ink â€” no invention.
+            # Require soft name agreement â€” Self checkbox alone must NOT inject a
             # divergent insured OCR (AJAY vs ARYA / CRMAUIANI vs CHANAUICNI) as a
             # patient rival; that false CONFLICT_MARGIN is not a patient_name fail.
             if name == 'patient_name':
@@ -1310,12 +1311,13 @@ def decide(extraction, family):
                         candidates.append(OCRCandidate(
                             value=insured_val,
                             raw_value=insured_val,
-                            engine='paddleocr',
+                            engine='claim_cross_field',
                             model_name='claim_cross_field',
                             model_version='v12.2-self-twin',
                             preprocessing_variant='INSURED_NAME_SELF_TWIN',
-                            raw_confidence=0.9,
-                            calibrated_confidence=0.9,
+                            raw_confidence=0.0,
+                            calibrated_confidence=None,
+                            shadow_review_only=True,
                             bounding_box=base_box or BoundingBox(
                                 x0=0, y0=0, x1=1, y1=1, image_width=1, image_height=1
                             ),
@@ -1325,7 +1327,7 @@ def decide(extraction, family):
                         ))
         # Prefer LINE_TOTALS derived amount over empty / invalid / deferred box-28 OCR.
         # Also prefer when strong line consensus can reopen blank Box 28 or the
-        # printed shell is a scale/decimal twin of Σ (past conflict-defer learning).
+        # printed shell is a scale/decimal twin of Î£ (past conflict-defer learning).
         _prefer_strong = False
         if name in {"total_charge", "total_charges"} and derived:
             from packages.claim_evidence.charge_total_authority import (
@@ -1370,7 +1372,7 @@ def decide(extraction, family):
                 )
                 or scale_soup
             )
-            # Never crown a bleed-cents line Σ over DI/vision+local Box 28 ink.
+            # Never crown a bleed-cents line Î£ over DI/vision+local Box 28 ink.
             if _prefer_strong and derived and is_units_bleed_cents(derived):
                 from packages.claim_evidence.line_sum_authority import (
                     prefer_box28_over_bleed_line_sum,
@@ -1390,7 +1392,7 @@ def decide(extraction, family):
             )
             or _prefer_strong
         )
-        # Bleed line Σ must not be injected at conf=1.0 when Box 28 is settled.
+        # Bleed line Î£ must not be injected at conf=1.0 when Box 28 is settled.
         if prefer_derived and derived and is_units_bleed_cents(derived):
             from packages.claim_evidence.line_sum_authority import (
                 prefer_box28_over_bleed_line_sum,
@@ -1455,7 +1457,7 @@ def decide(extraction, family):
                     if 'derived_from_verified_service' in variant:
                         continue
                     # Caption-index / DI multi-token amounts are not a second total.
-                    # Keep real rivals such as 17500 vs Σ 1031.
+                    # Keep real rivals such as 17500 vs Î£ 1031.
                     if format_currency(parse_currency(text)) in box28_junk_winner_amounts(
                         f, line_total=derived
                     ):
@@ -1464,7 +1466,7 @@ def decide(extraction, family):
             candidates = [derived_candidate] + retained
             check = deterministic.evaluate(name, derived, claim_values=values)
             if derived_from_blank:
-                # Derived total is arithmetic, not OCR — own E4/E6 path.
+                # Derived total is arithmetic, not OCR â€” own E4/E6 path.
                 check.evidence = set(check.evidence) | {
                     'DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES',
                     'E4_DERIVATION_VALIDATED',
@@ -1482,7 +1484,7 @@ def decide(extraction, family):
                 eligible, gate_reason = line_sum_gate.get(name, (False, 'UNSET'))
                 winner_val = f.get('normalized_value')
                 # Caption bleed / DI cents splits / DI multi-token soup are not
-                # printed Box 28 winners (29 vs Σ 450; 39 from $97|39; 100 from
+                # printed Box 28 winners (29 vs Î£ 450; 39 from $97|39; 100 from
                 # raw ``70 100 $`` beside agreed 70).
                 from packages.claim_evidence.box28_blankness import box28_junk_winner_amounts
                 from packages.claim_evidence.charge_total_authority import (
@@ -1510,7 +1512,7 @@ def decide(extraction, family):
 
                     return _dollars_part(text)
 
-                # Bleed Box 28 (.22/.43) beside whole-dollar Σ same stem → prefer Σ.
+                # Bleed Box 28 (.22/.43) beside whole-dollar Î£ same stem â†’ prefer Î£.
                 if (
                     winner_val
                     and derived
@@ -1542,7 +1544,7 @@ def decide(extraction, family):
                     )
                 )
                 # Strong line consensus already cleared weak Box 28 inside
-                # line_sum_auto_eligible — do not re-veto with a rival winner.
+                # line_sum_auto_eligible â€” do not re-veto with a rival winner.
                 _STRONG_LINE_GATES = {
                     "SINGLE_LINE_GPT4O_LOCAL",
                     "MULTI_LINE_GPT4O_LOCAL",
@@ -1556,13 +1558,13 @@ def decide(extraction, family):
                 }
                 if eligible and not winner_matches_lines and not scale_twin and not incomplete_grid:
                     if gate_reason in _STRONG_LINE_GATES:
-                        # Keep eligible; bind derived Σ (line consensus owns E6).
+                        # Keep eligible; bind derived Î£ (line consensus owns E6).
                         gate_reason = f"{gate_reason}+RIVAL_BOX28_DEFERRED"
                     else:
                         eligible = False
                         gate_reason = "BOX28_OR_DI_CONFLICT"
 
-                # Re-open when Σ is clean and lines independently agree, but the
+                # Re-open when Î£ is clean and lines independently agree, but the
                 # earlier gate used a conflicting Box 28 shell as corroborator.
                 if (
                     not eligible
@@ -1587,7 +1589,7 @@ def decide(extraction, family):
 
                 if eligible:
                     # Bleed-at-mint: never stamp CONFIRMED on units/ruling cents.
-                    # Prefer whole-dollar Σ / OCR sibling via ChargeTotalAuthority.
+                    # Prefer whole-dollar Î£ / OCR sibling via ChargeTotalAuthority.
                     bind_amount = derived or winner_val
                     if bind_amount and is_units_bleed_cents(bind_amount):
                         from packages.claim_evidence.charge_total_authority import (
@@ -1619,7 +1621,7 @@ def decide(extraction, family):
                                 gate_reason = "BLEED_CENTS_AT_MINT"
                 if eligible:
                     # Financial E6 only when dual-engine / gpt4o+local or DI/box-28.
-                    # Single ChargeTotalAuthority mint — stamp CONFIRMED so
+                    # Single ChargeTotalAuthority mint â€” stamp CONFIRMED so
                     # reconciler AUTO does not OR LINE_TOTALS alone.
                     check.evidence = set(check.evidence) | {
                         "LINE_TOTALS_RECONCILED",
@@ -1639,8 +1641,8 @@ def decide(extraction, family):
                     # Bind the (possibly bleed-repaired) amount into values.
                     if derived:
                         values[name] = format_currency(parse_currency(derived))
-                    # Deferred Box 28 rivals must not remain as competing shells —
-                    # keep only amounts that match the confirmed line Σ (plus the
+                    # Deferred Box 28 rivals must not remain as competing shells â€”
+                    # keep only amounts that match the confirmed line Î£ (plus the
                     # derived candidate already at the head of the list).
                     if derived and "RIVAL_BOX28_DEFERRED" in str(gate_reason or ""):
                         bind = format_currency(parse_currency(derived))
@@ -1654,7 +1656,7 @@ def decide(extraction, family):
                         if kept:
                             candidates = kept
                 else:
-                    # Observed line-sum stays as a candidate for review — no E6 AUTO.
+                    # Observed line-sum stays as a candidate for review â€” no E6 AUTO.
                     check.evidence = set(check.evidence) | {
                         "LINE_TOTALS_UNCORROBORATED",
                         f"LINE_TOTALS_GATE:{gate_reason}",
@@ -1668,9 +1670,9 @@ def decide(extraction, family):
 
             checks[name] = check.model_dump(mode='json')
 
-        # Bleed→OCR whole-dollar: independent of prefer_derived / line-sum gate.
+        # Bleedâ†’OCR whole-dollar: independent of prefer_derived / line-sum gate.
         # An OCR .00 sibling of units-bleed cents mints ChargeTotalAuthority
-        # CONFIRMED (DJKH.038/041 222.22→222.00). Also covers the early
+        # CONFIRMED (DJKH.038/041 222.22â†’222.00). Also covers the early
         # resolve_safe_charge_total rewrite that already put .00 into values.
         if (
             name in {"total_charge", "total_charges"}
@@ -1700,7 +1702,7 @@ def decide(extraction, family):
                 and _dollars_part(norm) == _dollars_part(primary)
                 and str(primary).endswith(".00")
             ):
-                # Early resolve_safe already rewrote bleed → OCR .00 sibling.
+                # Early resolve_safe already rewrote bleed â†’ OCR .00 sibling.
                 repaired = format_currency(parse_currency(primary))
                 repair_reason = "BLEED_CENTS_TO_WHOLE_DOLLAR"
             elif not primary:
@@ -1809,7 +1811,7 @@ def decide(extraction, family):
                 if item.evidence_type == 'CLAIM_TOTAL_CONFIRMED' and item.value:
                     meta = item.metadata or {}
                     # Cash ruling-split printed cents are intentional CONFIRMED
-                    # amounts (``$ 157 :07`` → 157.07) — bind them. Other bleed
+                    # amounts (``$ 157 :07`` â†’ 157.07) â€” bind them. Other bleed
                     # at mint must not enter candidate shells.
                     if is_units_bleed_cents(item.value):
                         if meta.get("reason") == "CASH_RULING_PRINTED_CENTS" or meta.get(
@@ -1822,7 +1824,7 @@ def decide(extraction, family):
                     confirmed = str(item.value)
                     break
             # LINE_TOTALS path stamps CONFIRMED on the check + values bind without
-            # always minting a builder evidence_item — still filter rivals to Σ.
+            # always minting a builder evidence_item â€” still filter rivals to Î£.
             if confirmed is None and "CLAIM_TOTAL_CONFIRMED" in set(check.evidence or []):
                 bound = values.get(name)
                 if bound and (
@@ -1843,7 +1845,7 @@ def decide(extraction, family):
                 if confirmed is not None:
                     if is_decimal_place_shift(text, confirmed):
                         continue
-                    # Exact confirmed wins — do not keep ±$1 bleed/ruling twins.
+                    # Exact confirmed wins â€” do not keep Â±$1 bleed/ruling twins.
                     if parse_currency(text) == parse_currency(confirmed):
                         exact_confirmed.append(cand)
                         continue
@@ -1973,7 +1975,7 @@ def decide(extraction, family):
                                 preprocessing_version="cash-ruling-printed-cents",
                             )
                         ] + list(candidates)
-            # FG / confirmed-total bind is arithmetic authority — mint E4/E6 facts.
+            # FG / confirmed-total bind is arithmetic authority â€” mint E4/E6 facts.
             if confirmed is not None and any(
                 item.evidence_type
                 in {
@@ -2008,6 +2010,15 @@ def decide(extraction, family):
                 check.passed = True
                 values[name] = confirmed
                 checks[name] = check.model_dump(mode='json')
+        field_ocr = f.get('ocr') or {}
+        if field_ocr.get('acquisition_executed') is False and field_ocr.get('status') == 'ACQUISITION_BLOCKED':
+            check.evidence.add('OCR_ACQUISITION_BLOCKED_LOCAL_ALIGNMENT')
+        if name in {'patient_dob', 'date_of_birth', 'dob'}:
+            from packages.extraction_recovery.dob_confirmation import dob_component_conflicts
+
+            dob_ocr = f.get('ocr') or {}
+            if dob_component_conflicts(dob_ocr.get('candidates'), dob_ocr.get('attempts')):
+                check.evidence.add('DOB_COMPONENT_CONFLICT')
         decisions.append(services.evidence_decision.decide(DecisionContext(
             field_name=name, document_family=family, criticality=policy.criticality,
             required=policy.required, blocks_stp=policy.blocks_stp,
@@ -2240,6 +2251,33 @@ def decide(extraction, family):
     except Exception as _twin_exc:  # noqa: BLE001
         print(f"[insured_twin_promote] skipped: {_twin_exc}", flush=True)
 
+    # Recheck the final selected DOB, including any later reference/rescue
+    # updates. A partial reader contradicting that value cannot be lost merely
+    # because another complete candidate happened to match the partial read.
+    from packages.extraction_recovery.dob_confirmation import dob_component_conflicts
+
+    ocr_by_field = {f['field_name']: f.get('ocr') or {} for f in fields}
+    for index, decision in enumerate(decisions):
+        if (decision.field_name in {'patient_dob', 'date_of_birth', 'dob'}
+                and decision.disposition in {FieldDisposition.AUTO_ACCEPTED, FieldDisposition.REFERENCE_CONFIRMED}
+                and dob_component_conflicts([{'value': decision.selected_value}],
+                    ocr_by_field.get(decision.field_name, {}).get('attempts'))):
+            decisions[index] = decision.model_copy(update={
+                'disposition': FieldDisposition.HUMAN_REVIEW_REQUIRED,
+                'next_action': NextAction.HUMAN_REVIEW,
+                'reason_codes': list(dict.fromkeys([*decision.reason_codes, 'DOB_COMPONENT_CONFLICT'])),
+            })
+    # A registered UB-04 crop needs its own local landmark evidence. Neither
+    # later reference rescue nor generic monetary heuristics may erase this gate.
+    if family == "UB04" and extraction.get("registered_form_path") == "UB04_GEOMETRY":
+        for index, decision in enumerate(decisions):
+            local = ocr_by_field.get(decision.field_name, {}).get("local_alignment") or {}
+            if not local.get("accepted") and services.field_policy.for_field(family, decision.field_name).blocks_stp:
+                decisions[index] = decision.model_copy(update={
+                    "disposition": FieldDisposition.HUMAN_REVIEW_REQUIRED,
+                    "next_action": NextAction.HUMAN_REVIEW, "blocks_stp": True,
+                    "reason_codes": list(dict.fromkeys([*decision.reason_codes, "LOCAL_ALIGNMENT_REQUIRES_REVIEW"])),
+                })
     claim = services.claim_decision.decide(ClaimDecisionContext(
         claim_id=claim_id, document_family=family, field_decisions=decisions,
         claim_evidence=facts.evidence_items, contradictions=facts.contradictions,
@@ -2263,13 +2301,16 @@ def decide(extraction, family):
         'field_decisions':[d.model_dump(mode='json') for d in decisions],
         'deterministic_checks':checks, 'claim_facts':facts.model_dump(mode='json'),
         'extracted_fields':fields,
+        'registered_form_path': extraction.get('registered_form_path'),
+        'local_alignment': extraction.get('local_alignment'),
+        'ub04_service_lines': extraction.get('service_lines') if family == 'UB04' else None,
         'registration_confidence':registration_confidence,
         'authorized_member_join': member_join_meta,
         'authorized_reference_authority': reference_authority_meta,
         'total_charge_audit': {
             'total_charge': values.get('total_charge') or values.get('total_charges'),
             'value_origin': values.get('_total_charge_value_origin') or (
-                'PRINTED_BOX28'
+                ('UB04_PRINTED_TOTAL' if family == 'UB04' else 'PRINTED_BOX28')
                 if (values.get('total_charge') or values.get('total_charges'))
                 not in (None, '')
                 else None
