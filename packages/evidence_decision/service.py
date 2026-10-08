@@ -249,6 +249,11 @@ class EvidenceDecisionService:
                 available=available,
                 missing=missing,
             )
+        if (context.field_name in {'patient_dob', 'date_of_birth', 'dob'}
+                and 'DOB_COMPONENT_CONFLICT' in context.deterministic_evidence):
+            return self._terminal(
+                context, FieldDisposition.HUMAN_REVIEW_REQUIRED, NextAction.HUMAN_REVIEW,
+                ['DOB_COMPONENT_CONFLICT'], bundle=bundle, available=available, missing=missing)
         reference = context.reference
         if reference and (reference.contradiction or reference.conflicts):
             return self._terminal(
@@ -303,7 +308,12 @@ class EvidenceDecisionService:
         if not context.hard_validation_passed:
             if not candidates or not any(candidate.value for candidate in candidates):
                 action = NextAction.CROP_RECOVERY
-                reasons = [*result.rationale_codes, "EMPTY_CROP", *gap_reasons, *route_reasons]
+                absence_reason = (
+                    'OCR_ACQUISITION_BLOCKED_LOCAL_ALIGNMENT'
+                    if 'OCR_ACQUISITION_BLOCKED_LOCAL_ALIGNMENT' in context.deterministic_evidence
+                    else 'EMPTY_CROP'
+                )
+                reasons = [*result.rationale_codes, absence_reason, *gap_reasons, *route_reasons]
             else:
                 action, next_reasons = self._next_action(context, available, missing)
                 reasons = [

@@ -350,7 +350,7 @@ def score_merged_against_agent_gt(
             "gt_path": str(gt_path),
             "claims_scored": 0,
             "accepted_fields_scored": 0,
-            "false_accepts": 0,
+            "false_accepts": None,
             "exact_matches": 0,
             "accepted_field_precision": None,
             "baseline_false_accepts": 0,
@@ -422,6 +422,15 @@ def score_merged_against_agent_gt(
     precision = (
         (accepted_scored - false_accepts) / accepted_scored if accepted_scored else None
     )
+    if claims_touched == 0 or accepted_scored == 0:
+        return {
+            'status': 'NO_OVERLAP', 'gt_path': str(gt_path),
+            'claims_scored': claims_touched, 'accepted_fields_scored': accepted_scored,
+            'false_accepts': None, 'exact_matches': exact,
+            'accepted_field_precision': None, 'baseline_false_accepts': 0,
+            'false_accept_examples': [], 'gold_only': gold_only,
+            'quarantine_applied': apply_quarantine, 'quarantined_fields': quarantined,
+        }
     return {
         "status": "SCORED",
         "gt_path": str(gt_path),

@@ -1,0 +1,142 @@
+{
+  "version": "independent-failure-recovery-v2",
+  "created_at": "2026-10-04T15:37:35.932849+00:00",
+  "baseline": {
+    "finished": 79,
+    "outcomes": {
+      "REGISTRATION_FAILED": 15,
+      "HITL": 51,
+      "TRUE_STP": 13
+    },
+    "critical_blockers": {
+      "patient_name": 10,
+      "patient_dob": 23,
+      "total_charge": 37,
+      "insured_id_number": 4
+    },
+    "mechanisms_can_overlap": {
+      "INSUFFICIENT_SPATIAL_SUPPORT": 10,
+      "UNSAFE_TRANSFORM": 9,
+      "MISSING_CORROBORATING_EVIDENCE": 66,
+      "EMPTY_OCR_NOT_PROVEN_BLANK": 7,
+      "INVALID_VALUE": 23,
+      "CANDIDATE_DISAGREEMENT": 14,
+      "CALIBRATION_OR_CONFIDENCE_GAP": 16,
+      "REGISTRATION_UNRESOLVED": 5,
+      "UNRESOLVED_CRITICAL_FIELD": 3
+    }
+  },
+  "causes_and_fixes": [
+    {
+      "gap": "Forced form-family assumption",
+      "evidence": "Runner previously defaulted document_type to CMS1500 and skipped single-page classification",
+      "fix": "AUTO classification on pooled and subprocess paths; explicit operator overrides remain available",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "gap": "Insufficient distributed registration anchors",
+      "evidence": "13 of 15 prior failed samples pass original geometry gates with bounded 6000/12000 feature budgets; this proves recovery effectiveness, not a physical scan defect",
+      "fix": "Physical point deduplication; safe RANSAC selection; bounded feature expansion; content veto remains enforced",
+      "status": "IMPLEMENTED_AND_LOCALLY_REPLAYED"
+    },
+    {
+      "gap": "Unverified charge evidence",
+      "evidence": "Total charge blocks 37 of 51 HITL claims; line reconciliation alone often lacks independent Box28 confirmation",
+      "fix": "Check Box28 crop provenance and independent engine/source evidence; reconcile observed line charges; rerun existing evidence and claim decisions; unresolved evidence stays HITL",
+      "status": "DIAGNOSIS_AND_RECOVERY_PLAN_IMPLEMENTED; EVIDENCE_ACQUISITION_REQUIRES_QUALIFICATION"
+    },
+    {
+      "gap": "DOB recognition and candidate selection",
+      "evidence": "DOB blocks 23 HITL claims; saved replay showed invalid candidate outranking validator-compatible alternative",
+      "fix": "Calendar validation, compact/ISO format support, ranking with existing deterministic parser; localized alternate OCR for unresolved crops",
+      "status": "IMPLEMENTED; REMAINING_OCR_ERRORS_REQUIRE_REVIEW"
+    },
+    {
+      "gap": "False irreducibility annotation",
+      "evidence": "Old annotator applied IRREDUCIBLE_NO_CLAIM_INK to every REG class including EMPTY_OCR, OTHER and CLAIM_FORM",
+      "fix": "Cached evidence audit; positive role signatures only; unknown/empty/missing text requires review; no automatic cloud calls or denominator rewriting",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "gap": "Unstructured field-presence STP shortcut",
+      "evidence": "Old router and legacy fallback assigned TRUE_STP when four critical keys were present without governed field/claim decisions",
+      "fix": "Unstructured output remains candidates/HITL until governed decision services accept it; no presence-based STP",
+      "status": "IMPLEMENTED"
+    },
+    {
+      "gap": "Evaluation and domain-shift uncertainty",
+      "evidence": "Only 79/200 selected samples finished; no independently adjudicated truth; historical 1000 reports have 797 vs 809 STP and track totals inconsistent with one summary HITL total",
+      "fix": "Immutable ledger hashes and run contracts binding dataset, classification, component/configuration hashes and runtime settings; versioned cohorts; verified page roles; bundle-disjoint holdout; independent labels and accepted-field error audit",
+      "status": "AUDIT_AND_RESUME_CONTRACT_IMPLEMENTED; LABELS_AND_FRESH_HOLDOUT_REQUIRED"
+    }
+  ],
+  "architecture": [
+    {
+      "stage": "Source and cohort contract",
+      "owner": "datasets/registry.py",
+      "contract": "Source SHA256, dataset/version, document and bundle identities, immutable split; run contract rejects missing or changed policy/configuration/routing fingerprints and preserves old results"
+    },
+    {
+      "stage": "Page identity",
+      "owner": "packages/recovery/independent_failures.py + existing classifier",
+      "contract": "CMS1500 / UB04 / other-claim / non-claim candidate / unknown; claim cues override cover labels; blank OCR is not blank-page proof"
+    },
+    {
+      "stage": "Template and registration authority",
+      "owner": "workers/page_detection/template_alignment.py + app.register_classified_document",
+      "contract": "Template lineage, reference asset, bounded 3000->6000->12000 descriptors, all original transform gates and content veto"
+    },
+    {
+      "stage": "ROI and candidate extraction",
+      "owner": "packages/geometry_authority + packages/extraction_recovery/field_cascade.py",
+      "contract": "Registered ROI, original crop hash, engine/model/preprocessing provenance; no guessed digits or invented values"
+    },
+    {
+      "stage": "Evidence and deterministic validation",
+      "owner": "packages/evidence_decision.service + packages/validation_rules",
+      "contract": "Calendar validity, observed Box28/line totals, truly independent corroboration, calibration and conflict checks"
+    },
+    {
+      "stage": "Final acceptance",
+      "owner": "packages/claim_decision/service.py",
+      "contract": "Only governed decisions authorize STP; recovery planners and raw field presence cannot finalize"
+    },
+    {
+      "stage": "Bounded recovery and terminal review",
+      "owner": "packages/recovery/independent_failures.py + existing recovery routers",
+      "contract": "Observed mechanism distinct from physical cause; maximum 2 registration feature retries; evidence acquisition budgeted by existing stop ladder; exhausted/unavailable tools go to HITL"
+    },
+    {
+      "stage": "Auditable outcomes",
+      "owner": "scripts/run_hackathon_1000_cascade.py + scripts/audit_independent_failures.py",
+      "contract": "Same versioned diagnosis in result.json and ledger; offline audit has zero cloud calls; preserve stage failures and unverified page roles separately"
+    }
+  ],
+  "execution_state": "BENCHMARK_REMAINS_STOPPED",
+  "cloud_state": "NO_EXTERNAL_TRANSFER; EXPLICIT_AUTHORIZATION_REQUIRED",
+  "tests": {
+    "targeted_passed": 77,
+    "validation": "Offline synthetic regression tests plus read-only audit of 79 preserved real outcomes; no post-fix full STP measurement"
+  },
+  "qualification_plan": [
+    "Create a new immutable cohort with no overlap by source hash or bundle with tuning samples",
+    "Independently adjudicate each critical field and verify page roles; retain uncertain labels separately",
+    "Freeze template, models, recovery policy, calibration, profile and tool capabilities before inference",
+    "Run fresh output directories; do not merge old forced-CMS or candidate-only STP rows with new automatic-classification outcomes",
+    "Report STP/HITL/stage failures/non-claim candidates on all selected documents; claim-only metrics require verified roles",
+    "Audit accepted-field errors and false accepts, and stratify by family, handwriting, scan geometry, field and source pool",
+    "Measure latency, model memory, timeout rate, recovery attempts and cloud cost only for authorized capabilities"
+  ],
+  "evidence": {
+    "audit_file": "evaluation_results\\benchmark_4x50_20261004\\independent_failure_audit_v2.json",
+    "audit_sha256": "b658a1de0f4c287629ede85a1f766ac7ec26de7c70dd3c70cb2f46f65ba8b3d1",
+    "prior_registration_fix_report": "evaluation_results\\benchmark_4x50_20261004\\stp_fix_replay\\fix_report.json"
+  },
+  "limitations": [
+    "Historical reports are secondary summaries; original Independent-600/400 ledgers are unavailable in this checkout",
+    "The two residual registration samples still fail geometry checks",
+    "Missing corroborating evidence and independent labels cannot be repaired by lowering acceptance thresholds",
+    "New recovery plans annotate and route failures; no additional automatic inference was launched",
+    "Existing output ledgers without the new run contract require a fresh output directory; old and new metrics cannot be resumed together"
+  ]
+}

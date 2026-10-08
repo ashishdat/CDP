@@ -1,4 +1,4 @@
-# Independent case toolstack v1 — page-class → recovery path
+# Independent case toolstack v1 â€” page-class â†’ recovery path
 # Consumed by packages.extraction_recovery.independent_case_router
 #
 # Field residual ladders remain in field_recovery_toolstack_v13.yaml
@@ -13,10 +13,16 @@ critical_fields:
   - insured_id_number
   - total_charge
 
-# document_finance.DocumentFamily → CasePath
+# document_finance.DocumentFamily â†’ CasePath
 family_paths:
+  UB04_GEOMETRY:
+    description: Registered UB-04 with local printed-landmark gates and institutional service-line schema
+    disposition: CMS_CLAIM_DECISION
+    acceptance_owner: packages.claim_decision.service.ClaimDecisionService
+    tools: [sift_register, ub04_local_alignment, dual_local_ocr, claim_decision]
+    fallback: UNSTRUCTURED_DI
   CMS1500: CMS_GEOMETRY
-  UB04: UNSTRUCTURED_DI
+  UB04: UB04_GEOMETRY
   REIMBURSEMENT_SUPERBILL: UNSTRUCTURED_DI
   RUNNING_ACCOUNT_STATEMENT: UNSTRUCTURED_DI
   EOB: MAILROOM_REG
@@ -25,6 +31,12 @@ family_paths:
   UNKNOWN: CMS_GEOMETRY
 
 paths:
+  UB04_GEOMETRY:
+    description: Registered UB-04 with local printed-landmark gates and institutional service-line schema
+    disposition: CMS_CLAIM_DECISION
+    acceptance_owner: packages.claim_decision.service.ClaimDecisionService
+    tools: [sift_register, ub04_local_alignment, dual_local_ocr, claim_decision]
+    fallback: UNSTRUCTURED_DI
   MAILROOM_REG:
     description: Document separator / fax boilerplate / non-claim attachment
     disposition: KEEP_REG
@@ -40,15 +52,17 @@ paths:
       - field_recovery_toolstack_v13
       - claim_decision
   UNSTRUCTURED_DI:
-    description: Full-page Azure DI + precision-safe heuristics (UB-04 / freeform)
+    description: Full-page Azure DI yields candidates (UB-04 / freeform); governed decisions required for STP
     disposition: UNSTRUCTURED_PROMOTE
+    field_presence_authorizes_stp: false
+    acceptance_owner: packages.claim_decision.service.ClaimDecisionService
     hitl_track: UNSTRUCTURED_DI
     tools:
       - azure_di_page_read
       - unstructured_heuristics
       - optional_text_agent  # kill-switched via CDP_UNSTRUCTURED_REG_AGENT
   FIELD_INK_RESIDUAL:
-    description: Registered CMS with weak critical field — residual ladder only
+    description: Registered CMS with weak critical field â€” residual ladder only
     disposition: CMS_CLAIM_DECISION
     hitl_track: FIELD_INK
     tools:

@@ -311,6 +311,8 @@ class ClaimDecisionService:
         context: ClaimDecisionContext,
     ) -> ClaimDecisionContext:
         """Fail-closed: placeholder / form-junk AUTO → HUMAN_REVIEW (HITL)."""
+        if not context.enforce_value_accept_policy:
+            return context
         patient_name = next(
             (
                 d.selected_value

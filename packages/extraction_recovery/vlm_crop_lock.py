@@ -47,18 +47,26 @@ def vlm_crop_lock():
             _THREAD_LOCAL.depth = depth
         return
 
-    import fcntl
+    from packages.file_lock import lock_exclusive, unlock
 
+    from packages.extraction_recovery.doc_latency_budget import get_doc_budget
+    budget = get_doc_budget()
+    timeout_seconds = float(os.environ.get("CDP_VLM_CROP_LOCK_TIMEOUT_SECONDS") or "30")
+    if budget is not None:
+        remaining = float(os.environ.get("CDP_CLOUD_RECOVERY_DEADLINE_SECONDS") or "210")-budget.elapsed()
+        if remaining <= 0:
+            raise TimeoutError("VLM_CROP_RECOVERY_BUDGET_EXHAUSTED")
+        timeout_seconds = min(timeout_seconds,remaining)
     path = _lock_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    handle = path.open("w", encoding="utf-8")
+    handle = path.open("a+", encoding="utf-8")
     try:
-        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        lock_exclusive(handle, timeout_seconds=timeout_seconds)
         _THREAD_LOCAL.depth = 1
         try:
             yield
         finally:
             _THREAD_LOCAL.depth = 0
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+            unlock(handle)
     finally:
         handle.close()

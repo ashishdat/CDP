@@ -43,6 +43,17 @@ def preprocess_registration(image: np.ndarray) -> PreprocessedRegistrationImage:
     matrix[:, 2] -= minimum
     size = tuple(np.ceil(maximum - minimum).astype(int))
     deskewed = cv2.warpAffine(image, matrix, size, borderValue=255)
+    # Trim empty scanner margins on the feature image only. Restore all
+    # keypoints through the composed transform into original source pixels.
+    foreground = np.argwhere(deskewed < 200)
+    crop_offset = [0, 0]
+    if len(foreground) >= 50:
+        low = np.maximum(foreground.min(axis=0) - 20, 0)
+        high = np.minimum(foreground.max(axis=0) + 21, deskewed.shape)
+        if (high[0]-low[0]) >= height*.5 and (high[1]-low[1]) >= width*.5:
+            crop_offset = [int(low[1]), int(low[0])]
+            deskewed = deskewed[low[0]:high[0],low[1]:high[1]]
+            matrix[:, 2] -= np.array(crop_offset)
     ink = cv2.adaptiveThreshold(deskewed, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                cv2.THRESH_BINARY_INV, 31, 15)
     h, w = ink.shape
@@ -65,6 +76,7 @@ def preprocess_registration(image: np.ndarray) -> PreprocessedRegistrationImage:
             retained[labels == label] = 0
     return PreprocessedRegistrationImage(255 - retained, cv2.invertAffineTransform(matrix), {
         "deskew_degrees": angle,
+        "feature_crop_offset": crop_offset,
         "line_pixels_removed": int(np.count_nonzero(rules & ~crossings)),
         "text_pixels_retained": int(np.count_nonzero(retained)),
         "text_pixels_retained_basis": "Foreground proxy, not OCR-confirmed text",

@@ -29,6 +29,7 @@ COPY packages ./packages
 COPY apps ./apps
 COPY workers ./workers
 COPY config ./config
+COPY templates ./templates
 
 RUN pip install --no-cache-dir ".[ocr]"
 

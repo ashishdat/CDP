@@ -19,7 +19,7 @@ def get_shared_trocr_adapter(
     device: str = "auto",
     min_confidence: float = 0.55,
 ) -> TrOCRAdapter:
-    """Process-wide TrOCR singleton — avoids reloading weights on every residual."""
+    """Process-wide TrOCR singleton â€” avoids reloading weights on every residual."""
     key = (str(model_name or ""), str(device or "auto"), float(min_confidence))
     with _ADAPTER_LOCK:
         hit = _ADAPTER_CACHE.get(key)
@@ -82,10 +82,40 @@ class TrOCRAdapter:
             if self._requested_device == "auto" and torch.cuda.is_available()
             else ("cpu" if self._requested_device == "auto" else self._requested_device)
         )
-        self._processor = TrOCRProcessor.from_pretrained(self.model_name)
-        self._model = VisionEncoderDecoderModel.from_pretrained(self.model_name)
-        self._model.to(self._device)
-        self._model.eval()
+        def load_cached_first(factory):
+            # PRODUCT can have valid cached weights while the Hub metadata
+            # endpoint is unavailable. Do not require that network round trip.
+            from pathlib import Path
+
+            checkpoint = self.model_name if Path(self.model_name).is_dir() else None
+            if checkpoint is None:
+                try:
+                    from huggingface_hub import try_to_load_from_cache
+
+                    cached = try_to_load_from_cache(self.model_name, 'config.json')
+                    if isinstance(cached, str) and Path(cached).parent.is_dir():
+                        checkpoint = str(Path(cached).parent)
+                except (ImportError, OSError, ValueError):
+                    pass
+            if checkpoint is None:
+                raise RuntimeError(
+                    'TrOCR local model bundle is unavailable; provision it before enabling this reader. '
+                    'Claim processing never downloads model files.'
+                )
+            try:
+                return factory.from_pretrained(checkpoint, local_files_only=True)
+            except OSError as exc:
+                raise RuntimeError(
+                    'TrOCR local model bundle is unavailable; provision it before enabling this reader. '
+                    'Claim processing never downloads model files.'
+                ) from exc
+
+        processor = load_cached_first(TrOCRProcessor)
+        model = load_cached_first(VisionEncoderDecoderModel)
+        model.to(self._device)
+        model.eval()
+        # Publish together: a failed model load must not leave a half-loaded adapter.
+        self._processor, self._model = processor, model
 
     def recognize(self, crop: Image.Image) -> TrOCRResult:
         return self.recognize_batch([crop])[0]

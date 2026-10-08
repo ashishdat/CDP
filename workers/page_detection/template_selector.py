@@ -1,7 +1,9 @@
 """Conservative template/page selection using existing matching implementations."""
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
+import hashlib
 from math import isfinite
+from time import perf_counter
 
 from packages.domain.enums import ClaimFormType
 from workers.page_detection.anchor_matching import verify_anchors
@@ -92,6 +94,8 @@ class TemplateSelector:
         return None
 
     def select(self, images, *, text_lines, document_type=None):
+        roles = {}
+        families = {}
         templates = sorted(
             (template for family in ClaimFormType
              for template in self.registry.all_for_form_type(family)),
@@ -104,6 +108,31 @@ class TemplateSelector:
                 return TemplateSelection(None, 0.0, "UNKNOWN_DOCUMENT_TYPE", [])
         pairs = [(template, page, image) for template in templates
                  for page, image in enumerate(images, 1)]
+        if document_type is None:
+            import re
+
+            from packages.recovery.independent_failures import (
+                NON_CLAIM_CANDIDATES,
+                PageRole,
+                classify_page_text,
+            )
+            texts = {page: "\n".join(
+                str(getattr(line, "text", line)) for line in text_lines.get(page, [])
+            ) for page in range(1, len(images) + 1)}
+            roles = {page: classify_page_text(text) for page, text in texts.items()}
+            for page, text in texts.items():
+                if (re.search(r"UB[- ]?04|CMS[- ]?1450", text, re.IGNORECASE) and
+                        re.search(r"CMS[- ]?1500|NUCC|HEALTH INSURANCE CLAIM", text, re.IGNORECASE)):
+                    roles[page] = PageRole.UNKNOWN  # Preserve mixed-family ambiguity.
+            families = {PageRole.CMS1500: "CMS1500", PageRole.UB04: "UB04"}
+            has_claim_page = any(role in families for role in roles.values())
+            # Cover signatures may exclude a page from geometry only when a
+            # separate claim page is positively identified in the same bundle.
+            # All original pages remain available as bundle attachments.
+            pairs = [(template, page, image) for template, page, image in pairs
+                     if (roles[page] not in families or
+                         template.form_type.value == families[roles[page]])
+                     and not (has_claim_page and roles[page] in NON_CLAIM_CANDIDATES)]
         candidates = [{"template_id": template.template_id, "template_version": template.version,
                        "page_number": page, "scores": {}, "reasons": []}
                       for template, page, _ in pairs]
@@ -114,19 +143,22 @@ class TemplateSelector:
         scores = []
         for candidate, (template, page, _) in zip(candidates, pairs, strict=True):
             anchors = verify_anchors(text_lines.get(page, []), template.anchor_definitions)
-            candidate["scores"]["anchors"] = anchors.confidence
+            qualification = anchors.required_confidence if anchors.required_confidence is not None else anchors.confidence
+            candidate["scores"]["anchors"] = qualification
             candidate["diagnostics"] = {
                 "anchor_count": len(template.anchor_definitions),
                 "matched_anchor_count": len(anchors.matched_phrases),
                 "matched_anchor_phrases": list(anchors.matched_phrases),
                 "expected_anchors": [anchor.phrase for anchor in template.anchor_definitions],
                 "missing_required_anchors": list(anchors.missing_required),
+                "all_anchor_confidence": anchors.confidence,
+                "required_anchor_confidence": qualification,
                 "thresholds": {"anchors": ANCHOR_CONFIDENT_THRESHOLD,
                                "features": GRID_CONFIDENT_THRESHOLD,
                                "registration": ALIGNMENT_CONFIDENT_THRESHOLD},
             }
-            if anchors.all_required_matched and anchors.confidence >= ANCHOR_CONFIDENT_THRESHOLD:
-                scores.append((candidate, anchors.confidence))
+            if anchors.all_required_matched and qualification >= ANCHOR_CONFIDENT_THRESHOLD:
+                scores.append((candidate, qualification))
         selected = self._choose(candidates, scores, "ANCHOR_MATCH")
         if selected:
             return selected
@@ -150,32 +182,54 @@ class TemplateSelector:
             if selected:
                 return selected
             scores = []
+            probe_started = perf_counter()
+            probe_cache = {}
             for candidate, (template, _, image) in zip(candidates, pairs, strict=True):
+                if perf_counter() - probe_started >= 60:
+                    # Unexamined pages are unknown, never negative evidence.
+                    # Do not accept a partial winner when bundle ambiguity
+                    # could remain among the unexamined candidates.
+                    return TemplateSelection(None, 0.0, 'TEMPLATE_PROBE_BUDGET_EXHAUSTED', candidates)
                 reference = references[(template.template_id, template.version)]
                 if reference is None:
                     continue
-                with registration_context(template_id=template.template_id, page_number=candidate["page_number"]):
-                    result = align_to_reference(image, reference, family=template.form_type.value,
-                                                enforce_compatibility_precheck=True)
-                    # Ops ladder offers LINEAGE_PRECHECK_BYPASS after selection.
-                    # Selector must soft-retry lineage misses so CMS pages that
-                    # fail only the cheap lineage gate still reach registration.
-                    lineage_miss = (
-                        not result.accepted
-                        and result.evidence is not None
-                        and "template_lineage_mismatch"
-                        in str(result.evidence.rejection_reason or "")
-                    )
-                    if lineage_miss:
-                        if result.warped is not None:
-                            result.warped.close()
-                        result = align_to_reference(
-                            image,
-                            reference,
-                            family=template.form_type.value,
-                            enforce_compatibility_precheck=False,
-                        )
+                probe_key = (candidate["page_number"], template.form_type.value,
+                             reference.mode, reference.size,
+                             hashlib.sha256(reference.tobytes()).hexdigest())
+                cached = probe_cache.get(probe_key)
+                if cached is not None:
+                    result, bypassed = cached
+                    candidate["diagnostics"]["equivalent_reference_probe_reused"] = True
+                    if bypassed:
                         candidate["diagnostics"]["lineage_precheck_bypass"] = True
+                else:
+                    with registration_context(template_id=template.template_id, page_number=candidate["page_number"]):
+                        result = align_to_reference(image, reference, family=template.form_type.value,
+                                                    enforce_compatibility_precheck=True, allow_recovery=False)
+                        # Ops ladder offers LINEAGE_PRECHECK_BYPASS after selection.
+                        # Selector must soft-retry lineage misses so CMS pages that
+                        # fail only the cheap lineage gate still reach registration.
+                        lineage_miss = (
+                            not result.accepted
+                            and result.evidence is not None
+                            and "template_lineage_mismatch"
+                            in str(result.evidence.rejection_reason or "")
+                        )
+                        if lineage_miss:
+                            if result.warped is not None:
+                                result.warped.close()
+                            result = align_to_reference(
+                                image,
+                                reference,
+                                family=template.form_type.value,
+                                enforce_compatibility_precheck=False, allow_recovery=False,
+                            )
+                            candidate["diagnostics"]["lineage_precheck_bypass"] = True
+                    # Cache only measurements, never an owned warped image.
+                    probe_cache[probe_key] = (
+                        replace(result, warped=None),
+                        bool(candidate["diagnostics"].get("lineage_precheck_bypass")),
+                    )
                 try:
                     score = result.alignment_score
                     candidate["scores"]["registration"] = score if isfinite(score) else None
@@ -209,7 +263,31 @@ class TemplateSelector:
                 finally:
                     if result.warped is not None:
                         result.warped.close()
-            return self._choose(candidates, scores, "REGISTRATION_CONFIDENCE") or TemplateSelection(
+            accepted = self._choose(candidates, scores, "REGISTRATION_CONFIDENCE")
+            if accepted is not None:
+                return accepted
+            near_misses=[]
+            for candidate in candidates:
+                evidence=candidate.get("diagnostics",{}).get("registration_evidence") or {}
+                reasons=set(filter(None,str(evidence.get("rejection_reason") or "").split(",")))
+                score=candidate.get("scores",{}).get("registration")
+                if (reasons == {"insufficient_inliers"} and evidence.get("corner_validity")
+                        and isinstance(score,(int,float)) and isfinite(score)
+                        and score >= ALIGNMENT_CONFIDENT_THRESHOLD):
+                    candidate["diagnostics"]["requires_full_recovery"] = True
+                    near_misses.append((candidate,0.0))
+            proposed=self._choose(candidates,near_misses,"GEOMETRY_NEAR_MISS_RECOVERY_CANDIDATE")
+            if proposed is not None:
+                return proposed  # Proposal only; full registration must pass every gate.
+            # A unique positively identified claim page may enter the full
+            # registration recovery ladder. This is a proposal, not accepted
+            # geometry: the application still enforces every registration gate.
+            hints = [(candidate, 0.0) for candidate in candidates
+                     if references.get((candidate['template_id'], candidate['template_version'])) is not None
+                     and families.get(roles.get(candidate['page_number'])) ==
+                     self.registry.get(candidate['template_id'], candidate['template_version']).form_type.value]
+            proposed = self._choose(candidates, hints, "CLAIM_FAMILY_RECOVERY_CANDIDATE")
+            return proposed or TemplateSelection(
                 None, 0.0, "NO_TEMPLATE_ABOVE_THRESHOLD", candidates)
         finally:
             for reference in references.values():

@@ -197,13 +197,14 @@ def plan_field_escalation(
             review_only=True,
         )
 
-    if gap in {"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS"} and field in {
+    if gap in {"HANDWRITING_UNREADABLE", "AMBIGUOUS_DIGIT_FRAGMENTS",
+               "EVIDENCE_POLICY_GAP", "DOB_COMPONENT_CONFLICT"} and field in {
         "patient_dob",
         "date_of_birth",
     }:
         # Prefer local TrOCR over Azure DI for DOB handwriting residuals.
-        # Do NOT blanket-match every patient_dob gap — calibration/conflict
-        # rejects already have date-shaped local ink and TrOCR only burns CPU.
+        # Missing confirmation can need a reader even when one date is shaped.
+        # Calibration and missing registration remain outside this route.
         if trocr_enabled and not trocr_attempted:
             return EscalationDecision(
                 EscalationTool.TROCR,

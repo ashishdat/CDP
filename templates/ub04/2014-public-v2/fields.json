@@ -1,0 +1,179 @@
+{
+  "field_regions": [
+    {
+      "field_name": "patient_name",
+      "field_type": "text",
+      "padding_px": 0,
+      "postprocessor": null,
+      "x0": 92,
+      "x1": 634,
+      "y0": 266,
+      "y1": 292
+    },
+    {
+      "field_name": "patient_dob",
+      "field_type": "date",
+      "padding_px": 0,
+      "postprocessor": null,
+      "x0": 73,
+      "x1": 238,
+      "y0": 328,
+      "y1": 352
+    },
+    {
+      "field_name": "insured_id_number",
+      "field_type": "code",
+      "padding_px": 0,
+      "postprocessor": null,
+      "x0": 624,
+      "x1": 997,
+      "y0": 1498,
+      "y1": 1523
+    },
+    {
+      "field_name": "total_charge",
+      "field_type": "currency",
+      "padding_px": 0,
+      "postprocessor": null,
+      "x0": 1210,
+      "x1": 1390,
+      "y0": 1314,
+      "y1": 1338
+    },
+    {
+      "field_name": "type_of_bill",
+      "field_type": "code",
+      "padding_px": 0,
+      "postprocessor": null,
+      "x0": 1538,
+      "x1": 1626,
+      "y0": 143,
+      "y1": 169
+    },
+    {
+      "field_name": "patient_control_number",
+      "field_type": "code",
+      "padding_px": 0,
+      "postprocessor": null,
+      "x0": 1082,
+      "x1": 1526,
+      "y0": 114,
+      "y1": 137
+    },
+    {
+      "field_name": "provider_npi",
+      "field_type": "npi",
+      "padding_px": 0,
+      "postprocessor": null,
+      "x0": 1348,
+      "x1": 1626,
+      "y0": 1345,
+      "y1": 1368
+    },
+    {
+      "field_name": "federal_tax_no",
+      "field_type": "tax_id",
+      "padding_px": 0,
+      "postprocessor": null,
+      "x0": 1025,
+      "x1": 1206,
+      "y0": 206,
+      "y1": 230
+    },
+    {
+      "field_name": "principal_diagnosis",
+      "field_type": "code",
+      "padding_px": 0,
+      "postprocessor": null,
+      "x0": 95,
+      "x1": 221,
+      "y0": 1713,
+      "y1": 1738
+    }
+  ],
+  "reference_dimensions": {
+    "height_px": 2216,
+    "width_px": 1711
+  },
+  "service_line_region": {
+    "columns": [
+      {
+        "field_name": "revenue_code",
+        "field_type": "code",
+        "padding_px": 0,
+        "postprocessor": null,
+        "x0": 73,
+        "x1": 155,
+        "y0": 0,
+        "y1": 0
+      },
+      {
+        "field_name": "description",
+        "field_type": "text",
+        "padding_px": 0,
+        "postprocessor": null,
+        "x0": 162,
+        "x1": 628,
+        "y0": 0,
+        "y1": 0
+      },
+      {
+        "field_name": "hcpcs_rate",
+        "field_type": "code",
+        "padding_px": 0,
+        "postprocessor": null,
+        "x0": 637,
+        "x1": 914,
+        "y0": 0,
+        "y1": 0
+      },
+      {
+        "field_name": "service_date",
+        "field_type": "date",
+        "padding_px": 0,
+        "postprocessor": null,
+        "x0": 923,
+        "x1": 1047,
+        "y0": 0,
+        "y1": 0
+      },
+      {
+        "field_name": "service_units",
+        "field_type": "code",
+        "padding_px": 0,
+        "postprocessor": null,
+        "x0": 1056,
+        "x1": 1199,
+        "y0": 0,
+        "y1": 0
+      },
+      {
+        "field_name": "total_charges",
+        "field_type": "currency",
+        "padding_px": 0,
+        "postprocessor": null,
+        "x0": 1210,
+        "x1": 1390,
+        "y0": 0,
+        "y1": 0
+      },
+      {
+        "field_name": "non_covered_charges",
+        "field_type": "currency",
+        "padding_px": 0,
+        "postprocessor": null,
+        "x0": 1400,
+        "x1": 1578,
+        "y0": 0,
+        "y1": 0
+      }
+    ],
+    "data_y0": 633,
+    "max_rows": 22,
+    "row_height_px": 31,
+    "table_x0": 73,
+    "table_x1": 1579,
+    "table_y0": 633,
+    "table_y1": 1309
+  }
+}

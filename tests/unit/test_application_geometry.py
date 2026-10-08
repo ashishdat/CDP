@@ -6,6 +6,8 @@ import pytest
 from PIL import Image
 
 from app import resolve_registered_geometry
+from packages.domain.enums import ClaimFormType
+from packages.templates.models import FieldRegion, ReferenceDimensions, Template
 
 
 def registration():
@@ -23,13 +25,17 @@ def test_rejection_never_enters_geometry(monkeypatch):
 def test_accepted_rectified_frame_does_not_refit_registration(monkeypatch):
     forbidden=Mock(side_effect=AssertionError('Registration refit'))
     monkeypatch.setattr('packages.geometry.engine.register',forbidden)
-    template=SimpleNamespace(reference_dimensions=SimpleNamespace(width_px=40,height_px=40),
-        field_regions=[SimpleNamespace(field_name='test',x0=5,y0=5,x1=30,y1=30)])
+    template=Template(template_id='test',version='1',form_type=ClaimFormType.CMS1500,
+        reference_dimensions=ReferenceDimensions(width_px=40,height_px=40),anchor_definitions=[],
+        field_regions=[FieldRegion(field_name='test',x0=5,y0=5,x1=30,y1=30,field_type='text')])
     registry=SimpleNamespace(get=lambda *a:template)
     pixels=np.full((40,40),255,np.uint8);pixels[12:18,12:18]=0
     with Image.fromarray(pixels) as image:
         result=resolve_registered_geometry([image],registration(),registry)
     assert result['status']=='SUCCESS'
+    assert result['template_id']=='test'
+    assert result['template_version']=='1'
+    assert result['template_fingerprint']
     assert result['fields'][0]['result']['text_envelope']=={'x0':12,'y0':12,'x1':18,'y1':18}
     forbidden.assert_not_called()
 

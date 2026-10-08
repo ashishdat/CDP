@@ -1,0 +1,103 @@
+version: ub04-registered-v2
+template_version: 2014-public-v2
+landmarks:
+  patient_name:
+  - 72
+  - 235
+  - 257
+  - 262
+  patient_dob:
+  - 72
+  - 298
+  - 239
+  - 325
+  insured_id_number:
+  - 624
+  - 1466
+  - 997
+  - 1495
+  total_charge:
+  - 1210
+  - 604
+  - 1390
+  - 632
+  service_lines:
+  - 73
+  - 604
+  - 628
+  - 632
+  total_charge_totals:
+  - 1057
+  - 1312
+  - 1202
+  - 1340
+  type_of_bill:
+  - 1536
+  - 113
+  - 1626
+  - 141
+  provider_npi:
+  - 1289
+  - 1343
+  - 1344
+  - 1373
+  federal_tax_no:
+  - 1023
+  - 174
+  - 1209
+  - 200
+  principal_diagnosis:
+  - 92
+  - 1712
+  - 223
+  - 1738
+minimum_score: 0.75
+maximum_residual_px: 3
+search_radius_px: 12
+frame_landmarks:
+  patient_name:
+  - 70
+  - 264
+  - 640
+  - 295
+  patient_dob:
+  - 70
+  - 325
+  - 242
+  - 357
+  insured_id_number:
+  - 620
+  - 1495
+  - 1002
+  - 1588
+  total_charge:
+  - 1204
+  - 1309
+  - 1395
+  - 1340
+  service_lines:
+  - 70
+  - 602
+  - 1582
+  - 634
+  type_of_bill:
+  - 1533
+  - 111
+  - 1631
+  - 173
+  provider_npi:
+  - 1344
+  - 1340
+  - 1631
+  - 1373
+  federal_tax_no:
+  - 1021
+  - 201
+  - 1211
+  - 233
+  principal_diagnosis:
+  - 91
+  - 1710
+  - 243
+  - 1741
+maximum_frame_edge_residual_px: 3

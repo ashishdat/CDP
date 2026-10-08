@@ -9,10 +9,19 @@ from __future__ import annotations
 import os
 from collections.abc import Callable
 from typing import Any
+from dataclasses import dataclass
+from packages.ocr.observed_confidence import observed_confidence
 
 from PIL import Image
 
 Reader = Callable[[Image.Image, str], str | None]
+
+
+@dataclass(frozen=True)
+class ObservedNameCrop:
+    text: str
+    raw_confidence: float | None
+    bbox: tuple[int,int,int,int]
 
 
 def _env_on(name: str, default: str = "1") -> bool:
@@ -42,6 +51,8 @@ def maybe_confirm_name_with_azure_di(
 ) -> dict[str, Any]:
     """Attach DI and adopt the Claude name when the two reads normalize equal."""
     updated = dict(field_row)
+    if (field_row.get('name_di_confirmation') or {}).get('attempted'):
+        return updated
     if not _env_on("CDP_AZURE_DI_NAME_CONFIRM", "1"):
         return updated
     name = str(field_row.get("field") or "")
@@ -87,24 +98,19 @@ def maybe_confirm_name_with_azure_di(
     from packages.extraction_recovery.span_selection import _person_name_from
 
     vision_value = str(vision.get("value") or "").strip()
-    for cand in candidates:
-        engine = str(cand.get("engine") or "")
-        if _is_vision(engine) or _is_di(engine):
-            continue
-        local = str(cand.get("value") or cand.get("raw_value") or "").strip()
-        if not local:
-            continue
-        if normalize_agreement_value(name, vision_value) == normalize_agreement_value(
-            name, local
-        ) or values_conflict_equivalent(name, vision_value, local):
-            return updated
-
     text = ""
+    confidence=None
+    updated['name_di_confirmation']={'attempted':True}
     try:
         if reader is not None:
-            text = reader(image, name) or ""
+            observed = reader(image, name)
         else:
-            text = _read_name_crop(image, bbox, name) or ""
+            observed = _read_name_crop(image, bbox, name)
+        if isinstance(observed,ObservedNameCrop):
+            text=observed.text;confidence=observed.raw_confidence;bbox=observed.bbox
+        else:
+            text=str(observed or '')
+        updated['name_di_confirmation'].update(raw_text=text,raw_confidence=confidence,observation_bbox=bbox)
     except Exception as exc:  # noqa: BLE001
         attempts = list(updated.get("attempts") or [])
         attempts.append(
@@ -147,8 +153,8 @@ def maybe_confirm_name_with_azure_di(
             "model_version": "unknown",
             "preprocessing_variant": "name_azure_di_confirm",
             "preprocessing_version": "cascade-v12-azure-di",
-            "raw_confidence": 0.9,
-            "calibrated_confidence": 0.9,
+            "raw_confidence": observed_confidence(confidence) or 0.0,
+            "calibrated_confidence": None,
             "reason_code": "NAME_DI_CLAUDE_AGREEMENT",
             "latency_ms": 0.0,
             "bounding_box": {
@@ -171,7 +177,7 @@ def maybe_confirm_name_with_azure_di(
     return updated
 
 
-def _read_name_crop(image: Image.Image, bbox: tuple, field_name: str) -> str | None:
+def _read_name_crop(image: Image.Image, bbox: tuple, field_name: str) -> ObservedNameCrop | None:
     from packages.azure_di_contracts import (
         azure_document_intelligence_configured,
         build_azure_read_engine,
@@ -187,14 +193,13 @@ def _read_name_crop(image: Image.Image, bbox: tuple, field_name: str) -> str | N
     engine = build_azure_read_engine(cfg)
     x0, y0, x1, y1 = (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))
     pad = 8
-    crop = image.crop(
-        (
+    observed_bbox=(
             max(0, x0 - pad),
             max(0, y0 - pad),
             min(image.width, x1 + pad),
             min(image.height, y1 + pad),
         )
-    ).convert("RGB")
+    crop = image.crop(observed_bbox).convert("RGB")
     if crop.width < 160 or crop.height < 64:
         scale = max(160 / max(crop.width, 1), 64 / max(crop.height, 1), 2)
         crop = crop.resize(
@@ -224,4 +229,5 @@ def _read_name_crop(image: Image.Image, bbox: tuple, field_name: str) -> str | N
     if not found:
         return None
     lead = found[0]
-    return str(getattr(lead, "raw_value", None) or getattr(lead, "value", None) or "")
+    return ObservedNameCrop(str(getattr(lead,"raw_value",None) or getattr(lead,"value",None) or ''),
+        getattr(lead,'raw_confidence',None),observed_bbox)

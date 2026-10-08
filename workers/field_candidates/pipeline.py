@@ -39,27 +39,30 @@ class CandidateStore:
         self.root = root
 
     def cache_path(
-        self, page: PreparedPage, provider: FieldCandidateProvider, field: FieldSpec
+        self, page: PreparedPage, provider: FieldCandidateProvider, field: FieldSpec, *, document_context=None
     ) -> Path:
-        digest = hashlib.sha256(
-            (
-                f"{page.image_sha256}|{provider.provider_name}|"
-                f"{provider.provider_version}|{provider.model_name}|"
-                f"{provider.model_version}|{field.field_name}"
-            ).encode()
-        ).hexdigest()
+        context={"cache_schema":2,"image_sha256":page.image_sha256,
+            "page_number":page.page_number,"image_size":page.image.size,
+            "family_scores":page.family_scores,"alignment_score":page.alignment_score,
+            "text_lines":[[line.text,line.x0,line.y0,line.x1,line.y1,line.confidence] for line in page.text_lines],
+            "provider":[provider.provider_name,provider.provider_version,provider.model_name,provider.model_version],
+            "field":asdict(field),"document_context":document_context}
+        digest=hashlib.sha256(json.dumps(context,sort_keys=True,allow_nan=False).encode()).hexdigest()
         return self.root / "cache" / f"{digest}.json"
 
     def load(self, path: Path) -> PageFieldCandidate | None:
         if not path.is_file():
             return None
-        payload = json.loads(path.read_text(encoding="utf-8"))
-        payload["status"] = CandidateStatus(payload["status"])
-        payload["hard_validation_results"] = tuple(payload["hard_validation_results"])
-        payload["bounding_box"] = (
-            tuple(payload["bounding_box"]) if payload["bounding_box"] else None
-        )
-        return PageFieldCandidate(**payload)
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            payload["status"] = CandidateStatus(payload["status"])
+            payload["hard_validation_results"] = tuple(payload["hard_validation_results"])
+            payload["bounding_box"] = (
+                tuple(payload["bounding_box"]) if payload["bounding_box"] else None
+            )
+            return PageFieldCandidate(**payload)
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            return None  # Corrupt or obsolete cache data triggers fresh inference.
 
     def save(self, path: Path, candidate: PageFieldCandidate) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,8 +136,14 @@ class AllPageCandidatePipeline:
             field_candidates: list[PageFieldCandidate] = []
             for provider in self.providers:
                 for page in pages:
-                    cache = self.store.cache_path(page, provider, field)
+                    cache = self.store.cache_path(page, provider, field, document_context={
+                        "tenant":document.tenant_id,"source_sha256":document.sha256,
+                        "pipeline_version":document.pipeline_version,"schema_version":document.schema_version})
                     candidate = None if overwrite_incomplete else self.store.load(cache)
+                    if candidate is not None and candidate.status == CandidateStatus.PROVIDER_ERROR:
+                        candidate = None  # A transient reader error is not a durable observation.
+                    if candidate is not None:
+                        candidate=replace(candidate,document_id=str(document.document_id),page_number=page.page_number)
                     if candidate is None:
                         started = time.perf_counter()
                         try:

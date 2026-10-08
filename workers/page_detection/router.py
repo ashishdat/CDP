@@ -315,8 +315,16 @@ class PageRoutingService:
     def route_multipage_bundle(self, images: list[Image.Image]) -> PageRoutingResult:
         """`images` is 1-indexed conceptually; `images[0]` is page 1."""
         scores: dict[int, PageCandidateScore] = {}
+        from time import perf_counter
+        probe_started = perf_counter()
 
         for index, image in enumerate(images, start=1):
+            if perf_counter() - probe_started >= 60:
+                return PageRoutingResult(bundle_type=BundleType.D_UNSTRUCTURED,
+                    selected_page_number=None, template=None,
+                    page_roles={i:PageRole.UNKNOWN for i in range(1,len(images)+1)},
+                    page_scores=scores, needs_review=True,
+                    reason_codes=['PAGE_ROUTING_PROBE_BUDGET_EXHAUSTED'])
             anchors = self._anchor_score(self._extract_anchor_lines(image), self._cms_template)
             if anchors is not None and anchors.confidence > 0:
                 scores[index] = PageCandidateScore(
@@ -328,7 +336,7 @@ class PageRoutingService:
                 continue
 
             if self._cms_reference_image is not None:
-                alignment = align_to_reference(image, self._cms_reference_image)
+                alignment = align_to_reference(image, self._cms_reference_image, allow_recovery=False)
                 if alignment.success:
                     scores[index] = PageCandidateScore(
                         page_number=index,

@@ -24,6 +24,16 @@ def test_cms1500_name_span_keeps_surname_particle():
     assert particles.selected_text == "DE LA CRUZ, MARIA"
 
 
+def test_name_span_preserves_observed_initial_after_second_comma():
+    for field in ('patient_name', 'insured_name'):
+        for raw in ('LO, DANNY, B', 'LO,\nDANNY,\nB'):
+            selected = select_field_span(raw, 'PERSON_NAME', field)
+            assert selected.selected_text == 'LO, DANNY B'
+        # A separate multi-letter word is not an observed middle initial.
+        selected = select_field_span('LO, DANNY, BROWN', 'PERSON_NAME', field)
+        assert selected.selected_text == 'LO, DANNY'
+
+
 def test_cms1500_name_span_strips_box_header_and_keeps_last_first():
     selected = select_field_span(
         "2. PATIENT'S NAME (Last Name, First Name, Middle lnitial)\nCAMARATO, JOSHUA",
@@ -107,7 +117,7 @@ def test_currency_npi_bleed_yields_empty_for_hitl():
 
 
 def test_patient_name_policy_rejects_weak_e4_without_identity_confirmation():
-    """Critical patient_name requires strong E4 or MULTI_ATTRIBUTE identity E6."""
+    """One read + format check is never enough: needs independent E2 or identity E6."""
     policy = EvidencePolicy.load(Path("config/evidence_policies.yaml"))
     bundle = EvidenceBundle(
         field_name="patient_name",
@@ -141,8 +151,8 @@ def test_patient_name_policy_rejects_weak_e4_without_identity_confirmation():
         "patient_name", CriticalityLevel.C2, bundle, document_family="CMS1500"
     )
     assert not ok
-    assert "E4" not in available
-    assert "E6" in missing or any("E6" in reason for reason in reasons)
+    assert "E2" not in available
+    assert {"E2", "E6"} & set(missing)
 
 
 def test_roi_insets_shrink_dob_and_charge_windows():
@@ -226,14 +236,14 @@ def test_name_span_strips_header_before_label_phrases():
     assert selected.selected_text == "DOLIET MARGARET M"
 
 
-def test_member_id_repairs_ocr_zero_and_equals():
+def test_member_id_preserves_observed_zero_and_normalizes_separator():
     from packages.extraction_recovery.span_selection import select_field_span
     selected = select_field_span(
         "1a.INSURED'S LD. NUMBER\n(For Program in ltem 1)\n0SC74765420",
         "ALPHANUMERIC_ID",
         "insured_id_number",
     )
-    assert selected.selected_text == "OSC74765420"
+    assert selected.selected_text == "0SC74765420"
     selected2 = select_field_span(
         "1a. INSURED'S I.D. NUM8ER\n(For Program in ltem 1)\nNALC\nP32=84957",
         "ALPHANUMERIC_ID",
@@ -367,7 +377,7 @@ def test_dob_header_safe_compact_and_single_l_confusable():
     assert select_field_span("09 29 196", "DATE", "patient_dob").selected_text == "09/29/1996"
 
 
-def test_cross_variant_span_fusion_recovers_dob():
+def test_cross_variant_fusion_cannot_invent_reader_for_unattributed_fragments():
     from packages.extraction_recovery.field_cascade import FieldCascade
 
     calls = []
@@ -399,10 +409,9 @@ def test_cross_variant_span_fusion_recovers_dob():
         image_size=(1700, 2200),
         recognize_fn=recognize_fn,
     )
-    assert result.accepted is True
+    assert result.accepted is False
     assert result.candidates
-    assert result.candidates[0]["value"] == "06/14/1974"
-    assert any(s.variant_id == "cross_variant_span" for s in result.cascade_trace)
+    assert not any(s.variant_id == "cross_variant_span" for s in result.cascade_trace)
 
 
 def test_dob_yy_pivot_aligns_with_reconciler_not_future():

@@ -44,14 +44,14 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
     Member ID and charges: Claude confirms a local read and may not supersede.
     Azure DI is not on this path (default off).
 
-    Stop ladder (``CDP_CLOUD_STOP_LADDER``, default on): locals settled → no
-    DI/Claude; one shaped cloud residual → do not stack a second cloud.
-    ``service_lines`` informs charge settle (0 lines / place-shift vs Σ).
+    Stop ladder (``CDP_CLOUD_STOP_LADDER``, default on): locals settled â†’ no
+    DI/Claude; one shaped cloud residual â†’ do not stack a second cloud.
+    ``service_lines`` informs charge settle (0 lines / place-shift vs Î£).
     """
-    trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "1").strip().casefold()
-    azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "0").strip().casefold()
+    trocr_on = (os.environ.get("CDP_TROCR_DOB_RESIDUAL") or "0").strip().casefold()
+    azure_on = (os.environ.get("CDP_AZURE_DI_DOB_RESIDUAL") or "1").strip().casefold()
     gpt4o_on = (os.environ.get("CDP_GPT4O_CROP_RESIDUAL") or "1").strip().casefold()
-    # Accuracy-first: DI charge residual ON by default (was off → MISSING_E4).
+    # Accuracy-first: DI charge residual ON by default (was off â†’ MISSING_E4).
     charge_on = (os.environ.get("CDP_AZURE_DI_CHARGE_RESIDUAL") or "1").strip().casefold()
     if (
         trocr_on in {"0", "false", "no", "off"}
@@ -88,8 +88,8 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
     )
 
     # Default on: if local cascade already has a date-shaped value, skip TrOCR/DI.
-    # Those rejects are policy/conflict — handwriting residual cannot help and
-    # TrOCR cold-load costs ~30–150s on CPU.
+    # Those rejects are policy/conflict â€” handwriting residual cannot help and
+    # TrOCR cold-load costs ~30â€“150s on CPU.
     skip_shaped = (os.environ.get("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED") or "1").strip().casefold()
     skip_if_local_shaped = skip_shaped not in {"0", "false", "no", "off"}
 
@@ -111,7 +111,7 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
     def _with_line_ctx(row: dict) -> dict:
         """Stamp line charges on every row so nested residual helpers see them."""
         out = dict(row)
-        # Always stamp a list (possibly empty) — None means "legacy unknown".
+        # Always stamp a list (possibly empty) â€” None means "legacy unknown".
         out["observed_line_charges"] = list(observed_line_charges)
         return out
 
@@ -215,8 +215,8 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     gap_class="CHARGE_LOCAL_EXHAUSTED",
                 )
             # Conflict agent runs once at end-of-OCR (after all residuals), not
-            # here — calling it in both places double-paid Claude on twin
-            # Box28 rivals (~+10–15s/doc on EJGE-style charges).
+            # here â€” calling it in both places double-paid Claude on twin
+            # Box28 rivals (~+10â€“15s/doc on EJGE-style charges).
             updated.append(current)
             continue
         if key in {"insured_id_number", "member_id", "subscriber_id"}:
@@ -231,11 +231,11 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
             if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
                 row
             ):
-                updated.append(
-                    maybe_attach_gpt4o_crop_to_field_row(row, image=image, gap_class=None)
-                )
+                current=maybe_attach_gpt4o_crop_to_field_row(row,image=image,gap_class=None)
             else:
-                updated.append(row)
+                current=row
+            from packages.extraction_recovery.id_azure_di_confirm import maybe_confirm_id_with_azure_di
+            updated.append(maybe_confirm_id_with_azure_di(current,image=image))
             continue
         if key in {"patient_name", "insured_name"}:
             if should_skip_all_cloud(name, row):
@@ -252,7 +252,7 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     updated.append(_mark_skip(row, "DOC_BUDGET_SKIP_CLOUD"))
                     continue
             # gpt-4o/Claude arbitrates names. One local engine is not E2, so
-            # Document Intelligence may confirm the Claude spelling — unless
+            # Document Intelligence may confirm the Claude spelling â€” unless
             # one cloud already shaped (stop ladder: never stack DI+Claude).
             if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
                 row
@@ -281,9 +281,6 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
             updated.append(row)
             continue
         cascade = row.get("cascade") or {}
-        if cascade.get("accepted"):
-            updated.append(row)
-            continue
         if should_skip_all_cloud(name, row):
             updated.append(_mark_skip(row, "LOCALS_SETTLED"))
             continue
@@ -303,7 +300,7 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                 local_date_shaped = True
                 break
             # Also treat display-shaped calendar ink (MM/DD/YYYY) as settled so
-            # we do not spend TrOCR → DI → Claude on a field locals already read.
+            # we do not spend TrOCR â†’ DI â†’ Claude on a field locals already read.
             try:
                 from packages.candidate_reconciliation.reconciler import (
                     _dob_is_display_shaped,
@@ -314,7 +311,8 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                     break
             except Exception:  # noqa: BLE001
                 pass
-        if skip_if_local_shaped and local_date_shaped:
+        local_date_confirmed = _dob_reads_confirmed(row.get('candidates') or [], row.get('attempts'))
+        if skip_if_local_shaped and local_date_confirmed:
             updated.append(_mark_skip(row, "LOCALS_SETTLED"))
             continue
         gap = classify_field_gap(
@@ -329,14 +327,15 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
         # already date-shaped; unsettled DOB (``1`` / empty) always continues
         # (M0471JEH.036 HARD skip left Claude on an 18px year strip).
         trocr_allowed = True
-        if local_date_shaped:
+        if local_date_confirmed:
             trocr_allowed = allow_optional("trocr_dob_optional", field_name=name)
         if trocr_on not in {"0", "false", "no", "off"} and trocr_allowed:
             current = maybe_attach_dob_trocr_to_field_row(
                 current, image=image, gap_class=gap_class
             )
             trocr_meta = current.get("trocr_residual") or {}
-            if trocr_meta.get("date_shaped") and not trocr_meta.get("review_only"):
+            if (trocr_meta.get("date_shaped") and not trocr_meta.get("review_only")
+                    and _dob_reads_confirmed(current.get('candidates'), current.get('attempts'))):
                 updated.append(current)
                 continue
         if azure_on not in {"0", "false", "no", "off"}:
@@ -345,8 +344,9 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
                 current, image=image, gap_class=gap_class
             )
             di_meta = current.get("azure_di_residual") or {}
-            if di_meta.get("date_shaped") and not di_meta.get("review_only"):
-                # One shaped cloud is enough — do not stack Claude after DI.
+            if (di_meta.get("date_shaped") and not di_meta.get("review_only")
+                    and should_skip_second_cloud(current)):
+                # One shaped cloud is enough â€” do not stack Claude after DI.
                 updated.append(current)
                 continue
         if gpt4o_on not in {"0", "false", "no", "off"} and not should_skip_second_cloud(
@@ -355,6 +355,12 @@ def _maybe_attach_dob_handwriting_residuals(rows, image, *, service_lines=None):
             current = maybe_attach_gpt4o_crop_to_field_row(
                 current, image=image, gap_class=gap_class
             )
+        if ((os.environ.get("CDP_CONTEXT_DOB_RECOVERY") or "0").casefold() in {"1","true","yes","on"}
+                and azure_on not in {"0","false","no","off"}
+                and gpt4o_on not in {"0","false","no","off"}
+                and not _dob_reads_confirmed(current.get("candidates"),current.get("attempts"))):
+            from workers.cascade.context_dob_recovery import recover_context_dob
+            current = recover_context_dob(current, image, local_reader=_tesseract_text_with_confidence)
         updated.append(current)
     return updated
 
@@ -440,9 +446,9 @@ _maybe_attach_dob_azure_di_residuals = _maybe_attach_dob_handwriting_residuals
 
 
 # STP evaluation can limit OCR to critical fields (+ service lines for E6).
-# Set CDP_OCR_FIELD_SCOPE=stp_critical to skip non-blocking ROIs (~5× less OCR).
+# Set CDP_OCR_FIELD_SCOPE=stp_critical to skip non-blocking ROIs (~5Ã— less OCR).
 # diagnosis_codes / federal_tax_id are template-required but do not block True STP
-# under current claim policy (HUMAN_REVIEW_REQUIRED without critical_blockers) —
+# under current claim policy (HUMAN_REVIEW_REQUIRED without critical_blockers) â€”
 # OCR'ing them costs ~0.7s/claim for no STP gain.
 _STP_CRITICAL_FIELDS = frozenset({
     "patient_dob",
@@ -474,9 +480,9 @@ def _ocr_selective_confirm() -> bool:
 def _name_confirm_confidence(attempts: list, candidates: list) -> float:
     """Confidence for name selective-confirm gate.
 
-    Mean line confidence often includes a weak 1–2 char MI/fragment (e.g. ``CL``
+    Mean line confidence often includes a weak 1â€“2 char MI/fragment (e.g. ``CL``
     at 0.62) that pulls a strong two-token name under the 0.88 threshold and
-    forces a ~1s Rapid confirm. Prefer tokens with length ≥ 3 when available.
+    forces a ~1s Rapid confirm. Prefer tokens with length â‰¥ 3 when available.
     """
     for attempt in attempts:
         observation = attempt.get("observation") or {}
@@ -507,12 +513,12 @@ def _field_in_scope(field_name: str) -> bool:
 
 
 def _digit_psms_charge() -> tuple[int, ...]:
-    # One PSM is enough for whitelist digit recovery; 3× PSMs thrashed 4-worker runs.
+    # One PSM is enough for whitelist digit recovery; 3Ã— PSMs thrashed 4-worker runs.
     return (8,) if _ocr_fast_mode() else (7, 8, 6)
 
 
 def _digit_psms_dob() -> tuple[int, ...]:
-    return (8,) if _ocr_fast_mode() else (10, 7, 8)
+    return (8, 7) if _ocr_fast_mode() else (10, 7, 8)
 
 def _clamp_bbox(bbox, width, height):
     x0, y0, x1, y1 = (int(v) for v in bbox)
@@ -543,10 +549,61 @@ def _ocr_bbox(name, aligned, cell, image_size, template_fields):
     return _clamp_bbox((x0, y0, x1, y1), width, height)
 
 
-def _load_cms1500_template():
+def _load_cms1500_template(geometry=None, telemetry=None, directory=None):
+    from packages.release_selection import active_release_from_env
+    from packages.templates.identity import template_fingerprint
+
     registry = TemplateRegistry.load_from_directory()
-    templates = registry.all_for_form_type(ClaimFormType.CMS1500)
-    return templates[0] if templates else None
+    identities = []
+    for record in (geometry or {}, telemetry or {}):
+        identity = (record.get('template_id'), record.get('template_version'))
+        if any(identity):
+            if not all(identity):
+                raise ValueError('Incomplete registered template identity')
+            identities.append(identity)
+    if identities and len(set(identities)) != 1:
+        raise ValueError('Geometry and telemetry template identities disagree')
+    if not identities and directory is not None:
+        discovery = Path(directory) / 'template_discovery.json'
+        if discovery.is_file():
+            report = json.loads(discovery.read_text(encoding='utf-8'))
+            identities = list({(c['template_id'], c['template_version'])
+                               for c in report.get('candidate_templates', [])
+                               if c.get('selected') and c.get('page_number') == (geometry or {}).get('page_number')})
+            if len(identities) != 1:
+                raise ValueError('Legacy geometry requires an unambiguous selected template')
+    if identities:
+        template = registry.get(*identities[0])
+    elif geometry is not None:
+        raise ValueError('Saved geometry lacks template identity; register it again')
+    else:
+        template = registry.get_for_release(ClaimFormType.CMS1500, active_release_from_env())
+    for record in (geometry or {}, telemetry or {}):
+        expected = record.get('template_fingerprint')
+        if expected and expected != template_fingerprint(template):
+            raise ValueError('Registered template definition changed; register it again')
+    if geometry and not geometry.get('template_fingerprint'):
+        regions = {r.field_name: (r.x0, r.y0, r.x1, r.y1) for r in template.field_regions}
+        for field in geometry.get('fields') or []:
+            cell = (field.get('result') or {}).get('safe_cell')
+            if cell and field.get('field') in regions:
+                bounds = tuple(cell[k] for k in ('x0', 'y0', 'x1', 'y1'))
+                if bounds != regions[field['field']]:
+                    raise ValueError('Legacy geometry field definition changed; register it again')
+    return template
+
+
+def _field_observation_text(observation, field_name):
+    lines = list(observation.lines)
+    if str(field_name).casefold() in {'patient_dob', 'insured_dob', 'date_of_birth', 'dob'}:
+        numeric = [line for line in lines if re.fullmatch(r'\d{1,5}[.]?', line.text.strip())]
+        # Reorder an observed MM/DD/year row, not arbitrary caption fragments.
+        if len(numeric) == 3 and all(hasattr(line, 'x0') and hasattr(line, 'y0') for line in numeric):
+            ordered = sorted(numeric, key=lambda line: (line.x0, line.y0))
+            lengths = [len(line.text.strip().rstrip('.')) for line in ordered]
+            if lengths[0] == 2 and lengths[1] in {2, 3} and lengths[2] in {2, 4}:
+                lines = ordered
+    return chr(10).join(line.text for line in lines)
 
 
 _PREPROCESS = None
@@ -565,7 +622,7 @@ def _preprocessing_registry():
 
 def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
     # Phase 2: currency crops get Phase-8.10 preprocess. Other fields keep full-page
-    # bbox OCR — crop-then-OCR shifted DOB digit assembly on sample B (10/29→11/29).
+    # bbox OCR â€” crop-then-OCR shifted DOB digit assembly on sample B (10/29â†’11/29).
     currency_fields = {
         'total_charge', 'total_charges', 'charges', 'charge_amount', 'amount_paid',
     }
@@ -606,9 +663,19 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
                          'preprocessing_profile': applied_profile})
         if observation is None or not observation.lines:
             continue
-        raw = chr(10).join(line.text for line in observation.lines)
+        raw = _field_observation_text(observation, name)
         span = select_field_span(raw, span_datatype_for_field(name, field_type), name)
         selected = span.selected_text
+        if 'CAPTION_CONTAMINATED_AMOUNT_REQUIRES_LOCALIZATION' in span.reason_codes:
+            attempts[-1]['amount_observation_rejection'] = 'CAPTION_CONTAMINATED_AMOUNT_REQUIRES_LOCALIZATION'
+            continue
+        if str(name).casefold() in {"patient_dob", "date_of_birth", "dob"} and semantic_accept(name, selected)[0]:
+            from packages.extraction_recovery.dob_azure_di_residual import _shape_dob_text
+            observed, observed_shaped = _shape_dob_text(name, raw, allow_ordered_components=True)
+            if not observed_shaped:
+                attempts[-1]["dob_observation_rejection"] = "UNSUPPORTED_DATE_TOKEN_ASSEMBLY"
+                continue
+            selected = observed
         box = BoundingBox(x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
                           image_width=image.width, image_height=image.height)
         candidate = OCRCandidate(
@@ -635,14 +702,14 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             if (c.get('value') or '').strip()
         )
         # Learning from Independent-300 v12.1: low-confidence primary name
-        # reads (e.g. paddle 0.75 → "DATST EY") short-circuited confirmation
+        # reads (e.g. paddle 0.75 â†’ "DATST EY") short-circuited confirmation
         # and regressed vs rapidocr ("TOHNSON RATSTRY"). Always confirm person
         # names when the shaped primary is weak.
         name_key = (name or '').casefold()
         if shaped and name_key in {'patient_name', 'insured_name'}:
             conf = _name_confirm_confidence(attempts, candidates)
             # 0.88 forced Rapid on nearly every name (~1s each). 0.80 still
-            # catches weak paddle reads while protecting ≤30s/doc mean.
+            # catches weak paddle reads while protecting â‰¤30s/doc mean.
             try:
                 name_min = float(
                     (os.environ.get("CDP_OCR_NAME_CONFIRM_MIN_CONF") or "0.80").strip()
@@ -656,7 +723,7 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
         # Service-line / box-28 charges: paddle often truncates trailing digits
         # that rapid recovers (157 vs 1571). Force confirm ONLY on short amounts
         # (digit-drop risk). Always-confirm regressed Independent-300 wall from
-        # ~128s p50 (v12.2) to ~243s p50 — far above the cascade speed bar.
+        # ~128s p50 (v12.2) to ~243s p50 â€” far above the cascade speed bar.
         if shaped and name_key in {
             'charges',
             'charge_amount',
@@ -689,9 +756,19 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
                                  'preprocessing_profile': applied_profile})
                 if observation is None or not observation.lines:
                     continue
-                raw = chr(10).join(line.text for line in observation.lines)
+                raw = _field_observation_text(observation, name)
                 span = select_field_span(raw, span_datatype_for_field(name, field_type), name)
                 selected = span.selected_text
+                if str(name).casefold() in {'patient_dob', 'date_of_birth', 'dob'} and semantic_accept(name, selected)[0]:
+                    from packages.extraction_recovery.dob_azure_di_residual import _shape_dob_text
+                    observed, observed_shaped = _shape_dob_text(name, raw, allow_ordered_components=True)
+                    if not observed_shaped:
+                        attempts[-1]['dob_observation_rejection'] = 'UNSUPPORTED_DATE_TOKEN_ASSEMBLY'
+                        continue
+                    selected = observed
+                if 'CAPTION_CONTAMINATED_AMOUNT_REQUIRES_LOCALIZATION' in span.reason_codes:
+                    attempts[-1]['amount_observation_rejection'] = 'CAPTION_CONTAMINATED_AMOUNT_REQUIRES_LOCALIZATION'
+                    continue
                 box = BoundingBox(x0=bbox[0], y0=bbox[1], x1=bbox[2], y1=bbox[3],
                                   image_width=image.width, image_height=image.height)
                 candidate = OCRCandidate(
@@ -713,7 +790,7 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             routed = confirm
 
     # Handwritten charge crops sometimes regress under currency preprocess
-    # (100 → I/00). If span emptied after preprocess, retry the raw crop once.
+    # (100 â†’ I/00). If span emptied after preprocess, retry the raw crop once.
     if use_preprocess and not any((c.get('value') or '').strip() for c in candidates):
         raw_engines = (order[0],) if selective and order else order
         raw_routed = router.route(
@@ -756,7 +833,7 @@ def _recognize_one(image, name, bbox, router, field_type='', engine_order=None):
             candidates.append(payload)
             break
 
-    # Digit-whitelist tesseract on charge crops when route OCR still empty —
+    # Digit-whitelist tesseract on charge crops when route OCR still empty â€”
     # recovers sparse typed amounts that engines read as punctuation (e.g. "L|1|1").
     currency_names = {
         'total_charge', 'total_charges', 'charges', 'charge_amount', 'amount_paid',
@@ -838,10 +915,10 @@ def _is_currency_digit_drop_twin(left: object, right: object) -> bool:
     """True when one currency reading is a truncated digit-prefix of the other.
 
     Agent-GT residual (Independent-300): CHARGE_DIGITS_FAST drops a trailing
-    digit — ``1571.00`` → ``157.00``, ``701.00`` → ``70.00``. Prefer the longer
+    digit â€” ``1571.00`` â†’ ``157.00``, ``701.00`` â†’ ``70.00``. Prefer the longer
     digit string when both are currency-shaped.
 
-    Reject trailing-zero padding (``701`` vs ``7010``) — Azure DI hallucination,
+    Reject trailing-zero padding (``701`` vs ``7010``) â€” Azure DI hallucination,
     not a recovered digit.
     """
     a, b = _currency_digit_string(left), _currency_digit_string(right)
@@ -850,7 +927,7 @@ def _is_currency_digit_drop_twin(left: object, right: object) -> bool:
     shorter, longer = (a, b) if len(a) < len(b) else (b, a)
     if not longer.startswith(shorter):
         return False
-    # Allow 1–2 dropped digits (common tess whitelist miss on trailing ink).
+    # Allow 1â€“2 dropped digits (common tess whitelist miss on trailing ink).
     if not (1 <= (len(longer) - len(shorter)) <= 2):
         return False
     extra = longer[len(shorter) :]
@@ -963,7 +1040,7 @@ def _recognize_charge_digits_only(image, bbox):
     """Cheap charge OCR: digit-whitelist tesseract only (no paddle/rapid).
 
     Also OCRs the dollars-only subcrop left of the CMS vertical dashed ruling so
-    units-column bleed (…10) does not corrupt whole-dollar amounts.
+    units-column bleed (â€¦10) does not corrupt whole-dollar amounts.
     """
     attempts = []
     candidates = []
@@ -1007,13 +1084,13 @@ def _recognize_charge_digits_only(image, bbox):
                 shaped = None
                 if profile == "dollars_ruling":
                     digits = "".join(ch for ch in raw if ch.isdigit())
-                    # Dollars-only crop: whole dollars only — never invent cents
-                    # via implied decimal (21240 → 212.40 false accept).
+                    # Dollars-only crop: whole dollars only â€” never invent cents
+                    # via implied decimal (21240 â†’ 212.40 false accept).
                     shaped = shape_dollars_ruling_amount(digits)
                 else:
                     shaped = shape_monetary(raw)
                 if not shaped:
-                    # Do not promote bare digit soup (e.g. 212400 → 212400.00).
+                    # Do not promote bare digit soup (e.g. 212400 â†’ 212400.00).
                     continue
                 span = select_field_span(
                     shaped,
@@ -1040,9 +1117,8 @@ def _recognize_charge_digits_only(image, bbox):
                     latency_ms=0.0,
                 )
                 payload = {**asdict(candidate), 'bounding_box': box.model_dump(mode='json')}
-                # Attribute to a route-authorized producing engine so evidence decision
-                # does not strip digit-only amounts as CANDIDATE_ENGINE_NOT_AUTHORIZED.
-                payload['engine'] = 'paddleocr'
+                # Tesseract fill is route-authorized; retain the actual producer
+                # so downstream confirmation does not count it as PaddleOCR.
                 payload['producing_engine'] = 'tesseract_digits'
                 payload['span_selection'] = {
                     'selected_text': selected,
@@ -1071,7 +1147,7 @@ def _recognize_charge_digits_only(image, bbox):
 
 
 def _reject_pos_code_charge(value, raw) -> bool:
-    """True when a POS code (11/21/…) was OCR'd without monetary decimals."""
+    """True when a POS code (11/21/â€¦) was OCR'd without monetary decimals."""
     if not value:
         return False
     try:
@@ -1131,7 +1207,7 @@ def _recover_empty_monetary_crop(image, bbox, *, field_name='charges', claim_id=
                     "observation": evidence,
                 }], "BLANK_CONFIRMED", evidence
 
-    # Geometry authority — reject POS column bleed for charge fields.
+    # Geometry authority â€” reject POS column bleed for charge fields.
     with tel.track(
         "geometry_authority",
         enabled=stage_enabled("CDP_GEOMETRY_AUTHORITY", "1"),
@@ -1349,7 +1425,7 @@ def _azure_di_service_line_budget() -> int:
     """Max Azure DI analyze calls for service-line cells in one document.
 
     F0 is one analyze per minute. Blank CMS-1500 forms used to burn DI on every
-    empty row in the STP fast fallback (~6–7 min/claim). Cap defaults to 1 so a
+    empty row in the STP fast fallback (~6â€“7 min/claim). Cap defaults to 1 so a
     digit-conflict or single live-row miss can still escalate once; box-28 DI
     residual is separate.
     """
@@ -1441,8 +1517,8 @@ def _maybe_gpt4o_charge_crop(image, bbox, *, prior_candidates=None):
 def _dual_local_engines_agree_on_charge(value, candidates) -> bool:
     """True when paddle+rapid agree with ``value`` within $1.
 
-    Dual-local agreement already unlocks LINE_TOTALS AUTO — calling Claude/gpt-4o
-    on every agreeing cell was adding ~2–8s × N lines with no STP gain.
+    Dual-local agreement already unlocks LINE_TOTALS AUTO â€” calling Claude/gpt-4o
+    on every agreeing cell was adding ~2â€“8s Ã— N lines with no STP gain.
     """
     if not value or not candidates:
         return False
@@ -1519,12 +1595,13 @@ def _merge_gpt4o_line_charge(
         # Dual-local already chose the amount. Claude may confirm it (exact / $1)
         # so a single line can AUTO. It may not replace that amount.
         # Scale twin (``1300`` vs ``130.00``) is a lost-decimal read of the same
-        # ink — attach the cand so LINE_TOTALS can corroborate empty-Box28
+        # ink â€” attach the cand so LINE_TOTALS can corroborate empty-Box28
         # sole lines (M0471JEB.008) without superseding the local amount.
         from decimal import Decimal
 
         from packages.claim_evidence.line_sum_authority import (
             amounts_within_tolerance,
+            is_currency_digit_drop_twin,
             is_scale_shift,
         )
 
@@ -1535,8 +1612,14 @@ def _merge_gpt4o_line_charge(
                 value, g_value, absolute=Decimal('1'), relative=Decimal('0')
             )
         )
+        # A lost decimal keeps the same digits (``130`` vs ``1300``). An extra
+        # non-zero digit (``13`` vs ``131``) is a different amount, not a twin.
         scale_twin = bool(
-            g_value and value and not exact and is_scale_shift(value, g_value)
+            g_value
+            and value
+            and not exact
+            and is_scale_shift(value, g_value)
+            and not is_currency_digit_drop_twin(value, g_value)
         )
         agrees = exact or scale_twin
         if agrees and g_cands:
@@ -1573,7 +1656,7 @@ def _merge_gpt4o_line_charge(
             reason = f'{reason}|{g_reason}|CHARGE_GPT4O_CORROBORATED_LOCAL_KEPT'
         else:
             # Digit-drop twin: prefer the longer read when gpt-4o recovered
-            # trailing digits (622→6225, 643→6430).
+            # trailing digits (622â†’6225, 643â†’6430).
             preferred = prefer_currency_without_digit_drop(value, g_shaped)
             if preferred and preferred == g_shaped and preferred != value:
                 value = g_shaped
@@ -1738,7 +1821,7 @@ def _maybe_attach_ppocr_v5_server_line(
         for c in (candidates or [])
         if isinstance(c, dict) and (c.get('value') or '').strip()
     }
-    # Skip when paddle+rapid already both shaped — v5 adds no independence.
+    # Skip when paddle+rapid already both shaped â€” v5 adds no independence.
     has_paddle = any('paddle' in e.casefold() or 'ppocr' in e.casefold() for e in shaped_engines)
     has_rapid = any('rapid' in e.casefold() for e in shaped_engines)
     if has_paddle and has_rapid:
@@ -1810,7 +1893,7 @@ def _currency_value_from_candidates(raw_text, candidates) -> str | None:
 
     shaped_vals: list[str] = []
     # Prefer dollars|cents / leading-1 cents ruling reconstruction before
-    # space-split whole-dollar recovery (``523\\n156`` → 523.56, not 523.00).
+    # space-split whole-dollar recovery (``523\\n156`` â†’ 523.56, not 523.00).
     try:
         from packages.claim_evidence.line_charge_selector import _ruling_split_amount
 
@@ -1887,13 +1970,15 @@ def service_line_row_bounds(table, row_index: int) -> tuple[int, int] | None:
 
     Data rows start below the printed header rule. ``table_y1`` is that printed
     grid bottom, so clipping the last row there drops its charge: on 02-12 the
-    sixth $200 sits at y 1772–1787 while the clip at 1770 keeps only the rule.
+    sixth $200 sits at y 1772â€“1787 while the clip at 1770 keeps only the rule.
     Extending by the same header offset keeps the full row and still stops
     before the Box 28 label.
     """
     header_offset = max(8, int(table.row_height_px) // 3)
-    y0 = int(table.table_y0) + header_offset + row_index * int(table.row_height_px)
-    limit = int(table.table_y1) + header_offset
+    data_y0 = getattr(table, 'data_y0', None)
+    y0 = (int(data_y0) if data_y0 is not None else int(table.table_y0) + header_offset)
+    y0 += row_index * int(table.row_height_px)
+    limit = int(table.table_y1) + (header_offset if data_y0 is None else 0)
     if y0 >= limit:
         return None
     y1 = min(y0 + int(table.row_height_px), limit)
@@ -1916,6 +2001,10 @@ def recognize_service_lines(image, router, template):
     # avoids diagnosis-pointer bleed on many live CMS-1500 scans.
     fast = _ocr_fast_mode()
     charge_windows = charge_windows_for_mode(charge_col.x0, charge_col.x1, fast=fast)
+    if getattr(table, 'data_y0', None) is not None:
+        # Calibrated cell boundaries already exclude diagnosis and units.
+        # Legacy right-shift windows cross the ruling into the units column.
+        charge_windows = [(charge_col.x0, charge_col.x1)]
     # One Document Intelligence analyze per live charge gap. cdp43 is not the
     # F0 one-per-minute tier; the interval env still applies inside the client.
     di_budget = _azure_di_service_line_budget()
@@ -1955,8 +2044,8 @@ def recognize_service_lines(image, router, template):
         for window_index, (x0, x1) in enumerate(charge_windows):
             bbox = _clamp_bbox((x0, y0, x1, y1), image.width, image.height)
             if fast:
-                # Agent-GT retest: tess CHARGE_DIGITS_FAST truncates (1571→157)
-                # even when paddle agrees on the truncated form — so paddle/rapid
+                # Agent-GT retest: tess CHARGE_DIGITS_FAST truncates (1571â†’157)
+                # even when paddle agrees on the truncated form â€” so paddle/rapid
                 # is primary under STP fast; tess digits only fill empty cells.
                 candidates, attempts, reason = _recognize_one(
                     image,
@@ -2025,7 +2114,7 @@ def recognize_service_lines(image, router, template):
                 )
             # Azure DI only when local OCR left the cell empty on a live row,
             # or when dual engines disagree as non-twins. Do NOT call DI merely
-            # because an amount is short — that billed every $25–$999 cell on
+            # because an amount is short â€” that billed every $25â€“$999 cell on
             # Independent-300 and cratered throughput.
             need_di = False
             need_gpt4o_twin = False
@@ -2047,7 +2136,7 @@ def recognize_service_lines(image, router, template):
                 if ev:
                     engine_vals.append(ev)
             unique_vals = list(dict.fromkeys(engine_vals))
-            # v12: single-engine shaped cell → digit-whitelist tess before gpt-4o
+            # v12: single-engine shaped cell â†’ digit-whitelist tess before gpt-4o
             # so rapid+tess can unlock SINGLE_LINE_DUAL_ENGINE without cloud.
             if value and len(unique_vals) < 2:
                 d_cands, d_attempts, d_reason = _recognize_charge_digits_only(
@@ -2192,7 +2281,7 @@ def recognize_service_lines(image, router, template):
                                 'observation': {'text': di_raw or di_value},
                             }]
             # Claude crop: empty cell, single local engine, or a digit-drop twin.
-            # Paddle+rapid agreement on one line is NOT enough to skip — that
+            # Paddle+rapid agreement on one line is NOT enough to skip â€” that
             # claim stays SINGLE_LINE_DUAL_ENGINE_NEEDS_BOX28 until Claude
             # confirms the amount. Multi-line dual-local still skips here and
             # is confirmed later only when the claim has a single charge line.
@@ -2252,7 +2341,7 @@ def recognize_service_lines(image, router, template):
                 )
             # Optional PP-OCRv5 Server residual (isolated paddleocr 3.x venv).
             # Adds a paddle-family candidate when local paddle/rapid left a
-            # single-engine or empty charge cell — can unlock dual-engine with rapid.
+            # single-engine or empty charge cell â€” can unlock dual-engine with rapid.
             if allow_optional("ppocr_v5_server", field_name="charges"):
                 value, raw, candidates, attempts, reason = _maybe_attach_ppocr_v5_server_line(
                     image,
@@ -2279,7 +2368,7 @@ def recognize_service_lines(image, router, template):
                     value = None
                     reason = f'{reason}|BOX24F_WINDOW_REJECTED'
                 elif crop_x1 < CMS1500_CHARGE_CENTS_X + 12:
-                    # Clipped before the cents column — do not confirm geometry
+                    # Clipped before the cents column â€” do not confirm geometry
                     # and never let a clipped window overwrite a fuller OCR amount.
                     reason = f'{reason}|BOX24F_CENTS_CLIPPED'
                     geometry_confirmed = False
@@ -2295,7 +2384,7 @@ def recognize_service_lines(image, router, template):
                         geometry_confirmed = True
                         reason = f'{reason}|GEOMETRY_CENTS'
                         attempts = list(attempts or []) + [{
-                            'engine': 'rapidocr',
+                            'engine': geo.reader_engine,
                             'reason': 'GEOMETRY_CENTS',
                             'observation': {
                                 'text': geo.raw_glyph_sequence,
@@ -2319,11 +2408,12 @@ def recognize_service_lines(image, router, template):
                         candidates = list(candidates or []) + [{
                             'value': value,
                             'raw_value': geo.raw_glyph_sequence or value,
-                            'engine': 'rapidocr',
+                            'engine': geo.reader_engine,
                             'model_name': 'geometry-cents',
                             'model_version': 'monetary-geometry',
                             'preprocessing_variant': 'GEOMETRY_CENTS',
-                            'raw_confidence': 0.91,
+                            'raw_confidence': 0.0,
+                            'confidence_source': 'CHARACTER_BOX_READER_NOT_REPORTED',
                             'calibrated_confidence': None,
                             'bounding_box': {
                                 'x0': float(bbox[0]),
@@ -2358,8 +2448,8 @@ def recognize_service_lines(image, router, template):
                 elif value.endswith('.10'):
                     score -= 1
                 # Dashed-rule crops like "-200-\nLAAM" are not service charges.
-                # Allow / | : ? — common OCR noise inside repaired amounts
-                # (I/00 → 100.00, 200:00 → 200.00, 200? → 200.00).
+                # Allow / | : ? â€” common OCR noise inside repaired amounts
+                # (I/00 â†’ 100.00, 200:00 â†’ 200.00, 200? â†’ 200.00).
                 # Never wipe a geometry-authorised cents read for raw noise.
                 import re as _re_noise
                 raw_u = (raw or '').upper()
@@ -2428,25 +2518,27 @@ def recognize_service_lines(image, router, template):
                 window_index=window_index,
                 value=value,
                 dual_local_agree=dual_ok,
-                probe_empty=probe_empty,
+                # FAST skipped the date/CPT probes, so its initial True is
+                # unknown liveness, not observed blankness. Try alternate
+                # bounded charge windows before declaring a missed row empty.
+                probe_empty=probe_empty and not fast,
             ):
                 break
         assert best is not None
         best.pop('_score', None)
         best.pop('_geometry', None)
         if best.get('status') != 'OBSERVED':
-            if any(l.get('status') == 'OBSERVED' for l in lines):
-                # End of live block — do not emit the empty sentinel.
-                break
+            # One missed row is not evidence that all subsequent rows are blank.
+            # Scan every bounded table row; never invent a charge for a gap.
             if probe_empty:
-                # Leading header/blank row with no charge ink — keep scanning.
+                # Leading header/blank row with no charge ink â€” keep scanning.
                 continue
             # Probe saw date/CPT but charge empty: still end once we are past a live block.
             continue
         lines.append(best)
         # CMS-1500 has six charge rows. Stopping after three drops the rest of
         # the block (six $200 lines were read as $600 against Box 28 $1200).
-        # A later blank row still ends the scan.
+        # Later unreadable rows do not terminate the bounded six-row scan.
     # Fast digit path sometimes misses typed amounts (wrong x-window). One
     # paddle/rapid pass across charge-column windows recovers E6 without full thrash.
     # Do NOT call Azure DI here: under F0 (1 analyze/min) blank forms previously
@@ -2573,7 +2665,7 @@ def recognize_service_lines(image, router, template):
                 'bbox': list(bbox),
                 'row_id': str(row_index + 1),
             })
-    # EMPTY_FINANCIAL_INK residual: local found no line charges — gpt-4o sweep
+    # EMPTY_FINANCIAL_INK residual: local found no line charges â€” gpt-4o sweep
     # of the first N charge cells (faint ink / wrong x-window misses), then
     # optional local corroboration for SINGLE_LINE_GPT4O_LOCAL.
     if not lines and charge_col is not None:
@@ -2713,7 +2805,7 @@ def _confirm_sole_charge_line_with_claude(image, lines, *, box28_row=None):
             if box28_settled_for_sole_line_skip(box28_row):
                 _stamp("CHARGE_GPT4O_SKIPPED_BOX28_SETTLED")
                 return lines
-            # Box28 unsettled → Claude below.
+            # Box28 unsettled â†’ Claude below.
         else:
             # Mono-engine sole line: accuracy-first may still corroborate, but
             # after residuals only when Box28 is unsettled.
@@ -2767,27 +2859,55 @@ def _maybe_confirm_sole_line_after_box28(image, fields, service_lines):
     )
 
 
+def _dob_cell_bboxes_for_image(image,band):
+    cells=_dob_cell_bboxes(band)
+    if not getattr(image,'_cdp_source_identity',None):return cells
+    safe=getattr(image,'_cdp_field_safe_cells',{}).get('patient_dob')
+    if not safe or not(safe[0]<=band[0]<band[2]<=safe[2] and safe[1]<=band[1]<band[3]<=safe[3]):return cells
+    from packages.extraction_recovery.measured_dob_geometry import measured_year_recovery
+    proof=measured_year_recovery(tuple(safe),getattr(image,'_cdp_field_components',{}).get('patient_dob',[]),legacy_year_right=cells['YY'][2])
+    if proof and all(band[0]<=b[0]<b[2]<=band[2] and band[1]<=b[1]<b[3]<=band[3] for b in proof['year_ink_boxes']):
+        x0,y0,x1,y1=proof['year_bbox']
+        cells['YY']=(max(band[0],x0),max(band[1],y0),min(band[2],x1),min(band[3],y1))
+    return cells
+
+
 def _dob_cell_bboxes(band):
-    """Split a DOB digit band into MM / DD / YY cells (CMS-1500 box 3).
-
-    Inset each cell away from the dashed vertical rules — those glyphs OCR as
-    digit ``1`` and are the dominant source of 01↔11 / 09↔19 CONFLICT_MARGIN HITL.
-    """
-    x0, y0, x1, y1 = (int(v) for v in band)
-    width = max(1, x1 - x0)
-    inset = max(2, int(0.04 * width))
-    mm_x1 = x0 + int(0.30 * width)
-    dd_x0 = x0 + int(0.30 * width)
-    dd_x1 = x0 + int(0.56 * width)
-    yy_x0 = x0 + int(0.52 * width)
-    return {
-        'MM': (x0 + inset, y0, max(x0 + inset + 1, mm_x1 - inset), y1),
-        'DD': (dd_x0 + inset, y0, max(dd_x0 + inset + 1, dd_x1 - inset), y1),
-        'YY': (yy_x0 + inset, y0, max(yy_x0 + inset + 1, x1 - inset), y1),
-    }
+    from packages.extraction_recovery.dob_cell_geometry import dob_cell_bboxes
+    return dob_cell_bboxes(band)
 
 
-def dob_boxed_cells_complete(mm: str, dd: str, yy: str) -> bool:
+def _dob_bbox_before_bottom_ruling(image, bbox, *, preserve_crossing_ink=False):
+    """Constrain the padded DOB ROI to a measured ruling inside its safe region."""
+    x0, y0, x1, y1 = (int(v) for v in bbox)
+    start = max(y0 + 20, y1 - 18)
+    pixels = np.asarray(image.convert('L'))
+    scores = (pixels[start:y1, x0:x1] < 128).mean(axis=1)
+    for index, score in enumerate(scores):
+        strong_next = index + 1 < len(scores) and scores[index + 1] >= 0.80
+        if score >= 0.80 or (score >= 0.65 and strong_next):
+            ruling=start+index
+            end=index
+            while end+1<len(scores) and scores[end+1]>=.65:
+                end+=1
+            below_start=start+end+1
+            if preserve_crossing_ink and below_start<y1:
+                # Entered digits may cross a printed rule. Preserve the existing
+                # approved envelope when value ink connects across that rule.
+                left=x0+max(8,int((x1-x0)*.10));right=min(x1-8,871) if x0<740<795<x1 else x1-8
+                if left<right:
+                    above=(pixels[max(y0,ruling-4):ruling,left:right]<180).any(axis=0)
+                    below=(pixels[below_start:y1,left:right]<180).any(axis=0)
+                    connected=above & below
+                    for divider in (740,795):
+                        if left<divider<right:connected[max(0,divider-left-3):divider-left+4]=False
+                    if int(connected.sum())>=3:
+                        return tuple(bbox)  # Never expand beyond the recorded safe crop.
+            return (x0, y0, x1, ruling)
+    return tuple(bbox)
+
+
+def dob_boxed_cells_complete(mm: str, dd: str, yy: str, *, qualified_single_month=False) -> bool:
     """CMS DOB cells are two digits. A lone day digit is a clipped glyph, not 0D.
 
     ``DD=1`` must not assemble ``07/01`` when the source day is ``16``.
@@ -2795,9 +2915,9 @@ def dob_boxed_cells_complete(mm: str, dd: str, yy: str) -> bool:
     can run. Real single-digit days fail closed rather than false-accept.
     """
     return bool(
-        re.fullmatch(r"\d{2}", mm or "")
+        (re.fullmatch(r"\d{2}", mm or "") or (qualified_single_month and re.fullmatch(r"[2-9]", mm or "")))
         and re.fullmatch(r"\d{2}", dd or "")
-        and re.fullmatch(r"\d{2,4}", yy or "")
+        and re.fullmatch(r"(?:\d{2}|\d{4})", yy or "")
     )
 
 
@@ -2810,61 +2930,230 @@ def _preprocess_dob_cell(crop):
     return up
 
 
-def _recognize_dob_cells(image, band, router, engines):
-    """OCR MM/DD/YY cells independently and assemble a calendar date from observed digits."""
-    cells = _dob_cell_bboxes(band)
-    parts = {}
+def _recognize_dob_cells(image, band, router, engines, canonical_cell=None):
+    """Acquire complete dates per engine; never mix cells between readers."""
+    candidates, attempts = [], []
+    for engine in dict.fromkeys(('tesseract', *engines)):
+        reads, trace, _ = (_recognize_dob_cells_for_engine(image, band, router, (engine,))
+                           if canonical_cell is None else _recognize_dob_cells_for_engine(
+                               image, band, router, (engine,), canonical_cell=canonical_cell))
+        candidates.extend(reads)
+        attempts.extend(trace)
+    return candidates, attempts, 'DOB_CELLS_ASSEMBLED' if candidates else 'DOB_CELLS_EMPTY'
+
+
+def _dob_reads_confirmed(candidates, attempts=None):
+    """Acquisition stop signal only; final acceptance remains policy-owned."""
+    from packages.extraction_recovery.dob_confirmation import dob_reads_confirmed
+
+    return dob_reads_confirmed(candidates, attempts)
+
+
+def _tesseract_text_with_confidence(image, config):
+    """Text and confidence from the same native observation, never a preset."""
+    import pytesseract
+    import math
+    if hasattr(pytesseract, 'pytesseract'):
+        import shutil
+        executable=os.environ.get("TESSERACT_CMD") or shutil.which("tesseract")
+        if not executable and os.name == "nt":
+            installed=Path(r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+            executable=str(installed) if installed.is_file() else None
+        if not executable:
+            raise RuntimeError("DOB_TESSERACT_EXECUTABLE_UNAVAILABLE")
+        pytesseract.pytesseract.tesseract_cmd=executable
+    if not hasattr(pytesseract, 'image_to_data'):
+        return pytesseract.image_to_string(image, config=config, timeout=10).strip(), 0.0
+    data=pytesseract.image_to_data(image,config=config,timeout=10,output_type=pytesseract.Output.DICT)
+    tokens=[];confidences=[]
+    for index,text in enumerate(data.get('text') or []):
+        text=str(text or '').strip()
+        if not text:
+            continue
+        tokens.append(text)
+        try:
+            confidence=float(data['conf'][index])/100
+        except (KeyError,IndexError,TypeError,ValueError):
+            confidence=0.0
+        confidences.append(confidence if math.isfinite(confidence) and 0 <= confidence <= 1 else 0.0)
+    return ' '.join(tokens), min(confidences,default=0.0)
+
+
+def _attach_local_dob_confirmation(row, image, primary):
+    """A bounded second read of the digit line, not a replacement authority."""
+    if _dob_reads_confirmed(row.get('candidates') or [], row.get('attempts')):
+        return row
+    import pytesseract
+
+    x0, y0, x1, y1 = primary
+    band = _clamp_bbox(tuple(row.get("canonical_region") or primary), image.width, image.height)
+    crop = _preprocess_dob_cell(image.crop(band))
+    candidates = list(row.get('candidates') or [])
+    attempts = list(row.get('attempts') or [])
+    try:
+        for psm in (7, 8):
+            try:
+                raw,confidence = _tesseract_text_with_confidence(crop, f'--psm {psm} -c tessedit_char_whitelist=0123456789/')
+            except (OSError, RuntimeError) as exc:
+                attempts.append({'engine': 'tesseract', 'reason': type(exc).__name__,
+                                 'preprocessing_profile': 'dob_confirmation_band'})
+                continue
+            from packages.extraction_recovery.dob_azure_di_residual import _shape_dob_text
+            observed, shaped = _shape_dob_text('patient_dob', raw, allow_ordered_components=True)
+            attempts.append({'engine': 'tesseract', 'reason': f'DOB_CONFIRM_PSM_{psm}',
+                             'observation': {'text': raw, 'confidence':confidence},
+                             'preprocessing_profile': 'dob_confirmation_band'})
+            if not shaped:
+                continue
+            box = BoundingBox(x0=band[0], y0=band[1], x1=band[2], y1=band[3],
+                              image_width=image.width, image_height=image.height)
+            candidate = OCRCandidate(value=observed, raw_value=raw, engine='tesseract',
+                                     model_name='tesseract', model_version='local',
+                                     preprocessing_variant='dob_confirmation_band',
+                                     raw_confidence=confidence, calibrated_confidence=None,
+                                     bounding_box=box, latency_ms=0.0)
+            candidates.append({**asdict(candidate), 'bounding_box': box.model_dump(mode='json')})
+            if _dob_reads_confirmed(candidates, attempts):
+                break
+        if not _dob_reads_confirmed(candidates, attempts):
+            cells, cell_attempts, _ = _recognize_dob_cells_for_engine(
+                image, band, None, ('tesseract',))
+            candidates.extend(cells)
+            attempts.extend(cell_attempts)
+    finally:
+        crop.close()
+    return {**row, 'candidates': candidates, 'attempts': attempts}
+
+
+def _recognize_dob_cells_for_engine(image, band, router, engines, canonical_cell=None):
+    # Canonical-cell recovery variants can normalize to the same pixels.
+    # Repeating an unsuccessful read is work, not independent evidence.
+    actual = tuple(band)
+    if canonical_cell is not None:
+        x0,y0,x1,y1 = map(int,canonical_cell)
+        actual = (x0+2,y0+1,x1-1,y1-1)
+    cache = image.__dict__.setdefault('_dob_reader_observation_cache', {})
+    key = (actual, tuple(engines), hashlib.sha256(image.crop(actual).tobytes()).hexdigest())
+    if key in cache:
+        return [], [{'engine':engines[0], 'reason':('DOB_IDENTICAL_SUCCESSFUL_READ_REUSED' if cache[key] else 'DOB_IDENTICAL_EMPTY_READ_REUSED'),
+                     'bbox':list(actual), 'new_reader_observation':False}], 'DOB_CELLS_EMPTY'
+    result = _recognize_dob_cells_for_engine_uncached(image, band, router, engines, canonical_cell)
+    if not result[0] and engines[0] in {'tesseract','tesseract_digits'}:
+        from workers.cascade.tesseract_adapter import TesseractTextExtractor
+        from packages.extraction_recovery.dob_literal_components import read_literal_components
+        observed,extra_attempts=read_literal_components(image,_dob_cell_bboxes_for_image(image,actual),
+            extractor=TesseractTextExtractor(psm=6,timeout_seconds=10),preprocess=_preprocess_dob_cell)
+        if observed is not None:
+            from packages.domain.common import BoundingBox
+            box=BoundingBox(x0=actual[0],y0=actual[1],x1=actual[2],y1=actual[3],image_width=image.width,image_height=image.height)
+            candidate=OCRCandidate(value=observed['value'],raw_value=observed['raw_value'],engine='tesseract',
+                model_name='tesseract',model_version='local',preprocessing_variant='dob_literal_caption_aware',
+                raw_confidence=observed['raw_confidence'],calibrated_confidence=None,bounding_box=box,latency_ms=0.0)
+            payload={**asdict(candidate),'bounding_box':box.model_dump(mode='json')}
+            result=([payload],[*result[1],*extra_attempts],'DOB_LITERAL_CELLS_ASSEMBLED')
+        else:
+            result=(result[0],[*extra_attempts,*result[1]],result[2])
+    if not any(a.get('reader_failed') for a in result[1]) and any((a.get('observation')or{}).get('parts') for a in result[1]):
+        cache[key] = bool(result[0])
+    return result
+
+
+def _recognize_dob_cells_for_engine_uncached(image, band, router, engines, canonical_cell=None):
+    """Assemble MM/DD/YY using observations from exactly one engine."""
+    if canonical_cell is not None:
+        # Component acquisition needs complete glyphs. A narrow variant may
+        # assist whole-band recognition, but it cannot redefine an MM/DD/YY
+        # observation or manufacture a contradiction from half a character.
+        cx0,cy0,cx1,cy1 = map(int, canonical_cell)
+        if not (0 <= cx0 < cx1 <= image.width and 0 <= cy0 < cy1 <= image.height):
+            raise ValueError("Recorded DOB cell exceeds canonical image")
+        band = (cx0+2, cy0+1, cx1-1, cy1-1)
+    if image.width == 1712 and not (band[0] < 740 < 795 < band[2]):
+        return [], [{'engine': engines[0], 'reason': 'DOB_PARTIAL_BAND_NOT_THREE_CELLS',
+                     'bbox': list(band)}], 'DOB_PARTIAL_BAND_NOT_THREE_CELLS'
+    cells = _dob_cell_bboxes_for_image(image,band)
+    parts = {};component_confidences = {}
+    qualified_single_month = False
     attempts = []
     raw_bits = []
 
-    def _digits_from(raw: str) -> str:
-        return ''.join(ch for ch in raw if ch.isdigit())
+    def _digits_from(raw: str, label: str) -> str:
+        # Cell labels such as "mma1" are not observed numeric components.
+        # Stripping their letters appended a caption's 1 to a real month,
+        # turning "mma1" + "12" into 112 and losing a complete reader.
+        # Exact printed captions can share an OCR line with real digits.
+        # Remove only the caption for this physical subcell; preserve digits
+        # and reject arbitrary alphanumeric strings (e.g. "mma1", "955M").
+        caption = "(?:YYYY|YY)" if label == "YY" else label
+        raw = re.sub(r"(?<![A-Za-z])" + caption + r"(?![A-Za-z])", "", raw, flags=re.IGNORECASE)
+        if label == "YY" and re.fullmatch(r"[0-9\s.,'|/\\-]+[MF]", raw.strip(), re.IGNORECASE):
+            # The registered Box 3 envelope also contains the printed sex
+            # legend. Strip that exact trailing label only in the year cell;
+            # preserve every observed digit and never repair a year.
+            raw = raw.strip()[:-1]
+
+        if not re.fullmatch(r"[0-9\s.,'|/\\-]+", raw):
+            return ''
+        return ''.join(ch for ch in raw if ch in '0123456789')
 
     def _consider(label: str, digits: str, raw: str, best_digits: str) -> str:
         if not digits:
             return best_digits
         if label in {'MM', 'DD'}:
-            # Keep last 1-2 digits (leading edge glyphs happen).
-            trimmed = digits[-2:] if len(digits) >= 2 else digits
-            if not (1 <= len(trimmed) <= 2):
+            if label == 'MM' and len(digits)==1 and qualified_single_month:
+                return digits
+            # Too many digits can be an unsegmented MMDD or a ruling artifact.
+            # Never silently turn 0902 into month 02 by dropping observed digits.
+            upper = 12 if label == 'MM' else 31
+            if len(digits) != 2 or not 1 <= int(digits) <= upper:
                 return best_digits
-            # Prefer 0X over 1X when both are calendar-plausible — dashed
-            # rule bleed into the cell still produces a leading 1.
-            if best_digits and len(best_digits) == 2 and len(trimmed) == 2:
-                if best_digits[0] == '0' and trimmed[0] == '1' and best_digits[1] == trimmed[1]:
-                    return best_digits
-                if trimmed[0] == '0' and best_digits[0] == '1' and best_digits[1] == trimmed[1]:
-                    return trimmed
-            if len(trimmed) >= len(best_digits):
-                return trimmed
+            return digits
         elif label == 'YY':
-            # Prefer 4-digit years; allow 2-3 (span repairs 983→1983).
-            if 2 <= len(digits) <= 5 and len(digits) >= len(best_digits):
-                return digits[-4:] if len(digits) > 4 else digits
+            if (len(digits) in {2, 4} and len(digits) >= len(best_digits)
+                    and (len(digits) == 2 or 1900 <= int(digits) <= 2100)):
+                return digits
         return best_digits
 
+    if engines[0] in {'tesseract','tesseract_digits'}:
+        try:
+            import pytesseract
+        except ImportError:
+            return [],[{'engine':engines[0],'reason':'DOB_READER_UNAVAILABLE:ImportError',
+                        'reader_failed':True,'bbox':list(band)}],'DOB_READER_UNAVAILABLE'
     for label, bbox in cells.items():
         bbox = _clamp_bbox(bbox, image.width, image.height)
         crop = _preprocess_dob_cell(image.crop(bbox))
         best_digits = ''
-        # Digit-only tesseract first — typed CMS DOB cells often resolve under whitelist.
-        # Under STP fast mode, skip route engines when digits already assemble.
+        best_confidence = 0.0
+        # Keep the older digit-whitelist recovery, attributed to Tesseract.
+        # Other readers still acquire their own complete dates independently.
         with contextlib.suppress(ImportError, OSError, ValueError, TypeError, AttributeError, RuntimeError):
             import pytesseract
-            for psm in _digit_psms_dob():
+            for psm in _digit_psms_dob() if engines[0] in {'tesseract', 'tesseract_digits'} else ():
                 cfg = f'--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789'
-                raw = pytesseract.image_to_string(crop, config=cfg).strip()
+                try:
+                    raw,confidence = _tesseract_text_with_confidence(crop,cfg)
+                except (ImportError,OSError,RuntimeError) as exc:
+                    attempts.append({'engine':engines[0],'reason':'DOB_READER_ERROR:'+type(exc).__name__,
+                        'reader_failed':True,'dob_cell':label,'component_bbox':list(bbox)})
+                    continue
                 attempts.append({
                     'engine': 'tesseract_digits', 'reason': f'PSM_{psm}',
-                    'latency_ms': 0.0, 'observation': {'text': raw},
+                    'latency_ms': 0.0, 'observation': {'text': raw,'confidence':confidence,'digit_alphabet_forced':True},
                     'preprocessing_profile': 'dob_cell_upscale', 'dob_cell': label,
+                    'component_bbox': list(bbox),
                 })
                 if raw:
                     raw_bits.append(f'{label}:tess{psm}:{raw}')
-                    best_digits = _consider(label, _digits_from(raw), raw, best_digits)
-                    if best_digits:
+                    digits=_digits_from(raw,label)
+                    best_digits = _consider(label, digits, raw, best_digits)
+                    if best_digits and best_digits == digits:
+                        best_confidence=confidence
+                    if (label in {'MM', 'DD'} and len(best_digits) == 2) or (
+                        label == 'YY' and len(best_digits) in {2, 4}
+                    ):
                         break
-        if not best_digits or not _ocr_fast_mode():
+        if engines[0] not in {'tesseract', 'tesseract_digits'}:
             routed = router.route(
                 OCRRouteRequest(crop, (0, 0, crop.width, crop.height), engine_order=engines)
             )
@@ -2876,17 +3165,45 @@ def _recognize_dob_cells(image, band, router, engines):
                     'observation': asdict(observation) if observation else None,
                     'preprocessing_profile': 'dob_cell_upscale',
                     'dob_cell': label,
+                    'component_bbox': list(bbox),
                 })
                 if observation is None or not observation.lines:
                     continue
-                raw = chr(10).join(line.text for line in observation.lines)
+                numeric_lines = [line for line in observation.lines
+                                 if _digits_from(line.text, label)]
+                if numeric_lines and all(hasattr(line, 'x0') and hasattr(line, 'y0') for line in numeric_lines):
+                    numeric_lines.sort(key=lambda line: (line.x0, line.y0))
+                    raw = chr(10).join(line.text for line in numeric_lines)
+                else:
+                    raw = chr(10).join(line.text for line in observation.lines)
                 raw_bits.append(f'{label}:{raw}')
-                best_digits = _consider(label, _digits_from(raw), raw, best_digits)
+                digits=_digits_from(raw,label)
+                if label == 'MM' and canonical_cell is not None and re.fullmatch(r'[2-9]',digits or ''):
+                    captions = [line for line in observation.lines if line.text.strip().upper() == 'MM']
+                    qualified_single_month = bool(len(numeric_lines)==1 and captions
+                        and numeric_lines[0].text.strip()==digits
+                        and 3 < numeric_lines[0].x0 < numeric_lines[0].x1 < crop.width-3
+                        and max(line.y1 for line in captions) < numeric_lines[0].y0
+                        and numeric_lines[0].y1 < crop.height-3)
+                best_digits = _consider(label,digits,raw,best_digits)
+                if best_digits and best_digits == digits:
+                    measured=[]
+                    for line in numeric_lines or observation.lines:
+                        try:
+                            score=float(line.confidence)
+                        except (AttributeError,TypeError,ValueError):
+                            score=0.0
+                        measured.append(score if np.isfinite(score) and 0 <= score <= 1 else 0.0)
+                    best_confidence=min(measured,default=0.0)
         parts[label] = best_digits
+        component_confidences[label] = best_confidence
     mm, dd, yy = parts.get('MM', ''), parts.get('DD', ''), parts.get('YY', '')
-    if not dob_boxed_cells_complete(mm, dd, yy):
+    attempts.append({'engine': engines[0], 'reason': 'DOB_CELL_COMPONENTS',
+                     'observation': {'parts': dict(parts),'component_confidences':dict(component_confidences),'qualified_single_month':qualified_single_month},
+                     'preprocessing_profile': 'dob_cell_upscale', 'bbox': list(band)})
+    if not dob_boxed_cells_complete(mm, dd, yy, qualified_single_month=qualified_single_month):
         return [], attempts, 'DOB_CELL_PARTIAL_DIGIT'
-    # Reject weak cell reads — garbage like "1'4QR2" can span-shape into a false date.
+    # Reject weak cell reads â€” garbage like "1'4QR2" can span-shape into a false date.
     if not (re.fullmatch(r'\d{1,2}', mm) and 1 <= int(mm) <= 12):
         return [], attempts, 'DOB_CELLS_EMPTY'
     if not (re.fullmatch(r'\d{1,2}', dd) and 1 <= int(dd) <= 31):
@@ -2895,25 +3212,23 @@ def _recognize_dob_cells(image, band, router, engines):
         (len(yy) == 2) or (len(yy) == 3 and yy[0] in '189') or (len(yy) == 4 and 1900 <= int(yy) <= 2100)
     )):
         return [], attempts, 'DOB_CELLS_EMPTY'
+    if len(yy) == 4:
+        from datetime import date
+        try:
+            if date(int(yy), int(mm), int(dd)) > date.today():
+                return [], attempts, "DOB_EXPLICIT_FUTURE_YEAR"
+        except ValueError:
+            return [], attempts, "DOB_INVALID_CALENDAR"
     joined = f'{mm} {dd} {yy}'
     span = select_field_span(joined, 'DATE', 'patient_dob')
     selected = span.selected_text
     # Only emit when span produced a calendar-shaped date (not the raw join).
     if not selected or not re.fullmatch(r'\d{1,2}[/-]\d{1,2}[/-]\d{2,4}', selected):
         return [], attempts, 'DOB_CELLS_EMPTY'
-    # Attribute to a route-authorized producing engine so evidence decision does
-    # not strip the assembled candidate as CANDIDATE_ENGINE_NOT_AUTHORIZED.
-    # Cell segmentation stays in preprocessing_variant + span reason codes.
-    producing_engine = engines[0] if engines else 'rapidocr'
-    for attempt in reversed(attempts):
-        eng = str(attempt.get('engine') or '')
-        if not eng or eng == 'tesseract_digits':
-            continue
-        obs = attempt.get('observation')
-        if obs is None:
-            continue
-        producing_engine = eng
-        break
+    if not semantic_accept('patient_dob', selected)[0]:
+        return [], attempts, 'DOB_INVALID_CALENDAR'
+    # Preserve the actual reader; never relabel a Tesseract-only date as Rapid.
+    producing_engine = engines[0]
     box = BoundingBox(
         x0=band[0], y0=band[1], x1=band[2], y1=band[3],
         image_width=image.width, image_height=image.height,
@@ -2923,7 +3238,7 @@ def _recognize_dob_cells(image, band, router, engines):
         model_name='unknown', model_version='unknown',
         preprocessing_variant='dob_cell_upscale',
         preprocessing_version='cascade-v8',
-        raw_confidence=0.8,
+        raw_confidence=min(component_confidences.values(),default=0.0),
         calibrated_confidence=None, bounding_box=box,
         latency_ms=0.0,
     )
@@ -2956,8 +3271,25 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
     cascade = FieldCascade()
     rows = []
 
+    dob_recovery_context={}
     def _recognize_with_engines(field_name, bbox, field_type, engines):
-        return _recognize_one(image, field_name, bbox, router, field_type, engine_order=engines)
+        candidates,attempts,reason=_recognize_one(image, field_name, bbox, router, field_type, engine_order=engines)
+        if (field_name=='patient_dob' and tuple(bbox)==dob_recovery_context.get('tight')
+                and dob_recovery_context.get('full')):
+            from packages.extraction_recovery.dob_azure_di_residual import _shape_dob_text
+            for engine in engines:
+                if any(str(candidate.get('engine'))==engine and _shape_dob_text(field_name,candidate.get('value'))[1]
+                       for candidate in candidates):
+                    continue  # Preserve this producer's existing complete observation.
+                extra,tried,_=_recognize_one(image,field_name,dob_recovery_context['full'],router,field_type,engine_order=(engine,))
+                for candidate in extra:
+                    candidate['preprocessing_variant']='dob_unclipped_safe_recovery'
+                for attempt in tried:
+                    attempt['input_bbox']=list(dob_recovery_context['full'])
+                    attempt['preprocessing_profile']='dob_unclipped_safe_recovery'
+                candidates.extend(extra);attempts.extend(tried)
+            reason=str(reason or '')+'|DOB_UNCLIPPED_SAFE_RECOVERY'
+        return candidates,attempts,reason
 
     for field in geometry['fields']:
         result = field['result']
@@ -2970,25 +3302,41 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 cell['y0'] <= aligned[1] < aligned[3] <= cell['y1']):
             raise ValueError('Canonical region exceeds recorded safe cell')
         primary = _ocr_bbox(field['field'], aligned, cell, (image.width, image.height), template_fields)
-        # Box 28: the amount sits below the printed caption. Stale GeometryResult
-        # safe cells from the old (Box-29) ROI cannot contain the corrected
-        # template box — force the measured cms1500@03 value band.
+        if field['field'].casefold() == 'patient_dob':
+            full_primary=primary
+            constrained = _dob_bbox_before_bottom_ruling(image, primary)
+            preserved = _dob_bbox_before_bottom_ruling(image, primary,preserve_crossing_ink=True)
+            dob_recovery_context.clear()
+            if constrained!=full_primary and preserved==full_primary:
+                dob_recovery_context.update(tight=tuple(constrained),full=tuple(full_primary))
+            if constrained != primary:
+                # The ruling can cross entered digits. Keep the recorded safe
+                # cell for component reads; constrain only this whole-band crop.
+                primary = constrained
+        # Box 28 value crops require containment in the recorded safe cell.
         if str(field.get('field') or '').casefold() in {'total_charge', 'total_charges'}:
             try:
                 from packages.geometry_authority.box28 import (
-                    CMS1500_BOX28_FULL,
-                    box28_crop_variants,
+                    registered_box28_crop_variants,
                 )
 
-                # Prefer caption-excluded / tight value bands over stale GeometryResult
-                # safe cells that still point at Box 29.
-                variants = box28_crop_variants(CMS1500_BOX28_FULL)
+                # A stale field binding requires regenerated geometry.
+                variants = registered_box28_crop_variants(tuple(cell[k] for k in ('x0', 'y0', 'x1', 'y1')))
+                if not variants:
+                    rows.append({'field':field['field'],'canonical_region':list(aligned),
+                        'ocr_region':list(primary),'candidates':[], 'attempts':[],
+                        'router_reason':'BOX28_REGISTERED_CELL_MISMATCH','status':'NO_VALUE',
+                        'local_alignment':{'accepted':False,'reason':'BOX28_REGISTERED_CELL_MISMATCH'},
+                        'cascade':{'strategy_id':cascade.strategy_id,'accepted':False,
+                            'accept_reason':'BOX28_REGISTERED_CELL_MISMATCH','steps':[]}})
+                    emit(rows)
+                    continue
                 primary = _clamp_bbox(variants[0], image.width, image.height)
                 # Stash alternate crops so the cascade ladder can retry without
                 # re-deriving geometry from the wrong template ROI.
-                field.setdefault('_box28_crop_variants', [
+                field['_box28_crop_variants'] = [
                     list(_clamp_bbox(v, image.width, image.height)) for v in variants[1:]
-                ])
+                ]
             except Exception:  # noqa: BLE001
                 pass
         # Ranking requires every geometry field in the OCR artifact. Out-of-scope
@@ -3012,10 +3360,11 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             emit(rows)
             continue
         # DOB alternate strategy (v10): cells-FIRST. Whole-band OCR reads the
-        # MM|DD|YY dashed vertical rules as digit "1" (01→11, 09→19), which
+        # MM|DD|YY dashed vertical rules as digit "1" (01â†’11, 09â†’19), which
         # then fights a second engine under CONFLICT_MARGIN and forces HITL.
         # Independent MM/DD/YY cell OCR + digit-whitelist tesseract avoids rules.
         cascaded = None
+        cell_cands, cell_attempts = [], []
         if (
             field['field'].casefold() == 'patient_dob'
             and 'dob_cells' in post_miss_for(field['field'])
@@ -3030,20 +3379,43 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             cell_h = cell_box[3] - cell_box[1]
             default_band = (
                 max(primary[0], cell_box[0] + 2),
-                max(primary[1], cell_box[3] - max(22, int(0.40 * cell_h))),
+                cell_box[1] + 1,
                 min(cell_box[2] - 1, image.width),
-                min(primary[3], cell_box[3] - 1),
+                min(image.height, cell_box[3] - 1),
             )
             band = _clamp_bbox(default_band, image.width, image.height)
             cell_cands, cell_attempts, cell_reason = _recognize_dob_cells(
-                image, band, router, engines,
+                image, band, router, engines, canonical_cell=cell_box,
             )
+            if not _dob_reads_confirmed(cell_cands, cell_attempts):
+                # Narrow value bands can clip tall digits. Retain the earlier
+                # full-height cell recovery before resorting to noisy whole-
+                # band parsing; all observations keep their actual producers.
+                cell_h = cell_box[3] - cell_box[1]
+                full_band = _clamp_bbox((
+                    max(primary[0], cell_box[0] + 2),
+                    max(cell_box[1] + 1, cell_box[3] - max(32, int(0.60 * cell_h))),
+                    min(cell_box[2] - 1, image.width),
+                    min(image.height, cell_box[3] - 1),
+                ), image.width, image.height)
+                if full_band[1] < band[1]:
+                    full_cands, full_attempts, full_reason = _recognize_dob_cells(
+                        image, full_band, router, engines, canonical_cell=cell_box)
+                    cell_cands.extend(full_cands)
+                    cell_attempts.extend(full_attempts)
+                    cell_reason = f'{cell_reason}|FULL_HEIGHT:{full_reason}'
+                    if _dob_reads_confirmed(cell_cands, cell_attempts):
+                        band = full_band
             selected = next(
                 (c.get('value') or '' for c in cell_cands if (c.get('value') or '').strip()),
                 '',
             )
             ok, accept_reason = semantic_accept('patient_dob', selected)
-            if ok:
+            if ok and _dob_reads_confirmed(cell_cands, cell_attempts):
+                whole_cands, whole_attempts, _ = _recognize_one(
+                    image, 'patient_dob', primary, router, 'date', engine_order=engines)
+                cell_cands.extend(whole_cands)
+                cell_attempts.extend(whole_attempts)
                 cascaded = CascadeResult(
                     field_name='patient_dob',
                     bbox=band,
@@ -3143,11 +3515,12 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     selected = m_val
             try:
                 from packages.geometry_authority.monetary_geometry import read_monetary_crop
-
+                from packages.geometry_authority.cms1500_regions import CMS1500_BOX28_CENTS_X, CMS1500_BOX28_RIGHT_X
                 geo = read_monetary_crop(
                     image.crop(primary),
                     crop_bbox=tuple(float(v) for v in primary),
                     image_size=(int(image.width), int(image.height)),
+                    **({'cents_x':CMS1500_BOX28_CENTS_X,'units_x':CMS1500_BOX28_RIGHT_X} if field['field']=='total_charge' else {}),
                 )
             except Exception:  # noqa: BLE001
                 geo = None
@@ -3168,6 +3541,10 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 )
                 dig_cands = list(dig_cands or [])
                 monetary_observation = {
+                    'geometry_read': geo.to_dict(),
+                    'input_bbox': list(primary),
+                    'source_identity': dict(getattr(image, '_cdp_source_identity', {})),
+                    'ruling_coordinate_frame': 'canonical_reference_pixels' if any('CANONICAL' in r for r in geo.reasons) else 'crop_local_pixels',
                     'text': geo.raw_glyph_sequence,
                     'shaped': geo_val,
                     'raw_digit_sequence': geo.raw_glyph_sequence,
@@ -3185,7 +3562,7 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     'adopted': adopt_geometry,
                 }
                 dig_attempts = list(dig_attempts or []) + [{
-                    'engine': 'rapidocr',
+                    'engine': geo.reader_engine,
                     'reason': 'GEOMETRY_CENTS' if adopt_geometry else 'GEOMETRY_CENTS_UNDERREAD',
                     'observation': monetary_observation,
                 }]
@@ -3193,11 +3570,12 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     dig_cands.insert(0, {
                         'value': geo_val,
                         'raw_value': geo.raw_glyph_sequence,
-                        'engine': 'rapidocr',
+                        'engine': geo.reader_engine,
                         'model_name': 'geometry-cents',
                         'model_version': 'monetary-geometry',
                         'preprocessing_variant': 'GEOMETRY_CENTS',
-                        'raw_confidence': 0.91,
+                        'raw_confidence': 0.0,
+                        'confidence_source': 'CHARACTER_BOX_READER_NOT_REPORTED',
                         'calibrated_confidence': None,
                         'bounding_box': {
                             'x0': float(primary[0]),
@@ -3215,7 +3593,7 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                         'preprocessing_version': 'geometry-cents',
                         'registration_confidence': None,
                         'image_quality_score': None,
-                        # EvidenceProvenance forbids freeform monetary keys — keep
+                        # EvidenceProvenance forbids freeform monetary keys â€” keep
                         # typed lineage empty and persist geometry on the attempt.
                         'provenance': None,
                     })
@@ -3254,6 +3632,14 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 ok = False
                 accept_reason = 'PLACE_SHIFT_GEOMETRY_CONFLICT'
             if ok:
+                # A shaped digit fill is not a reason to skip the governed
+                # readers. Keep their observations, including disagreements,
+                # for the existing financial acceptance gates.
+                confirm_cands, confirm_attempts, _ = _recognize_one(
+                    image, field['field'], primary, router, field.get('field_type', 'currency'),
+                    engine_order=('paddleocr', 'rapidocr'))
+                dig_cands = list(dig_cands) + list(confirm_cands)
+                dig_attempts = list(dig_attempts) + list(confirm_attempts)
                 cascaded = CascadeResult(
                     field_name=field['field'],
                     bbox=primary,
@@ -3280,7 +3666,7 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     strategy_id=cascade.strategy_id,
                 )
             else:
-                # Empty box-28: do not exhaust paddle×3 crop variants — E6 uses
+                # Empty box-28: do not exhaust paddleÃ—3 crop variants â€” E6 uses
                 # service-line charges. Keeps STP eval from multi-minute thrash.
                 cascaded = CascadeResult(
                     field_name=field['field'],
@@ -3315,6 +3701,10 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 image_size=(image.width, image.height),
                 recognize_fn=_recognize_with_engines,
             )
+            # Keep cell observations even when they were insufficient to stop
+            # recovery. They must not replace the whole-band reader's result.
+            cascaded.candidates.extend(cell_cands)
+            cascaded.attempts = list(cell_attempts) + list(cascaded.attempts)
         # IJN2.022 / handwriting DOB: whole-band OCR fragments MM/DD/YY; cell
         # segmentation recovers calendar-valid dates from observed digit ink only.
         # Try the reconstructed digit band plus any cascade crop that already
@@ -3351,7 +3741,7 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     continue
                 seen_bands.add(band)
                 cell_cands, cell_attempts, cell_reason = _recognize_dob_cells(
-                    image, band, router, engines,
+                    image, band, router, engines, canonical_cell=cell_box,
                 )
                 selected = next(
                     (c.get('value') or '' for c in cell_cands if (c.get('value') or '').strip()),
@@ -3371,12 +3761,12 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                     router_reason=cell_reason,
                 )
                 cascaded.cascade_trace.append(step)
-                if ok:
+                if ok and _dob_reads_confirmed(cell_cands, cell_attempts):
                     cascaded = CascadeResult(
                         field_name='patient_dob',
                         bbox=band,
-                        candidates=list(cell_cands),
-                        attempts=list(cell_attempts),
+                        candidates=list(cascaded.candidates) + list(cell_cands),
+                        attempts=list(cascaded.attempts) + list(cell_attempts),
                         router_reason=cell_reason,
                         status='OBSERVED',
                         cascade_trace=list(cascaded.cascade_trace),
@@ -3385,6 +3775,8 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                         strategy_id=cascade.strategy_id,
                     )
                     break
+                cascaded.candidates.extend(cell_cands)
+                cascaded.attempts.extend(cell_attempts)
         # When whole-band accepted but engines disagree on separator-1 dates,
         # still attach dob_cells as a corroborating / preferred candidate.
         elif (
@@ -3414,14 +3806,14 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
                 image.height,
             )
             cell_cands, cell_attempts, _cell_reason = _recognize_dob_cells(
-                image, band, router, engines,
+                image, band, router, engines, canonical_cell=cell_box,
             )
             selected = next(
                 (c.get('value') or '' for c in cell_cands if (c.get('value') or '').strip()),
                 '',
             )
             ok, accept_reason = semantic_accept('patient_dob', selected)
-            if ok and cell_cands:
+            if ok and _dob_reads_confirmed(cell_cands, cell_attempts):
                 cascaded = CascadeResult(
                     field_name=cascaded.field_name,
                     bbox=band,
@@ -3460,11 +3852,25 @@ def recognize_regions(image, geometry, router, emit=lambda rows: None, template=
             },
             'status': cascaded.status,
         })
+        if field['field'].casefold() == 'patient_dob':
+            try:
+                rows[-1] = _attach_local_dob_confirmation(rows[-1], image, primary)
+            except ImportError:
+                pass  # Optional local reader unavailable; retain evidence and review.
+            from packages.extraction_recovery.dob_confirmation import dob_component_conflicts
+
+            rows[-1]['dob_component_conflicts'] = dob_component_conflicts(
+                rows[-1]['candidates'], rows[-1]['attempts'])
         emit(rows)
     return rows
 
 
 def run(directory, output):
+    if os.name == "nt":
+        import importlib
+        import importlib.util
+        if importlib.util.find_spec("torch") is not None:
+            importlib.import_module("torch")
     from packages.extraction_recovery.doc_latency_budget import (
         begin_doc_budget,
         get_doc_budget,
@@ -3478,7 +3884,6 @@ def run(directory, output):
     output.mkdir(parents=True, exist_ok=False)
     geometry = json.loads((directory / 'GeometryResult.json').read_text())
     telemetry = json.loads((directory / 'geometry_telemetry.json').read_text())
-    trace = json.loads((directory / 'registration_trace.json').read_text())
     if telemetry['status'] != 'SUCCESS' or not telemetry['registration_evidence']['accepted']:
         raise ValueError('Accepted saved registration and geometry required')
     matrix = np.asarray(geometry['source_to_geometry_transform'], dtype=float)
@@ -3486,9 +3891,16 @@ def run(directory, output):
         raise ValueError('Geometry and registration transforms disagree')
     if matrix.shape != (3, 3) or not np.isfinite(matrix).all():
         raise ValueError('Invalid saved transform')
-    observations = [e['data']['coverage_observation'] for t in trace['traces'] for e in t['events']
-                    if 'coverage_observation' in e.get('data', {})]
-    size = next(o['reference']['size'] for o in observations if o['stage'] == 'Input image')
+    template = _load_cms1500_template(geometry, telemetry, directory)
+    # Discovery traces contain proposals for multiple templates and sizes.
+    # The saved homography maps into the selected template, never the first
+    # proposal in the trace. Definition fingerprint is checked above.
+    from packages.templates.registry import TemplateRegistry
+    reference_for_canvas = TemplateRegistry.load_from_directory().load_reference_image(template)
+    if reference_for_canvas is None:
+        raise ValueError('Selected registered template reference is unavailable')
+    with reference_for_canvas:
+        size = reference_for_canvas.size
     with ZipFile(telemetry['source']['archive']) as archive:
         payload = archive.read(telemetry['source']['entry'])
     if hashlib.sha256(payload).hexdigest() != telemetry['document_id']:
@@ -3503,19 +3915,23 @@ def run(directory, output):
               'coordinate_frame': 'rectified_template_pixels', 'stop_after': 'ocr',
               'registration_executed': False, 'geometry_estimated': False,
               'ranking_executed': False, 'validators_executed': False,
-              'policy': 'Field-cascade v1: crop variants × governed route engines; stop on semantic field accept; no invented amounts',
+              'policy': 'Field-cascade v1: crop variants Ã— governed route engines; stop on semantic field accept; no invented amounts',
               'confidence_basis': 'Arithmetic mean of raw line confidences; raw lines preserved',
               'fields': [], 'service_lines': [], 'status': 'RUNNING'}
     def save(rows):
         report['fields'] = rows
         (output / 'OCRCandidates.json').write_text(json.dumps(report, indent=2, default=str, allow_nan=False), encoding='utf-8')
-    template = _load_cms1500_template()
+    report.update(template_id=template.template_id, template_version=template.version)
     from packages.runtime_wiring import get_telemetry, reset_telemetry, stage_enabled
 
     tel = reset_telemetry()
     claim_id = str(telemetry.get('document_id') or '')[:16]
     try:
         with Image.fromarray(pixels) as canonical:
+            from packages.extraction_recovery.approved_geometry import frame_hash
+            canonical._cdp_source_identity={'source_sha256':telemetry['document_id'],'page_number':geometry['page_number'],'frame_sha256':frame_hash(geometry)}
+            canonical._cdp_field_components={f['field']:(f.get('result') or {}).get('components',[]) for f in geometry.get('fields',[]) if f.get('field')}
+            canonical._cdp_field_safe_cells={f['field']:[f['result']['safe_cell'][k] for k in ('x0','y0','x1','y1')] for f in geometry.get('fields',[]) if f.get('result',{}).get('safe_cell')}
             with tel.track(
                 "package_intelligence",
                 enabled=stage_enabled("CDP_PACKAGE_INTELLIGENCE", "1"),
@@ -3532,7 +3948,7 @@ def run(directory, output):
                         classify_page_signals,
                     )
 
-                    # Cheap page-text classification — never assume CMS1500.
+                    # Cheap page-text classification â€” never assume CMS1500.
                     page_text = ""
                     try:
                         import pytesseract
@@ -3603,7 +4019,32 @@ def run(directory, output):
                     report["allows_cms_geometry"] = bool(page.allows_cms_geometry)
             router = OCRRouter(lambda attempt: True)
             allows_cms = bool(report.get("allows_cms_geometry", True))
-            if report.get("document_family") == "SEPARATOR":
+            if template.template_id == "ub04":
+                from packages.extraction_recovery.ub04_registered import extract_registered_ub04
+                from packages.templates.registry import TemplateRegistry
+                reference = TemplateRegistry.load_from_directory().load_reference_image(template)
+                def recognize_ub04(name, bbox, kind):
+                    candidates, attempts, reasons = [], [], []
+                    # Observe both engines; semantic shape alone cannot stop the
+                    # UB-04 confirmation. Keep their real producers/dependencies.
+                    for engine in ("paddleocr", "rapidocr"):
+                        observed, tried, reason = _recognize_one(canonical, name, bbox, router, kind,
+                            engine_order=(engine,))
+                        candidates.extend(observed); attempts.extend(tried); reasons.append(reason)
+                    if not any(str(c.get("value") or "").strip() for c in candidates):
+                        observed, tried, reason = _recognize_one(canonical, name, bbox, router, kind,
+                            engine_order=("tesseract",))
+                        candidates.extend(observed); attempts.extend(tried); reasons.append(reason)
+                    from packages.extraction_recovery.compact_birthdate import normalize_ub04_birthdate_candidates
+                    candidates=normalize_ub04_birthdate_candidates(name,candidates)
+                    return candidates, attempts, "|".join(str(reason or "") for reason in reasons)
+                rows, lines, local = extract_registered_ub04(
+                    canonical, geometry, template, reference, recognize_ub04, save)
+                report.update(document_family="UB04", allows_cms_geometry=False,
+                    registered_form_path="UB04_GEOMETRY", fields=rows, service_lines=lines,
+                    local_alignment=local, service_line_schema="ub04-service-lines-v1")
+                save(rows)
+            elif report.get("document_family") == "SEPARATOR":
                 report["fields"] = []
                 report["service_lines"] = []
                 report["status"] = "SEPARATOR_EXCLUDED"
@@ -3621,6 +4062,7 @@ def run(directory, output):
                 report["cms_geometry_skipped"] = True
                 save([])
             else:
+                report.update(document_family="CMS1500", registered_form_path="CMS_GEOMETRY")
                 recognize_regions(canonical, geometry, router, save, template=template)
                 report['service_lines'] = recognize_service_lines(canonical, router, template)
                 report['fields'] = _maybe_attach_dob_handwriting_residuals(
@@ -3634,7 +4076,7 @@ def run(directory, output):
                     report["fields"],
                     report["service_lines"],
                 )
-                # OCR/model conflicts → Claude picks one rival. Box 28 ≠ Σ → BOX28/LINES.
+                # OCR/model conflicts â†’ Claude picks one rival. Box 28 â‰  Î£ â†’ BOX28/LINES.
                 from packages.extraction_recovery.conflict_agent import (
                     field_needs_conflict_agent,
                     maybe_attach_conflict_agent_to_field_row,
@@ -3716,13 +4158,13 @@ def run(directory, output):
                         ),
                         None,
                     )
-                    lines = report.get("service_lines") or []
+                    lines = (report.get("service_lines") or []) if report.get("document_family") != "UB04" else []
                     fin = reconcile_by_document_family(
                         document_family=report.get("document_family"),
                         document_finance=report.get("document_finance"),
                         box28_value=box28,
-                        service_lines=lines,
-                        charge_column_verified=bool(lines),
+                        service_lines=lines if report.get("document_family") != "UB04" else [],
+                        charge_column_verified=bool(lines) and report.get("document_family") != "UB04",
                         all_service_rows_detected=bool(lines),
                         independent_evidence_paths=2
                         if len(lines) >= 2
@@ -3732,14 +4174,15 @@ def run(directory, output):
                     report["financial_reconciliation"] = fin.to_dict()
                     # Promote family-accepted total onto the existing total_charge
                     # row when CMS geometry was intentionally skipped. Never append
-                    # a second total_charge — rank_from_ocr hard-fails on dup IDs
+                    # a second total_charge â€” rank_from_ocr hard-fails on dup IDs
                     # (M0471JED.013 STAGE_FAILURE).
                     if (
                         fin.accepted_total
                         and fin.disposition.value == "LINE_TOTALS_RECONCILED"
                         and not report.get("allows_cms_geometry", True)
+                        and report.get("document_family") != "UB04"
                     ):
-                        # Full OCRCandidate shape — finish_from_ocr validates
+                        # Full OCRCandidate shape â€” finish_from_ocr validates
                         # via pydantic (M0471JED.013 STAGE on sparse finance cand).
                         peer_box = None
                         peer_img = {"image_width": 1.0, "image_height": 1.0}
@@ -3873,6 +4316,20 @@ def run(directory, output):
                     )
                     inv.outputs = route
                     report["hitl_route"] = route
+        approved_path=os.environ.get('CDP_APPROVED_GEOMETRY_MANIFEST')
+        if approved_path and report.get('fields'):
+            from packages.extraction_recovery.approved_geometry import load_approved_geometry, acquire_approved_geometry
+            entries=load_approved_geometry(approved_path,os.environ.get('CDP_APPROVED_GEOMETRY_SHA256'),
+                telemetry['document_id'],geometry,canonical.size)
+            def approved_read(name,bbox):
+                region=template.field_region(name)
+                candidates,attempts,reasons=[],[],[]
+                for engine in ('paddleocr','rapidocr','tesseract'):
+                    values,tried,reason=_recognize_one(canonical,name,bbox,router,region.field_type if region else 'text',engine_order=(engine,))
+                    candidates.extend(values);attempts.extend(tried);reasons.append(str(reason or ''))
+                return candidates,attempts,'|'.join(reasons)
+            report['fields']=acquire_approved_geometry(report['fields'],canonical,entries,approved_read)
+            report['approved_geometry_manifest_sha256']=os.environ['CDP_APPROVED_GEOMETRY_SHA256']
         report['status'] = 'COMPLETED'
     except Exception as exc:
         report['status'] = 'FAILED'

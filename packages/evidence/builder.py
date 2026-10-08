@@ -102,6 +102,10 @@ def _charge_has_place_shift_rival(field_name: str, agreed: str, candidates: list
     geometric_confirmed = False
     for cand in candidates:
         raw_text = str(cand.raw_value or "")
+        # A plain printed decimal (``200.00``) is not a ruling split and
+        # confirms nothing geometrically about itself.
+        if re.fullmatch(r"\$?\s*\d[\d,]*\.\d{2}", raw_text.strip()):
+            continue
         ruled = _ruling_split_amount(raw_text)
         if (
             ruled
@@ -502,6 +506,10 @@ def _append_dual_vision_agreement(
             continue
         claude = vendors["claude"]
         gpt4o = vendors["gpt4o"]
+        if EvidenceDependencyService().classify(
+            claude.provenance, gpt4o.provenance
+        ).relation == DependencyRelation.CORRELATED:
+            continue
         bundle.items.append(
             EvidenceItem(
                 evidence_class=EvidenceClass.E2,
@@ -530,10 +538,9 @@ def _append_unique_calendar_dob_e2(
     field_name: str,
     candidates: list[OCRCandidate],
 ) -> None:
-    """L5: unique display-shaped calendar DOB is independent E2 (EJG7.007).
+    """Confirm a calendar date with distinct readers, never a lone shaped read.
 
-    When locals exhaust empty and only Claude/vision shaped a single calendar
-    YMD (DATE_UNIQUE_CALENDAR_CORROBORATED), do not require a second OCR family.
+    Calendar plausibility cannot override recorded observation correlation.
     """
     name = (field_name or "").casefold()
     if name not in {"patient_dob", "date_of_birth", "dob"} and "dob" not in name:
@@ -542,6 +549,10 @@ def _append_unique_calendar_dob_e2(
         item.evidence_class == EvidenceClass.E2 and item.independent
         for item in bundle.items
     ):
+        return
+    if any(item.evidence_class == EvidenceClass.E2
+           and item.evidence_type == "OCR_AGREEMENT_CORRELATED"
+           for item in bundle.items):
         return
     try:
         from packages.candidate_reconciliation.reconciler import (
@@ -563,7 +574,22 @@ def _append_unique_calendar_dob_e2(
         shaped.append(cand)
     if len(calendar_ymds) != 1 or not shaped:
         return
-    primary = shaped[0]
+    # One read is trivially "unique"; that is not agreement. Independent E2
+    # needs two different engine families shaping the same calendar date
+    # (M0478JE2.011: lone rapidocr ``1o12 Do10`` assembled to a wrong DOB).
+    # The compatibility engine_family alias collapses Azure Read and vision
+    # models into CLOUD_AI_FAMILY. Preserve the actual reader groups for DOB
+    # corroboration; explicit dependency/correlation checks still apply below.
+    if len({independence_group(c.engine) for c in shaped}) < 2:
+        return
+    pairs = [(left, right) for left, right in combinations(shaped, 2)
+             if independence_group(left.engine) != independence_group(right.engine)
+             and EvidenceDependencyService().classify(
+                 left.provenance, right.provenance
+             ).relation != DependencyRelation.CORRELATED]
+    if not pairs:
+        return
+    primary, confirmation = pairs[0]
     bundle.items.append(
         EvidenceItem(
             evidence_class=EvidenceClass.E2,
@@ -573,7 +599,7 @@ def _append_unique_calendar_dob_e2(
             value=str(primary.value),
             independent=True,
             metadata={
-                "engines": [c.engine for c in shaped],
+                "engines": [primary.engine, confirmation.engine],
                 "agreement_type": "DATE_UNIQUE_CALENDAR_CORROBORATED",
                 "dependency_relation": "INDEPENDENT",
                 "normalized_value": normalize_agreement_value(
@@ -616,6 +642,9 @@ def _append_ai_local_corroboration(
             cand
             for cand in local
             if _ai_agrees_with_local(field_name, str(vision.value), str(cand.value))
+            and EvidenceDependencyService().classify(
+                vision.provenance, cand.provenance
+            ).relation != DependencyRelation.CORRELATED
         ]
         if not agreeing:
             continue
@@ -629,6 +658,13 @@ def _append_ai_local_corroboration(
                 ):
                     dissenting.append(cand)
             else:
+                if 'dob' in name or 'date' in name:
+                    from packages.field_normalization import normalize_date
+
+                    # Unparseable header/fragments are not a rival calendar
+                    # date. Retain actual component conflicts in decision policy.
+                    if not normalize_date(str(cand.value or ''))[1]:
+                        continue
                 other = normalize_agreement_value(field_name, cand.value)
                 target = normalize_agreement_value(field_name, vision.value)
                 if other and other != target:
@@ -762,7 +798,8 @@ def build_evidence_bundle(
     route_mode: str | None = None,
     rejected_route_ids: list[str] | None = None,
 ) -> FieldEvidenceBundle:
-    populated = [candidate for candidate in candidates if candidate.value]
+    populated = [candidate for candidate in candidates
+                 if candidate.value and not candidate.prior_hints_supplied and not candidate.shadow_review_only]
     selected = max(populated, key=lambda item: item.raw_confidence, default=None)
     candidate_ids = [candidate_identifier(candidate) for candidate in candidates]
     bundle = FieldEvidenceBundle(
@@ -909,8 +946,11 @@ def build_evidence_bundle(
             for item in bundle.items
         ):
             _append_ai_local_corroboration(bundle, field_name, populated)
+        # Proven same-crop (CORRELATED) agreement must stay blocked: a soft
+        # name match between those same reads cannot re-label it independent.
         if not any(
-            item.evidence_class == EvidenceClass.E2 and item.independent
+            item.evidence_class == EvidenceClass.E2
+            and (item.independent or item.evidence_type == "OCR_AGREEMENT_CORRELATED")
             for item in bundle.items
         ):
             _append_name_soft_equivalent_e2(bundle, field_name, populated)

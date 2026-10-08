@@ -143,15 +143,18 @@ def evaluate_similar_sample_gate(
             reasons.append(
                 f"FALSE_ACCEPT_GATE:fa={false_accepts},precision={precision}"
             )
-    elif fa_status == "GT_MISSING":
+    elif fa_status in {"GT_MISSING", "NO_OVERLAP"}:
         if gates.get("require_gt_for_green_fa", True) and not allow_incomplete_gt:
             fa_ok = False
-            reasons.append("GT_MISSING_FA_INCOMPLETE")
+            reasons.append(f'{fa_status}_FA_INCOMPLETE')
         else:
-            reasons.append("GT_MISSING_ALLOWED")
+            reasons.append(f'{fa_status}_ALLOWED')
     elif fa_status == "ERROR":
         fa_ok = False
         reasons.append(f"FA_SCORE_ERROR:{fa_report.get('error')}")
+    else:
+        fa_ok = False
+        reasons.append(f'FA_STATUS_UNQUALIFIED:{fa_status}')
 
     # Residual honesty: recoverable pool must be published; empty is OK.
     if not residual_counts and hitl:

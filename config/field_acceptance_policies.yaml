@@ -1,4 +1,4 @@
-version: field-acceptance-v2-explicit-production-fields
+version: field-acceptance-v3-registered-ub04
 
 default:
   criticality: C1
@@ -143,6 +143,22 @@ forms:
       business_impact: optional address detail
       reason: Optional address continuation must not force claim review.
   UB04:
+    insured_id_number:
+      aliases:
+      - member_id
+      criticality: C3
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: member eligibility and claim routing
+      financial_impact: high
+      identity_impact: high
+      downstream_consumers:
+      - eligibility
+      - payer_routing
+      - claim_submission
+      reason: UB-04 field 60 primary insured ID requires governed identity evidence and
+        local alignment.
     member_id:
       criticality: C1
       required: false
@@ -221,14 +237,14 @@ forms:
       downstream_consumers: [provider_validation, tax_reporting, claim_submission]
       reason: Required provider tax identifier.
     total_charge:
-      criticality: C1
-      required: false
+      criticality: C3
+      required: true
       blocks_stp: true
       requires_review_when_unresolved: true
       business_impact: claim financial total
       financial_impact: high
       downstream_consumers: [financial_reconciliation, claim_submission]
-      reason: Preserve the frozen blocking behavior with explicit ownership.
+      reason: Registered UB-04 financial total is required and blocks STP until governed evidence and local alignment are valid.
     patient_addr2:
       aliases: [address_line_2]
       criticality: C0

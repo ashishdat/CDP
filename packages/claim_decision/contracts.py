@@ -32,6 +32,8 @@ class ClaimDecisionContext(DomainModel):
     structural_consistency_valid: bool = True
     dependent_field_groups: list[list[str]] = Field(default_factory=list)
     enforce_configured_required_fields: bool = True
+    # False only for callers that carry no field values (legacy STP adapter).
+    enforce_value_accept_policy: bool = True
 
 
 class ClaimDecision(DomainModel):

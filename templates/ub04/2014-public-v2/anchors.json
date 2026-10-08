@@ -1,0 +1,22 @@
+[
+  {
+    "phrase": "TYPE OF BILL",
+    "region": null,
+    "required": true
+  },
+  {
+    "phrase": "STATEMENT COVERS PERIOD",
+    "region": null,
+    "required": true
+  },
+  {
+    "phrase": "UB-04",
+    "region": null,
+    "required": false
+  },
+  {
+    "phrase": "CMS-1450",
+    "region": null,
+    "required": false
+  }
+]

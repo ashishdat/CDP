@@ -1,6 +1,6 @@
-"""Rank → validate → assemble → complete in one process (STP cascade latency).
+"""Rank â†’ validate â†’ assemble â†’ complete in one process (STP cascade latency).
 
-Avoids four Python cold-starts after OCR (~1–1.5s on this VM).
+Avoids four Python cold-starts after OCR (~1â€“1.5s on this VM).
 """
 
 from __future__ import annotations
@@ -19,9 +19,9 @@ def run(
     ocr_candidates: str | Path,
     claim_out: str | Path,
     *,
-    template_id: str = "cms1500",
+    template_id: str | None = None,
     template_version: str | None = None,
-    document_family: str = "CMS1500",
+    document_family: str | None = None,
 ) -> dict:
     claim_out = Path(claim_out)
     ocr_candidates = Path(ocr_candidates)
@@ -29,6 +29,23 @@ def run(
     validate_dir = claim_out / "validate"
     extract_dir = claim_out / "extract"
     final_dir = claim_out / "final"
+
+    saved = json.loads(ocr_candidates.read_text(encoding="utf-8"))
+    saved_id = saved.get("template_id")
+    saved_version = saved.get("template_version")
+    bound_family = {"ub04":"UB04", "cms1500":"CMS1500"}.get(saved_id)
+    observed_family = saved.get("document_family")
+    if bound_family and observed_family in {"UB04","CMS1500"} and observed_family != bound_family:
+        raise ValueError("Saved OCR family conflicts with registered template family")
+    saved_family = bound_family or observed_family
+    for supplied, bound, label in [(template_id, saved_id, "template"),
+                                   (template_version, saved_version, "version"),
+                                   (document_family, saved_family, "family")]:
+        if supplied and bound and supplied != bound:
+            raise ValueError(f"Finish {label} conflicts with saved registered binding")
+    template_id = saved_id or template_id or "cms1500"
+    template_version = saved_version or template_version
+    document_family = saved_family or document_family or "CMS1500"
 
     if not template_version:
         try:
@@ -72,9 +89,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("ocr_candidates")
     parser.add_argument("claim_out")
-    parser.add_argument("--template-id", default="cms1500")
+    parser.add_argument("--template-id", default=None)
     parser.add_argument("--template-version", default=None)
-    parser.add_argument("--document-family", default="CMS1500")
+    parser.add_argument("--document-family", default=None)
     args = parser.parse_args()
     result = run(
         args.ocr_candidates,

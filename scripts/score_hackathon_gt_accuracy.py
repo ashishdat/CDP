@@ -115,6 +115,16 @@ def _exact(field: str, predicted: object, expected: object, **_context: Any) -> 
 
         if compact(predicted) == compact(expected):
             return True
+        # Box 4 ``SAME`` means "same as patient": a prediction that resolved it
+        # to the patient's own name is the same fact, not a different value.
+        patient_name = _context.get("patient_name")
+        if (
+            field == "insured_name"
+            and compact(expected) == "SAME"
+            and patient_name
+            and compact(predicted) == compact(patient_name)
+        ):
+            return True
         # Optional single-letter middle initial is representation variance, not a
         # different person (GAVIN ROBERT M ↔ GAVIN ROBERT).
         try:

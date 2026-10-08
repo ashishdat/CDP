@@ -41,9 +41,23 @@ class RedesignStack:
         return bool(llm.raw.get("monetary_authority", False))
 
 
-@lru_cache(maxsize=4)
 def load_redesign_stack(path: str | None = None) -> RedesignStack:
-    stack_path = Path(path) if path else _STACK_PATH
+    # Resolve the active release before caching; environment changes must not
+    # return a previously cached architecture from another release.
+    if path is None:
+        from packages.release_selection import active_release_from_env
+        from packages.release_freeze import load_release_manifest
+        release = load_release_manifest(active_release_from_env())
+        configured = (release.get("ocr_models") or {}).get("architecture_stack")
+        stack_path = (_STACK_PATH.parents[2] / configured) if configured else _STACK_PATH
+    else:
+        stack_path = Path(path)
+    return _load_redesign_stack_file(str(stack_path.resolve()))
+
+
+@lru_cache(maxsize=4)
+def _load_redesign_stack_file(path: str) -> RedesignStack:
+    stack_path = Path(path)
     payload = yaml.safe_load(stack_path.read_text(encoding="utf-8")) or {}
     caps_raw = payload.get("capabilities") or {}
     capabilities: dict[str, CapabilitySpec] = {}
@@ -75,6 +89,9 @@ def load_redesign_stack(path: str | None = None) -> RedesignStack:
         honesty=tuple(str(x) for x in (payload.get("honesty") or ())),
         raw=dict(payload),
     )
+
+
+load_redesign_stack.cache_clear = _load_redesign_stack_file.cache_clear
 
 
 def capability(name: str, stack: RedesignStack | None = None) -> CapabilitySpec | None:

@@ -69,7 +69,7 @@ def test_operational_completion_is_scoped_separately_from_harness() -> None:
 
 
 def test_ui_source_does_not_bind_harness_docs_as_total_ingested() -> None:
-    app = APP.read_text()
+    app = APP.read_text(encoding="utf-8")
     # MetricCard labels must not present harness counts as Total Ingested / STP Rate.
     assert not re.search(r'label=\{?"Total Ingested"\}?', app)
     assert not re.search(r'label=\{?"STP Rate"\}?', app)

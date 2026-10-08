@@ -1,3 +1,4 @@
+import pytest
 from PIL import Image
 
 from evaluation.phase8_2_performance import _semantic_output
@@ -6,6 +7,8 @@ from workers.page_detection.text_extraction import RapidOCRTextExtractor
 
 
 def test_rapidocr_thread_budget_is_passed_without_semantic_wrapper_change(monkeypatch):
+    # RapidOCR is only installed in the OCR environment, not the base one.
+    pytest.importorskip("rapidocr_onnxruntime")
     captured = {}
 
     class Backend:

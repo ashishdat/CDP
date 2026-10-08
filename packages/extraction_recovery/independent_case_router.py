@@ -1,12 +1,12 @@
-"""Independent case router — page-class → recovery path.
+"""Independent case router â€” page-class â†’ recovery path.
 
 Consolidates Independent-1000 failure modes that previously forked ad-hoc
 across cascade REG, unstructured DI, and field-ink residuals:
 
-  MAILROOM / FAX     → REG (no claim ink; never invent HITL names)
-  CMS1500            → geometry cascade + field residual toolstack
-  UB04 / FREEFORM    → unstructured DI heuristics (precision-safe STP)
-  UNKNOWN            → try CMS geometry; on miss fall through unstructured
+  MAILROOM / FAX     â†’ REG (no claim ink; never invent HITL names)
+  CMS1500            â†’ geometry cascade + field residual toolstack
+  UB04 / FREEFORM    â†’ unstructured DI heuristics (governed evidence required before STP)
+  UNKNOWN            â†’ try CMS geometry; on miss fall through unstructured
 
 This module classifies and returns a ``CaseRoute``. Callers execute the path.
 Field-level residual ladders stay in ``field_recovery_router`` (downstream).
@@ -16,11 +16,12 @@ Config: ``config/independent_case_toolstack_v1.yaml``
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 import yaml
 
@@ -31,6 +32,11 @@ from packages.document_finance.families import (
 )
 from packages.extraction_recovery.unstructured_reg_fallback import (
     _is_mailroom_only_page,
+)
+from packages.recovery.independent_failures import (
+    NON_CLAIM_CANDIDATES,
+    PageRole,
+    classify_page_text,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -43,6 +49,7 @@ _CRITICAL = frozenset(
 
 class CasePath(StrEnum):
     MAILROOM_REG = "MAILROOM_REG"
+    UB04_GEOMETRY = "UB04_GEOMETRY"
     CMS_GEOMETRY = "CMS_GEOMETRY"
     UNSTRUCTURED_DI = "UNSTRUCTURED_DI"
     FIELD_INK_RESIDUAL = "FIELD_INK_RESIDUAL"
@@ -52,7 +59,7 @@ class CaseDispositionPolicy(StrEnum):
     """How shaped fields promote to ops ledger dispositions."""
 
     KEEP_REG = "KEEP_REG"
-    UNSTRUCTURED_PROMOTE = "UNSTRUCTURED_PROMOTE"  # 4 critical → STP else HITL
+    UNSTRUCTURED_PROMOTE = "UNSTRUCTURED_PROMOTE"  # candidate triage; STP owned by claim decision
     CMS_CLAIM_DECISION = "CMS_CLAIM_DECISION"  # claim_decision STP/HITL
 
 
@@ -89,22 +96,7 @@ def load_independent_case_config(path: str | None = None) -> dict[str, Any]:
 
 
 def _fax_boilerplate(text: str) -> bool:
-    import re
-
-    if re.search(
-        r"fax\s*image|therefore\s+better|original\s+source\s+may\s+be\s+bad",
-        text or "",
-        re.IGNORECASE,
-    ):
-        # Real claim ink still wins.
-        if re.search(
-            r"CMS-?\s*1500|UB-?\s*04|BIRTHDATE|PATIENT\s*NAME|TOTAL\s*CHARGE|NUCC",
-            text or "",
-            re.IGNORECASE,
-        ):
-            return False
-        return True
-    return False
+    return classify_page_text(text) == PageRole.FAX_PATCH
 
 
 def classify_independent_case(
@@ -124,28 +116,19 @@ def classify_independent_case(
     """
     cfg = dict(config or load_independent_case_config())
     text = di_text or ""
+    page_role = classify_page_text(text)
 
-    if field_ink_hitl and registration_ok:
-        return CaseRoute(
-            path=CasePath.FIELD_INK_RESIDUAL,
-            family=DocumentFamily.CMS1500,
-            family_confidence=0.85,
-            disposition_policy=CaseDispositionPolicy.CMS_CLAIM_DECISION,
-            hitl_track="FIELD_INK",
-            reason="REGISTERED_CMS_FIELD_INK_HITL",
-            evidence=("registration_ok", "field_ink_hitl"),
-            finish_document_family="CMS1500",
-        )
-
-    if _is_mailroom_only_page(text) or _fax_boilerplate(text):
+    if page_role in NON_CLAIM_CANDIDATES and (
+        _is_mailroom_only_page(text) or _fax_boilerplate(text)
+    ):
         fam = classify_document_family(text, barcode_text=barcode_text)
         # Subtype for ops: separator vs fax vs unique-id cover.
         blob = text or ""
         import re as _re
 
-        if _re.search(r"fax\s*image|fax\s*patch|therefore\s+better", blob, _re.I):
+        if _re.search(r"fax\s*image|fax\s*patch|therefore\s+better", blob, _re.IGNORECASE):
             subtype = "FAX_PATCH"
-        elif _re.search(r"unique\s*id|tracking\s*no", blob, _re.I):
+        elif _re.search(r"unique\s*id|tracking\s*no", blob, _re.IGNORECASE):
             subtype = "UNIQUE_ID_COVER"
         else:
             subtype = "DOCUMENT_SEPARATOR"
@@ -166,7 +149,27 @@ def classify_independent_case(
         text, barcode_text=barcode_text, layout_hints=dict(layout_hints or {})
     )
 
-    # Explicit family → path map from YAML (with safe defaults).
+    if page_role in {PageRole.CMS1500, PageRole.UB04, PageRole.CLAIM_FORM}:
+        # A separator/fax token on a real claim must not discard claim evidence.
+        claim_family = {PageRole.CMS1500: DocumentFamily.CMS1500,
+                        PageRole.UB04: DocumentFamily.UB04}.get(page_role, DocumentFamily.UNKNOWN)
+        if fam.family in {DocumentFamily.SEPARATOR, DocumentFamily.ATTACHMENT}:
+            fam = FamilyClassification(claim_family, 0.4 if claim_family == DocumentFamily.UNKNOWN else 0.85,
+                                       (*fam.evidence, "CLAIM_CUES_OVERRIDE_COVER_LABEL"), fam.anchors)
+
+    if field_ink_hitl and registration_ok and fam.family is DocumentFamily.CMS1500:
+        return CaseRoute(
+            path=CasePath.FIELD_INK_RESIDUAL,
+            family=DocumentFamily.CMS1500,
+            family_confidence=0.85,
+            disposition_policy=CaseDispositionPolicy.CMS_CLAIM_DECISION,
+            hitl_track="FIELD_INK",
+            reason="REGISTERED_CMS_FIELD_INK_HITL",
+            evidence=("registration_ok", "field_ink_hitl"),
+            finish_document_family="CMS1500",
+        )
+
+    # Explicit family â†’ path map from YAML (with safe defaults).
     family_paths = dict(cfg.get("family_paths") or {})
     default_map = {
         DocumentFamily.CMS1500.value: CasePath.CMS_GEOMETRY.value,
@@ -185,6 +188,14 @@ def classify_independent_case(
         path = CasePath(path_name)
     except ValueError:
         path = CasePath.CMS_GEOMETRY
+
+    if fam.family is DocumentFamily.UB04 and registration_ok:
+        return CaseRoute(path=CasePath.UB04_GEOMETRY, family=fam.family,
+            family_confidence=fam.confidence, disposition_policy=CaseDispositionPolicy.CMS_CLAIM_DECISION,
+            hitl_track=None, reason="UB04_GEOMETRY_REGISTERED", evidence=tuple(fam.evidence),
+            finish_document_family="UB04")
+    if path is CasePath.UB04_GEOMETRY:
+        path = CasePath.UNSTRUCTURED_DI
 
     if registration_ok and path is CasePath.CMS_GEOMETRY:
         return CaseRoute(
@@ -237,12 +248,17 @@ def classify_independent_case(
     )
 
 
-def promote_unstructured_fields(fields: Mapping[str, str] | None) -> tuple[str, list[str]]:
-    """Return (disposition, critical_blockers) for unstructured DI fields."""
+def promote_unstructured_fields(
+    fields: Mapping[str, str] | None,
+    field_reasons: Mapping[str, str] | None = None,
+) -> tuple[str, list[str]]:
+    """Triage unstructured observations; field presence alone cannot establish STP.
+
+    Cross-source agreement is an observation, not a governed field decision.
+    Until family-specific evidence is evaluated by the field and claim decision
+    services, every critical field remains on the human review route.
+    """
     shaped = {k: v for k, v in dict(fields or {}).items() if str(v or "").strip()}
-    missing = sorted(_CRITICAL - set(shaped))
     if not shaped:
-        return "REGISTRATION_FAILED", missing
-    if not missing:
-        return "TRUE_STP", []
-    return "HITL", missing
+        return "REGISTRATION_FAILED", sorted(_CRITICAL)
+    return "HITL", sorted(_CRITICAL)

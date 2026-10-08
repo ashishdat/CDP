@@ -896,6 +896,7 @@ def register_classified_document(images, routing, registry, selection=None):
             not accepted
             and best_corroboration_aligned is not None
             and best_corroboration_evidence is not None
+            and not recovery_budget_exhausted()
             and best_corroboration_aligned.warped is not None
             and best_corroboration_aligned.homography is not None
             and template.form_type == ClaimFormType.CMS1500
@@ -975,7 +976,10 @@ def register_classified_document(images, routing, registry, selection=None):
         result.update(
             status="SUCCESS" if accepted else "FAILED", accepted=accepted,
             reason=(
-                "REGISTRATION_ACCEPTED" if accepted else _terminal_failure_reason(attempts)
+                "REGISTRATION_ACCEPTED" if accepted else (
+                    'REGISTRATION_RECOVERY_BUDGET_EXHAUSTED'
+                    if recovery_budget_exhausted()
+                    else _terminal_failure_reason(attempts))
             ),
             evidence=evidence.model_dump(mode="json") if evidence else None,
             compatibility=(aligned.compatibility.model_dump(mode="json")
@@ -1003,6 +1007,7 @@ def resolve_registered_geometry(images, registration, registry):
 
     from packages.geometry.engine import GeometryEngine, GeometryRequest
     from packages.geometry.models import Box, Registration
+    from packages.templates.identity import template_fingerprint
 
     if registration.get('accepted') is not True or registration.get('status') != 'SUCCESS':
         raise ValueError('Geometry requires successful registration')
@@ -1036,10 +1041,15 @@ def resolve_registered_geometry(images, registration, registry):
                     'reason': result.reasons, 'coordinate_frame': 'rectified_template_pixels'}
     return {'type': 'GeometryResult', 'status': 'SUCCESS' if fields else 'FAILED',
             'reason': 'GEOMETRY_RESOLVED' if fields else 'NO_TEMPLATE_FIELDS',
+            'template_id': template.template_id, 'template_version': template.version,
+            'template_fingerprint': template_fingerprint(template),
             'page_number': page_number, 'coordinate_frame': 'rectified_template_pixels',
             'source_to_geometry_transform': matrix.tolist(), 'fields': fields,
             'warnings': ['NO_FOREGROUND is an empty geometry result, not an OCR or validation decision']}
 
+from packages.recovery.registration_deadline import bounded_registration, recovery_budget_exhausted
+
+@bounded_registration
 def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs",
                 document_type=None):
     """Decode one entire TIFF in memory, then invoke existing runtime routing.
@@ -1107,7 +1117,7 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
         )
         from packages.templates.registry import TemplateRegistry
         from workers.page_detection.router import PageCandidateScore, PageRoutingResult
-        from workers.page_detection.template_selector import TemplateSelector
+        from workers.page_detection.template_selector import TemplateSelector, TemplateSelection
 
         observed_lines = {}
         registry = TemplateRegistry.load_from_directory()
@@ -1186,11 +1196,14 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
             LOGGER.info("classification SUCCESS")
         stage = "template_selection"
         started = perf_counter()
-        selection = TemplateSelector(registry).select(
-            images, text_lines={page: observed_lines.get(id(image), [])
-                                for page, image in enumerate(images, 1)},
-            document_type=document_type,
-        )
+        if 'PAGE_ROUTING_PROBE_BUDGET_EXHAUSTED' in routing.reason_codes:
+            selection = TemplateSelection(None, 0.0, 'PAGE_ROUTING_PROBE_BUDGET_EXHAUSTED', [])
+        else:
+            selection = TemplateSelector(registry).select(
+                images, text_lines={page: observed_lines.get(id(image), [])
+                                    for page, image in enumerate(images, 1)},
+                document_type=document_type,
+            )
         state["template_selection"] = asdict(selection)
         state["stages"][stage] = "SUCCESS" if selection.template_id else "UNAVAILABLE"
         state["latency_ms"][stage] = (perf_counter() - started) * 1000
@@ -1223,6 +1236,9 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
                 'registration_reference': 'registration_trace.json',
                 'result_reference': 'GeometryResult.json', 'ocr_executed': False,
                 'registration_evidence': result['evidence'],
+                'template_id': state['geometry'].get('template_id'),
+                'template_version': state['geometry'].get('template_version'),
+                'template_fingerprint': state['geometry'].get('template_fingerprint'),
                 'source': state['source'], 'document_id': state['document_id'],
             }, indent=2), encoding='utf-8')
 
@@ -1244,6 +1260,11 @@ def process_one(dataset_path="dataset.yaml", *, document=None, output_root="runs
             LOGGER.exception("Registration trace could not be written")
         (output / "document.json").write_text(
             json.dumps(state, indent=2, default=str, allow_nan=False) + "\n", encoding="utf-8",
+        )
+        (output / "page_routing.json").write_text(
+            json.dumps({"page_count": state.get("page_count"),
+                        "classification": state.get("classification")},
+                       indent=2, default=str, allow_nan=False) + "\n", encoding="utf-8",
         )
         try:
             from workers.page_detection.template_discovery import write_report

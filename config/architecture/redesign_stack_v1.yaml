@@ -50,7 +50,7 @@ capabilities:
     model: microsoft/trocr-base-handwritten
     runtime: workers/unstructured_extraction/trocr_adapter.py
     authority: REVIEW_ONLY_UNTIL_DOMAIN_HOLDOUT
-    names_arbitrator: azure_gpt4o_crop
+    names_arbitrator: anthropic_claude_crop
     status: PRODUCTION_RESIDUAL
 
   complex_tables:
@@ -78,12 +78,15 @@ capabilities:
     status: PRODUCTION_RESIDUAL
 
   llm_vlm:
-    technology: [GPT-4o]
+    technology: [Anthropic Claude, Azure Document Intelligence Read]
     role: Residual semantic interpretation and review assistance — not monetary authority.
     runtime: packages/extraction_recovery/gpt4o_crop_residual.py
     env: CDP_GPT4O_CROP_RESIDUAL
     default: on
     monetary_authority: false
+    configured_provider: CDP_CROP_VLM_PROVIDER
+    confidence_authority: PROVIDER_REPORTED_UNCALIBRATED
+    side_selection_authority: RECOMMENDATION_ONLY_NOT_AN_AMOUNT_READER
     empty_finance_sweep: CDP_GPT4O_EMPTY_FINANCE
     status: PRODUCTION_RESIDUAL
 

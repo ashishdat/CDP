@@ -1,4 +1,4 @@
-version: evidence-policy-v4-dependency-aware
+version: evidence-policy-v5-registered-ub04
 defaults:
   C0: {accept_any: [[E1, E3, E4]]}
   C1: {accept_any: [[E1, E3, E4], [E1, E3, E5], [E1, E3, E4, E7]]}
@@ -45,7 +45,13 @@ fields:
       - MEMBER_RELATIONSHIP_CONFIRMED
       - DOB_SERVICE_DATE_CONSISTENT
   patient_dob:
-    accept_any: [[E2, E3, E4], [E1, E3, E4], [E1, E3, E4, E6], [E1, E3, E5], [E1, E3, E4, E7]]
+    # One read of the birth-date box is not enough: page review of auto-accepted
+    # claims found ~46% of single-read DOBs wrong (token assembly turns partial
+    # OCR such as ``03 L 23 49`` into a valid-looking date). Accept only on
+    # independent agreement (E2), a cross-field DOB confirmation (E6) or an
+    # authoritative reference (E5). Mere presence of a vision read (E7) beside
+    # a local read is not agreement.
+    accept_any: [[E2, E3, E4], [E1, E3, E4, E6], [E1, E3, E5]]
     require_strong_e4: false
   patient_name:
     # Dual local-engine confirmation (paddle+rapid) is the identity confirm.
@@ -81,3 +87,12 @@ fields:
     allowed_e6_types: [CLAIM_TOTAL_CONFIRMED, FINANCIAL_RECONCILIATION_VALID, LINE_TOTALS_RECONCILED, BOX28_LINE_SUM_CORROBORATED, FINANCIAL_GEOMETRY_ARITHMETIC_CONFIRMED, DERIVED_TOTAL_FROM_COMPLETE_VERIFIED_LINES, E6_COMPLETE_LINE_ARITHMETIC]
   patient_addr2: {accept_any: [[E1, E3, E4]]}
   insured_addr2: {accept_any: [[E1, E3, E4]]}
+  UB04.insured_id_number:
+    # Institutional field 60: primary insured ID needs independent agreement
+    # or an authoritative reference; observed shape alone cannot authorize STP.
+    accept_any: [[E2, E3, E4], [E1, E3, E5]]
+    require_strong_e4: false
+  UB04.total_charge:
+    accept_any: [[E2, E3, E4], [E1, E3, E5], [E1, E3, E6]]
+    require_strong_e4: true
+    allowed_e6_types: [CLAIM_TOTAL_CONFIRMED, FINANCIAL_RECONCILIATION_VALID]

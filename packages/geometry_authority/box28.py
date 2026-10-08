@@ -50,3 +50,14 @@ def box28_crop_variants(
 def is_box28_field(field_name: object) -> bool:
     key = str(field_name or "").strip().casefold()
     return key in {"total_charge", "total_charges"}
+
+
+def registered_box28_crop_variants(safe_cell):
+    """Use only value crops authorized by the recorded registered cell.
+
+    Stale geometry pointing at Box 29 requires regeneration; it cannot
+    authorize a silent read from a different field.
+    """
+    x0, y0, x1, y1 = safe_cell
+    return tuple(box for box in box28_crop_variants()
+                 if x0 <= box[0] < box[2] <= x1 and y0 <= box[1] < box[3] <= y1)

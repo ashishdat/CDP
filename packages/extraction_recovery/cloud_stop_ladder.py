@@ -4,8 +4,9 @@ Stop early so cascade does not casually re-contest settled ink:
 
 1. ≥2 local families agree on shaped non-bleed / calendar / ID / name → **done**
    (no DI, no Claude/gpt-4o).
-2. Local weak / blank / genuine digit or name twins → **one** cloud crop
-   (DI *or* Claude/gpt-4o, never both once either shaped-succeeds).
+2. Local weak / blank / genuine digit or name twins → a bounded cloud crop.
+   A shaped DOB/name/amount alone cannot stop missing independent evidence;
+   acquire another provider only while the field-specific confirmation is missing.
 3. Claim decision must not re-litigate fields already AUTO with authority
    (handled in ``claim_decision.service``).
 
@@ -15,6 +16,7 @@ Env kill-switch: ``CDP_CLOUD_STOP_LADDER=0`` restores prior always-escalate beha
 from __future__ import annotations
 
 import os
+from packages.ocr.evidence_eligibility import confirmation_eligible
 from collections.abc import Mapping
 from typing import Any
 
@@ -50,7 +52,7 @@ def _local_candidates(
 ) -> list[Mapping[str, Any]]:
     out: list[Mapping[str, Any]] = []
     for cand in candidates or []:
-        if not isinstance(cand, Mapping):
+        if not isinstance(cand, Mapping) or not confirmation_eligible(cand):
             continue
         if _is_cloud_engine(_eng(cand)):
             continue
@@ -127,7 +129,11 @@ def charge_locals_settled(
             continue
         by_amt.setdefault(txt, set()).add(independence_group(_eng(cand)))
     settled_amts = [txt for txt, groups in by_amt.items() if len(groups) >= 2]
-    if not settled_amts:
+    if len(settled_amts) != 1:
+        return False
+    # Agreement on one amount cannot settle a different observed amount.
+    # Keep units/ruling artifacts excluded above, but retain genuine rivals.
+    if len(by_amt) != 1:
         return False
     if line_amts:
         from decimal import Decimal
@@ -137,37 +143,16 @@ def charge_locals_settled(
         for txt in settled_amts:
             if is_decimal_place_shift(txt, line_txt) or is_scale_shift(txt, line_txt):
                 return False
-            # Exact match or within $1 is fine — settled.
+            if abs(parse_currency(txt) - line_sum) > Decimal('1.00'):
+                return False
     return True
 
 
-def dob_locals_settled(candidates: list[Mapping[str, Any]] | None) -> bool:
-    """Any display-shaped calendar DOB, or ≥2 locals on same YMD → skip cloud."""
-    try:
-        from packages.candidate_reconciliation.reconciler import (
-            _dob_is_display_shaped,
-            _dob_ymd,
-        )
-        from packages.ocr.independence import independence_group
-    except Exception:  # noqa: BLE001
-        return False
+def dob_locals_settled(candidates: list[Mapping[str, Any]] | None, attempts=None) -> bool:
+    """Skip recovery only for one calendar date confirmed by independent locals."""
+    from packages.extraction_recovery.dob_confirmation import dob_reads_confirmed
 
-    by_ymd: dict[tuple[str, str, str], set[str]] = {}
-    any_shaped = False
-    for cand in _local_candidates(candidates):
-        text = str(cand.get("value") or "").strip()
-        if not text:
-            continue
-        if _dob_is_display_shaped(text):
-            any_shaped = True
-            ymd = _dob_ymd(text)
-            if ymd is not None:
-                by_ymd.setdefault(ymd, set()).add(independence_group(_eng(cand)))
-    if any(len(groups) >= 2 for groups in by_ymd.values()):
-        return True
-    # Single display-shaped local is enough to skip TrOCR→DI→Claude; policy
-    # conflict on that date is not fixed by another model.
-    return any_shaped
+    return dob_reads_confirmed(_local_candidates(candidates), attempts)
 
 
 def id_locals_settled(candidates: list[Mapping[str, Any]] | None) -> bool:
@@ -210,7 +195,10 @@ def name_locals_settled(candidates: list[Mapping[str, Any]] | None) -> bool:
         for right, right_fam in shaped[i + 1 :]:
             if values_conflict_equivalent("patient_name", left, right):
                 families.add(right_fam)
-        if len(families) >= 2:
+        if len(families) >= 2 and all(
+            values_conflict_equivalent('patient_name', left, text)
+            for text, _ in shaped
+        ):
             return True
     return False
 
@@ -227,9 +215,6 @@ def should_skip_all_cloud(
     key = (field_name or "").casefold()
     cands = list(row.get("candidates") or [])
     cascade = row.get("cascade") or {}
-    if cascade.get("accepted") and key in {"patient_dob", "date_of_birth"}:
-        # Cascade-accepted calendar DOB is done — residual cannot help policy fights.
-        return True
     if key in {"total_charge", "total_charges", "charges", "charge_amount"}:
         # Prefer explicit lines; fall back to row metadata when wired.
         lines = observed_line_charges
@@ -239,7 +224,7 @@ def should_skip_all_cloud(
                 lines = [str(x) for x in meta if x]
         return charge_locals_settled(cands, observed_line_charges=lines)
     if key in {"patient_dob", "date_of_birth"}:
-        return dob_locals_settled(cands)
+        return dob_locals_settled(cands, row.get("attempts"))
     if key in {"insured_id_number", "member_id", "subscriber_id"}:
         # Cascade accept alone is not enough — weak/chrome IDs still need vision.
         return id_locals_settled(cands)
@@ -249,9 +234,24 @@ def should_skip_all_cloud(
 
 
 def should_skip_second_cloud(row: Mapping[str, Any]) -> bool:
-    """Ladder step 2: one shaped cloud residual is enough — do not stack DI+Claude."""
+    """Stop extra acquisition only after field-specific confirmation is settled."""
     if not cloud_stop_ladder_enabled():
         return False
+    if str(row.get('field') or '').casefold() in {'patient_name','insured_name'}:
+        # One vision-shaped name does not complete independent confirmation.
+        # Settled native consensus still prevents unnecessary cloud work.
+        return one_cloud_already_shaped(row) and name_locals_settled(row.get('candidates'))
+    if str(row.get('field') or '').casefold() in {'patient_dob', 'date_of_birth'}:
+        # A cloud date shape is not confirmation. Permit the other provider
+        # to acquire missing corroboration, while final decisions retain conflicts.
+        from packages.extraction_recovery.dob_confirmation import dob_reads_confirmed
+
+        return one_cloud_already_shaped(row) and dob_reads_confirmed(
+            row.get('candidates'), row.get('attempts'))
+    if str(row.get('field') or '').casefold() in {'total_charge', 'total_charges', 'charges', 'charge_amount'}:
+        # Shape alone supplies no independent confirmation of a monetary value.
+        return one_cloud_already_shaped(row) and charge_locals_settled(
+            row.get('candidates'), observed_line_charges=row.get('observed_line_charges'))
     return one_cloud_already_shaped(row)
 
 

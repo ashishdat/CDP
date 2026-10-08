@@ -184,9 +184,10 @@ def test_independent_unique_shaped_id_vs_junk():
         independent_agreement_values=set(),
         enforce_legacy_evidence_policy=False,
     )
-    assert result.decision == Decision.ACCEPT
+    # One engine's read is not corroboration, so it must not auto-accept.
+    assert result.decision != Decision.ACCEPT
     assert result.selected_value == "A22629904"
-    assert "UNIQUE_SHAPED_ID_CORROBORATED" in result.rationale_codes
+    assert "UNIQUE_SHAPED_ID_CORROBORATED" not in result.rationale_codes
 
 
 # --- 6) Name: confusable edit (delete vowel + one sub) ---------------------

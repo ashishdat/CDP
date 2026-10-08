@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import re
 import time
 from dataclasses import dataclass
 from typing import Protocol
@@ -15,6 +16,10 @@ class AzureReadEvidence:
     text: str
     confidence: float
     handwritten: bool
+    words: tuple[dict, ...] = ()
+
+
+from packages.extraction_recovery.spatial_dob import spatial_dob_components
 
 
 class AzureReadBackend(Protocol):
@@ -63,8 +68,9 @@ class AzureReadShadowEngine:
         stream = io.BytesIO()
         request.image.convert("RGB").save(stream, format="PNG")
         evidence = self._backend.analyze(stream.getvalue())
+        spatial = spatial_dob_components(evidence.words) if request.field_type == 'date' else None
         return [OCRCandidate(
-            value=evidence.text.strip() or None,
+            value=spatial or evidence.text.strip() or None,
             raw_value=evidence.text,
             engine=self.engine_name,
             model_name=self.model_name,
@@ -77,5 +83,6 @@ class AzureReadShadowEngine:
             validation_results=(
                 "SHADOW_REVIEW_ONLY",
                 "HANDWRITTEN_STYLE" if evidence.handwritten else "PRINTED_STYLE",
+                *(('DOB_SPATIAL_COMPONENTS_OBSERVED',) if spatial else ()),
             ),
         )]

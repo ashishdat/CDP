@@ -57,10 +57,10 @@ def test_charge_locals_settled_ignores_units_bleed_cents():
     )
 
 
-def test_dob_locals_settled_display_shaped():
+def test_single_display_shaped_dob_still_needs_confirmation():
     cands = [{"engine": "rapidocr", "value": "03/15/1987"}]
-    assert dob_locals_settled(cands)
-    assert should_skip_all_cloud(
+    assert not dob_locals_settled(cands)
+    assert not should_skip_all_cloud(
         "patient_dob", {"field": "patient_dob", "candidates": cands}
     )
 
@@ -138,7 +138,20 @@ def test_charge_locals_not_settled_on_line_place_shift():
     )
 
 
-def test_one_cloud_shaped_skips_second():
+def test_charge_agreement_does_not_hide_a_rival_or_unrelated_line_sum():
+    cands = [{'engine': e, 'value': '251.00'} for e in ('rapidocr', 'paddleocr')]
+    assert not charge_locals_settled(cands, observed_line_charges=['100.00', '100.00'])
+    assert not charge_locals_settled(cands + [{'engine': 'tesseract', 'value': '200.00'}])
+    assert not charge_locals_settled(cands + [
+        {'engine': e, 'value': '200.00'} for e in ('rapidocr', 'paddleocr')])
+
+
+def test_name_agreement_does_not_hide_a_different_person():
+    cands = [{'engine': e, 'value': 'SMITH JOHN'} for e in ('rapidocr', 'paddleocr')]
+    assert not name_locals_settled(cands + [{'engine': 'tesseract', 'value': 'JONES MARY'}])
+
+
+def test_one_cloud_charge_conflict_requires_second_reader():
     row = {
         "field": "total_charge",
         "candidates": [{"engine": "rapidocr", "value": "50.00"}],
@@ -149,7 +162,7 @@ def test_one_cloud_shaped_skips_second():
         },
     }
     assert one_cloud_already_shaped(row)
-    assert should_skip_second_cloud(row)
+    assert not should_skip_second_cloud(row)
 
 
 def test_vision_residual_counts_as_one_cloud():
@@ -162,6 +175,9 @@ def test_vision_residual_counts_as_one_cloud():
             "review_only": False,
         },
     }
+    assert not should_skip_second_cloud(row)
+    row['candidates'] = [{'engine': 'anthropic_claude_crop', 'value': '03/15/1987'},
+                         {'engine': 'paddleocr', 'value': '03/15/1987'}]
     assert should_skip_second_cloud(row)
 
 
@@ -192,7 +208,7 @@ def test_cascade_accepted_identity_skips_cloud():
         "candidates": [{"engine": "rapidocr", "value": "junk"}],
         "cascade": {"accepted": True},
     }
-    assert should_skip_all_cloud("patient_dob", row)
+    assert not should_skip_all_cloud("patient_dob", row)
     # Weak cascade-accepted ID is not settled — vision may still run.
     id_row = {
         "field": "insured_id_number",
@@ -240,3 +256,27 @@ def test_maybe_attach_gpt4o_skips_when_locals_settled(monkeypatch):
     assert called["n"] == 0
     assert (out.get("cloud_stop_ladder") or {}).get("skipped") == "LOCALS_SETTLED"
     assert "gpt4o_crop_residual" not in out
+
+
+def test_dob_disagreement_keeps_cloud_recovery_available():
+    candidates = [
+        {"engine": "paddleocr", "value": "09/23/1967"},
+        {"engine": "rapidocr", "value": "09/23/1967"},
+        {"engine": "tesseract", "value": "09/23/1961"},
+    ]
+    assert not should_skip_all_cloud("patient_dob", {"candidates": candidates, "cascade": {"accepted": True}})
+
+
+def test_partial_dob_contradiction_keeps_cloud_recovery_available():
+    row = {"candidates": [
+        {"engine": "paddleocr", "value": "05/15/2010"},
+        {"engine": "rapidocr", "value": "05/15/2010"},
+    ], "attempts": [{"engine": "tesseract", "observation": {"parts": {"YY": "19"}}}]}
+    assert not should_skip_all_cloud("patient_dob", row)
+
+
+def test_vision_gate_does_not_trust_cascade_accept_on_one_reader():
+    from packages.extraction_recovery.gpt4o_crop_residual import dob_needs_gpt4o
+    assert dob_needs_gpt4o(local_accepted=True, trocr_shaped=False,
+                          azure_di_shaped=False, gap_class="EVIDENCE_POLICY_GAP",
+                          candidates=[{"engine": "paddleocr", "value": "09/23/1967"}])

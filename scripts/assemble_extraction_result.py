@@ -103,6 +103,10 @@ def assemble(ocr_path, ranking_path, validation_path, output):
         'confidence_basis':'Saved winning candidate raw OCR confidence; not document confidence',
         'stop_after':'extraction_result','decision_called':False,'evidence_called':False,
         'note':'ASSEMBLED means artifact assembly completed; it does not mean fields or claim accepted.'}
+    for key in ("template_id", "template_version", "document_family", "registered_form_path",
+                "local_alignment", "service_line_schema"):
+        if key in ocr:
+            result[key] = ocr[key]
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
     (output/'ExtractionResult.json').write_text(json.dumps(result,indent=2,allow_nan=False),encoding='utf-8')

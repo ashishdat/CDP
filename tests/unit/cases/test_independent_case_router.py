@@ -78,10 +78,28 @@ def test_promote_unstructured_fields():
                 "total_charge": "10.00",
             }
         )[0]
-        == "TRUE_STP"
+        == "HITL"
     )
     disp, blockers = promote_unstructured_fields(
         {"patient_name": "A", "patient_dob": "01/01/1970"}
     )
     assert disp == "HITL"
     assert "total_charge" in blockers
+
+
+def test_claim_cues_on_separator_page_do_not_discard_claim():
+    route = classify_independent_case("DOCUMENT SEPARATOR CMS-1500 NUCC PATIENT NAME TOTAL CHARGE")
+    assert route.path is CasePath.CMS_GEOMETRY
+
+
+def test_unstructured_complete_values_require_governed_decision():
+    values = {"patient_name": "SYNTHETIC PERSON", "patient_dob": "02/30/2000",
+              "insured_id_number": "12345678", "total_charge": "9999.99"}
+    disposition, blockers = promote_unstructured_fields(values)
+    assert disposition == "HITL"
+    assert set(blockers) == set(values)
+
+
+def test_generic_claim_cues_on_cover_remain_recoverable():
+    route = classify_independent_case("DOCUMENT SEPARATOR PATIENT NAME TOTAL CHARGE")
+    assert route.path is not CasePath.MAILROOM_REG

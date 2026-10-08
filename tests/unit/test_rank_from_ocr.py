@@ -151,3 +151,23 @@ def test_duplicate_total_charge_rows_merge_instead_of_crash(tmp_path):
     report, _telemetry = rank_saved(p, tmp_path / 'out-dup')
     assert report['status'] in {'COMPLETED', 'SUCCESS'}
     assert sum(1 for r in report['ranked_candidates'] if r['field_id'] == 'total_charge') >= 1
+
+
+def test_compact_calendar_valid_dob_outranks_high_confidence_digit_noise(tmp_path):
+    g = tmp_path / "date_geometry.json"
+    g.write_text(json.dumps({"status": "SUCCESS", "fields": [
+        {"field": "patient_dob", "result": {"aligned_roi": {"x0": 1, "y0": 2, "x1": 3, "y1": 4}}}
+    ]}))
+    p = tmp_path / "date_ocr.json"
+    p.write_text(json.dumps({"status": "COMPLETED", "document_id": "synthetic-date",
+        "page_number": 1, "geometry_reference": str(g),
+        "geometry_sha256": hashlib.sha256(g.read_bytes()).hexdigest(), "fields": [
+            {"field": "patient_dob", "canonical_region": [1, 2, 3, 4], "candidates": [
+                {"raw_value": "013026", "engine": "rapidocr", "raw_confidence": .73},
+                {"raw_value": "9931999", "engine": "paddleocr", "raw_confidence": .98}
+            ]}
+        ]}))
+    report, _ = rank_saved(p, tmp_path / "date-ranking")
+    winner = next(row for row in report["ranked_candidates"] if row["is_winner"])
+    assert winner["candidate_id"] == "patient_dob:0"
+    assert winner["ocr_candidate"]["raw_value"] == "013026"

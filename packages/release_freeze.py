@@ -34,7 +34,9 @@ __all__ = [
 
 
 def sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    # Hash content, not the checkout: Windows autocrlf rewrites LF to CRLF on
+    # disk, which would otherwise report every frozen config as changed.
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def load_release_manifest(path: Path) -> dict[str, Any]:

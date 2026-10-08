@@ -234,6 +234,7 @@ class SafeSTPPolicy:
             ),
             process_integrity_valid=context.process_valid,
             enforce_configured_required_fields=False,
+            enforce_value_accept_policy=False,
         ))
         mapping = {
             ClaimDisposition.STP_SAFE: STPLevel.STP_SAFE,

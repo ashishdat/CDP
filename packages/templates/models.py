@@ -53,6 +53,7 @@ class ServiceLineTableRegion(DomainModel):
     table_y1: int
     max_rows: int
     row_height_px: int
+    data_y0: int | None = None  # Explicit first data row, excluding the header.
     columns: list[FieldRegion]  # x0/x1 are column bounds; y0/y1 unused (=0)
 
 

@@ -68,6 +68,10 @@ def normalize_date(raw: str) -> tuple[str | None, bool]:
             if 1900 <= parsed.year <= 2100:
                 return parsed.isoformat(), True
         return None, False
+    if cleaned.isdigit():
+        # strptime accepts variable-width numeric directives; without real
+        # delimiters, a fragment such as 8175 must not become 08/01/1975.
+        return None, False
     for fmt in _DATE_FORMATS:
         try:
             parsed = datetime.strptime(cleaned, fmt).date()  # noqa: DTZ007

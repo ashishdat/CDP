@@ -976,12 +976,22 @@ def _agent_fields_via_claude(di_text: str, cfg: Any) -> dict[str, str]:
         return {}
 
 
-def _local_ocr_cms_box3_text(image: Image.Image) -> str:
-    """Tesseract a CMS-1500 Box 2–3 crop when DI leaves DOB blank.
+def _local_ocr_cms_box_text(
+    image: Image.Image,
+    box_fractions: tuple[float, float, float, float],
+    *,
+    scale: int = 2,
+    psm_modes: tuple[str, ...] = ("6", "11"),
+    timeout: int = 20,
+) -> str:
+    """Tesseract a fixed-fraction CMS-1500 box crop, upscaled for digit legibility.
 
-    Azure DI sometimes splits handwritten ``06/09/18`` into ``09 --`` + ``18 M``
-    and drops the month. Include patient-name columns — MM digits OCR more
-    reliably next to the name than in a DOB-only slice.
+    Whole-page OCR is reliable for names/dates (fuzzy-matched) but too noisy
+    for exact digit agreement on an ID number or a dollar amount — the same
+    engine does much better on a small, zoomed crop. Coordinates come from
+    the registered-geometry field regions (``config/field_definitions/
+    cms1500_v1.yaml``, ``config/layout_templates/cms1500.yaml``) applied as
+    an approximation since this path has no successful geometric warp.
     """
     try:
         rgb = image.convert("RGB")
@@ -995,32 +1005,125 @@ def _local_ocr_cms_box3_text(image: Image.Image) -> str:
         w, h = work.size
         if w < 80 or h < 80:
             return ""
-        # Patient name (Box 2) through DOB/sex (Box 3).
-        box = (
-            int(w * 0.02),
-            int(h * 0.10),
-            int(w * 0.72),
-            int(h * 0.24),
-        )
+        x0f, y0f, x1f, y1f = box_fractions
+        box = (int(w * x0f), int(h * y0f), int(w * x1f), int(h * y1f))
         crop = work.crop(box)
-        crop = crop.resize((max(1, crop.width * 2), max(1, crop.height * 2)))
-        texts: list[str] = []
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=True) as tmp:
-            crop.save(tmp.name, format="PNG")
-            for psm in ("6", "11"):
-                proc = subprocess.run(
-                    ["tesseract", tmp.name, "stdout", "--psm", psm],
-                    capture_output=True,
-                    text=True,
-                    timeout=20,
-                    check=False,
-                )
-                chunk = (proc.stdout or "").strip()
-                if chunk:
-                    texts.append(chunk)
-        return "\n".join(texts)
+        crop = crop.resize((max(1, crop.width * scale), max(1, crop.height * scale)))
+        return "\n".join(_tesseract_text(crop, psm_modes, timeout=timeout))
     except Exception:  # noqa: BLE001
         return ""
+
+
+def _local_ocr_cms_box3_text(image: Image.Image) -> str:
+    """Patient name (Box 2) through DOB/sex (Box 3) when DI leaves DOB blank.
+
+    Azure DI sometimes splits handwritten ``06/09/18`` into ``09 --`` + ``18 M``
+    and drops the month. Include patient-name columns — MM digits OCR more
+    reliably next to the name than in a DOB-only slice.
+    """
+    return _local_ocr_cms_box_text(image, (0.02, 0.10, 0.72, 0.24))
+
+
+def _local_ocr_cms_box1a_text(image: Image.Image) -> str:
+    """Insured's ID Number (Box 1a) — top row, right of the insurance-type checkboxes."""
+    return _local_ocr_cms_box_text(image, (0.35, 0.05, 0.99, 0.15))
+
+
+def _local_ocr_cms_box28_text(image: Image.Image) -> str:
+    """Total Charge (Box 28) — end of the service-line table, lower-right."""
+    return _local_ocr_cms_box_text(image, (0.35, 0.76, 0.99, 0.88))
+
+
+def _tesseract_text(image: Image.Image, psm_modes: tuple[str, ...], *, timeout: int) -> list[str]:
+    """Run tesseract CLI over ``image`` at each PSM, Windows-tempfile-safe.
+
+    ``NamedTemporaryFile(delete=True)`` keeps an exclusive handle open on
+    Windows, so a second process (tesseract, or even PIL's own ``save``) can
+    hit ``PermissionError`` trying to touch the same path. Use ``mkstemp`` and
+    close our handle before anything else opens the file.
+    """
+    texts: list[str] = []
+    fd, path = tempfile.mkstemp(suffix=".png")
+    os.close(fd)
+    try:
+        image.save(path, format="PNG")
+        for psm in psm_modes:
+            proc = subprocess.run(
+                ["tesseract", path, "stdout", "--psm", psm],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+                check=False,
+            )
+            chunk = (proc.stdout or "").strip()
+            if chunk:
+                texts.append(chunk)
+    except Exception:  # noqa: BLE001
+        pass
+    finally:
+        with contextlib.suppress(OSError):
+            os.unlink(path)
+    return texts
+
+
+def _local_ocr_full_page_text(image: Image.Image) -> str:
+    """Tesseract the whole unregistered page — a second, independent OCR read.
+
+    Azure DI's full-page read and this local read are different OCR vendors
+    looking at the same ink, not the same text parsed twice. Agreement between
+    the two is genuine cross-modal corroboration (unlike re-parsing one DI
+    text dump with a second heuristic/agent), usable to clear a field without
+    relying on template geometry that failed to register.
+    """
+    try:
+        rgb = image.convert("RGB")
+        extrema = rgb.convert("L").getextrema()
+        work = (
+            ImageOps.invert(rgb)
+            if extrema and extrema[0] < 32 and extrema[1] > 220
+            else rgb
+        )
+        w, h = work.size
+        if w < 80 or h < 80:
+            return ""
+        return "\n".join(_tesseract_text(work, ("3", "6"), timeout=30))
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _fields_agree(field_name: str, di_value: str | None, local_value: str | None) -> bool:
+    """True only when two independently-read values are the same fact.
+
+    Conservative by construction: any parse failure or disagreement is a
+    non-match, never an acceptance. Mirrors the normalization already used
+    for the governed CMS-geometry path so the bar is identical, not relaxed.
+    """
+    if not di_value or not local_value:
+        return False
+    try:
+        from packages.field_normalization import normalize_currency, normalize_date
+    except ImportError:
+        return False
+    if field_name == "patient_dob":
+        a, ok_a = normalize_date(di_value)
+        b, ok_b = normalize_date(local_value)
+        return bool(ok_a and ok_b and a == b)
+    if field_name == "total_charge":
+        a, ok_a = normalize_currency(di_value)
+        b, ok_b = normalize_currency(local_value)
+        return bool(ok_a and ok_b and a == b)
+    if field_name == "insured_id_number":
+        a = re.sub(r"[^A-Za-z0-9]", "", di_value).upper()
+        b = re.sub(r"[^A-Za-z0-9]", "", local_value).upper()
+        return bool(a and a == b)
+    if field_name in {"patient_name", "insured_name"}:
+        # Preserve order, multiplicity and surname/given-name boundaries.
+        a = tuple(re.findall(r"[A-Z]+|,", di_value.upper()))
+        b = tuple(re.findall(r"[A-Z]+|,", local_value.upper()))
+        return bool(a and b and a == b)
+    return False
 
 
 def _dob_from_local_box3(image: Image.Image) -> str | None:
@@ -1148,10 +1251,12 @@ def run_unstructured_reg_fallback(
 
     # DI often blanks handwritten Box 3 (``09 --`` / ``18 M``). Local crop OCR
     # recovers month+day+year from ink when the text agent still has no DOB.
+    local_only_fields: set[str] = set()
     if "patient_dob" not in fields:
         local_dob = _dob_from_local_box3(image)
         if local_dob:
             fields["patient_dob"] = local_dob
+            local_only_fields.add("patient_dob")
 
     if not fields:
         return UnstructuredRegFallbackResult(
@@ -1176,7 +1281,39 @@ def run_unstructured_reg_fallback(
             )
     except Exception:  # noqa: BLE001
         blocked = ()
-    reasons = {k: "UNSTRUCTURED_DI_SHAPED" for k in fields}
+    reasons = {k: "UNSTRUCTURED_LOCAL_SHAPED" if k in local_only_fields
+               else "UNSTRUCTURED_DI_SHAPED" for k in fields}
+    # Cross-check against a genuinely independent second OCR read (different
+    # vendor than Azure DI) before any field can clear HITL on this path.
+    try:
+        local_text = _local_ocr_full_page_text(image)
+        local_fields = _heuristic_fields_from_di_text(local_text) if local_text else {}
+    except Exception:  # noqa: BLE001
+        local_fields = {}
+    # Digit-exact fields (ID, charge) need a tight, zoomed crop of their own
+    # box — whole-page OCR is too noisy for pixel-exact digit agreement on a
+    # busy scan (fine for fuzzy-matched names/dates, not for an exact ID or
+    # dollar amount). Either read agreeing is genuine independent evidence.
+    targeted_local: dict[str, str] = {}
+    try:
+        box1a_fields = _heuristic_fields_from_di_text(_local_ocr_cms_box1a_text(image))
+        if box1a_fields.get("insured_id_number"):
+            targeted_local["insured_id_number"] = box1a_fields["insured_id_number"]
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        box28_fields = _heuristic_fields_from_di_text(_local_ocr_cms_box28_text(image))
+        if box28_fields.get("total_charge"):
+            targeted_local["total_charge"] = box28_fields["total_charge"]
+    except Exception:  # noqa: BLE001
+        pass
+    for key, value in fields.items():
+        if key in local_only_fields:
+            continue  # Another Tesseract crop/PSM is not an independent reader.
+        if _fields_agree(key, value, local_fields.get(key)) or _fields_agree(
+            key, value, targeted_local.get(key)
+        ):
+            reasons[key] = "UNSTRUCTURED_CROSS_SOURCE_CONFIRMED"
     for code in blocked:
         reasons[f"_policy:{code}"] = code
     return UnstructuredRegFallbackResult(

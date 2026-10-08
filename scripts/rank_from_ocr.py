@@ -154,6 +154,13 @@ def rank_saved(source, output):
                         semantic = 0.95
                 except (ImportError, TypeError, ValueError, AttributeError):
                     semantic = 0.0
+                if name in {"patient_dob", "date_of_birth", "insured_dob"}:
+                    from packages.field_normalization import normalize_date
+
+                    # Use the same deterministic calendar parser as validation.
+                    # Ranking support does not bypass confidence or evidence gates.
+                    _, date_valid = normalize_date(selected)
+                    semantic = 0.95 if date_valid else 0.0
                 engine_name = candidate['engine']
                 engine_rel = policy.reliability(
                     policy.engine_reliability, name, engine_name

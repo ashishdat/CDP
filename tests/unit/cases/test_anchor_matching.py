@@ -77,8 +77,8 @@ def test_region_scoped_anchor_only_matches_within_region():
 
 
 def test_normalizes_punctuation_and_ocr_spacing_across_tokens():
-    lines = [_line("  hea"), _line("LTH.\t"), _line("Insurance"),
-             _line("claim"), _line("FORM:")]
+    lines = [_line(text, x0=i*105, x1=i*105+100)
+             for i,text in enumerate(["  hea", "LTH.\t", "Insurance", "claim", "FORM:"])]
     anchor = AnchorDefinition(phrase="HEALTH INSURANCE CLAIM FORM")
     original = [line.text for line in lines]
     result = verify_anchors(lines, [anchor])

@@ -8,7 +8,7 @@ invent glyphs and it does not know claim identifiers.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
@@ -70,9 +70,11 @@ class MonetaryGeometryRead:
     cents_glyphs: tuple[str, ...] = ()
     unit_zone_glyphs: tuple[str, ...] = ()
     canonical_monetary_value: str | None = None
+    reader_engine: str = "unknown"
 
     def to_dict(self) -> dict:
         return {
+            "reader_engine": self.reader_engine,
             "raw_glyph_sequence": self.raw_glyph_sequence,
             "dollars": self.dollars,
             "cents": self.cents,
@@ -322,6 +324,7 @@ def read_ruled_crop(image) -> MonetaryGeometryRead:
     raw_boxes = pytesseract.image_to_boxes(
         pil,
         config="--oem 3 --psm 7 -c tessedit_char_whitelist=0123456789.",
+        timeout=10,
     )
     glyphs = glyphs_from_tesseract_boxes(
         raw_boxes, width=glyph_img.shape[1], height=glyph_img.shape[0]
@@ -706,6 +709,7 @@ def _tess_digit_glyphs(image) -> list[GlyphBox]:
     raw = pytesseract.image_to_boxes(
         up,
         config="--oem 3 --psm 7 -c tessedit_char_whitelist=0123456789.",
+        timeout=10,
     )
     glyphs = glyphs_from_tesseract_boxes(raw, width=up.width, height=up.height)
     out: list[GlyphBox] = []
@@ -968,6 +972,7 @@ def _with_provenance(
         cents_glyphs=cents,
         unit_zone_glyphs=units,
         canonical_monetary_value=read.geometry_candidate if not read.ambiguous else None,
+        reader_engine=read.reader_engine,
     )
 
 
@@ -1007,6 +1012,8 @@ def read_monetary_crop(
         else (CMS1500_UNITS_X0 if page_context else None)
     )
 
+    rapid_observation = None
+
     # Preferred path: page glyphs → canonical CMS centres → dollars/cents.
     if page_context:
         try:
@@ -1017,8 +1024,9 @@ def read_monetary_crop(
         try:
             import re as _re_chk
 
+            rapid_observation = _rapid_tokens(image)
             rapid_digit_check = _re_chk.sub(
-                r"\D", "", " ".join(t.text for t in _rapid_tokens(image))
+                r"\D", "", " ".join(t.text for t in rapid_observation)
             )
         except Exception:  # noqa: BLE001
             rapid_digit_check = ""
@@ -1045,18 +1053,10 @@ def read_monetary_crop(
                 accept_tess = False
                 if not rapid_digit_check or rapid_digit_check == geo_digits:
                     accept_tess = True
-                elif len(geo_digits) >= len(rapid_digit_check):
-                    accept_tess = True
-                elif (
-                    rapid_digit_check.startswith(geo_digits)
-                    and len(rapid_digit_check) <= len(geo_digits) + 1
-                ):
-                    accept_tess = True
-                elif not rapid_digit_check.endswith(geo_digits):
-                    # Unrelated Rapid noise — keep the Tess canonical split.
-                    accept_tess = True
+                # Length and prefix relationships cannot prove digit identity
+                # or that an extra character is a units/ruling artifact.
                 if accept_tess:
-                    return canonical_read
+                    return replace(canonical_read, reader_engine="tesseract_digits")
             # Fall through to crop-local / token readers; keep mapped provenance.
             page_mapped = mapped
         else:
@@ -1066,7 +1066,7 @@ def read_monetary_crop(
 
     rapid_read = None
     try:
-        tokens = _rapid_tokens(image)
+        tokens = rapid_observation if rapid_observation is not None else _rapid_tokens(image)
         # When page context exists, convert token centres to canonical before
         # assembly so cents are not taken from crop-local x.
         if page_context and tokens:
@@ -1106,6 +1106,7 @@ def read_monetary_crop(
                         int(cents_boundary),
                         tuple(rapid_read.reasons) + ("CANONICAL_TOKEN_CENTS",),
                         canonical_monetary_value=rapid_read.geometry_candidate,
+                        reader_engine="rapidocr",
                     ),
                     page_glyphs=page_mapped,
                 )
@@ -1130,11 +1131,11 @@ def read_monetary_crop(
         and "RULING_TICK_DROPPED" in component_read.reasons
     ):
         # A dashed cents rule read as ``1`` must not become an extra dollar.
-        return _with_provenance(component_read, page_glyphs=page_mapped)
+        return _with_provenance(replace(component_read, reader_engine="rapidocr"), page_glyphs=page_mapped)
     if rapid_read and rapid_read.geometry_candidate and not rapid_read.ambiguous:
-        return _with_provenance(rapid_read, page_glyphs=page_mapped)
+        return _with_provenance(replace(rapid_read, reader_engine="rapidocr"), page_glyphs=page_mapped)
     if component_read.geometry_candidate and not component_read.ambiguous:
-        return _with_provenance(component_read, page_glyphs=page_mapped)
+        return _with_provenance(replace(component_read, reader_engine="rapidocr"), page_glyphs=page_mapped)
     glyph_read = split_digit_glyphs(_tess_digit_glyphs(image))
     if glyph_read.geometry_candidate and not glyph_read.ambiguous:
         rapid_digits = ""
@@ -1157,7 +1158,7 @@ def read_monetary_crop(
                 ("GLYPH_TOKEN_MISMATCH", "AMBIGUOUS"),
             )
         else:
-            return _with_provenance(glyph_read, page_glyphs=page_mapped)
+            return _with_provenance(replace(glyph_read, reader_engine="tesseract_digits"), page_glyphs=page_mapped)
     if page_mapped and not (rapid_read and rapid_read.geometry_candidate):
         # Prefer the canonical unresolved read so callers see page provenance.
         unresolved = reconstruct_from_canonical_glyphs(
@@ -1197,5 +1198,5 @@ def read_monetary_crop(
             )
         return unresolved
     if rapid_read is not None:
-        return _with_provenance(rapid_read, page_glyphs=page_mapped)
-    return _with_provenance(glyph_read, page_glyphs=page_mapped)
+        return _with_provenance(replace(rapid_read, reader_engine="rapidocr"), page_glyphs=page_mapped)
+    return _with_provenance(replace(glyph_read, reader_engine="tesseract_digits"), page_glyphs=page_mapped)

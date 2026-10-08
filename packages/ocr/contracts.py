@@ -58,6 +58,9 @@ class OCRCandidate:
     registration_confidence: float | None = None
     image_quality_score: float | None = None
     provenance: EvidenceProvenance | None = None
+    # Hinted arbitration is a recommendation, not a fresh independent read.
+    prior_hints_supplied: bool = False
+    shadow_review_only: bool = False
 
 
 @dataclass(frozen=True)

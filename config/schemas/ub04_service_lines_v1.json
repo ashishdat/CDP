@@ -1,0 +1,156 @@
+{
+  "$defs": {
+    "UB04CellObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_region": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Canonical Region",
+          "type": "array"
+        },
+        "candidates": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "attempts": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Attempts",
+          "type": "array"
+        },
+        "router_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Router Reason"
+        }
+      },
+      "required": [
+        "canonical_region"
+      ],
+      "title": "UB04CellObservation",
+      "type": "object"
+    },
+    "UB04ServiceCells": {
+      "additionalProperties": false,
+      "properties": {
+        "revenue_code": {
+          "$ref": "#/$defs/UB04CellObservation"
+        },
+        "description": {
+          "$ref": "#/$defs/UB04CellObservation"
+        },
+        "hcpcs_rate": {
+          "$ref": "#/$defs/UB04CellObservation"
+        },
+        "service_date": {
+          "$ref": "#/$defs/UB04CellObservation"
+        },
+        "service_units": {
+          "$ref": "#/$defs/UB04CellObservation"
+        },
+        "total_charges": {
+          "$ref": "#/$defs/UB04CellObservation"
+        },
+        "non_covered_charges": {
+          "$ref": "#/$defs/UB04CellObservation"
+        }
+      },
+      "required": [
+        "revenue_code",
+        "description",
+        "hcpcs_rate",
+        "service_date",
+        "service_units",
+        "total_charges",
+        "non_covered_charges"
+      ],
+      "title": "UB04ServiceCells",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "ub04-service-lines-v1",
+      "default": "ub04-service-lines-v1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "row_number": {
+      "maximum": 22,
+      "minimum": 1,
+      "title": "Row Number",
+      "type": "integer"
+    },
+    "canonical_region": {
+      "maxItems": 4,
+      "minItems": 4,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Canonical Region",
+      "type": "array"
+    },
+    "cells": {
+      "$ref": "#/$defs/UB04ServiceCells"
+    },
+    "status": {
+      "const": "CANDIDATES_OBSERVED",
+      "default": "CANDIDATES_OBSERVED",
+      "title": "Status",
+      "type": "string"
+    },
+    "financial_authority": {
+      "const": false,
+      "default": false,
+      "title": "Financial Authority",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "row_number",
+    "canonical_region",
+    "cells"
+  ],
+  "title": "UB04ServiceLine",
+  "type": "object"
+}
