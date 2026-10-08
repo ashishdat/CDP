@@ -48,7 +48,7 @@ def test_v2_checksums_still_match_via_verify_release_manifest():
 
 def test_v3_hashes_are_correct():
     manifest = load_release_manifest(V3_MANIFEST)
-    assert manifest["pipeline_version"] == "extraction-v3"
+    assert manifest["pipeline_version"] == "extraction-v3.26-port-recovery"
     assert manifest["status"] == "CANDIDATE"
     assert manifest["template_versions"]["cms1500"] == "03"
     assert manifest["supersedes_after_promotion"] == "extraction-v2"

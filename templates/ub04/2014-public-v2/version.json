@@ -1,0 +1,18 @@
+{
+  "template_id": "ub04",
+  "form_version": "2014-public-v2",
+  "source_authority": "OMB RegInfo / US Department of Labor official public UB-04 blank",
+  "source_url": "https://www.reginfo.gov/public/do/DownloadDocument?objectID=83037001",
+  "source_sha256": "f7a964a31d7105f0658acdeef0ec3ddbd333ca558d38f90b92401605b6ab69c2",
+  "source_page": 0,
+  "provenance": "OFFICIAL_PUBLIC_BLANK",
+  "phi_status": "NO_PHI",
+  "image_sha256": "3c0489b5ade7a9f82c751e7671a5fe0d96de76b179c52d05ec89b29b772a1799",
+  "width_px": 1711,
+  "height_px": 2216,
+  "expected_dpi": 200,
+  "descriptor_version": "sift-v1",
+  "descriptor_sha256": "1033c4b76842f9f4653c17f3ebebbc4abda0f8645c1aebc9d826ab935f6e22f4",
+  "descriptor_keypoint_count": 5348,
+  "registration_algorithm_version": "sift-flann-ransac-v1"
+}

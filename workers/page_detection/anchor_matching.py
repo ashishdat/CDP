@@ -1,5 +1,5 @@
 """Anchor-phrase verification: the first, cheapest escalation step in page
-routing (docs/ARCHITECTURE.md §9). Given OCR text lines for a page and a
+routing (docs/ARCHITECTURE.md Ã‚Â§9). Given OCR text lines for a page and a
 template's `anchor_definitions`, decide whether the page is confidently a
 genuine instance of that template.
 
@@ -21,6 +21,7 @@ class AnchorMatchResult:
     confidence: float  # in [0, 1]; fraction of all anchors matched
     matched_phrases: list[str]
     missing_required: list[str]
+    required_confidence: float | None = None
 
     @property
     def all_required_matched(self) -> bool:
@@ -47,14 +48,37 @@ def _region_overlaps(line: TextLine, region) -> bool:
     )
 
 
+def _nearby_phrase(phrase: str, lines: list[TextLine]) -> bool:
+    """Join exact OCR fragments only when their boxes are spatial neighbours."""
+    for start, line in enumerate(lines):
+        pending = [(_normalize(line.text), start, frozenset({start}))]
+        while pending:
+            joined, previous_index, used = pending.pop()
+            if phrase in joined:
+                return True
+            if not any(joined.endswith(phrase[:length]) for length in range(1, len(phrase))):
+                continue
+            if len(used) >= 6:
+                continue
+            previous = lines[previous_index]
+            for index, following in enumerate(lines):
+                if index in used:
+                    continue
+                height = max(previous.y1 - previous.y0, following.y1 - following.y0, 1)
+                vertical_overlap = min(previous.y1, following.y1) - max(previous.y0, following.y0)
+                horizontal_overlap = min(previous.x1, following.x1) - max(previous.x0, following.x0)
+                same_row = vertical_overlap > 0 and 0 <= following.x0 - previous.x1 <= 3 * height
+                wrapped = horizontal_overlap > 0 and 0 <= following.y0 - previous.y1 <= 2 * height
+                if same_row or wrapped:
+                    pending.append((joined + _normalize(following.text), index, used | {index}))
+    return False
+
+
 def verify_anchors(
     text_lines: list[TextLine], anchor_definitions: list[AnchorDefinition]
 ) -> AnchorMatchResult:
     if not anchor_definitions:
         return AnchorMatchResult(confidence=0.0, matched_phrases=[], missing_required=[])
-
-    normalized_lines = [(_normalize(l.text), l) for l in text_lines]
-    full_text = "".join(text for text, _ in normalized_lines)
 
     matched: list[str] = []
     missing_required: list[str] = []
@@ -62,12 +86,14 @@ def verify_anchors(
     for anchor in anchor_definitions:
         phrase = _normalize(anchor.phrase)
         if anchor.region is not None:
-            scoped_text = "".join(
-                text for text, line in normalized_lines if _region_overlaps(line, anchor.region)
-            )
-            found = bool(phrase) and phrase in scoped_text
+            scoped_lines = [line for line in text_lines if _region_overlaps(line, anchor.region)]
+            found = bool(phrase) and any(phrase in _normalize(line.text) for line in scoped_lines)
         else:
-            found = bool(phrase) and phrase in full_text
+            scoped_lines = text_lines
+            found = bool(phrase) and any(phrase in _normalize(line.text) for line in scoped_lines)
+
+        if not found and phrase:
+            found = _nearby_phrase(phrase, scoped_lines)
 
         if found:
             matched.append(anchor.phrase)
@@ -75,6 +101,10 @@ def verify_anchors(
             missing_required.append(anchor.phrase)
 
     confidence = len(matched) / len(anchor_definitions)
+    required = [anchor for anchor in anchor_definitions if anchor.required]
+    required_confidence = ((len(required) - len(missing_required)) / len(required)
+                           if required else confidence)
     return AnchorMatchResult(
-        confidence=confidence, matched_phrases=matched, missing_required=missing_required
+        confidence=confidence, matched_phrases=matched, missing_required=missing_required,
+        required_confidence=required_confidence,
     )

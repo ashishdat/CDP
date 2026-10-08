@@ -1,0 +1,149 @@
+# Official public blank ROI calibration; never reuse sample-scan coordinates.
+template_id: ub04
+version: 2014-public-v2
+form_type: UB04
+reference_dimensions:
+  width_px: 1711
+  height_px: 2216
+reference_image_path: null
+anchor_definitions:
+- phrase: TYPE OF BILL
+  required: true
+- phrase: STATEMENT COVERS PERIOD
+  required: true
+- phrase: UB-04
+  required: false
+- phrase: CMS-1450
+  required: false
+field_regions:
+- field_name: patient_name
+  field_type: text
+  x0: 92
+  y0: 266
+  x1: 634
+  y1: 292
+  padding_px: 0
+- field_name: patient_dob
+  field_type: date
+  x0: 73
+  y0: 328
+  x1: 238
+  y1: 352
+  padding_px: 0
+- field_name: insured_id_number
+  field_type: code
+  x0: 624
+  y0: 1498
+  x1: 997
+  y1: 1523
+  padding_px: 0
+- field_name: total_charge
+  field_type: currency
+  x0: 1210
+  y0: 1314
+  x1: 1390
+  y1: 1338
+  padding_px: 0
+- field_name: type_of_bill
+  field_type: code
+  x0: 1538
+  y0: 143
+  x1: 1626
+  y1: 169
+  padding_px: 0
+- field_name: patient_control_number
+  field_type: code
+  x0: 1082
+  y0: 114
+  x1: 1526
+  y1: 137
+  padding_px: 0
+- field_name: provider_npi
+  field_type: npi
+  x0: 1348
+  y0: 1345
+  x1: 1626
+  y1: 1368
+  padding_px: 0
+- field_name: federal_tax_no
+  field_type: tax_id
+  x0: 1025
+  y0: 206
+  x1: 1206
+  y1: 230
+  padding_px: 0
+- field_name: principal_diagnosis
+  field_type: code
+  x0: 95
+  y0: 1713
+  x1: 221
+  y1: 1738
+  padding_px: 0
+service_line_region:
+  table_x0: 73
+  table_x1: 1579
+  table_y0: 633
+  table_y1: 1309
+  data_y0: 633
+  max_rows: 22
+  row_height_px: 31
+  columns:
+  - field_name: revenue_code
+    field_type: code
+    x0: 73
+    x1: 155
+    y0: 0
+    y1: 0
+    padding_px: 0
+  - field_name: description
+    field_type: text
+    x0: 162
+    x1: 628
+    y0: 0
+    y1: 0
+    padding_px: 0
+  - field_name: hcpcs_rate
+    field_type: code
+    x0: 637
+    x1: 914
+    y0: 0
+    y1: 0
+    padding_px: 0
+  - field_name: service_date
+    field_type: date
+    x0: 923
+    x1: 1047
+    y0: 0
+    y1: 0
+    padding_px: 0
+  - field_name: service_units
+    field_type: code
+    x0: 1056
+    x1: 1199
+    y0: 0
+    y1: 0
+    padding_px: 0
+  - field_name: total_charges
+    field_type: currency
+    x0: 1210
+    x1: 1390
+    y0: 0
+    y1: 0
+    padding_px: 0
+  - field_name: non_covered_charges
+    field_type: currency
+    x0: 1400
+    x1: 1578
+    y0: 0
+    y1: 0
+    padding_px: 0
+required_fields:
+- patient_name
+- patient_dob
+- insured_id_number
+- total_charge
+- provider_npi
+- type_of_bill
+- principal_diagnosis
+- federal_tax_no
+validation_profile: ub04_default

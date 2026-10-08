@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import threading
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import atan2, degrees, sqrt
 from time import perf_counter
 from typing import Any
@@ -38,10 +38,11 @@ _TEMPLATE_SIFT_CACHE_MAX = 8
 
 
 def _template_sift_cache_key(reference: np.ndarray, nfeatures: int) -> tuple[str, int]:
-    height, width = reference.shape[:2]
-    step_y = max(1, height // 64)
-    step_x = max(1, width // 64)
-    digest = hashlib.sha256(reference[::step_y, ::step_x].tobytes()).hexdigest()
+    # A sparse sample can miss changed captions or cell boundaries. The cache
+    # may reuse descriptors only for the same complete image and dimensions.
+    content=hashlib.sha256(str((reference.shape,reference.dtype.str)).encode())
+    content.update(reference.tobytes())
+    digest=content.hexdigest()
     return (digest, int(nfeatures))
 
 
@@ -53,6 +54,8 @@ def _cached_template_sift(
     with _TEMPLATE_SIFT_LOCK:
         hit = _TEMPLATE_SIFT_CACHE.get(key)
         if hit is not None:
+            _TEMPLATE_SIFT_CACHE.pop(key)
+            _TEMPLATE_SIFT_CACHE[key]=hit
             return hit
     template_features = preprocess_registration(reference)
     kp_template, desc_template = sift.detectAndCompute(template_features.image, None)
@@ -199,33 +202,100 @@ def _cheap_alignment(
     )
 
 
-def _unique_template_matches(matches):
-    """Keep minimum descriptor distance per template ID; retain input order.
+def _unique_template_matches(matches, source_keypoints=None, template_keypoints=None):
+    """Keep strongest one-to-one physical correspondences, retaining input order.
 
-    Equal-distance ties keep the first observed match. The KNN ratio filter
-    already supplies at most one candidate per image keypoint.
+    SIFT emits multiple orientations at the same location. Those descriptors
+    must not inflate RANSAC support or compete for the same physical point.
     """
-    best = {}
-    for match in matches:
-        previous = best.get(match.trainIdx)
-        if previous is None or match.distance < previous.distance:
-            best[match.trainIdx] = match
-    return [match for match in matches if best[match.trainIdx] is match]
+    selected = set()
+    source_seen, template_seen = set(), set()
+    for index, match in sorted(enumerate(matches), key=lambda item: item[1].distance):
+        source = (tuple(source_keypoints[match.queryIdx].pt)
+                  if source_keypoints is not None else match.queryIdx)
+        template = (tuple(template_keypoints[match.trainIdx].pt)
+                    if template_keypoints is not None else match.trainIdx)
+        if source in source_seen or template in template_seen:
+            continue
+        source_seen.add(source)
+        template_seen.add(template)
+        selected.add(index)
+    return [match for index, match in enumerate(matches) if index in selected]
+
+
+def _homography_metrics(matrix, mask, src, dst, candidate, reference):
+    inliers = mask.ravel().astype(bool)
+    inlier_count = int(inliers.sum())
+    projected = cv2.perspectiveTransform(src, matrix)
+    errors = np.linalg.norm(projected[inliers] - dst[inliers], axis=2).ravel()
+    reprojection_error = float(errors.mean()) if errors.size else None
+    source_hull = cv2.convexHull(src[inliers]) if inlier_count >= 3 else None
+    template_hull = cv2.convexHull(dst[inliers]) if inlier_count >= 3 else None
+    source_coverage = (
+        float(cv2.contourArea(source_hull)) / (candidate.shape[0] * candidate.shape[1])
+        if source_hull is not None
+        else 0.0
+    )
+    template_coverage = (
+        float(cv2.contourArea(template_hull)) / (reference.shape[0] * reference.shape[1])
+        if template_hull is not None
+        else 0.0
+    )
+    coverage = min(source_coverage, template_coverage)
+    normalized = matrix / matrix[2, 2]
+    scale_change = sqrt(abs(float(np.linalg.det(normalized[:2, :2]))))
+    rotation_degrees = degrees(atan2(float(normalized[1, 0]), float(normalized[0, 0])))
+    perspective_distortion = float(
+        np.linalg.norm(normalized[2, :2]) * max(candidate.shape[0], candidate.shape[1])
+    )
+    source_corners = np.float32(
+        [[[0, 0]], [[candidate.shape[1] - 1, 0]], [[candidate.shape[1] - 1, candidate.shape[0] - 1]], [[0, candidate.shape[0] - 1]]]
+    )
+    transformed_corners = cv2.perspectiveTransform(source_corners, matrix).reshape(-1, 2)
+    margin_x, margin_y = reference.shape[1] * 0.1, reference.shape[0] * 0.1
+    corner_validity = bool(
+        np.isfinite(transformed_corners).all()
+        and cv2.isContourConvex(transformed_corners.astype(np.float32))
+        and np.all(transformed_corners[:, 0] >= -margin_x)
+        and np.all(transformed_corners[:, 0] <= reference.shape[1] + margin_x)
+        and np.all(transformed_corners[:, 1] >= -margin_y)
+        and np.all(transformed_corners[:, 1] <= reference.shape[0] + margin_y)
+    )
+    return (inlier_count, inlier_count / len(src), reprojection_error, coverage,
+            scale_change, rotation_degrees, perspective_distortion, corner_validity)
+
+
+def _homography_passes_policy(matrix, mask, src, dst, candidate, reference, policy):
+    if not np.isfinite(matrix).all() or abs(float(matrix[2, 2])) < 1e-12:
+        return False
+    count, ratio, error, coverage, scale, rotation, perspective, corners = (
+        _homography_metrics(matrix, mask, src, dst, candidate, reference)
+    )
+    return bool(
+        count >= policy.min_inliers and ratio >= policy.min_inlier_ratio
+        and error is not None and np.isfinite(error)
+        and error <= policy.max_reprojection_error
+        and coverage >= policy.min_coverage_ratio
+        and policy.min_scale <= scale <= policy.max_scale
+        and abs(rotation) <= policy.max_abs_rotation_degrees
+        and perspective <= policy.max_perspective_distortion and corners
+    )
 
 
 def _sift_alignment(
     candidate: np.ndarray, reference: np.ndarray, policy: RegistrationPolicy
 ) -> AlignmentResult:
+    from packages.recovery.registration_deadline import recovery_budget_exhausted
+    if recovery_budget_exhausted():
+        return _failure('sift_flann_ransac_homography', 'REGISTRATION_RECOVERY_BUDGET_EXHAUSTED')
     started = perf_counter()
     telemetry.stage("Feature Matching", algorithm="sift_flann_ransac_homography")
     sift = cv2.SIFT_create(nfeatures=policy.sift_features)
     verbose = telemetry.verbose_registration_telemetry()
-    # Pre-preprocess detect() only feeds verbose coverage charts — skip on STP fast path.
+    # Pre-preprocess detect() only feeds verbose coverage charts â€” skip on STP fast path.
     before_source = len(sift.detect(candidate, None)) if verbose else None
     before_template = len(sift.detect(reference, None)) if verbose else None
-    source_features = preprocess_registration(candidate)
-    kp_source, desc_source = sift.detectAndCompute(source_features.image, None)
-    kp_source = source_features.restore_keypoints(kp_source)
+    source_features,kp_source,desc_source=_cached_template_sift(sift,candidate,policy.sift_features)
     template_features, kp_template, desc_template = _cached_template_sift(
         sift, reference, policy.sift_features
     )
@@ -267,12 +337,12 @@ def _sift_alignment(
                                  "distance_rejection": "NOT_APPLIED", "spatial_rejection": "NOT_APPLIED"},
                      ratio_threshold=policy.lowe_ratio)
     ratio_passed = good
-    good = _unique_template_matches(ratio_passed)
+    good = _unique_template_matches(ratio_passed, kp_source, kp_template)
     observe_coverage("One-to-one template correspondences", candidate, reference,
                      template_matches_before=len(ratio_passed), template_matches_after=len(good),
                      duplicates_removed=len(ratio_passed) - len(good),
-                     unique_template_points=len({match.trainIdx for match in good}),
-                     unique_template_points_basis="Keypoint IDs; distinct IDs may share coordinates")
+                     unique_template_points=len({kp_template[match.trainIdx].pt for match in good}),
+                     unique_template_points_basis="Distinct source and template coordinates")
     capture_matches(pairs, good, ratio_passed=ratio_passed)
     common.update(candidate_match_count=len(pairs), good_matches=len(good))
     if len(good) < policy.min_good_matches:
@@ -294,7 +364,7 @@ def _sift_alignment(
     # best of a few draws with tighter confidence so STP is stable.
     best_matrix = None
     best_mask = None
-    best_inliers = -1
+    best_key = (-1, -1)
     for _ in range(7):
         matrix, mask = cv2.findHomography(
             src,
@@ -304,11 +374,15 @@ def _sift_alignment(
             maxIters=5000,
             confidence=0.999,
         )
-        if matrix is None or mask is None:
+        if (matrix is None or mask is None or not np.isfinite(matrix).all()
+                or abs(float(matrix[2, 2])) < 1e-12):
             continue
         n_in = int(mask.ravel().sum())
-        if n_in > best_inliers:
-            best_inliers = n_in
+        key = (int(_homography_passes_policy(
+            matrix, mask, src, dst, candidate, reference, policy
+        )), n_in)
+        if key > best_key:
+            best_key = key
             best_matrix = matrix
             best_mask = mask
     matrix, mask = best_matrix, best_mask
@@ -363,7 +437,7 @@ def _sift_alignment(
         np.clip(
             0.65 * inlier_ratio
             + 0.25 * min(1.0, coverage / 0.35)
-            + 0.10 * max(0.0, 1.0 - (reprojection_error or 99.0) / policy.max_reprojection_error),
+            + 0.10 * max(0.0, 1.0 - (reprojection_error if reprojection_error is not None else 99.0) / policy.max_reprojection_error),
             0.0,
             1.0,
         )
@@ -469,7 +543,7 @@ def _sift_alignment_multiscale(
             if scaled_result.homography is None:
                 result = scaled_result
             else:
-                # H_scaled maps scaled→template; compose so H maps original→template.
+                # H_scaled maps scaledâ†’template; compose so H maps originalâ†’template.
                 s_forward = np.array(
                     [[scale, 0.0, 0.0], [0.0, scale, 0.0], [0.0, 0.0, 1.0]],
                     dtype=np.float64,
@@ -535,7 +609,7 @@ def align_near_miss_boosted(
     """Bounded secondary geometric pass for ratio-only near-miss failures.
 
     Raises sift_features and searches a small scale pyramid. Acceptance policy
-    thresholds are unchanged — accept only if full gates pass.
+    thresholds are unchanged â€” accept only if full gates pass.
     """
     base = base_policy or DEFAULT_REGISTRATION_POLICY
     boosted = RegistrationPolicy(
@@ -590,9 +664,7 @@ def _affine_then_homography(
     started = perf_counter()
     # First get SIFT matches for affine.
     sift = cv2.SIFT_create(nfeatures=max(policy.sift_features, 4000))
-    source_features = preprocess_registration(candidate)
-    kp_source, desc_source = sift.detectAndCompute(source_features.image, None)
-    kp_source = source_features.restore_keypoints(kp_source)
+    source_features,kp_source,desc_source=_cached_template_sift(sift,candidate,max(policy.sift_features,4000))
     _template_features, kp_template, desc_template = _cached_template_sift(
         sift, reference, max(policy.sift_features, 4000)
     )
@@ -609,7 +681,7 @@ def _affine_then_homography(
         for pair in pairs
         if len(pair) == 2 and pair[0].distance < policy.lowe_ratio * pair[1].distance
     ]
-    good = _unique_template_matches(good)
+    good = _unique_template_matches(good, kp_source, kp_template)
     if len(good) < policy.min_good_matches:
         return _failure(
             "affine_then_homography",
@@ -748,7 +820,10 @@ def align_learned_matcher(
     base_policy: RegistrationPolicy | None = None,
     extractor: Any | None = None,
 ) -> AlignmentResult:
-    """Catastrophic residual: SuperPoint+LightGlue matches → same Acceptance gates."""
+    """Catastrophic residual: SuperPoint+LightGlue matches â†’ same Acceptance gates."""
+    from packages.recovery.registration_deadline import recovery_budget_exhausted
+    if recovery_budget_exhausted():
+        return _failure('learned_matcher', 'REGISTRATION_RECOVERY_BUDGET_EXHAUSTED')
     from packages.recovery.learned_matcher import SuperPointLightGlueExtractor
 
     base = base_policy or DEFAULT_REGISTRATION_POLICY
@@ -870,7 +945,7 @@ def align_learned_matcher(
             + 0.10
             * max(
                 0.0,
-                1.0 - (reprojection_error or 99.0) / policy.max_reprojection_error,
+                1.0 - (reprojection_error if reprojection_error is not None else 99.0) / policy.max_reprojection_error,
             ),
             0.0,
             1.0,
@@ -945,7 +1020,11 @@ def align_to_reference(
     family: str | None = None,
     enforce_compatibility_precheck: bool = False,
     compatibility_evidence: TemplateCompatibilityEvidence | None = None,
+    allow_recovery: bool = True,
 ) -> AlignmentResult:
+    from packages.recovery.registration_deadline import recovery_budget_exhausted
+    if recovery_budget_exhausted():
+        return _failure('registration_recovery', 'REGISTRATION_RECOVERY_BUDGET_EXHAUSTED')
     selected = policy or DEFAULT_REGISTRATION_POLICY
     observe_coverage("Input image", candidate, reference, preprocessing="Before grayscale conversion")
     candidate_arr, reference_arr = _gray(candidate), _gray(reference)
@@ -979,6 +1058,48 @@ def align_to_reference(
             }
         )
     sift = _sift_alignment(candidate_arr, reference_arr, selected)
+    for feature_budget in ((6000, 12000) if allow_recovery else ()):
+        if sift.accepted:
+            break
+        if selected.sift_features >= feature_budget:
+            continue
+        # Dense form labels can exhaust the default descriptor budget before
+        # spatially distributed anchors survive. Bound recovery to two retries;
+        # every acceptance threshold remains identical to the original policy.
+        expanded = _sift_alignment(
+            candidate_arr, reference_arr, replace(selected, sift_features=feature_budget)
+        )
+        if expanded.accepted:
+            sift = expanded
+    if allow_recovery and not sift.accepted and np.count_nonzero(candidate_arr < 200) >= 50:
+        recovered = []
+        height, width = candidate_arr.shape
+        transforms = [
+            (180, np.array([[-1,0,width-1],[0,-1,height-1],[0,0,1]],dtype=float), np.rot90(candidate_arr,2)),
+        ]
+        # Quarter turns only when aspect ratios support a sideways scan.
+        aspect = width/height
+        target_aspect = reference_arr.shape[1]/reference_arr.shape[0]
+        if abs(aspect-1) > .15 and abs((1/aspect)/target_aspect-1) < .15:
+            transforms.extend([
+                (90,np.array([[0,1,0],[-1,0,width-1],[0,0,1]],dtype=float),np.rot90(candidate_arr,1)),
+                (270,np.array([[0,-1,height-1],[1,0,0],[0,0,1]],dtype=float),np.rot90(candidate_arr,3)),
+            ])
+        for degrees_normalized, normalization, oriented in transforms:
+            trial = _sift_alignment(np.ascontiguousarray(oriented), reference_arr, selected)
+            if trial.accepted and trial.homography is not None:
+                composed = trial.homography @ normalization
+                evidence = trial.evidence.model_copy(update={
+                    "transform_matrix":composed.tolist(),
+                    "orientation_normalization_degrees":degrees_normalized}) if trial.evidence else None
+                recovered.append(replace(trial, homography=composed,evidence=evidence,
+                    method=trial.method+"_orientation_normalized"))
+        if len(recovered) == 1:
+            sift = recovered[0]
+            telemetry.stage("Transform", transform_matrix=sift.homography.tolist(),
+                orientation_normalization_degrees=sift.evidence.orientation_normalization_degrees)
+        elif len(recovered) > 1:
+            sift = _failure("orientation_recovery", "ambiguous_orientation")
     return AlignmentResult(
         **{
             **sift.__dict__,

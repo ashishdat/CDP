@@ -2,11 +2,11 @@ profile_id: cdp-runtime-decision
 profile_version: phase8.10b-v1
 profile_status: RUNTIME
 route_mode: runtime
-created_at: 2026-08-24T00:00:00Z
+created_at: 2026-08-24 00:00:00+00:00
 evidence_policy_path: config/evidence_policies.yaml
 evidence_policy_sha256: dda11d94ad5a8bf0450a479e698bdf2bafba06cb40f703bbdf6f495f299462a5
 field_policy_path: config/field_acceptance_policies.yaml
-field_policy_sha256: 4ac8c273b36db6509e75419e60aafadff67482ad7349617a8b4a3ecd52989fd2
+field_policy_sha256: 88e71af468a3db5cd49ed20fb77c20372c54989685e42c59341609cb776071e7
 route_registry_path: config/ocr_field_routes.yaml
 route_registry_sha256: 15bfef58a0eaade09c8ba3182ca93facf0382b1b17924e0bbe5c4afc87e85612
 criticality_config_path: config/field_criticality.yaml

@@ -2,8 +2,8 @@
 """Run field-cascade ops on the Hackathon Claims corpus (cascade strategy from YAML).
 
 Operational completion / true-STP / HITL evaluation (no field-level GT).
-Pipeline per claim: app.py (register+geometry+recovery ladder) → ocr → rank →
-validate → assemble → complete (E3 from registration_report).
+Pipeline per claim: app.py (register+geometry+recovery ladder) â†’ ocr â†’ rank â†’
+validate â†’ assemble â†’ complete (E3 from registration_report).
 
 Resume-safe: JSONL ledger skips finished claim_ids.
 """
@@ -33,6 +33,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+# Torch must load before Paddle on Windows: reversing their native DLL load
+# order can make torch/lib/shm.dll fail with WinError 127. Keep Torch optional.
+if os.name == "nt":
+    import importlib
+    import importlib.util
+
+    if importlib.util.find_spec("torch") is not None:
+        importlib.import_module("torch")
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -54,8 +63,19 @@ CASCADE_ENGINES = ("paddleocr", "rapidocr", "tesseract", "tesseract_digits")
 
 
 def _ocr_pool_enabled() -> bool:
-    raw = (os.environ.get("CDP_OCR_WORKER_POOL") or "1").strip().casefold()
-    return raw not in {"0", "false", "no", "off"}
+    # A shared native pool cannot terminate one hung inference without killing
+    # unrelated claims. Use a separately owned process tree for each OCR stage.
+    return False
+
+
+def _processing_stage_timeout(stage: str) -> float:
+    import math
+    default = 300.0 if stage == "ocr" else 120.0
+    name = "CDP_OCR_TIMEOUT_SECONDS" if stage == "ocr" else "CDP_COMPLETION_TIMEOUT_SECONDS"
+    value = float(os.environ.get(name, str(default)))
+    if not math.isfinite(value) or not 1 <= value <= 1800:
+        raise ValueError(f"{name} must be finite and between 1 and 1800 seconds")
+    return value
 
 
 def _app_pool_enabled() -> bool:
@@ -236,7 +256,7 @@ def _reset_executor_holder(holder: Any) -> None:
 
 
 def _ocr_pool_job(geometry_dir: str, output_dir: str) -> tuple[int, str]:
-    """Long-lived pool worker entry — keeps Paddle/Rapid warm across claims."""
+    """Long-lived pool worker entry â€” keeps Paddle/Rapid warm across claims."""
     try:
         from scripts.ocr_from_geometry import run as ocr_run
 
@@ -257,13 +277,59 @@ def _ocr_pool_job(geometry_dir: str, output_dir: str) -> tuple[int, str]:
         return (1, f"{type(exc).__name__}: {exc}")
 
 
+def _independent_run_contract(dataset: Path, document_type: str,
+                              runtime_settings: dict[str, str]) -> dict[str, Any]:
+    import hashlib
+
+    from packages.recovery.independent_failures import VERSION
+
+    # Acceptance depends on transitive evidence, normalization and runtime code.
+    # Hash all pipeline Python sources so a resume cannot mix changed policies.
+    components = sorted(
+        str(path.relative_to(ROOT)).replace("\\", "/")
+        for directory in ("packages", "workers", "scripts")
+        for path in (ROOT / directory).rglob("*.py")
+    ) + ["app.py", "datasets/registry.py", "pyproject.toml", "uv.lock"]
+    return {"architecture_version": VERSION, "classification_mode": document_type,
+            "dataset_sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
+            "component_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
+                                 for name in components},
+            "configuration_sha256": {
+                str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted((ROOT / "config").rglob("*.yaml"))},
+            'template_asset_sha256': {
+                str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in sorted((ROOT / 'templates').rglob('*'))
+                if path.is_file() and path.name in {
+                    'canonical.png', 'version.json', 'descriptors.npz', 'anchors.json', 'fields.json'}},
+            "runtime_settings": runtime_settings}
+
+
+def _classification_hint(document_type: str | None) -> str | None:
+    if not document_type or document_type.upper() == "AUTO":
+        return None
+    if document_type not in {"CMS1500", "UB04", "UNSTRUCTURED"}:
+        raise ValueError("Unsupported document type")
+    return document_type
+
+
+def _app_stage_command(dataset_yaml: Path, document: str, output: Path,
+                       document_type: str | None) -> list[str]:
+    command = [sys.executable, str(ROOT / "app.py"), "--dataset", str(dataset_yaml),
+               "--document", document, "--output-root", str(output)]
+    hint = _classification_hint(document_type)
+    if hint is not None:
+        command.extend(["--document-type", hint])
+    return command
+
+
 def _app_pool_job(
     dataset_yaml: str,
     document: str,
     document_type: str,
     output_root: str,
 ) -> tuple[int, str]:
-    """Long-lived registration worker — amortize imports + template SIFT cache."""
+    """Long-lived registration worker â€” amortize imports + template SIFT cache."""
     import logging
 
     logging.basicConfig(
@@ -279,7 +345,7 @@ def _app_pool_job(
             dataset_yaml,
             document=document,
             output_root=output_root,
-            document_type=document_type or None,
+            document_type=_classification_hint(document_type),
         )
         status = state.get("status")
         return (0 if status == "SUCCESS" else 1, json.dumps({"status": status}))
@@ -336,7 +402,7 @@ def _shutdown_process_pool(pool: ProcessPoolExecutor | None) -> None:
     if pool is None:
         return
     pids: list[int] = []
-    processes = getattr(pool, "_processes", None) or {}
+    processes = dict(getattr(pool, "_processes", None) or {})
     for proc in list(processes.values()):
         try:
             pid = getattr(proc, "pid", None)
@@ -395,7 +461,7 @@ def _utc_now() -> str:
 
 
 def _bundle_id(document: str) -> str:
-    """Group + claim family (e.g. Group A/M048DJJM) — multipage claim bundle."""
+    """Group + claim family (e.g. Group A/M048DJJM) â€” multipage claim bundle."""
     text = (document or "").replace("\\", "/")
     if "/" in text:
         group, name = text.split("/", 1)
@@ -498,7 +564,11 @@ def _ocr_engine_stats(claim_out: Path) -> dict[str, Any]:
                 continue
             attempts[engine] += 1
             reason = str(attempt.get("reason") or "")
-            if reason == "OBSERVED":
+            observation = attempt.get('observation') or {}
+            # Direct digit-band readers record PSM/DOB_CONFIRM reasons rather
+            # than OBSERVED. Count their actual text, not component summaries.
+            direct_text = str(observation.get('text') or '').strip()
+            if reason == "OBSERVED" or direct_text:
                 observed[engine] += 1
             elif reason == "UNAVAILABLE":
                 unavailable[engine] += 1
@@ -508,6 +578,7 @@ def _ocr_engine_stats(claim_out: Path) -> dict[str, Any]:
         observed.get("paddleocr", 0) > 0
         and observed.get("rapidocr", 0) > 0
         and unavailable.get("tesseract", 0) == 0
+        and unavailable.get("tesseract_digits", 0) == 0
     )
     return {
         "engines_attempted": dict(attempts),
@@ -516,10 +587,71 @@ def _ocr_engine_stats(claim_out: Path) -> dict[str, Any]:
         "cascade_healthy": healthy,
         "tesseract_observed": observed.get("tesseract", 0)
         + observed.get("tesseract_digits", 0),
-        "tesseract_unavailable": unavailable.get("tesseract", 0),
+        "tesseract_unavailable": unavailable.get("tesseract", 0)
+        + unavailable.get("tesseract_digits", 0),
     }
 
+
+def _save_unstructured_page_text(claim_out: Path, text: str | None) -> dict[str, str] | None:
+    """Keep the actual fallback observation available for later source audits."""
+    if text is None:
+        return None
+    import hashlib
+
+    path = claim_out / 'unstructured_reg/di_text.txt'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = text.encode('utf-8')
+    path.write_bytes(payload)
+    return {'path': str(path), 'sha256': hashlib.sha256(payload).hexdigest()}
+
+def _with_failure_analysis(row: dict[str, Any]) -> dict[str, Any]:
+    from packages.recovery.independent_failures import analyze_failure, failure_category
+
+    return {**row, 'failure_category': failure_category(row), "failure_analysis": analyze_failure(row)}
+
+
+def _registration_stage_diagnostics(application: Path) -> dict[str, Any]:
+    """Persist what stages actually ran, instead of inferring alignment from a label."""
+    attempts = 0
+    observed = False
+    reasons = set()
+    for path in application.glob('**/registration_report.json'):
+        try:
+            count = json.loads(path.read_text(encoding='utf-8')).get('attempt_count')
+            if type(count) is int and count >= 0:
+                attempts += count
+                observed = True
+        except (OSError, json.JSONDecodeError):
+            continue
+    for path in application.glob('**/template_discovery.json'):
+        try:
+            report = json.loads(path.read_text(encoding='utf-8'))
+            for candidate in report.get('candidate_templates') or []:
+                rejection = candidate.get('rejection_reason') or []
+                reasons.update([rejection] if isinstance(rejection, str) else rejection)
+        except (OSError, json.JSONDecodeError):
+            continue
+    families = set()
+    role_families = {"CMS1500_CLAIM_PAGE":"CMS1500", "UB_CLAIM_PAGE":"UB04",
+                     "UNSTRUCTURED_CLAIM_PAGE":"UNSTRUCTURED"}
+    for path in application.glob('**/page_routing.json'):
+        try:
+            classification = json.loads(path.read_text(encoding='utf-8')).get('classification') or {}
+            page = classification.get('selected_page_number')
+            role = (classification.get('page_roles') or {}).get(str(page))
+            if role in role_families:
+                families.add(role_families[role])
+        except (OSError,json.JSONDecodeError):
+            continue
+    family = next(iter(families)) if len(families)==1 else "UNKNOWN"
+    return {'document_family':family,'registration_attempt_count': attempts if observed else None,
+            'registration_stage_evidence_available': observed,
+            'template_rejection_reasons': sorted(reasons)}
+
+
 def _write_json(path: Path, payload: Any) -> None:
+    if path.name == "result.json" and isinstance(payload, dict):
+        payload = _with_failure_analysis(payload)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
 
@@ -555,6 +687,7 @@ def _load_done(ledger: Path) -> set[str]:
 
 
 def _append_ledger(ledger: Path, row: dict[str, Any], lock: threading.Lock) -> None:
+    row = _with_failure_analysis(row)
     with lock, ledger.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(row, ensure_ascii=True) + "\n")
 
@@ -612,12 +745,12 @@ def _stage_env() -> dict[str, str]:
         "FLAGS_num_threads",
     ):
         env.setdefault(key, "1")
-    # Default STP eval to critical-field OCR only (~5× fewer ROIs). Override
+    # Default STP eval to critical-field OCR only (~5Ã— fewer ROIs). Override
     # with CDP_OCR_FIELD_SCOPE=all for full-form extraction.
     env.setdefault("CDP_OCR_FIELD_SCOPE", "stp_critical")
     # SELECTIVE_E2_ONLY: stop after field-shaped primary (skip dual-engine tax).
     env.setdefault("CDP_OCR_SELECTIVE_CONFIRM", "1")
-    # Paddle warm inference is ~50× faster than Rapid on CPU; use as STP-eval
+    # Paddle warm inference is ~50Ã— faster than Rapid on CPU; use as STP-eval
     # primary while Rapid remains confirmation when primary is unshaped.
     env.setdefault("CDP_OCR_PRIMARY_OVERRIDE", "paddleocr")
     # Prefer inference-scoped lock: unzip/warp/JSON overlap across workers while
@@ -627,18 +760,20 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_OCR_LOCK_SCOPE", "inference")
     # Skip multi-MB keypoint/match dumps + full-image SHA256 on registration.
     env.setdefault("CDP_REGISTRATION_VERBOSE_TELEMETRY", "0")
-    # Long-lived workers amortize cold start (override with =0 for subprocess-per-claim).
-    env.setdefault("CDP_OCR_WORKER_POOL", "1")
+    # A deadline owns a single claim's native process tree.
+    env["CDP_OCR_WORKER_POOL"] = "0"
+    env.setdefault("CDP_OCR_TIMEOUT_SECONDS", "300")
+    env.setdefault("CDP_COMPLETION_TIMEOUT_SECONDS", "120")
     env.setdefault("CDP_APP_WORKER_POOL", "1")
     # TrOCR then Claude for DOB. Charge Document Intelligence is on (cdp43).
-    env.setdefault("CDP_TROCR_DOB_RESIDUAL", "1")
-    env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "0")
+    env.setdefault("CDP_TROCR_DOB_RESIDUAL", "0")
+    env.setdefault("CDP_AZURE_DI_DOB_RESIDUAL", "1")
     env.setdefault("CDP_AZURE_DI_CHARGE_RESIDUAL", "1")
     env.setdefault("CDP_AZURE_DI_CHARGE_CORROBORATE", "1")
     env.setdefault("CDP_AZURE_DI_CHARGE_ACCEPT", "1")
     env.setdefault("CDP_GPT4O_CROP_RESIDUAL", "1")
     env.setdefault("CDP_GPT4O_CROP_ACCEPT", "1")
-    # Cap empty-box-28 line vision recoveries — each line is a network round-trip.
+    # Cap empty-box-28 line vision recoveries â€” each line is a network round-trip.
     env.setdefault("CDP_GPT4O_EMPTY_FINANCE", "1")
     env.setdefault("CDP_GPT4O_EMPTY_FINANCE_MAX_LINES", "2")
     # Serialize Claude/gpt-4o crop residuals across parallel claim workers.
@@ -649,11 +784,11 @@ def _stage_env() -> dict[str, str]:
     env.setdefault("CDP_CROP_VLM_PROVIDER", "claude")
     env.setdefault("CDP_CONFLICT_AGENT", "1")
     env.setdefault("CDP_DOB_RESIDUAL_SKIP_IF_LOCAL_SHAPED", "1")
-    # SuperPoint+LightGlue for catastrophic REG — process-lifetime singleton
+    # SuperPoint+LightGlue for catastrophic REG â€” process-lifetime singleton
     # amortizes cold load; trail-aware near-miss recovers most STP regressions
     # without torch. Keep ON for STP; opt-out with =0 for pure latency smoke.
     env.setdefault("CDP_LEARNED_MATCHER", "1")
-    # Name Rapid confirm gate (was 0.88 — nearly always confirmed).
+    # Name Rapid confirm gate (was 0.88 â€” nearly always confirmed).
     env.setdefault("CDP_OCR_NAME_CONFIRM_MIN_CONF", "0.80")
     env.setdefault("CDP_AZURE_DI_PAGE_CORNERS", "0")
     env.setdefault("CDP_PIPELINE_RELEASE", "extraction-v3")
@@ -671,7 +806,7 @@ def _stage_env() -> dict[str, str]:
 def _ocr_process_lock():
     """Whole-process OCR lock only when CDP_OCR_LOCK_SCOPE=process.
 
-    Default cascade scope is ``inference`` — Paddle/Rapid critical sections take
+    Default cascade scope is ``inference`` â€” Paddle/Rapid critical sections take
     the flock inside ``packages.ocr_runtime_lock``, so unzip/warp/JSON overlap.
     """
     from packages.ocr_runtime_lock import ocr_process_lock
@@ -680,19 +815,33 @@ def _ocr_process_lock():
         yield
 
 
-def _run_stage(cmd: list[str], log_path: Path) -> tuple[int, str]:
+def _run_stage(cmd: list[str], log_path: Path, *, timeout: float | None = None,
+               stage_label: str = "REGISTRATION") -> tuple[int, str]:
     """Stream stdout/stderr to a file to avoid pipe deadlocks with verbose app.py."""
     log_path.parent.mkdir(parents=True, exist_ok=True)
     with log_path.open("w", encoding="utf-8", errors="replace") as log_handle:
-        proc = subprocess.run(
-            cmd,
-            cwd=ROOT,
-            stdout=log_handle,
-            stderr=subprocess.STDOUT,
-            text=True,
-            env=_stage_env(),
-            check=False,
-        )
+        try:
+            proc = subprocess.Popen(
+                cmd, cwd=ROOT, stdout=log_handle, stderr=subprocess.STDOUT,
+                text=True, env=_stage_env(),
+            )
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            # Windows venv launchers can spawn a second Python process. Killing
+            # only the launcher leaves registration running after its result
+            # has been discarded. Terminate the owned process tree first.
+            if os.name == 'nt':
+                taskkill = Path(os.environ.get('SystemRoot', r'C:\Windows')) / 'System32/taskkill.exe'
+                cleanup = subprocess.run([str(taskkill), '/PID', str(proc.pid), '/T', '/F'],
+                    stdout=log_handle, stderr=subprocess.STDOUT, check=False)
+                if cleanup.returncode != 0 and proc.poll() is None:
+                    proc.kill()
+            else:
+                proc.kill()
+            proc.wait()
+            reason = f"{stage_label}_TIMEOUT:{timeout}"
+            log_handle.write(reason + "\n")
+            return 124, reason
     tail = ""
     try:
         tail = log_path.read_text(encoding="utf-8", errors="replace")[-800:]
@@ -707,7 +856,7 @@ def _summarize_final(claim_out: Path) -> dict[str, Any]:
     fields: dict[str, Any] = {}
     for fd in decision.get("field_decisions") or []:
         name = fd.get("field_name")
-        if name in CRITICAL:
+        if name:
             fields[name] = {
                 "disp": fd.get("disposition"),
                 "value": fd.get("selected_value"),
@@ -770,9 +919,28 @@ def _summarize_final(claim_out: Path) -> dict[str, Any]:
         "claim_status": decision.get("claim_status") or final.get("claim_status"),
         "ocr_engine_stats": engine_stats,
         "document_family": document_family,
+        "source_sha256": (final.get("document") or {}).get("document_id"),
         "allows_cms_geometry": allows_cms_geometry,
         "document_finance": document_finance,
     }
+
+
+def _fallback_page_number(app_out: Path, page_count: int) -> int | None:
+    """Never run full-page fallback on an arbitrary multipage cover sheet."""
+    if page_count == 1:
+        return 1
+    reports = list(app_out.glob("**/page_routing.json"))
+    if len(reports) != 1:
+        return None
+    report = json.loads(reports[0].read_text(encoding="utf-8"))
+    routing = report.get("classification") or {}
+    page = routing.get("selected_page_number")
+    roles = routing.get("page_roles") or {}
+    if (not routing.get("needs_review", True) and isinstance(page, int)
+            and 1 <= page <= page_count and roles.get(str(page)) in {
+                "CMS1500_CLAIM_PAGE", "UB_CLAIM_PAGE", "UNSTRUCTURED_CLAIM_PAGE"}):
+        return page
+    return None
 
 
 def _process_one(
@@ -795,113 +963,19 @@ def _process_one(
     logs.mkdir(parents=True, exist_ok=True)
     app_out = claim_out / "application"
 
-    # Fast path: DI/mailroom before template registration. Avoids ~60s app-pool
-    # hangs on fax/cover sheets that never produce GeometryResult.
-    if _unstructured_first_enabled():
-        page_image = _load_claim_page_image(document)
-        if page_image is not None:
-            try:
-                decided = _try_unstructured_decision(page_image)
-            finally:
-                with contextlib.suppress(OSError, AttributeError, ValueError):
-                    page_image.close()
-            if decided is not None:
-                disposition, unstructured_meta, reason = decided
-                unstructured_hitl = (
-                    disposition == "HITL"
-                    and unstructured_meta is not None
-                    and bool((unstructured_meta or {}).get("fields"))
-                )
-                row = {
-                    "finished": True,
-                    "claim_id": claim_id,
-                    "document": document,
-                    "bundle_id": _bundle_id(document),
-                    "group_id": _group_id(document),
-                    "registration_ok": False,
-                    "allows_cms_geometry": False,
-                    "completed": disposition in {"TRUE_STP", "HITL"},
-                    "true_stp": disposition == "TRUE_STP",
-                    "disposition": disposition,
-                    "registration_reason": reason,
-                    "hitl_track": "UNSTRUCTURED_DI" if unstructured_hitl else None,
-                    "critical_blockers": (
-                        list(
-                            (unstructured_meta or {}).get("critical_blockers")
-                            or [
-                                f
-                                for f in (
-                                    "patient_name",
-                                    "patient_dob",
-                                    "insured_id_number",
-                                    "total_charge",
-                                )
-                                if f not in (unstructured_meta or {}).get("fields", {})
-                            ]
-                        )
-                        if unstructured_hitl
-                        else None
-                    ),
-                    "unstructured_reg_fallback": unstructured_meta,
-                    "app_returncode": None,
-                    "error": None,
-                    "elapsed_sec": round(time.time() - started, 3),
-                    "ts": _utc_now(),
-                    "strategy_id": "independent-case-router-v1",
-                }
-                _write_json(claim_out / "result.json", row)
-                return row
+    # An isolated application process can be killed on timeout without poisoning
+    # a shared pool or leaving the other claims waiting behind a large bundle.
+    registration_timeout = float(os.environ.get("CDP_REGISTRATION_TIMEOUT_SECONDS", "180"))
+    if not 0 < registration_timeout <= 1200:
+        raise ValueError("Registration timeout must be between 0 and 1200 seconds")
+    rc, tail = _run_stage(
+        _app_stage_command(dataset_yaml, document, app_out, document_type),
+        logs / "app.log", timeout=registration_timeout,
+    )
 
-    app_pool_timed_out = False
-    app_pool = _executor_from_holder(app_executor)
-    if app_pool is not None:
-        app_timeout = _app_pool_timeout_sec()
-        try:
-            fut = app_pool.submit(
-                _app_pool_job,
-                str(dataset_yaml),
-                document,
-                document_type,
-                str(app_out),
-            )
-            if app_timeout > 0:
-                rc, tail = fut.result(timeout=app_timeout)
-            else:
-                rc, tail = fut.result()
-        except FuturesTimeoutError:
-            app_pool_timed_out = True
-            rc, tail = 1, f"TimeoutError: CDP_APP_POOL_TIMEOUT after {app_timeout:.0f}s"
-            # Wedged registration worker holds the slot forever — respawn pool.
-            _reset_executor_holder(app_executor)
-        except Exception as exc:  # noqa: BLE001
-            rc, tail = 1, f"{type(exc).__name__}: {exc}"
-            # Sibling timeout SIGKILLs the shared app pool → BrokenProcessPool on
-            # the other in-flight claim. Respawn and keep the REG/unstructured path.
-            if "BrokenProcessPool" in type(exc).__name__ or "BrokenProcessPool" in str(exc):
-                app_pool_timed_out = True
-                _reset_executor_holder(app_executor)
-        try:
-            (logs / "app.log").write_text(tail or "", encoding="utf-8")
-        except OSError:
-            pass
-    else:
-        rc, tail = _run_stage(
-            [
-                sys.executable,
-                str(ROOT / "app.py"),
-                "--dataset",
-                str(dataset_yaml),
-                "--document",
-                document,
-                "--document-type",
-                document_type,
-                "--output-root",
-                str(app_out),
-            ],
-            logs / "app.log",
-        )
-
-    geometry_hits = list(app_out.glob("**/GeometryResult.json"))
+    # A timed-out application may have emitted an intermediate geometry file.
+    # Incomplete execution cannot become acceptance evidence.
+    geometry_hits = [] if rc == 124 else list(app_out.glob("**/GeometryResult.json"))
     if not geometry_hits:
         reason = "geometry_missing"
         for report in app_out.glob("**/registration_report.json"):
@@ -947,7 +1021,7 @@ def _process_one(
             else:
                 reason = reason or "geometry_missing"
         # Hard blind: some REG pages are freeform (no CMS grid). Template
-        # geometry cannot recover — fall back to Azure DI page text (+ optional
+        # geometry cannot recover â€” fall back to Azure DI page text (+ optional
         # gpt-4o text agent) for critical fields instead of a geometry VLM.
         unstructured_meta: dict[str, Any] | None = None
         if disposition == "REGISTRATION_FAILED":
@@ -985,11 +1059,31 @@ def _process_one(
                     zip_path = next((p for p in zip_candidates if p.exists()), None)
                     if zip_path is not None:
                         with ZipFile(zip_path) as zf:
-                            page_image = _PILImage.open(BytesIO(zf.read(document))).convert("RGB")
+                            with _PILImage.open(BytesIO(zf.read(document))) as source_image:
+                                selected_page = _fallback_page_number(app_out, source_image.n_frames)
+                                if selected_page is not None:
+                                    source_image.seek(selected_page - 1)
+                                    page_image = source_image.convert("RGB")
+                                else:
+                                    from packages.recovery.multipage_claim_review import recover_multipage_claim_review
+                                    bundle_pages=[]
+                                    try:
+                                        for page_index in range(source_image.n_frames):
+                                            source_image.seek(page_index)
+                                            bundle_pages.append(source_image.convert("RGB"))
+                                        unstructured_meta=recover_multipage_claim_review(bundle_pages)
+                                    finally:
+                                        for bundle_page in bundle_pages:
+                                            bundle_page.close()
+                                    (claim_out / "multipage_review.json").write_text(json.dumps(unstructured_meta,indent=2),encoding="utf-8")
+                                    if unstructured_meta.get("fields"):
+                                        disposition="HITL"  # Source evidence collected; acceptance still blocked.
+
                 except (OSError, ValueError, KeyError, RuntimeError):
                     page_image = None
                 if page_image is not None:
                     fb = run_unstructured_reg_fallback(page_image)
+                    source_text = _save_unstructured_page_text(claim_out, fb.di_text)
                     try:
                         from packages.extraction_recovery.independent_case_router import (
                             classify_independent_case,
@@ -1006,7 +1100,11 @@ def _process_one(
                         )
                         route_meta = route.to_dict()
                         if route.path.value == "MAILROOM_REG":
-                            disposition = "REGISTRATION_FAILED"
+                            # Fax cover sheets / mailroom separators have no
+                            # claim ink â€” this is not a pipeline defect, so it
+                            # must not share the REGISTRATION_FAILED bucket
+                            # that genuine geometry/template failures use.
+                            disposition = "NOT_A_CLAIM_DOCUMENT"
                             unstructured_meta = {
                                 "attempted": fb.attempted,
                                 "reason": "MAILROOM_OR_FAX",
@@ -1015,14 +1113,22 @@ def _process_one(
                                 "route": route_meta,
                             }
                         else:
-                            disposition, blockers = promote_unstructured_fields(fb.fields)
+                            disposition, blockers = promote_unstructured_fields(
+                                fb.fields, fb.field_reasons
+                            )
                             unstructured_meta = {
                                 "attempted": fb.attempted,
                                 "reason": fb.reason,
                                 "agent_used": fb.agent_used,
                                 "fields": dict(fb.fields),
+                                "field_reasons": dict(fb.field_reasons),
                                 "route": route_meta,
                                 "critical_blockers": blockers if disposition == "HITL" else None,
+                                "acceptance_gap": (
+                                    "GOVERNED_FIELD_AND_CLAIM_DECISIONS_REQUIRED"
+                                    if disposition == "HITL"
+                                    else None
+                                ),
                             }
                     else:
                         # Legacy promotion if router unavailable.
@@ -1038,10 +1144,12 @@ def _process_one(
                             "insured_id_number",
                             "total_charge",
                         }
-                        if required.issubset(fb.fields):
-                            disposition = "TRUE_STP"
-                        elif fb.fields:
+                        if fb.fields:
                             disposition = "HITL"
+                            unstructured_meta["critical_blockers"] = sorted(required)
+                            unstructured_meta["acceptance_gap"] = "GOVERNED_FIELD_AND_CLAIM_DECISIONS_REQUIRED"
+                    if unstructured_meta is not None:
+                        unstructured_meta['source_text'] = source_text
                     with contextlib.suppress(OSError, AttributeError, ValueError):
                         page_image.close()
         unstructured_hitl = (
@@ -1062,6 +1170,7 @@ def _process_one(
             "true_stp": disposition == "TRUE_STP",
             "disposition": disposition,
             "registration_reason": reason,
+            **_registration_stage_diagnostics(app_out),
             "hitl_track": "UNSTRUCTURED_DI" if unstructured_hitl else None,
             "critical_blockers": (
                 list(
@@ -1096,6 +1205,8 @@ def _process_one(
     if not keep_heavy:
         _prune_document_json(app_out)
 
+    bound_geometry = json.loads((geometry_dir / "GeometryResult.json").read_text(encoding="utf-8"))
+    registered_family = {"ub04":"UB04", "cms1500":"CMS1500"}.get(bound_geometry.get("template_id"), "UNKNOWN")
     stages = [
         (
             "ocr",
@@ -1115,12 +1226,6 @@ def _process_one(
                 "scripts.finish_from_ocr",
                 str(claim_out / "ocr" / "OCRCandidates.json"),
                 str(claim_out),
-                "--template-id",
-                "cms1500",
-                "--template-version",
-                _cms1500_template_version(),
-                "--document-family",
-                "CMS1500",
             ],
         ),
     ]
@@ -1153,9 +1258,11 @@ def _process_one(
                 pass
         elif stage_name == "ocr":
             with _ocr_process_lock():
-                rc, tail = _run_stage(cmd, logs / f"{stage_name}.log")
+                rc, tail = _run_stage(cmd, logs / f"{stage_name}.log",
+                    timeout=_processing_stage_timeout(stage_name), stage_label=stage_name.upper())
         else:
-            rc, tail = _run_stage(cmd, logs / f"{stage_name}.log")
+            rc, tail = _run_stage(cmd, logs / f"{stage_name}.log",
+                timeout=_processing_stage_timeout(stage_name), stage_label=stage_name.upper())
         if stage_name == "ocr" and not keep_heavy:
             # Trace is only required for OCR; free disk after that stage.
             _prune_trace(app_out)
@@ -1167,6 +1274,7 @@ def _process_one(
                 "bundle_id": _bundle_id(document),
                 "group_id": _group_id(document),
                 "registration_ok": True,
+                "document_family": registered_family,
                 "completed": False,
                 "true_stp": False,
                 "disposition": "STAGE_FAILURE",
@@ -1189,6 +1297,7 @@ def _process_one(
             "bundle_id": _bundle_id(document),
             "group_id": _group_id(document),
             "registration_ok": True,
+            "document_family": registered_family,
             "completed": False,
             "true_stp": False,
             "disposition": "SUMMARY_ERROR",
@@ -1230,6 +1339,7 @@ def _process_one(
         "claim_status": summary["claim_status"],
         "ocr_engine_stats": summary.get("ocr_engine_stats") or {},
         "document_family": summary.get("document_family"),
+        "source_sha256": summary.get("source_sha256"),
         "allows_cms_geometry": summary.get("allows_cms_geometry"),
         "document_finance": summary.get("document_finance"),
         "strategy_id": "field-cascade-v12",
@@ -1254,16 +1364,16 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """Operational STP / HITL rollup.
 
     Definitions (fail-closed, mutually exclusive dispositions):
-      - TRUE_STP: (CMS registration_ok ∨ unstructured REG recovery) ∧ completed
-      - HITL (field-ink): registration_ok ∧ completed ∧ field review
+      - TRUE_STP: (CMS registration_ok âˆ¨ unstructured REG recovery) âˆ§ completed
+      - HITL (field-ink): registration_ok âˆ§ completed âˆ§ field review
       - HITL (unstructured): REG fallback shaped some but not all critical fields
-      - REGISTRATION_FAILED / STAGE_FAILURE / …: infra — NOT field HITL
+      - REGISTRATION_FAILED / STAGE_FAILURE / â€¦: infra â€” NOT field HITL
 
     Primary rates use the completed denominator (CMS + unstructured recoveries):
       true_stp_rate = true_stp / completed
       hitl_rate     = field_ink_hitl / completed
 
-    Never compute HITL as ``n - true_stp`` — that conflates registration and
+    Never compute HITL as ``n - true_stp`` â€” that conflates registration and
     stage failures into review rate and understates STP vs completed claims.
     """
     n = len(rows)
@@ -1284,7 +1394,7 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
         and not r.get("registration_ok")
     )
     true_stp = cms_true_stp + unstructured_stp
-    # Field-ink HITL only — requires completed CMS-geometry extraction.
+    # Field-ink HITL only â€” requires completed CMS-geometry extraction.
     # disposition==HITL alone is not enough (legacy unstructured-reg rows).
     field_hitl = sum(
         1
@@ -1337,7 +1447,7 @@ def _rollup_scope(rows: list[dict[str, Any]]) -> dict[str, Any]:
         # Primary operational HITL: field-ink review share of completed claims.
         "hitl_rate": round(field_hitl / completed, 6) if completed else 0.0,
         "hitl_rate_of_completed": round(field_hitl / completed, 6) if completed else 0.0,
-        # Of-all HITL is field-ink only — never (n - true_stp) / n.
+        # Of-all HITL is field-ink only â€” never (n - true_stp) / n.
         "hitl_rate_of_all": round(field_hitl / n, 6) if n else 0.0,
         "field_ink_hitl_rate_of_completed": (
             round(field_hitl / completed, 6) if completed else 0.0
@@ -1431,7 +1541,7 @@ def _agent_gt_accuracy_block(run_dir: Path | None) -> dict[str, Any]:
         "note": (
             "Accuracy vs agent-confirmed SILVER/GOLD labels (not vendor ZIP GT). "
             "Discrepancy ledger quarantines excluded from denominator. "
-            "Not independent adjudicated truth — release_gate_eligible stays false."
+            "Not independent adjudicated truth â€” release_gate_eligible stays false."
         ),
     }
 
@@ -1484,8 +1594,12 @@ def _summarize(
         by_bundle.setdefault(bundle, []).append(row)
         by_group.setdefault(group, []).append(row)
 
+    from packages.evaluation.family_metrics import family_metrics
+    measured = family_metrics(rows, selected_count=limit)
     overall = _rollup_scope(rows)
     completed = int(overall["completed"])
+    from packages.recovery.independent_failures import failure_category
+    categories = Counter(failure_category(row) for row in rows)
     return {
         "dataset": "DEVELOPMENT_DATASET_V1 / Hackathon - 1000 Claims.zip",
         "document_count_requested": limit,
@@ -1493,6 +1607,9 @@ def _summarize(
         "strategy_id": "field-cascade-v12",
         **overall,
         "disposition_counts": dict(by_disp),
+        "family_evaluation": measured,
+        "primary_stp_rate_of_all_selected": measured["overall"]["stp_rate_of_all"],
+        'failure_category_counts': dict(categories),
         "registration_failure_reasons": dict(reg_reasons),
         "critical_blockers": dict(blockers),
         "gap_classes": dict(gaps),
@@ -1532,7 +1649,7 @@ def _summarize(
         "bundle_count": len(by_bundle),
         "metric_definitions": {
             "true_stp_rate": "true_stp / completed (registration_ok CMS-geometry claims)",
-            "hitl_rate": "field_ink_hitl / completed — never (n - true_stp) / n",
+            "hitl_rate": "field_ink_hitl / completed â€” never (n - true_stp) / n",
             "infra_failures": (
                 "REGISTRATION_FAILED | STAGE_FAILURE | APP_FAILURE | "
                 "SUMMARY_ERROR | WORKER_ERROR | OCR_MISSING | INCOMPLETE"
@@ -1573,7 +1690,7 @@ def _preflight_latency_hygiene() -> dict[str, Any]:
     except (OSError, ValueError):
         pass
     # Orphaned spawn workers (PPID 1) from prior crashed cascades hold multi-GB
-    # Paddle/Rapid heaps and thrash the ≤30s latency bar.
+    # Paddle/Rapid heaps and thrash the â‰¤30s latency bar.
     try:
         import subprocess as _sp
 
@@ -1598,7 +1715,7 @@ def _preflight_latency_hygiene() -> dict[str, Any]:
             sum(o["rss_kb"] for o in orphans) / (1024 * 1024), 2
         )
         report["orphans"] = orphans[:20]
-    except (OSError, ValueError, FileNotFoundError):
+    except Exception:  # noqa: BLE001 - best-effort hygiene, never fatal to the cascade
         pass
     return report
 
@@ -1664,7 +1781,9 @@ def main() -> int:
         help="Newline-separated document paths (preferred for large corpora; "
         "avoids ARG_MAX / huge argv). Combined with --documents if both set.",
     )
-    parser.add_argument("--document-type", default="CMS1500")
+    parser.add_argument("--document-type", default="AUTO",
+                        choices=("AUTO", "CMS1500", "UB04", "UNSTRUCTURED"),
+                        help="Automatically classify unseen pages; explicit types are operator overrides.")
     parser.add_argument("--keep-heavy", action="store_true")
     parser.add_argument("--resume", action="store_true", default=True)
     parser.add_argument("--no-resume", action="store_false", dest="resume")
@@ -1681,11 +1800,11 @@ def main() -> int:
         "on",
     }
     _product = {
-        "CDP_TROCR_DOB_RESIDUAL": "1",
+        "CDP_TROCR_DOB_RESIDUAL": "0",
         "CDP_LEARNED_MATCHER": "1",
         # Document Intelligence charge crops on cdp43 (not the F0 1/min tier).
         # DOB stays local TrOCR then Claude. Page-corner DI stays off.
-        "CDP_AZURE_DI_DOB_RESIDUAL": "0",
+        "CDP_AZURE_DI_DOB_RESIDUAL": "1",
         "CDP_AZURE_DI_CHARGE_RESIDUAL": "1",
         "CDP_AZURE_DI_CHARGE_CORROBORATE": "1",
         "CDP_AZURE_DI_CHARGE_ACCEPT": "1",
@@ -1711,7 +1830,7 @@ def main() -> int:
         "CDP_CROP_VLM_PROVIDER": "claude",
         # When two OCR/models disagree, Claude picks the ink and clears field HITL.
         "CDP_CONFLICT_AGENT": "1",
-        # OpenOCR / Monkey / PaddleOCR-VL failed for charge recovery — keep off.
+        # OpenOCR / Monkey / PaddleOCR-VL failed for charge recovery â€” keep off.
         "CDP_OPENOCR_SVTR": "0",
         "CDP_MONKEYOCR": "0",
         "CDP_PADDLEOCR_VL_TABLE": "0",
@@ -1735,6 +1854,13 @@ def main() -> int:
     ledger = out_dir / "results.jsonl"
     lock = threading.Lock()
 
+    from packages.recovery.independent_failures import validate_resume_contract
+
+    contract = _independent_run_contract(
+        args.dataset, args.document_type, {key: os.environ[key] for key in _product}
+    )
+    validate_resume_contract(out_dir, contract, resume=args.resume)
+
     hygiene = _preflight_latency_hygiene()
     _write_json(out_dir / "latency_preflight.json", hygiene)
     print(f"latency_preflight={json.dumps(hygiene)}", flush=True)
@@ -1743,7 +1869,7 @@ def main() -> int:
     if orphans > 0:
         print(
             f"WARNING: {orphans} orphan spawn workers (~{hygiene.get('orphan_rss_gb')} GiB) "
-            "— kill them before a latency-sensitive run",
+            "â€” kill them before a latency-sensitive run",
             flush=True,
         )
     if isinstance(avail, (int, float)) and avail < 3.0:
@@ -1795,7 +1921,7 @@ def main() -> int:
     print(f"engines_probe={json.dumps(engine_probe)}", flush=True)
     if not engine_probe.get("all_observed"):
         print(
-            "WARNING: OCR engine probe incomplete — cascade fill may degrade",
+            "WARNING: OCR engine probe incomplete â€” cascade fill may degrade",
             flush=True,
         )
 
@@ -1953,20 +2079,8 @@ def main() -> int:
         ocr_pool_workers = max(1, min(pool_workers, int(ocr_pool_cap_raw)))
     ocr_executor: dict[str, Any] | None = None
     app_executor: dict[str, Any] | None = None
-    if _app_pool_enabled() and pending:
-        app_timeout = _app_pool_timeout_sec()
-        print(
-            f"app_worker_pool=on workers={pool_workers} "
-            f"(amortize registration imports + template SIFT; "
-            f"timeout_s={app_timeout if app_timeout > 0 else 'off'}; "
-            f"unstructured_first={_unstructured_first_enabled()})",
-            flush=True,
-        )
-        app_executor = {
-            "executor": _spawn_pool(pool_workers),
-            "workers": pool_workers,
-            "lock": threading.Lock(),
-        }
+    if pending:
+        print("registration_workers=isolated timeout_seconds=" + os.environ.get("CDP_REGISTRATION_TIMEOUT_SECONDS", "180"), flush=True)
     if _ocr_pool_enabled() and pending:
         ocr_timeout = _ocr_pool_timeout_sec()
         print(

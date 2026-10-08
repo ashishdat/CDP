@@ -63,6 +63,9 @@ class TemplateRegistry:
             if self._canonical_dir is None:
                 return None
             package_dir = self._canonical_dir / template.template_id
+            versioned = package_dir / template.version
+            if versioned.is_dir():
+                package_dir = versioned
             if not package_dir.is_dir():
                 return None
             return load_canonical_image(package_dir, template)

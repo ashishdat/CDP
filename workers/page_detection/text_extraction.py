@@ -325,6 +325,13 @@ class PaddleOCRTextExtractor:
         if self._engine is not None:
             return self._engine
         try:
+            # Every isolated Windows worker needs the same DLL load order;
+            # loading Torch only in its parent does not affect a spawned child.
+            import os
+            import importlib
+            import importlib.util
+            if os.name == "nt" and importlib.util.find_spec("torch") is not None:
+                importlib.import_module("torch")
             from paddleocr import PaddleOCR
         except ImportError as exc:
             raise ModelNotAvailableError(

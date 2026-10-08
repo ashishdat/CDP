@@ -28,6 +28,7 @@ class RegistrationEvidence(DomainModel):
     # forensics.  It must be representable as rejected evidence rather than
     # crashing before the SCALE_FAILURE policy can classify it.
     scale_change: float | None = Field(default=None, ge=0)
+    orientation_normalization_degrees: int = 0
     rotation_degrees: float | None = None
     perspective_distortion: float | None = Field(default=None, ge=0)
     corner_validity: bool | None = None

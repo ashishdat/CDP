@@ -1,10 +1,10 @@
-pipeline_version: extraction-v3
+pipeline_version: extraction-v3.26-port-recovery
 status: CANDIDATE
 router_policy_version: router_frozen_v1
 reconciliation_version: reconciliation_v2.1
 template_versions:
   cms1500: '03'
-  ub04: '2014'
+  ub04: 2014-public-v2
 ocr_models:
   primary:
     engine: PaddleOCR
@@ -25,17 +25,20 @@ ocr_models:
     model: gpt-4o
     authority: SHAPED_ACCEPT_WITH_LOCAL_CONSENSUS
     monetary_authority: false
-    role: >
-      Name conflict arbitrator; empty box-28 line-sum corroboration
-      (SINGLE_LINE_GPT4O_LOCAL). Never gpt-only critical AUTO (redesign-stack-v1).
+    role: 'Name conflict arbitrator; empty box-28 line-sum corroboration (SINGLE_LINE_GPT4O_LOCAL).
+      Never gpt-only critical AUTO (redesign-stack-v1).
+
+      '
   fixed_form_printed:
     engine: OpenOCR-SVTRv2
-    default: off
+    default: false
     env: CDP_OPENOCR_SVTR
     role: Primary printed dates/IDs/monetary crops when enabled; else paddle+rapid.
   complex_tables:
-    engines: [PaddleOCR-VL, MonkeyOCR]
-    default: off
+    engines:
+    - PaddleOCR-VL
+    - MonkeyOCR
+    default: false
     authority: REVIEW_ONLY
   architecture_stack: config/architecture/redesign_stack_v1.yaml
   handwriting_local:
@@ -51,14 +54,14 @@ ocr_models:
   azure_di_charge:
     engine: Azure-Document-Intelligence
     model: prebuilt-read
-    default: off
+    default: false
     env: CDP_AZURE_DI_CHARGE_RESIDUAL
     note: Not on recommended stack (F0 thrash); gpt-4o+local preferred.
   ppocr_v5_server:
     engine: PaddleOCR
     model: PP-OCRv5_server
     runtime: paddleocr-3.x-isolated-venv
-    default: off
+    default: false
     env: CDP_PPOCRV5_SERVER
     note: Same PADDLE_FAMILY as primary; empty on hard charge residuals.
   optional_layout:
@@ -73,7 +76,7 @@ supersedes_after_promotion: extraction-v2
 configuration_hashes:
   config/router_frozen_v1.yaml: 0580cca61387ccfcafba15ecc01cf9aa1bc16b9a91ea5da3b69222e5bce2a0c5
   config/reconciliation_policy_v2.yaml: 7d5878bac0ea7298792374e350314449149c7ea05c237480476b8f72f9ee8785
-  config/templates/cms1500_v03.yaml: 4897ce0adca3bedf8e381c231d8f652a69da07b9eed05c4f751d1a156972ada7
+  config/templates/cms1500_v03.yaml: bb011035f7a1985137bf61221ae66435b67af17edb42d54f1fd1abe9fc05f8f4
   config/templates/ub04_v2014.yaml: 041aa18e4174915c05d9a26d76cd8afe497662d09c10b65d23d28205a2b84fc9
   config/handwriting_model_families.yaml: 21bd674fbdd7fcc592f85f53cb2867de4a780e5238ff9baa85830515b41c81e8
   config/validation/cms1500_thresholds.yaml: a577e63feb7c964449337cc91cb185700b9377762ff01a2df11bef3034fb3cd8
@@ -83,6 +86,9 @@ configuration_hashes:
   config/evaluation/evaluation_contract_v3.yaml: f86fcfc6bbf3e232df9719bc66678dfd5b96be6996ad48c273206c8f5b862e48
   config/evaluation/code_consensus_local_first_v3.yaml: bc74f8e7c25b64318fa7854856c7fe50fa9eda7cd6e9414c1ceefa6164a97455
   config/evaluation/table_promotion_v3.yaml: 0f6452439927daf3a1e5d498186f0794d84046daddd0744fac1eea1bc39a5c68
+  config/templates/ub04_v2014_public_v2.yaml: 9a1031519483eba287003625f32908320aae638d011db54c9455e987983a9f8d
+  config/ub04_registered_v2.yaml: fc6ba2ad28def6ee985fb91851b0bc07ce683f07abcf019cd75b9b92bab392cf
+  config/schemas/ub04_service_lines_v1.json: b8cb61127f751b66e08ba4923ec2c0dfc511ae80c91e17c3c992c960cb5961e5
 evaluation_split_version: evaluation_data/ground_truth.json:current
 baseline_metrics:
   automated_accuracy: null
@@ -94,15 +100,22 @@ baseline_metrics:
   semantic_review_fields: null
   final_validated_accuracy: null
 known_limitations:
-- Candidate only: not FROZEN until promotion gates pass with verified hashes and holdout evidence.
-- Charge-line false-accept (FA) gates still require validation; no production FA claim is made here.
-- Truly empty box-28 with no observed line charges stays HITL — never invent charge totals.
-- CMS-1500 ROIs are V3 recalibrations; operators must pin CDP_RELEASE_MANIFEST / CDP_PIPELINE_RELEASE explicitly.
+- Candidate only: not FROZEN until promotion gates pass with verified hashes and holdout
+    evidence.
+- Charge-line false-accept (FA) gates still require validation; no production FA claim
+  is made here.
+- "Truly empty box-28 with no observed line charges stays HITL \xE2\u20AC\u201D never\
+  \ invent charge totals."
+- CMS-1500 ROIs are V3 recalibrations; operators must pin CDP_RELEASE_MANIFEST / CDP_PIPELINE_RELEASE
+  explicitly.
 - Authorized member/provider/address datasets are not configured.
-- Generic TrOCR handwriting output is non-authoritative; gpt-4o crop is the preferred residual for names/charges.
-- Azure DI charge residual and PP-OCRv5 Server are off by default (not on recommended stack).
+- Generic TrOCR handwriting output is non-authoritative; gpt-4o crop is the preferred
+  residual for names/charges.
+- Azure DI charge residual and PP-OCRv5 Server are off by default (not on recommended
+  stack).
 - Docling remains a disabled additive pilot.
-- Baseline metrics are intentionally unset until governed evaluation completes; do not treat nulls as zeros.
+- Baseline metrics are intentionally unset until governed evaluation completes; do
+  not treat nulls as zeros.
 change_control:
   unversioned_changes_permitted: false
   new_version_required_for:

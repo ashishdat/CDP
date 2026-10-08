@@ -23,6 +23,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 import yaml
+from packages.recovery.independent_failures import classify_page_text, PageRole, NON_CLAIM_CANDIDATES
 
 from packages.document_finance.families import (
     DocumentFamily,
@@ -43,6 +44,7 @@ _CRITICAL = frozenset(
 
 class CasePath(StrEnum):
     MAILROOM_REG = "MAILROOM_REG"
+    UB04_GEOMETRY = "UB04_GEOMETRY"
     CMS_GEOMETRY = "CMS_GEOMETRY"
     UNSTRUCTURED_DI = "UNSTRUCTURED_DI"
     FIELD_INK_RESIDUAL = "FIELD_INK_RESIDUAL"
@@ -125,7 +127,7 @@ def classify_independent_case(
     cfg = dict(config or load_independent_case_config())
     text = di_text or ""
 
-    if field_ink_hitl and registration_ok:
+    if field_ink_hitl and registration_ok and classify_document_family(text, barcode_text=barcode_text).family is DocumentFamily.CMS1500:
         return CaseRoute(
             path=CasePath.FIELD_INK_RESIDUAL,
             family=DocumentFamily.CMS1500,
@@ -137,7 +139,8 @@ def classify_independent_case(
             finish_document_family="CMS1500",
         )
 
-    if _is_mailroom_only_page(text) or _fax_boilerplate(text):
+    page_role=classify_page_text(text)
+    if page_role in NON_CLAIM_CANDIDATES and (_is_mailroom_only_page(text) or _fax_boilerplate(text)):
         fam = classify_document_family(text, barcode_text=barcode_text)
         # Subtype for ops: separator vs fax vs unique-id cover.
         blob = text or ""
@@ -165,6 +168,10 @@ def classify_independent_case(
     fam: FamilyClassification = classify_document_family(
         text, barcode_text=barcode_text, layout_hints=dict(layout_hints or {})
     )
+    if page_role in {PageRole.CMS1500,PageRole.UB04,PageRole.CLAIM_FORM} and fam.family in {DocumentFamily.SEPARATOR,DocumentFamily.ATTACHMENT}:
+        claim_family={PageRole.CMS1500:DocumentFamily.CMS1500,PageRole.UB04:DocumentFamily.UB04}.get(page_role,DocumentFamily.UNKNOWN)
+        fam=FamilyClassification(claim_family,.85 if claim_family is not DocumentFamily.UNKNOWN else .4,
+            (*fam.evidence,'CLAIM_CUES_OVERRIDE_COVER_LABEL'),fam.anchors)
 
     # Explicit family → path map from YAML (with safe defaults).
     family_paths = dict(cfg.get("family_paths") or {})
@@ -186,6 +193,11 @@ def classify_independent_case(
     except ValueError:
         path = CasePath.CMS_GEOMETRY
 
+    if registration_ok and fam.family is DocumentFamily.UB04:
+        return CaseRoute(path=CasePath.UB04_GEOMETRY, family=fam.family,
+            family_confidence=fam.confidence, disposition_policy=CaseDispositionPolicy.CMS_CLAIM_DECISION,
+            hitl_track=None, reason="UB04_GEOMETRY_REGISTERED", evidence=tuple(fam.evidence),
+            finish_document_family="UB04")
     if registration_ok and path is CasePath.CMS_GEOMETRY:
         return CaseRoute(
             path=CasePath.CMS_GEOMETRY,
