@@ -198,7 +198,7 @@ def evaluate(record,final=False):
     if di_layouts:
         fresh=SERVICE.complete(record['sha256'],di_layouts,document_family='UAT_'+record['declared_type'],type_verified=True)
         for name,items in fresh['extracted_candidates'].items(): candidates.setdefault(name,[]).extend(items)
-    llm_records=[]
+    llm_records=[];vision_proposals=[]
     if final:
         for path in sorted(directory.glob('llm_*.json')):
             llm=read(path);llm_records.append(llm)
@@ -229,6 +229,14 @@ def evaluate(record,final=False):
                 if item:
                     item['mapping_record']=str(path.resolve())
                     candidates.setdefault(field['field_name'],[]).append(item)
+                if (record.get('apply_vision_recovery') and field['field_name'] in record.get('vision_recovery_fields', [])
+                    and (not item or not item.get('ocr_confidence_available', True) or item.get('raw_confidence',0)<.8)):
+                    from workers.unstructured_extraction.uat_vision_recovery import propose
+                    job=next((job for job in record.get('vision_recovery_jobs',[])
+                        if Path(job['output']).name==path.name),None)
+                    if job:
+                        proposal=propose(field,llm,record=record,asset=asset,evidence_path=path.resolve(),authorized_job=job)
+                        if proposal:vision_proposals.append(proposal)
     visual={}
     known_names=record.get('case_known_names',[])
     if record.get('apply_recovery_v4'):
@@ -264,6 +272,10 @@ def evaluate(record,final=False):
             for field,items in read(recovered_path).get('candidates',{}).items():
                 candidates.setdefault(field,[]).extend(copy.deepcopy(items))
         candidates=recover(resolution['effective_type'],pages,candidates)
+    # Review-only proposals cannot participate in source binding, supersession,
+    # or name-window trimming of independently extracted OCR candidates.
+    for proposal in vision_proposals:
+        candidates.setdefault(proposal['field_name'],[]).append(proposal)
     decision=ACCEPT.decide(resolution['effective_type'],pages,expected_pages=record['pages'],assets=local['assets'],candidates=candidates,
         filename=record['document'],visual=visual,known_names=known_names,
         case_verification_required=bool(record.get('apply_recovery_v4')),

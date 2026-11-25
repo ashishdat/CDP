@@ -10,6 +10,12 @@ contract:
   masked_identifiers_are_separate_outputs: true
   ambiguous_years_require_review: true
   production_accuracy_validated: false
+  vision_only_recovery:
+    mode: REVIEW_PROPOSALS_ONLY
+    auto_accept_enabled: false
+    accuracy_validation_required_before_auto_accept: true
+    model_confidence_is_not_accuracy: true
+    preserve_source_spelling_and_short_years: true
   masked_identifier_requires_format_and_last4_match: true
   low_confidence_name_exception:
     requires_verified_other_document: true

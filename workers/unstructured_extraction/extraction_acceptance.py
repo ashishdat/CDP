@@ -86,6 +86,7 @@ class ExtractionAcceptance:
                     valid_scalar('identity_number',item.get('value','')) for item in candidates.get('identity_number',[])):
                     masked=[item for item in candidates.get('identity_number_masked',[])
                         if valid_scalar('identity_number_masked',item.get('value',''))
+                        and not item.get('vision_only') and item.get('field_association')!='VISION_ONLY_CROP_PROPOSAL'
                         and item.get('last4_match_verified') and item.get('evidence_reference')
                         and field_binding(item) and item.get('mask_basis') in
                         {'EXPLICIT_EIGHT_MASK_CHARACTERS','SOLID_REDACTION_ADJACENT_TO_SUFFIX'}]
@@ -110,6 +111,8 @@ class ExtractionAcceptance:
                         exclusions.append('WEAK_FIELD_ASSOCIATION')
                     if item.get('role_conflict'): exclusions.append('FIELD_ROLE_CONFLICT')
                     if item.get('source_reading_ambiguous'): exclusions.append('HANDWRITTEN_TRANSCRIPTION_UNCONFIRMED')
+                    if item.get('vision_only') or item.get('field_association')=='VISION_ONLY_CROP_PROPOSAL':
+                        exclusions.append('VISION_ONLY_ACCURACY_NOT_VALIDATED')
                     observations.append({'candidate':item,'exclusions':exclusions})
                     if not exclusions: values.append(item)
                 diagnostics[field]={'observations':observations,'eligible_candidates':len(values)}
@@ -194,5 +197,6 @@ class ExtractionAcceptance:
                 'disposition': 'EXTRACTION_COMPLETED' if not reasons else 'EXTRACTION_REVIEW_REQUIRED',
                 'reason_codes': reasons, 'extracted_fields': fields,
                 'field_diagnostics':diagnostics,'value_representations':representations,
+                'vision_only_review_proposals': [item for items in candidates.values() for item in items if item.get('vision_only')],
                 'document_type_evidence':support,'provided_roles':roles,
                 'asset_only': bool(spec.get('asset_only')), 'correctness_verified': False}
