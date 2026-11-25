@@ -1,0 +1,80 @@
+version: uat-ocr-routes-evaluation-v1
+ocr_routes:
+  ecg_interpretation:
+    route_id: UAT.ecg_interpretation.rapidocr.tesseract.eval.v1
+    field: ecg_interpretation
+    form: '*'
+    primary_engine: rapidocr
+    confirmation_engine: tesseract
+    preprocessing_profile: uat-rendered-page-v1
+    policy_version: evidence-policy-v4-dependency-aware
+    benchmark_dataset: UAT_UNLABELED_LOCAL
+    sample_count: 0
+    false_agreement_count: 0
+    cost_status: LOCAL_UNMETERED
+    status: EVALUATION_ONLY
+  examination_date:
+    route_id: UAT.examination_date.rapidocr.tesseract.eval.v1
+    field: examination_date
+    form: '*'
+    primary_engine: rapidocr
+    confirmation_engine: tesseract
+    preprocessing_profile: uat-rendered-page-v1
+    policy_version: evidence-policy-v4-dependency-aware
+    benchmark_dataset: UAT_UNLABELED_LOCAL
+    sample_count: 0
+    false_agreement_count: 0
+    cost_status: LOCAL_UNMETERED
+    status: EVALUATION_ONLY
+  identity_number:
+    route_id: UAT.identity_number.rapidocr.tesseract.eval.v1
+    field: identity_number
+    form: '*'
+    primary_engine: rapidocr
+    confirmation_engine: tesseract
+    preprocessing_profile: uat-rendered-page-v1
+    policy_version: evidence-policy-v4-dependency-aware
+    benchmark_dataset: UAT_UNLABELED_LOCAL
+    sample_count: 0
+    false_agreement_count: 0
+    cost_status: LOCAL_UNMETERED
+    status: EVALUATION_ONLY
+  patient_dob:
+    route_id: UAT.patient_dob.rapidocr.tesseract.eval.v1
+    field: patient_dob
+    form: '*'
+    primary_engine: rapidocr
+    confirmation_engine: tesseract
+    preprocessing_profile: uat-rendered-page-v1
+    policy_version: evidence-policy-v4-dependency-aware
+    benchmark_dataset: UAT_UNLABELED_LOCAL
+    sample_count: 0
+    false_agreement_count: 0
+    cost_status: LOCAL_UNMETERED
+    status: EVALUATION_ONLY
+  patient_name:
+    route_id: UAT.patient_name.rapidocr.tesseract.eval.v1
+    field: patient_name
+    form: '*'
+    primary_engine: rapidocr
+    confirmation_engine: tesseract
+    preprocessing_profile: uat-rendered-page-v1
+    policy_version: evidence-policy-v4-dependency-aware
+    benchmark_dataset: UAT_UNLABELED_LOCAL
+    sample_count: 0
+    false_agreement_count: 0
+    cost_status: LOCAL_UNMETERED
+    status: EVALUATION_ONLY
+  report_date:
+    route_id: UAT.report_date.rapidocr.tesseract.eval.v1
+    field: report_date
+    form: '*'
+    primary_engine: rapidocr
+    confirmation_engine: tesseract
+    preprocessing_profile: uat-rendered-page-v1
+    policy_version: evidence-policy-v4-dependency-aware
+    benchmark_dataset: UAT_UNLABELED_LOCAL
+    sample_count: 0
+    false_agreement_count: 0
+    cost_status: LOCAL_UNMETERED
+    status: EVALUATION_ONLY

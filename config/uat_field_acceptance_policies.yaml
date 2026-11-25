@@ -1,0 +1,188 @@
+version: field-acceptance-uat-v3-extraction-only
+default:
+  criticality: C1
+  required: false
+  blocks_stp: false
+  requires_review_when_unresolved: true
+  business_impact: supplemental claim data
+  financial_impact: low
+  identity_impact: low
+  clinical_impact: low
+  compliance_impact: low
+  downstream_consumers:
+  - claim_submission
+  reason: Unspecified fields fail closed at field level and cannot silently redefine
+    claim blocking.
+forms:
+  UAT_PATH:
+    patient_name:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    report_date:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+  UAT_MER:
+    patient_name:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    patient_dob:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    examination_date:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+  UAT_ECG:
+    patient_name:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    report_date:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    ecg_interpretation:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+  UAT_AADHAAR:
+    patient_name:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    patient_dob:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    identity_number:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+  UAT_PAN:
+    patient_name:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    patient_dob:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    identity_number:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+  UAT_IDENTITY_PROOF:
+    patient_name:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    identity_number:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+  UAT_TMT:
+    patient_name:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    report_date:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    tmt_interpretation:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+  UAT_DRIVING_LICENSE:
+    patient_name:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    patient_dob:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    license_number:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+    license_expiry_date:
+      criticality: C2
+      required: true
+      blocks_stp: true
+      requires_review_when_unresolved: true
+      business_impact: source-backed document extraction
+      reason: Explicit extraction output contract; not medical or identity verification.
+  UAT_GEOTAGPHOTO: {}
+  UAT_PERSON_PHOTO: {}
+  UAT_OTHER: {}

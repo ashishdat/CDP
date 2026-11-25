@@ -1,0 +1,11 @@
+version: uat-layout-labels-v3
+fields:
+  patient_name: {datatype: NAME, aliases: [patient name, "patient's name", name of patient, full name of the life assured, full name of life assured, full name of, name of proposer, name of insured]}
+  patient_dob: {datatype: TEXT, aliases: [date of birth, dob, birth date]}
+  report_date: {datatype: TEXT, aliases: [report date, reported on, date of report, reporting date, test date, date of test]}
+  examination_date: {datatype: TEXT, aliases: [date of examination, examination date]}
+  ecg_interpretation: {datatype: TEXT, aliases: [impression, interpretation]}
+  identity_number: {datatype: TEXT, aliases: [aadhaar number, permanent account number, pan number]}
+  license_number: {datatype: TEXT, aliases: [driving licence number, driving license number, licence no, license no, dl no]}
+  license_expiry_date: {datatype: TEXT, aliases: [valid till, valid until, date of expiry, expiry date]}
+  tmt_interpretation: {datatype: TEXT, aliases: [tmt impression, tmt interpretation, conclusions, conclusion]}

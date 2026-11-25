@@ -1,0 +1,111 @@
+version: uat-document-acceptance-v3
+manifest_aliases:
+  KYC_AADHAAR: AADHAAR
+  KYC_PAN: PAN
+  KYC_DL: DRIVING_LICENSE
+  KYC_DRIVING_LICENSE: DRIVING_LICENSE
+scope: Local insurance-proposal document completeness and evidence decisions; not
+  underwriting approval.
+types:
+  TMT:
+    markers:
+    - TMT
+    content_anchors:
+    - treadmill test
+    - exercise stress test
+    - tmt report
+    required:
+    - patient_name
+    - report_date
+    - tmt_interpretation
+  DRIVING_LICENSE:
+    markers:
+    - DRIVING_LICENSE
+    - DRIVING LICENCE
+    - KYC_DL
+    content_anchors:
+    - driving licence
+    - driving license
+    required:
+    - patient_name
+    - patient_dob
+    - license_number
+    - license_expiry_date
+  PATH:
+    markers:
+    - PATH
+    content_anchors:
+    - biochemistry
+    - pathology
+    - patholgy
+    required:
+    - patient_name
+    - report_date
+  MER:
+    markers:
+    - MER
+    content_anchors:
+    - medical examination report
+    required:
+    - patient_name
+    - patient_dob
+    - examination_date
+  ECG:
+    markers:
+    - ECG
+    content_anchors:
+    - electro cardiogram
+    - electrocardiogram
+    - ecg
+    required:
+    - patient_name
+    - report_date
+    - ecg_interpretation
+  AADHAAR:
+    markers:
+    - AADHAAR
+    - KYC_AADHAAR
+    content_anchors:
+    - aadhaar
+    - government of india
+    - unique identification
+    required:
+    - patient_name
+    - patient_dob
+    - identity_number
+  PAN:
+    markers:
+    - KYC_PAN
+    - PAN
+    content_anchors:
+    - income tax department
+    - permanent account number
+    required:
+    - patient_name
+    - patient_dob
+    - identity_number
+  IDENTITY_PROOF:
+    markers:
+    - PHOTO IDENTITY PROOF
+    content_anchors:
+    - government of india
+    - income tax department
+    - identity
+    required:
+    - patient_name
+    - identity_number
+  GEOTAGPHOTO:
+    markers:
+    - GEOTAGPHOTO
+    content_anchors: []
+    required: []
+  PERSON_PHOTO:
+    markers:
+    - PERSON_PHOTO
+    - PHOTO
+    content_anchors: []
+    required: []
+  OTHER:
+    markers: []
+    content_anchors: []
+    required: []

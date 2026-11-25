@@ -1,0 +1,169 @@
+version: uat-extraction-completeness-v5
+scope: Document extraction completed; does not establish accuracy, identity authenticity,
+  medical validity or underwriting approval.
+minimum_ocr_confidence: 0.8
+contract:
+  status: ENGINEERING_DEVELOPMENT
+  field_evidence_required: true
+  field_binding_required: true
+  full_identifiers_required: false
+  masked_identifiers_are_separate_outputs: true
+  ambiguous_years_require_review: true
+  production_accuracy_validated: false
+  masked_identifier_requires_format_and_last4_match: true
+  low_confidence_name_exception:
+    requires_verified_other_document: true
+    minimum_reference_confidence: 0.8
+    minimum_name_similarity: 0.9
+    same_document_reference_forbidden: true
+    threshold_unchanged: true
+  pan_holder_binding: LABEL_AND_NAME_ORDER_BEFORE_PARENT_AND_DOB
+  date_discrepancy_requires_review: true
+  same_span_ocr_supersession:
+    requires_new_crop_and_ocr_agreement: true
+    minimum_new_ocr_confidence: 0.8
+    maximum_old_ocr_confidence_exclusive: 0.8
+    different_source_spans_never_superseded: true
+case_contract:
+  all_input_documents_must_complete: true
+  required_identity_roles:
+  - AADHAAR
+  - PAN
+  - IDENTITY_PROOF
+  - DRIVING_LICENSE
+  portrait_does_not_provide_identity_role: true
+observed_type_routing:
+  allowed_declared_types:
+  - AADHAAR
+  - PAN
+  - DRIVING_LICENSE
+  - IDENTITY_PROOF
+  - PATH
+  - MER
+  - ECG
+  - TMT
+  - OTHER
+  minimum_classification_confidence: 0.95
+  minimum_crop_coverage: 0.9
+  content_kind: portrait_photo
+  effective_type: PERSON_PHOTO
+profiles:
+  PATH:
+    required_fields:
+    - patient_name
+    - report_date
+    required_text_anchors:
+    - biochemistry
+    - pathology
+    - patholgy
+    - urine
+    - cbc
+    - haemogram
+    - hemogram
+    - examination of blood
+    - examination of urine
+    - laboratory report
+    - haematology
+    - hematology
+  MER:
+    required_fields:
+    - patient_name
+    - patient_dob
+    - examination_date
+    required_text_anchors:
+    - medical examination report
+    - medical examination
+    - medical exam report
+    - questions to be put up by the medical examiner
+  ECG:
+    required_fields:
+    - patient_name
+    - report_date
+    - ecg_interpretation
+    required_text_anchors:
+    - electro cardiogram
+    - electrocardiogram
+    - ecg
+    - ecg diagnosis
+    - normal sinus rhythm
+    - cardiac electric axis
+    - sinus rhythm
+    - electrocardiogram report
+  AADHAAR:
+    required_fields:
+    - patient_name
+    - patient_dob
+    - identity_number
+    required_text_anchors:
+    - aadhaar
+    - government of india
+    - unique identification
+    identifier_kinds:
+    - full_aadhaar
+    identifier_alternatives:
+    - - identity_number
+    - - identity_number_masked
+  PAN:
+    required_fields:
+    - patient_name
+    - patient_dob
+    - identity_number
+    required_text_anchors:
+    - income tax department
+    - permanent account number
+    identifier_kinds:
+    - full_pan
+  IDENTITY_PROOF:
+    required_fields:
+    - patient_name
+    - identity_number
+    required_text_anchors:
+    - government of india
+    - income tax department
+    - permanent account number
+    - unique identification
+    - driving licence
+    - driving license
+    identifier_kinds:
+    - full_aadhaar
+    - full_pan
+    identifier_alternatives:
+    - - identity_number
+    - - identity_number_masked
+  TMT:
+    required_fields:
+    - patient_name
+    - report_date
+    - tmt_interpretation
+    required_text_anchors:
+    - treadmill test
+    - treadmill stress test
+    - exercise stress test
+    - tmt report
+    - tmt summary
+    - bruce
+    - treadmill
+    - exercise stress
+    - tmt is negative
+  DRIVING_LICENSE:
+    required_fields:
+    - patient_name
+    - patient_dob
+    - license_number
+    - license_expiry_date
+    required_text_anchors:
+    - driving licence
+    - driving license
+    - union of india driving
+  GEOTAGPHOTO:
+    asset_only: true
+    required_fields: []
+    required_text_anchors: []
+  PERSON_PHOTO:
+    asset_only: true
+    required_fields: []
+    required_text_anchors: []
+  OTHER:
+    required_fields: []
+    required_text_anchors: []
+    review_required: true
